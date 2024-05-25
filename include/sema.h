@@ -85,15 +85,11 @@ class Sema {
     return nullptr;
   }
 
-  std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt) {
-    return resolveExpr(dynamic_cast<const Expr &>(stmt));
-  };
-
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block) {
-    std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
+    std::vector<std::unique_ptr<ResolvedExpr>> resolvedStatements;
 
     for (auto &&stmt : block.expressions) {
-      if (auto resolvedStmt = resolveStmt(*stmt))
+      if (auto resolvedStmt = resolveExpr(*stmt))
         resolvedStatements.emplace_back(std::move(resolvedStmt));
       else
         return nullptr;
@@ -168,7 +164,7 @@ public:
     // Create builtin functions.
     {
       auto block = std::make_unique<ResolvedBlock>(
-          SourceLocation{}, std::vector<std::unique_ptr<ResolvedStmt>>{});
+          SourceLocation{}, std::vector<std::unique_ptr<ResolvedExpr>>{});
       auto param = std::make_unique<ResolvedParamDecl>(SourceLocation{}, "num",
                                                        Type::NUMBER);
       std::vector<std::unique_ptr<ResolvedParamDecl>> params;

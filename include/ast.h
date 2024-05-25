@@ -119,11 +119,13 @@ struct FunctionDecl : public Decl {
 
 enum class Type { NUMBER, STRING, VOID };
 
-struct ResolvedStmt : public Dumpable {
+struct ResolvedExpr : public Dumpable {
   SourceLocation location;
+  Type type;
+  ResolvedExpr(SourceLocation location, Type type)
+      : location(std::move(location)), type(type) {}
 
-  ResolvedStmt(SourceLocation location) : location(location) {}
-  virtual ~ResolvedStmt() = default;
+  virtual ~ResolvedExpr() = default;
 };
 
 struct ResolvedDecl : public Dumpable {
@@ -138,10 +140,10 @@ struct ResolvedDecl : public Dumpable {
 
 struct ResolvedBlock : public Dumpable {
   SourceLocation location;
-  std::vector<std::unique_ptr<ResolvedStmt>> statements;
+  std::vector<std::unique_ptr<ResolvedExpr>> statements;
 
   ResolvedBlock(SourceLocation location,
-                std::vector<std::unique_ptr<ResolvedStmt>> statements)
+                std::vector<std::unique_ptr<ResolvedExpr>> statements)
       : location(location), statements(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
@@ -185,12 +187,6 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
 
     body->dump(level + 1);
   }
-};
-
-struct ResolvedExpr : public ResolvedStmt {
-  Type type;
-  ResolvedExpr(SourceLocation location, Type type)
-      : ResolvedStmt(std::move(location)), type(type) {}
 };
 
 struct ResolvedNumberLiteral : public ResolvedExpr {
