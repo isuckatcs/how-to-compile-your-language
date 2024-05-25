@@ -24,4 +24,6 @@ struct SourceLocation {
   int col;
 };
 
+std::nullptr_t error(SourceLocation location, std::string_view message);
+
 #endif // A_LANGUAGE_UTILS_H

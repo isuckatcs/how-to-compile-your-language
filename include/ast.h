@@ -7,13 +7,6 @@
 
 #include "utils.h"
 
-struct Stmt : public Dumpable {
-  SourceLocation location;
-
-  Stmt(SourceLocation location) : location(location) {}
-  virtual ~Stmt() = default;
-};
-
 struct Decl : public Dumpable {
   SourceLocation location;
   std::string identifier;
@@ -23,24 +16,27 @@ struct Decl : public Dumpable {
   virtual ~Decl() = default;
 };
 
+struct Expr : public Dumpable {
+  SourceLocation location;
+  Expr(SourceLocation location) : location(std::move(location)) {}
+
+  virtual ~Expr() = default;
+};
+
 struct Block : public Dumpable {
   SourceLocation location;
-  std::vector<std::unique_ptr<Stmt>> statements;
+  std::vector<std::unique_ptr<Expr>> expressions;
 
-  Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
-      : location(location), statements(std::move(statements)) {}
+  Block(SourceLocation location, std::vector<std::unique_ptr<Expr>> expressions)
+      : location(location), expressions(std::move(expressions)) {}
 
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "Block\n";
 
-    for (auto &&stmt : statements)
+    for (auto &&stmt : expressions)
       stmt->dump(level + 1);
   }
-};
-
-struct Expr : public Stmt {
-  Expr(SourceLocation location) : Stmt(std::move(location)) {}
 };
 
 struct NumberLiteral : public Expr {
@@ -52,18 +48,6 @@ struct NumberLiteral : public Expr {
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "NumberLiteral: '" + value + "'\n";
-  }
-};
-
-struct StringLiteral : public Expr {
-  std::string value;
-
-  StringLiteral(SourceLocation location, std::string value)
-      : Expr(std::move(location)), value(value) {}
-
-  void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "StringLiteral: '" + value + "'\n";
   }
 };
 
@@ -218,18 +202,6 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "NumberLiteral: '" << value << "'\n";
-  }
-};
-
-struct ResolvedStringLiteral : public ResolvedExpr {
-  std::string value;
-
-  ResolvedStringLiteral(SourceLocation location, std::string value)
-      : ResolvedExpr(std::move(location), Type::STRING), value(value) {}
-
-  void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedStringLiteral: " + value + "\n";
   }
 };
 

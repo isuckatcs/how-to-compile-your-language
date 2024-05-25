@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "lexer.h"
 #include "token.h"
 
@@ -10,6 +12,12 @@ bool isSpace(char c) {
 bool isAlpha(char c) { return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'; }
 bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
+
+std::unordered_map<std::string_view, TokenKind> keywords = {
+    {"void", TokenKind::kw_void},
+    {"fn", TokenKind::kw_fn},
+    {"number", TokenKind::kw_number},
+};
 
 } // namespace
 
@@ -38,23 +46,14 @@ Token TheLexer::getNextToken() {
   if (currentChar == '\0')
     return Token{tokenStartLocation, TokenKind::eof};
 
-  if (currentChar == '\'') {
-    std::string value;
-
-    while ((currentChar = eatNextChar()) != '\'')
-      value += currentChar;
-
-    return Token{tokenStartLocation, TokenKind::string, std::move(value)};
-  }
-
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 
     while (isAlnum(peekNextChar()))
       value += eatNextChar();
 
-    if (value == "fn")
-      return Token{tokenStartLocation, TokenKind::fn, std::move(value)};
+    if (keywords.count(value))
+      return Token{tokenStartLocation, keywords[value], std::move(value)};
 
     return Token{tokenStartLocation, TokenKind::identifier, std::move(value)};
   }

@@ -18,8 +18,8 @@ class Codegen {
   llvm::IRBuilder<> Builder;
   llvm::Module TheModule;
 
-  llvm::Value *GenerateStringLiteral(const ResolvedStringLiteral &literal) {
-    return Builder.CreateGlobalStringPtr("asd\n", "str", 0, &TheModule);
+  llvm::Value *GenerateNumberLiteral(const ResolvedNumberLiteral &num) {
+    return llvm::ConstantFP::get(Builder.getDoubleTy(), num.value);
   }
 
   llvm::Value *GenerateCallExpr(const ResolvedCallExpr &call) {
@@ -33,6 +33,11 @@ class Codegen {
     auto callee = TheModule.getFunction(id);
 
     std::vector<llvm::Value *> args;
+
+    if (id == "printf") {
+      args.emplace_back(Builder.CreateGlobalStringPtr("%f\n"));
+    }
+
     for (auto &&arg : call.arguments)
       args.emplace_back(GenerateExpr(*arg));
 
@@ -44,8 +49,8 @@ class Codegen {
   }
 
   llvm::Value *GenerateExpr(const ResolvedExpr &expr) {
-    if (auto *strLit = dynamic_cast<const ResolvedStringLiteral *>(&expr))
-      return GenerateStringLiteral(*strLit);
+    if (auto *numLit = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
+      return GenerateNumberLiteral(*numLit);
     else if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
       return GenerateCallExpr(*call);
     else

@@ -1,15 +1,16 @@
-fn bar(x: string, y: number): void {
-    print(x);
-    print(1.1);
+fn bar(y: number): void {
+    y;
+    10.2;
+    print(y);
+    foo(y);
 }
 
-fn foo(x: string): void {
-    print(x);
+fn foo(y: number): void {
+    print(5.1);
 }
 
 fn main(): void {
-    print('Hello World');
-    
-    bar('infinite');
-    foo('loop');
+    print(000.0);
+
+    bar(2.3);
 }

@@ -18,10 +18,12 @@ enum class TokenKind {
   semi,
   comma,
 
-  fn,
   identifier,
-  string,
   number,
+
+  kw_fn,
+  kw_number,
+  kw_void,
 };
 
 struct Token {

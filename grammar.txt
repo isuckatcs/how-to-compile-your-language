@@ -1,0 +1,42 @@
+<sourceFile> 
+    ::= <functionDecl>* EOF
+
+<functionDecl> 
+    ::= 'fn' <identifier> <parameterList> ':' <type> <block>
+
+<parameterList>
+    ::= '(' (<paramDecl> (',' <paramDecl>)*)? ')'
+
+<paramDecl>
+    ::= <identifier> ':' <type>
+
+<block>
+    ::= '{' (<expr> ';')* '}'
+
+<expr>
+    ::= <numberLiteral>
+    |   <declRefExpr>
+    |   <callExpr>
+
+<numberLiteral>
+    ::= <number>
+
+<declRefExpr>
+    ::= <identifier>
+
+<callExpr>
+    ::= <declRefExpr> <argumentList>
+
+<argumentList>
+    ::= '(' (<expr> (',' <expr>)*)? ')'
+
+<type>
+    ::= 'number'
+    |   'void'
+    |   <identifier>
+
+<identifier>
+    ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | <number>)*
+
+<number>
+    ::= ('0'..'9')+ '.' ('0'..'9')+

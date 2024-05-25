@@ -1,24 +1,15 @@
 #ifndef A_COMPILER_SEMA_H
 #define A_COMPILER_SEMA_H
 
-#include <iostream>
 #include <memory>
 #include <optional>
 
 #include "ast.h"
+#include "utils.h"
 
 class Sema {
   std::vector<std::unique_ptr<FunctionDecl>> TopLevel;
   std::vector<std::vector<ResolvedDecl *>> Scopes;
-
-  std::nullptr_t error(SourceLocation location, std::string_view message) {
-    const auto &[file, line, col] = location;
-
-    std::cerr << file << ':' << line << ':' << col << ": error: " << message
-              << '\n';
-
-    return nullptr;
-  }
 
   ResolvedDecl *lookupDecl(const std::string id) {
     for (auto it = Scopes.rbegin(); it != Scopes.rend(); ++it) {
@@ -81,10 +72,6 @@ class Sema {
   }
 
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr) {
-    if (auto stringLiteral = dynamic_cast<const StringLiteral *>(&expr))
-      return std::make_unique<ResolvedStringLiteral>(stringLiteral->location,
-                                                     stringLiteral->value);
-
     if (auto numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
       return std::make_unique<ResolvedNumberLiteral>(
           numberLiteral->location, std::stod(numberLiteral->value));
@@ -105,7 +92,7 @@ class Sema {
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block) {
     std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
-    for (auto &&stmt : block.statements) {
+    for (auto &&stmt : block.expressions) {
       if (auto resolvedStmt = resolveStmt(*stmt))
         resolvedStatements.emplace_back(std::move(resolvedStmt));
       else
@@ -182,8 +169,8 @@ public:
     {
       auto block = std::make_unique<ResolvedBlock>(
           SourceLocation{}, std::vector<std::unique_ptr<ResolvedStmt>>{});
-      auto param = std::make_unique<ResolvedParamDecl>(SourceLocation{}, "msg",
-                                                       Type::STRING);
+      auto param = std::make_unique<ResolvedParamDecl>(SourceLocation{}, "num",
+                                                       Type::NUMBER);
       std::vector<std::unique_ptr<ResolvedParamDecl>> params;
       params.emplace_back(std::move(param));
 
