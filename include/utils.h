@@ -1,0 +1,27 @@
+#ifndef A_LANGUAGE_UTILS_H
+#define A_LANGUAGE_UTILS_H
+
+#include <iostream>
+#include <string>
+
+struct Dumpable {
+  void indent(size_t level) {
+    for (size_t i = 0; i < level; ++i)
+      std::cerr << "  ";
+  }
+
+  virtual void dump(size_t level = 0) = 0;
+};
+
+struct SourceFile {
+  const char *path;
+  std::string buffer;
+};
+
+struct SourceLocation {
+  const char *filepath;
+  int line;
+  int col;
+};
+
+#endif // A_LANGUAGE_UTILS_H
