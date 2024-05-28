@@ -1,7 +1,7 @@
-fn foo(foo: number): void {
-    print(foo);
+fn printParam(n: number): void {
+    print(n);
 }
 
 fn main(): void {
-    foo(0001.1);
+    printParam(1.0);
 }

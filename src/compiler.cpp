@@ -42,7 +42,7 @@ int main(int argc, const char **argv) {
 
   std::cerr << "\n\n";
   Codegen codegen{std::move(resolvedAST)};
-  codegen.GenerateCode();
+  codegen.generateIR("tmp.ll");
 
   std::stringstream command;
   command << "clang tmp.ll -Wno-override-module";
