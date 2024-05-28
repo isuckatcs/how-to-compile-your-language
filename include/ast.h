@@ -18,7 +18,7 @@ struct Decl : public Dumpable {
 
 struct Expr : public Dumpable {
   SourceLocation location;
-  Expr(SourceLocation location) : location(std::move(location)) {}
+  Expr(SourceLocation location) : location(location) {}
 
   virtual ~Expr() = default;
 };
@@ -43,7 +43,7 @@ struct NumberLiteral : public Expr {
   std::string value;
 
   NumberLiteral(SourceLocation location, std::string value)
-      : Expr(std::move(location)), value(value) {}
+      : Expr(location), value(value) {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -55,7 +55,7 @@ struct DeclRefExpr : public Expr {
   std::string identifier;
 
   DeclRefExpr(SourceLocation location, std::string identifier)
-      : Expr(std::move(location)), identifier(identifier) {}
+      : Expr(location), identifier(identifier) {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -69,7 +69,7 @@ struct CallExpr : public Expr {
 
   CallExpr(SourceLocation location, std::unique_ptr<DeclRefExpr> identifier,
            std::vector<std::unique_ptr<Expr>> arguments)
-      : Expr(std::move(location)), identifier(std::move(identifier)),
+      : Expr(location), identifier(std::move(identifier)),
         arguments(std::move(arguments)) {}
 
   void dump(size_t level = 0) override {
@@ -86,8 +86,7 @@ struct CallExpr : public Expr {
 struct ParamDecl : public Decl {
   std::string type;
   ParamDecl(SourceLocation location, std::string identifier, std::string type)
-      : Decl{std::move(location), std::move(identifier)},
-        type(std::move(type)) {}
+      : Decl{location, std::move(identifier)}, type(std::move(type)) {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -103,7 +102,7 @@ struct FunctionDecl : public Decl {
   FunctionDecl(SourceLocation location, std::string identifier,
                std::string type, std::vector<std::unique_ptr<ParamDecl>> params,
                std::unique_ptr<Block> body)
-      : Decl{std::move(location), std::move(identifier)}, type(std::move(type)),
+      : Decl{location, std::move(identifier)}, type(std::move(type)),
         params(std::move(params)), body(std::move(body)) {}
 
   void dump(size_t level = 0) override {
@@ -117,13 +116,13 @@ struct FunctionDecl : public Decl {
   }
 };
 
-enum class Type { NUMBER, STRING, VOID };
+enum class Type { NUMBER, VOID };
 
 struct ResolvedExpr : public Dumpable {
   SourceLocation location;
   Type type;
   ResolvedExpr(SourceLocation location, Type type)
-      : location(std::move(location)), type(type) {}
+      : location(location), type(type) {}
 
   virtual ~ResolvedExpr() = default;
 };
@@ -140,24 +139,24 @@ struct ResolvedDecl : public Dumpable {
 
 struct ResolvedBlock : public Dumpable {
   SourceLocation location;
-  std::vector<std::unique_ptr<ResolvedExpr>> statements;
+  std::vector<std::unique_ptr<ResolvedExpr>> expressions;
 
   ResolvedBlock(SourceLocation location,
                 std::vector<std::unique_ptr<ResolvedExpr>> statements)
-      : location(location), statements(std::move(statements)) {}
+      : location(location), expressions(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "ResolvedBlock\n";
 
-    for (auto &&stmt : statements)
+    for (auto &&stmt : expressions)
       stmt->dump(level + 1);
   }
 };
 
 struct ResolvedParamDecl : public ResolvedDecl {
   ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
-      : ResolvedDecl{std::move(location), std::move(identifier), type} {}
+      : ResolvedDecl{location, std::move(identifier), type} {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -174,7 +173,7 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
                        Type type,
                        std::vector<std::unique_ptr<ResolvedParamDecl>> params,
                        std::unique_ptr<ResolvedBlock> body)
-      : ResolvedDecl{std::move(location), std::move(identifier), type},
+      : ResolvedDecl{location, std::move(identifier), type},
         params(std::move(params)), body(std::move(body)) {}
 
   void dump(size_t level = 0) override {
@@ -193,7 +192,7 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
   double value;
 
   ResolvedNumberLiteral(SourceLocation location, double value)
-      : ResolvedExpr(std::move(location), Type::NUMBER), value(value) {}
+      : ResolvedExpr(location, Type::NUMBER), value(value) {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -202,10 +201,10 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
 };
 
 struct ResolvedDeclRefExpr : public ResolvedExpr {
-  ResolvedDecl *decl;
+  const ResolvedDecl *decl;
 
   ResolvedDeclRefExpr(SourceLocation location, ResolvedDecl &decl)
-      : ResolvedExpr(std::move(location), decl.type), decl(&decl) {}
+      : ResolvedExpr(location, decl.type), decl(&decl) {}
 
   void dump(size_t level = 0) override {
     indent(level);
@@ -220,7 +219,7 @@ struct ResolvedCallExpr : public ResolvedExpr {
 
   ResolvedCallExpr(SourceLocation location, const ResolvedFunctionDecl &callee,
                    std::vector<std::unique_ptr<ResolvedExpr>> arguments)
-      : ResolvedExpr(std::move(location), callee.type), callee(&callee),
+      : ResolvedExpr(location, callee.type), callee(&callee),
         arguments(std::move(arguments)) {}
 
   void dump(size_t level = 0) override {

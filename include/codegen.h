@@ -58,13 +58,9 @@ class Codegen {
           dynamic_cast<const ResolvedDeclRefExpr &>(expr));
   }
 
-  void GenerateStmt(const ResolvedStmt &stmt) {
-    GenerateExpr(dynamic_cast<const ResolvedExpr &>(stmt));
-  }
-
   void GenerateBlock(const ResolvedBlock &block) {
-    for (auto &&stmt : block.statements) {
-      GenerateStmt(*stmt);
+    for (auto &&stmt : block.expressions) {
+      GenerateExpr(*stmt);
     }
   }
 
@@ -72,8 +68,6 @@ class Codegen {
     switch (type) {
     case Type::NUMBER:
       return Builder.getDoubleTy();
-    case Type::STRING:
-      return Builder.getInt8PtrTy();
     case Type::VOID:
       return Builder.getVoidTy();
     }

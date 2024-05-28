@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
 #include "sema.h"
@@ -35,13 +36,13 @@ int main(int argc, const char **argv) {
   Sema sema{std::move(TopLevel)};
 
   std::cerr << "\n\n";
-  auto resolvedAST = sema.resolve();
+  auto resolvedAST = sema.resolveSourceFile();
   for (auto &&fn : resolvedAST)
     fn->dump();
 
-  // std::cerr << "\n\n";
-  // Codegen codegen{std::move(resolvedAST)};
-  // codegen.GenerateCode();
+  std::cerr << "\n\n";
+  Codegen codegen{std::move(resolvedAST)};
+  codegen.GenerateCode();
 
   std::stringstream command;
   command << "clang tmp.ll -Wno-override-module";

@@ -64,10 +64,8 @@ std::unique_ptr<Block> TheParser::parseBlock() {
 
   std::vector<std::unique_ptr<Expr>> expressions;
   while (true) {
-    if (nextToken.kind == TokenKind::rbrace) {
-      eatNextToken(); // eat '}'
+    if (nextToken.kind == TokenKind::rbrace)
       break;
-    }
 
     if (nextToken.kind == TokenKind::eof)
       return error(nextToken.location, "expected '}' at the end of a block");
@@ -77,11 +75,14 @@ std::unique_ptr<Block> TheParser::parseBlock() {
       return nullptr;
 
     if (nextToken.kind != TokenKind::semi)
-      return error(nextToken.location, "expected ';' at the end of statement");
+      return error(nextToken.location,
+                   "expected ';' at the end of an expression");
     eatNextToken(); // eat ';'
 
     expressions.emplace_back(std::move(expr));
   }
+
+  eatNextToken(); // eat '}'
 
   return std::make_unique<Block>(location, std::move(expressions));
 }

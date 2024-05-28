@@ -1,4 +1,4 @@
-add_executable(compiler lexer.cpp parser.cpp compiler.cpp utils.cpp)
+add_executable(compiler lexer.cpp parser.cpp compiler.cpp sema.cpp utils.cpp)
 
 llvm_map_components_to_libnames(llvm_libs core)
 

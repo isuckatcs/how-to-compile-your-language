@@ -1,16 +1,7 @@
-fn bar(y: number): void {
-    y;
-    10.2;
-    print(y);
-    foo(y);
-}
-
-fn foo(y: number): void {
-    print(5.1);
+fn foo(foo: number): void {
+    print(foo);
 }
 
 fn main(): void {
-    print(000.0);
-
-    bar(2.3);
+    foo(0001.1);
 }
