@@ -1,11 +1,41 @@
 #ifndef A_COMPILER_LEXER_H
 #define A_COMPILER_LEXER_H
 
+#include <optional>
 #include <string>
 
-#include "token.h"
 #include "utils.h"
 
+enum class TokenKind {
+  eof,
+  unk,
+
+  lpar,
+  rpar,
+  lbrace,
+  rbrace,
+  colon,
+  semi,
+  comma,
+
+  plus,
+  minus,
+  asterisk,
+  slash,
+
+  identifier,
+  number,
+
+  kw_fn,
+  kw_number,
+  kw_void,
+};
+
+struct Token {
+  SourceLocation location;
+  TokenKind kind;
+  std::optional<std::string> value;
+};
 class TheLexer {
   const SourceFile *source;
   size_t idx = 0;

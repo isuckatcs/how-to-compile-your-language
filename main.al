@@ -1,5 +1,5 @@
 fn printParam(n: number): void {
-    print(n);
+    print((((((((((n))))))))));
 }
 
 fn main(): void {

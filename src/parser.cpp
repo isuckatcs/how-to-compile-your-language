@@ -87,10 +87,13 @@ std::unique_ptr<Block> TheParser::parseBlock() {
   return std::make_unique<Block>(location, std::move(expressions));
 }
 
-// <expr>
+std::unique_ptr<Expr> TheParser::parseExpr() { return parsePrimary(); }
+
+// <primaryExpr>
 //  ::= <numberLiteral>
 //  |   <declRefExpr>
 //  |   <callExpr>
+//  |   '(' <expr> ')'
 //
 // <numberLiteral>
 //  ::= <number>
@@ -100,8 +103,22 @@ std::unique_ptr<Block> TheParser::parseBlock() {
 //
 // <callExpr>
 //  ::= <declRefExpr> <argumentList>
-std::unique_ptr<Expr> TheParser::parseExpr() {
+std::unique_ptr<Expr> TheParser::parsePrimary() {
   SourceLocation location = nextToken.location;
+
+  if (nextToken.kind == TokenKind::lpar) {
+    eatNextToken(); // eat '('
+
+    auto expr = parseExpr();
+    if (!expr)
+      return nullptr;
+
+    if (nextToken.kind != TokenKind::rpar)
+      return error(nextToken.location, "expected ')'");
+    eatNextToken(); // eat ')'
+
+    return std::make_unique<GroupingExpr>(location, std::move(expr));
+  }
 
   if (nextToken.kind == TokenKind::number) {
     auto literal = std::make_unique<NumberLiteral>(location, *nextToken.value);

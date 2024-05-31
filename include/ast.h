@@ -83,6 +83,20 @@ struct CallExpr : public Expr {
   }
 };
 
+struct GroupingExpr : public Expr {
+  std::unique_ptr<Expr> expr;
+
+  GroupingExpr(SourceLocation location, std::unique_ptr<Expr> expr)
+      : Expr(location), expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "GroupingExpr:\n";
+
+    expr->dump(level + 1);
+  }
+};
+
 struct ParamDecl : public Decl {
   std::string type;
   ParamDecl(SourceLocation location, std::string identifier, std::string type)
@@ -229,6 +243,21 @@ struct ResolvedCallExpr : public ResolvedExpr {
 
     for (auto &&arg : arguments)
       arg->dump(level + 1);
+  }
+};
+
+struct ResolvedGroupingExpr : public ResolvedExpr {
+  std::unique_ptr<ResolvedExpr> expr;
+
+  ResolvedGroupingExpr(SourceLocation location,
+                       std::unique_ptr<ResolvedExpr> expr)
+      : ResolvedExpr(location, expr->type), expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedGroupingExpr:\n";
+
+    expr->dump(level + 1);
   }
 };
 

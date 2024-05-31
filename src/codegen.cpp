@@ -17,6 +17,9 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
 
+  if (auto *grouping = dynamic_cast<const ResolvedGroupingExpr *>(&expr))
+    return generateExpr(*grouping->expr);
+
   llvm_unreachable("unknown expression encountered");
 }
 

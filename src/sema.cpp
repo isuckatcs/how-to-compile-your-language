@@ -55,6 +55,16 @@ std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
   return std::nullopt;
 }
 
+std::unique_ptr<ResolvedGroupingExpr>
+Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
+  auto resolvedExpr = resolveExpr(*grouping.expr);
+  if (!resolvedExpr)
+    return nullptr;
+
+  return std::make_unique<ResolvedGroupingExpr>(grouping.location,
+                                                std::move(resolvedExpr));
+}
+
 std::unique_ptr<ResolvedDeclRefExpr>
 Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr) {
   if (ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first)
@@ -106,6 +116,9 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (auto callExpr = dynamic_cast<const CallExpr *>(&expr))
     return resolveCallExpr(*callExpr);
+
+  if (auto groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
+    return resolveGroupingExpr(*groupingExpr);
 
   return nullptr;
 }

@@ -20,6 +20,7 @@ class TheParser {
 
   std::unique_ptr<Block> parseBlock();
   std::unique_ptr<Expr> parseExpr();
+  std::unique_ptr<Expr> parsePrimary();
 
   // helper methods
   using ParameterList = std::vector<std::unique_ptr<ParamDecl>>;

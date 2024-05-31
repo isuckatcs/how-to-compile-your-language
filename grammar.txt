@@ -13,10 +13,24 @@
 <block>
     ::= '{' (<expr> ';')* '}'
 
+Precedence  Type            Symbols
+Highest     Multiplicative  *, /    
+Lowest      Additive        +, -    
+
 <expr>
+    ::= <additiveExpression> (('+' | '-') <additiveExpression>)*
+
+<additiveExpression>
+    ::= <multiplicativeExpression> (('*' | '/') <multiplicativeExpression>)*
+
+<multiplicativeExpression>
+    ::= <primaryExpr>
+
+<primaryExpr>
     ::= <numberLiteral>
     |   <declRefExpr>
     |   <callExpr>
+    |   '(' <expr> ')'
 
 <numberLiteral>
     ::= <number>

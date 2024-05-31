@@ -1,7 +1,6 @@
 #include <unordered_map>
 
 #include "lexer.h"
-#include "token.h"
 
 namespace {
 bool isSpace(char c) {
@@ -45,6 +44,15 @@ Token TheLexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::comma};
   if (currentChar == '\0')
     return Token{tokenStartLocation, TokenKind::eof};
+
+  if (currentChar == '+')
+    return Token{tokenStartLocation, TokenKind::plus};
+  if (currentChar == '-')
+    return Token{tokenStartLocation, TokenKind::minus};
+  if (currentChar == '*')
+    return Token{tokenStartLocation, TokenKind::asterisk};
+  if (currentChar == '/')
+    return Token{tokenStartLocation, TokenKind::slash};
 
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
