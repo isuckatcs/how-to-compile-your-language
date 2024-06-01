@@ -33,9 +33,7 @@ class Codegen {
 
 public:
   explicit Codegen(
-      std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
-      : resolvedSourceFile(std::move(resolvedSourceFile)), Builder(Context),
-        Module("<translation_unit>", Context) {}
+      std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile);
 
   void generateIR(std::string_view filePath);
 };

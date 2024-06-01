@@ -83,12 +83,12 @@ int main(int argc, const char **argv) {
   codegen.generateIR(outLL);
 
   std::stringstream command;
-  command << "clang " << outLL << " -Wno-override-module";
+  command << "clang " << outLL;
   if (options.output)
     command << " -o " << *options.output;
 
-  std::system(command.str().c_str());
+  int ret = std::system(command.str().c_str());
   std::filesystem::remove(outLL);
 
-  return 0;
+  return ret;
 }

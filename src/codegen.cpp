@@ -1,5 +1,14 @@
 #include "codegen.h"
 
+#include <llvm/Support/Host.h>
+
+Codegen::Codegen(
+    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
+    : resolvedSourceFile(std::move(resolvedSourceFile)), Builder(Context),
+      Module("<translation_unit>", Context) {
+  Module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
+}
+
 llvm::Type *Codegen::generateType(Type type) {
   if (type == Type::NUMBER)
     return Builder.getDoubleTy();
