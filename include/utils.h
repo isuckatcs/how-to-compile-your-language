@@ -14,12 +14,12 @@ struct Dumpable {
 };
 
 struct SourceFile {
-  const char *path;
+  std::string_view path;
   std::string buffer;
 };
 
 struct SourceLocation {
-  const char *filepath;
+  std::string_view filepath;
   int line;
   int col;
 };

@@ -142,8 +142,6 @@ void Codegen::generateIR(std::string_view filePath) {
 
   generateMainWrapper();
 
-  Module.dump();
-
   std::error_code errorCode;
   llvm::raw_fd_ostream f{filePath, errorCode};
   Module.print(f, nullptr);
