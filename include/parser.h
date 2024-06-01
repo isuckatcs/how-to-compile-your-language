@@ -20,6 +20,7 @@ class TheParser {
 
   std::unique_ptr<Block> parseBlock();
   std::unique_ptr<Expr> parseExpr();
+  std::unique_ptr<Expr> parseExprRHS(std::unique_ptr<Expr> LHS, int precedence);
   std::unique_ptr<Expr> parsePrimary();
 
   // helper methods

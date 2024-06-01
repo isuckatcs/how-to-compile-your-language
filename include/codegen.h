@@ -18,8 +18,11 @@ class Codegen {
   llvm::Module Module;
 
   llvm::Type *generateType(Type type);
+  llvm::Instruction::BinaryOps getOperatorKind(TokenKind op);
+
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
+  llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "lexer.h"
 #include "utils.h"
 
 struct Decl : public Dumpable {
@@ -94,6 +95,33 @@ struct GroupingExpr : public Expr {
     std::cerr << "GroupingExpr:\n";
 
     expr->dump(level + 1);
+  }
+};
+
+struct BinaryOperator : public Expr {
+  std::unique_ptr<Expr> LHS;
+  std::unique_ptr<Expr> RHS;
+  TokenKind op;
+
+  BinaryOperator(SourceLocation location, std::unique_ptr<Expr> lhs,
+                 std::unique_ptr<Expr> rhs, TokenKind op)
+      : Expr(location), LHS(std::move(lhs)), RHS(std::move(rhs)), op(op) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "BinaryOperator: '";
+    if (op == TokenKind::plus)
+      std::cerr << '+';
+    if (op == TokenKind::minus)
+      std::cerr << '-';
+    if (op == TokenKind::asterisk)
+      std::cerr << '*';
+    if (op == TokenKind::slash)
+      std::cerr << '/';
+    std::cerr << '\'' << '\n';
+
+    LHS->dump(level + 1);
+    RHS->dump(level + 1);
   }
 };
 
@@ -258,6 +286,35 @@ struct ResolvedGroupingExpr : public ResolvedExpr {
     std::cerr << "ResolvedGroupingExpr:\n";
 
     expr->dump(level + 1);
+  }
+};
+
+struct ResolvedBinaryOperator : public ResolvedExpr {
+  std::unique_ptr<ResolvedExpr> LHS;
+  std::unique_ptr<ResolvedExpr> RHS;
+  TokenKind op;
+
+  ResolvedBinaryOperator(SourceLocation location,
+                         std::unique_ptr<ResolvedExpr> lhs,
+                         std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
+      : ResolvedExpr(location, lhs->type), LHS(std::move(lhs)),
+        RHS(std::move(rhs)), op(op) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedBinaryOperator: '";
+    if (op == TokenKind::plus)
+      std::cerr << '+';
+    if (op == TokenKind::minus)
+      std::cerr << '-';
+    if (op == TokenKind::asterisk)
+      std::cerr << '*';
+    if (op == TokenKind::slash)
+      std::cerr << '/';
+    std::cerr << '\'' << '\n';
+
+    LHS->dump(level + 1);
+    RHS->dump(level + 1);
   }
 };
 

@@ -7,6 +7,19 @@ llvm::Type *Codegen::generateType(Type type) {
   return Builder.getVoidTy();
 }
 
+llvm::Instruction::BinaryOps Codegen::getOperatorKind(TokenKind op) {
+  if (op == TokenKind::plus)
+    return llvm::BinaryOperator::FAdd;
+  if (op == TokenKind::minus)
+    return llvm::BinaryOperator::FSub;
+  if (op == TokenKind::asterisk)
+    return llvm::BinaryOperator::FMul;
+  if (op == TokenKind::slash)
+    return llvm::BinaryOperator::FDiv;
+
+  llvm_unreachable("unknown operator");
+}
+
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *numLit = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
     return llvm::ConstantFP::get(Builder.getDoubleTy(), numLit->value);
@@ -20,6 +33,9 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *grouping = dynamic_cast<const ResolvedGroupingExpr *>(&expr))
     return generateExpr(*grouping->expr);
 
+  if (auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&expr))
+    return generateBinaryOperator(*binop);
+
   llvm_unreachable("unknown expression encountered");
 }
 
@@ -31,6 +47,14 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
     args.emplace_back(generateExpr(*arg));
 
   return Builder.CreateCall(callee, args);
+}
+
+llvm::Value *
+Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
+  llvm::Value *LHS = generateExpr(*binop.LHS);
+  llvm::Value *RHS = generateExpr(*binop.RHS);
+
+  return Builder.CreateBinOp(getOperatorKind(binop.op), LHS, RHS);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {

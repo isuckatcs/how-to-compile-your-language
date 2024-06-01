@@ -55,6 +55,18 @@ std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
   return std::nullopt;
 }
 
+std::unique_ptr<ResolvedBinaryOperator>
+Sema::resolveBinaryOperator(const BinaryOperator &binop) {
+  auto resolvedLHS = resolveExpr(*binop.LHS);
+  auto resolvedRHS = resolveExpr(*binop.RHS);
+
+  if (!resolvedLHS || !resolvedRHS)
+    return nullptr;
+
+  return std::make_unique<ResolvedBinaryOperator>(
+      binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
+}
+
 std::unique_ptr<ResolvedGroupingExpr>
 Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
   auto resolvedExpr = resolveExpr(*grouping.expr);
@@ -119,6 +131,9 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (auto groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
     return resolveGroupingExpr(*groupingExpr);
+
+  if (auto binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
+    return resolveBinaryOperator(*binaryOperator);
 
   return nullptr;
 }

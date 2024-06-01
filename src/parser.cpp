@@ -1,5 +1,17 @@
 #include "parser.h"
 
+namespace {
+int getTokPrecedence(TokenKind tok) {
+  if (tok == TokenKind::asterisk || tok == TokenKind::slash)
+    return 2;
+
+  if (tok == TokenKind::plus || tok == TokenKind::minus)
+    return 1;
+
+  return -1;
+}
+}; // namespace
+
 // <functionDecl>
 //  ::= 'fn' <identifier> <parameterList> ':' <type> <block>
 std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
@@ -87,7 +99,37 @@ std::unique_ptr<Block> TheParser::parseBlock() {
   return std::make_unique<Block>(location, std::move(expressions));
 }
 
-std::unique_ptr<Expr> TheParser::parseExpr() { return parsePrimary(); }
+std::unique_ptr<Expr> TheParser::parseExpr() {
+  auto LHS = parsePrimary();
+  if (!LHS)
+    return nullptr;
+  return parseExprRHS(std::move(LHS), 0);
+}
+
+std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> LHS,
+                                              int precedence) {
+  while (true) {
+    TokenKind op = nextToken.kind;
+    int curOpPrec = getTokPrecedence(op);
+
+    if (curOpPrec < precedence)
+      return LHS;
+    eatNextToken(); // eat opearator
+
+    auto RHS = parsePrimary();
+    if (!RHS)
+      return nullptr;
+
+    if (curOpPrec < getTokPrecedence(nextToken.kind)) {
+      RHS = parseExprRHS(std::move(RHS), curOpPrec + 1);
+      if (!RHS)
+        return nullptr;
+    }
+
+    LHS = std::make_unique<BinaryOperator>(LHS->location, std::move(LHS),
+                                           std::move(RHS), op);
+  }
+}
 
 // <primaryExpr>
 //  ::= <numberLiteral>

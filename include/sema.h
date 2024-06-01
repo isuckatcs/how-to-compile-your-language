@@ -21,6 +21,8 @@ class Sema {
 
   std::optional<Type> resolveType(const std::string &typeSpecifier);
 
+  std::unique_ptr<ResolvedBinaryOperator>
+  resolveBinaryOperator(const BinaryOperator &binop);
   std::unique_ptr<ResolvedGroupingExpr>
   resolveGroupingExpr(const GroupingExpr &grouping);
   std::unique_ptr<ResolvedDeclRefExpr>

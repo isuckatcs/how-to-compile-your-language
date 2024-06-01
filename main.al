@@ -1,7 +1,7 @@
 fn printParam(n: number): void {
-    print((((((((((n))))))))));
+    print(0.0 / n);
 }
 
 fn main(): void {
-    printParam(1.0);
+    printParam(0.0);
 }
