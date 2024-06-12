@@ -1,5 +1,5 @@
 fn printParam(n: number): void {
-    print(1.0 / n);
+    print(1.0 + 2.0 * 3.0 + 10.0);
 }
 
 fn main(): void {

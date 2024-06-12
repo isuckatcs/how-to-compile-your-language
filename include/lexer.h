@@ -36,6 +36,7 @@ struct Token {
   TokenKind kind;
   std::optional<std::string> value;
 };
+
 class TheLexer {
   const SourceFile *source;
   size_t idx = 0;
