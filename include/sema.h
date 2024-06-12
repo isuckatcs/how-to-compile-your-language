@@ -6,8 +6,10 @@
 #include <vector>
 
 #include "ast.h"
+#include "constexpr.h"
 
 class Sema {
+  ConstantExpressionEvaluator CEE;
   std::vector<std::unique_ptr<FunctionDecl>> sourceFile;
   std::vector<std::vector<ResolvedDecl *>> Scopes;
 

@@ -2,6 +2,7 @@
 #define A_LANGUAGE_UTILS_H
 
 #include <iostream>
+#include <optional>
 #include <string>
 
 struct Dumpable {
@@ -25,5 +26,16 @@ struct SourceLocation {
 };
 
 std::nullptr_t error(SourceLocation location, std::string_view message);
+
+template <typename Base, typename Ty> class ConstantValueContainer {
+  std::optional<Ty> value = std::nullopt;
+
+  ConstantValueContainer() = default;
+  friend Base;
+
+public:
+  void setConstantValue(std::optional<Ty> val) { value = std::move(val); }
+  std::optional<Ty> getConstantValue() const { return value; }
+};
 
 #endif // A_LANGUAGE_UTILS_H

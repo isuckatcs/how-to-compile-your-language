@@ -160,9 +160,11 @@ struct FunctionDecl : public Decl {
 
 enum class Type { NUMBER, VOID };
 
-struct ResolvedExpr : public Dumpable {
+struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
+                      public Dumpable {
   SourceLocation location;
   Type type;
+
   ResolvedExpr(SourceLocation location, Type type)
       : location(location), type(type) {}
 

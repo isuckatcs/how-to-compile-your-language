@@ -110,6 +110,9 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     if (resolvedArg->type != resolvedFunctionDecl->params[idx]->type)
       return error(resolvedArg->location, "unexpected type of argument");
 
+    if (std::optional<double> val = CEE.evaluate(*resolvedArg))
+      resolvedArg->setConstantValue(val);
+
     ++idx;
     resolvedArguments.emplace_back(std::move(resolvedArg));
   }

@@ -30,6 +30,9 @@ llvm::Instruction::BinaryOps Codegen::getOperatorKind(TokenKind op) {
 }
 
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
+  if (std::optional<double> val = expr.getConstantValue())
+    return llvm::ConstantFP::get(Builder.getDoubleTy(), *val);
+
   if (auto *numLit = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
     return llvm::ConstantFP::get(Builder.getDoubleTy(), numLit->value);
 
@@ -150,6 +153,8 @@ void Codegen::generateIR(std::string_view filePath) {
     generateFunctionBody(*function);
 
   generateMainWrapper();
+
+  Module.dump();
 
   std::error_code errorCode;
   llvm::raw_fd_ostream f{filePath, errorCode};
