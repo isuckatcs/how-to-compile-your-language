@@ -76,8 +76,24 @@ int main(int argc, const char **argv) {
 
   TheLexer lexer{sourceFile};
   TheParser parser{lexer};
-  Sema sema{parser.parseSourceFile()};
-  Codegen codegen{sema.resolveSourceFile()};
+
+  auto functions = parser.parseSourceFile();
+  if (functions.empty())
+    return 1;
+
+  for (auto &&fn : functions)
+    fn->dump();
+
+  Sema sema{std::move(functions)};
+
+  auto resolvedFunctions = sema.resolveSourceFile();
+  if (resolvedFunctions.empty())
+    return 1;
+
+  for (auto &&fn : resolvedFunctions)
+    fn->dump();
+
+  Codegen codegen{std::move(resolvedFunctions)};
 
   std::string_view outLL = "tmp.ll";
   codegen.generateIR(outLL);

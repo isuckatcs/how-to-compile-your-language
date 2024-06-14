@@ -13,9 +13,9 @@ bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 
 std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"void", TokenKind::kw_void},
-    {"fn", TokenKind::kw_fn},
-    {"number", TokenKind::kw_number},
+    {"void", TokenKind::kw_void},     {"fn", TokenKind::kw_fn},
+    {"number", TokenKind::kw_number}, {"if", TokenKind::kw_if},
+    {"else", TokenKind::kw_else},
 };
 
 } // namespace
@@ -53,6 +53,26 @@ Token TheLexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::asterisk};
   if (currentChar == '/')
     return Token{tokenStartLocation, TokenKind::slash};
+
+  if (currentChar == '<')
+    return Token{tokenStartLocation, TokenKind::lt};
+  if (currentChar == '>')
+    return Token{tokenStartLocation, TokenKind::gt};
+  if (currentChar == '!')
+    return Token{tokenStartLocation, TokenKind::excl};
+
+  if (currentChar == '=' && peekNextChar() == '=') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::equalequal};
+  }
+  if (currentChar == '&' && peekNextChar() == '&') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::ampamp};
+  }
+  if (currentChar == '|' && peekNextChar() == '|') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::pipepipe};
+  }
 
   if (isAlpha(currentChar)) {
     std::string value{currentChar};

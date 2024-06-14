@@ -118,9 +118,34 @@ struct BinaryOperator : public Expr {
       std::cerr << '*';
     if (op == TokenKind::slash)
       std::cerr << '/';
+    if (op == TokenKind::equalequal)
+      std::cerr << '=' << '=';
+    if (op == TokenKind::ampamp)
+      std::cerr << '&' << '&';
+    if (op == TokenKind::pipepipe)
+      std::cerr << '|' << '|';
     std::cerr << '\'' << '\n';
 
     LHS->dump(level + 1);
+    RHS->dump(level + 1);
+  }
+};
+
+struct UnaryOperator : public Expr {
+  std::unique_ptr<Expr> RHS;
+  TokenKind op;
+
+  UnaryOperator(SourceLocation location, std::unique_ptr<Expr> rhs,
+                TokenKind op)
+      : Expr(location), RHS(std::move(rhs)), op(op) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "UnaryOperator: '";
+    if (op == TokenKind::excl)
+      std::cerr << '!';
+    std::cerr << '\'' << '\n';
+
     RHS->dump(level + 1);
   }
 };
@@ -313,9 +338,34 @@ struct ResolvedBinaryOperator : public ResolvedExpr {
       std::cerr << '*';
     if (op == TokenKind::slash)
       std::cerr << '/';
+    if (op == TokenKind::equalequal)
+      std::cerr << '=' << '=';
+    if (op == TokenKind::ampamp)
+      std::cerr << '&' << '&';
+    if (op == TokenKind::pipepipe)
+      std::cerr << '|' << '|';
     std::cerr << '\'' << '\n';
 
     LHS->dump(level + 1);
+    RHS->dump(level + 1);
+  }
+};
+
+struct ResolvedUnaryOperator : public ResolvedExpr {
+  std::unique_ptr<ResolvedExpr> RHS;
+  TokenKind op;
+
+  ResolvedUnaryOperator(SourceLocation location,
+                        std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
+      : ResolvedExpr(location, rhs->type), RHS(std::move(rhs)), op(op) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedUnaryOperator: '";
+    if (op == TokenKind::excl)
+      std::cerr << '!';
+    std::cerr << '\'' << '\n';
+
     RHS->dump(level + 1);
   }
 };

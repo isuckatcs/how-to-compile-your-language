@@ -23,12 +23,21 @@ enum class TokenKind {
   asterisk,
   slash,
 
+  lt,
+  gt,
+  excl,
+  equalequal,
+  ampamp,
+  pipepipe,
+
   identifier,
   number,
 
   kw_fn,
   kw_number,
   kw_void,
+  kw_if,
+  kw_else
 };
 
 struct Token {

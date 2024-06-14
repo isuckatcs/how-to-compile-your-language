@@ -23,6 +23,10 @@ class Codegen {
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
+  llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unary);
+
+  llvm::Value *doubleToBool(llvm::Value *V);
+  llvm::Value *boolToDouble(llvm::Value *V);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

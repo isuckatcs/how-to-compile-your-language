@@ -14,17 +14,37 @@
     ::= '{' (<expr> ';')* '}'
 
 Precedence  Type            Symbols
-Highest     Multiplicative  *, /    
-Lowest      Additive        +, -    
+Highest     Prefix          !
+            Multiplicative  *, /
+            Additive        +, -
+            Comparison      <, >
+            Equality        ==
+            Conjuction      &&
+Lowest      Disjunction     ||
 
 <expr>
-    ::= <additiveExpression> (('+' | '-') <additiveExpression>)*
+    ::= <disjunction>
+    
+<disjunction>
+    ::= <conjunction> ('||' <conjunction>)*
+
+<conjunction>
+    ::= <equality> ('&&' <equality>)*
+
+<equality>
+    ::= <comparison> ('==' <comparison>)*
+
+<comparison>
+    ::= <additiveExpression> (('<' | '>') <additiveExpression>)*
 
 <additiveExpression>
-    ::= <multiplicativeExpression> (('*' | '/') <multiplicativeExpression>)*
+    ::= <multiplicativeExpression> (('+' | '-') <multiplicativeExpression>)*
 
 <multiplicativeExpression>
-    ::= <primaryExpr>
+    ::= <prefixExpression> (('*' | '/') <multiplicativeExpression>)*
+
+<prefixExpression>
+    ::= '!'* <primaryExpr>
 
 <primaryExpr>
     ::= <numberLiteral>

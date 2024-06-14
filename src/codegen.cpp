@@ -48,6 +48,9 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&expr))
     return generateBinaryOperator(*binop);
 
+  if (auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
+    return generateUnaryOperator(*unop);
+
   llvm_unreachable("unknown expression encountered");
 }
 
@@ -61,12 +64,47 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   return Builder.CreateCall(callee, args);
 }
 
+// FIXME: Refactor!!!
+llvm::Value *
+Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
+  llvm::Value *RHS = generateExpr(*unary.RHS);
+
+  if (unary.op == TokenKind::excl)
+    return boolToDouble(Builder.CreateNot(doubleToBool(RHS)));
+
+  llvm_unreachable("unknown unary op");
+}
+
 llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   llvm::Value *LHS = generateExpr(*binop.LHS);
   llvm::Value *RHS = generateExpr(*binop.RHS);
 
+  // FIXME: Refactor this!!!
+  if (binop.op == TokenKind::lt)
+    return Builder.CreateFCmpOLT(LHS, RHS);
+  if (binop.op == TokenKind::gt)
+    return Builder.CreateFCmpOGT(LHS, RHS);
+  if (binop.op == TokenKind::equalequal)
+    return Builder.CreateFCmpOEQ(LHS, RHS);
+  if (binop.op == TokenKind::ampamp) {
+    return boolToDouble(
+        Builder.CreateLogicalAnd(doubleToBool(LHS), doubleToBool(RHS)));
+  }
+  if (binop.op == TokenKind::pipepipe)
+    return boolToDouble(
+        Builder.CreateLogicalOr(doubleToBool(LHS), doubleToBool(RHS)));
+
   return Builder.CreateBinOp(getOperatorKind(binop.op), LHS, RHS);
+}
+
+llvm::Value *Codegen::doubleToBool(llvm::Value *V) {
+  return Builder.CreateFCmpUNE(
+      V, llvm::ConstantFP::get(Builder.getDoubleTy(), 0.0), "toBool");
+}
+
+llvm::Value *Codegen::boolToDouble(llvm::Value *V) {
+  return Builder.CreateUIToFP(V, Builder.getDoubleTy(), "toDouble");
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {

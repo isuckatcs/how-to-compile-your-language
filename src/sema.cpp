@@ -55,6 +55,17 @@ std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
   return std::nullopt;
 }
 
+std::unique_ptr<ResolvedUnaryOperator>
+Sema::resolveUnaryOperator(const UnaryOperator &unary) {
+  auto resolvedRHS = resolveExpr(*unary.RHS);
+
+  if (!resolvedRHS)
+    return nullptr;
+
+  return std::make_unique<ResolvedUnaryOperator>(
+      unary.location, std::move(resolvedRHS), unary.op);
+}
+
 std::unique_ptr<ResolvedBinaryOperator>
 Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   auto resolvedLHS = resolveExpr(*binop.LHS);
@@ -137,6 +148,9 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (auto binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
     return resolveBinaryOperator(*binaryOperator);
+
+  if (auto unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
+    return resolveUnaryOperator(*unaryOperator);
 
   return nullptr;
 }

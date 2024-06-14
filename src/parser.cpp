@@ -3,9 +3,21 @@
 namespace {
 int getTokPrecedence(TokenKind tok) {
   if (tok == TokenKind::asterisk || tok == TokenKind::slash)
-    return 2;
+    return 6;
 
   if (tok == TokenKind::plus || tok == TokenKind::minus)
+    return 5;
+
+  if (tok == TokenKind::lt || tok == TokenKind::gt)
+    return 4;
+
+  if (tok == TokenKind::equalequal)
+    return 3;
+
+  if (tok == TokenKind::ampamp)
+    return 2;
+
+  if (tok == TokenKind::pipepipe)
     return 1;
 
   return -1;
@@ -100,7 +112,7 @@ std::unique_ptr<Block> TheParser::parseBlock() {
 }
 
 std::unique_ptr<Expr> TheParser::parseExpr() {
-  auto LHS = parsePrimary();
+  auto LHS = parsePrefixExpr();
   if (!LHS)
     return nullptr;
   return parseExprRHS(std::move(LHS), 0);
@@ -116,7 +128,7 @@ std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> LHS,
       return LHS;
     eatNextToken(); // eat opearator
 
-    auto RHS = parsePrimary();
+    auto RHS = parsePrefixExpr();
     if (!RHS)
       return nullptr;
 
@@ -129,6 +141,21 @@ std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> LHS,
     LHS = std::make_unique<BinaryOperator>(LHS->location, std::move(LHS),
                                            std::move(RHS), op);
   }
+}
+
+std::unique_ptr<Expr> TheParser::parsePrefixExpr() {
+  Token tok = nextToken;
+
+  if (tok.kind != TokenKind::excl)
+    return parsePrimary();
+  eatNextToken(); // eat !
+
+  auto RHS = parsePrefixExpr();
+  if (!RHS)
+    return nullptr;
+
+  return std::make_unique<UnaryOperator>(tok.location, std::move(RHS),
+                                         tok.kind);
 }
 
 // <primaryExpr>
