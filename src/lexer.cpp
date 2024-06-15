@@ -28,56 +28,61 @@ Token TheLexer::getNextToken() {
 
   SourceLocation tokenStartLocation = getSourceLocation();
 
-  // FIXME: refactor this using switch
-  if (currentChar == '(')
+  switch (currentChar) {
+  case '(':
     return Token{tokenStartLocation, TokenKind::lpar};
-  if (currentChar == ')')
+  case ')':
     return Token{tokenStartLocation, TokenKind::rpar};
-  if (currentChar == '{')
+  case '{':
     return Token{tokenStartLocation, TokenKind::lbrace};
-  if (currentChar == '}')
+  case '}':
     return Token{tokenStartLocation, TokenKind::rbrace};
-  if (currentChar == ':')
+  case ':':
     return Token{tokenStartLocation, TokenKind::colon};
-  if (currentChar == ';')
+  case ';':
     return Token{tokenStartLocation, TokenKind::semi};
-  if (currentChar == ',')
+  case ',':
     return Token{tokenStartLocation, TokenKind::comma};
-  if (currentChar == '\0')
+  case '\0':
     return Token{tokenStartLocation, TokenKind::eof};
 
-  if (currentChar == '+')
+  case '+':
     return Token{tokenStartLocation, TokenKind::plus};
-  if (currentChar == '-')
+  case '-':
     return Token{tokenStartLocation, TokenKind::minus};
-  if (currentChar == '*')
+  case '*':
     return Token{tokenStartLocation, TokenKind::asterisk};
-  if (currentChar == '/')
+  case '/':
     return Token{tokenStartLocation, TokenKind::slash};
 
-  if (currentChar == '<')
+  case '<':
     return Token{tokenStartLocation, TokenKind::lt};
-  if (currentChar == '>')
+  case '>':
     return Token{tokenStartLocation, TokenKind::gt};
-  if (currentChar == '!')
+  case '!':
     return Token{tokenStartLocation, TokenKind::excl};
 
-  if (currentChar == '=') {
-    if (peekNextChar() == '=') {
-      eatNextChar();
-      return Token{tokenStartLocation, TokenKind::equalequal};
-    }
+  case '=': {
+    if (peekNextChar() != '=')
+      return Token{tokenStartLocation, TokenKind::equal};
 
-    return Token{tokenStartLocation, TokenKind::equal};
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::equalequal};
   }
+  case '&': {
+    if (peekNextChar() != '&')
+      break;
 
-  if (currentChar == '&' && peekNextChar() == '&') {
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::ampamp};
   }
-  if (currentChar == '|' && peekNextChar() == '|') {
+  case '|': {
+    if (peekNextChar() != '|')
+      break;
+
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::pipepipe};
+  }
   }
 
   if (isAlpha(currentChar)) {
