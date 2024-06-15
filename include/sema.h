@@ -9,16 +9,16 @@
 #include "constexpr.h"
 
 class Sema {
-  ConstantExpressionEvaluator CEE;
+  ConstantExpressionEvaluator cee;
   std::vector<std::unique_ptr<FunctionDecl>> sourceFile;
-  std::vector<std::vector<ResolvedDecl *>> Scopes;
+  std::vector<std::vector<ResolvedDecl *>> scopes;
 
   class ScopeRAII {
     Sema *sema;
 
   public:
-    explicit ScopeRAII(Sema *sema) : sema(sema) { sema->Scopes.emplace_back(); }
-    ~ScopeRAII() { sema->Scopes.pop_back(); }
+    explicit ScopeRAII(Sema *sema) : sema(sema) { sema->scopes.emplace_back(); }
+    ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 
   std::optional<Type> resolveType(const std::string &typeSpecifier);

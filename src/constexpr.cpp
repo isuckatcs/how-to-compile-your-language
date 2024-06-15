@@ -5,24 +5,23 @@
 
 std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     const ResolvedBinaryOperator &binop) {
-  std::optional<double> LHS = evaluate(*binop.LHS);
-  if (!LHS)
+  std::optional<double> lhs = evaluate(*binop.lhs);
+  if (!lhs)
     return std::nullopt;
 
-  std::optional<double> RHS = evaluate(*binop.RHS);
-  if (!RHS)
+  std::optional<double> rhs = evaluate(*binop.rhs);
+  if (!rhs)
     return std::nullopt;
 
   switch (binop.op) {
-
-  case TokenKind::plus:
-    return *LHS + *RHS;
-  case TokenKind::minus:
-    return *LHS - *RHS;
-  case TokenKind::asterisk:
-    return *LHS * *RHS;
-  case TokenKind::slash:
-    return *LHS / *RHS;
+  case TokenKind::Plus:
+    return *lhs + *rhs;
+  case TokenKind::Minus:
+    return *lhs - *rhs;
+  case TokenKind::Asterisk:
+    return *lhs * *rhs;
+  case TokenKind::Slash:
+    return *lhs / *rhs;
   default:
     assert(false && "unexpected binary operator");
   }
@@ -32,13 +31,16 @@ std::optional<double>
 ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
   return std::nullopt;
 
-  if (auto numberLiteral = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
+  if (const auto *numberLiteral =
+          dynamic_cast<const ResolvedNumberLiteral *>(&expr))
     return numberLiteral->value;
 
-  if (auto groupingExpr = dynamic_cast<const ResolvedGroupingExpr *>(&expr))
+  if (const auto *groupingExpr =
+          dynamic_cast<const ResolvedGroupingExpr *>(&expr))
     return evaluate(*groupingExpr->expr);
 
-  if (auto binaryOperator = dynamic_cast<const ResolvedBinaryOperator *>(&expr))
+  if (const auto *binaryOperator =
+          dynamic_cast<const ResolvedBinaryOperator *>(&expr))
     return evaluateBinaryOperator(*binaryOperator);
 
   return std::nullopt;

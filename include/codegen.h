@@ -13,9 +13,9 @@ class Codegen {
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
 
-  llvm::LLVMContext Context;
-  llvm::IRBuilder<> Builder;
-  llvm::Module Module;
+  llvm::LLVMContext context;
+  llvm::IRBuilder<> builder;
+  llvm::Module module;
 
   llvm::Type *generateType(Type type);
   llvm::Instruction::BinaryOps getOperatorKind(TokenKind op);
@@ -28,8 +28,8 @@ class Codegen {
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unary);
 
-  llvm::Value *doubleToBool(llvm::Value *V);
-  llvm::Value *boolToDouble(llvm::Value *V);
+  llvm::Value *doubleToBool(llvm::Value *v);
+  llvm::Value *boolToDouble(llvm::Value *v);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

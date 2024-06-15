@@ -36,8 +36,7 @@ struct Block : public Dumpable {
       : location(location), statements(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "Block\n";
+    std::cerr << indent(level) << "Block\n";
 
     for (auto &&stmt : statements)
       stmt->dump(level + 1);
@@ -64,8 +63,7 @@ struct IfStmt : public Stmt {
         trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "IfStmt\n";
+    std::cerr << indent(level) << "IfStmt\n";
 
     trueBlock->dump(level + 1);
     if (falseBlock)
@@ -82,8 +80,7 @@ struct NumberLiteral : public Expr {
       : Expr(location), value(value) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "NumberLiteral: '" + value + "'\n";
+    std::cerr << indent(level) << "NumberLiteral: '" + value + "'\n";
   }
 };
 
@@ -94,8 +91,7 @@ struct DeclRefExpr : public Expr {
       : Expr(location), identifier(identifier) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "DeclRefExpr: " + identifier + "\n";
+    std::cerr << indent(level) << "DeclRefExpr: " + identifier + "\n";
   }
 };
 
@@ -109,8 +105,7 @@ struct CallExpr : public Expr {
         arguments(std::move(arguments)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "CallExpr:\n";
+    std::cerr << indent(level) << "CallExpr:\n";
 
     identifier->dump(level + 1);
 
@@ -126,62 +121,59 @@ struct GroupingExpr : public Expr {
       : Expr(location), expr(std::move(expr)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "GroupingExpr:\n";
+    std::cerr << indent(level) << "GroupingExpr:\n";
 
     expr->dump(level + 1);
   }
 };
 
 struct BinaryOperator : public Expr {
-  std::unique_ptr<Expr> LHS;
-  std::unique_ptr<Expr> RHS;
+  std::unique_ptr<Expr> lhs;
+  std::unique_ptr<Expr> rhs;
   TokenKind op;
 
   BinaryOperator(SourceLocation location, std::unique_ptr<Expr> lhs,
                  std::unique_ptr<Expr> rhs, TokenKind op)
-      : Expr(location), LHS(std::move(lhs)), RHS(std::move(rhs)), op(op) {}
+      : Expr(location), lhs(std::move(lhs)), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "BinaryOperator: '";
-    if (op == TokenKind::plus)
+    std::cerr << indent(level) << "BinaryOperator: '";
+    if (op == TokenKind::Plus)
       std::cerr << '+';
-    if (op == TokenKind::minus)
+    if (op == TokenKind::Minus)
       std::cerr << '-';
-    if (op == TokenKind::asterisk)
+    if (op == TokenKind::Asterisk)
       std::cerr << '*';
-    if (op == TokenKind::slash)
+    if (op == TokenKind::Slash)
       std::cerr << '/';
-    if (op == TokenKind::equalequal)
+    if (op == TokenKind::EqualEqual)
       std::cerr << '=' << '=';
-    if (op == TokenKind::ampamp)
+    if (op == TokenKind::AmpAmp)
       std::cerr << '&' << '&';
-    if (op == TokenKind::pipepipe)
+    if (op == TokenKind::PipePipe)
       std::cerr << '|' << '|';
     std::cerr << '\'' << '\n';
 
-    LHS->dump(level + 1);
-    RHS->dump(level + 1);
+    lhs->dump(level + 1);
+    rhs->dump(level + 1);
   }
 };
 
 struct UnaryOperator : public Expr {
-  std::unique_ptr<Expr> RHS;
+  std::unique_ptr<Expr> rhs;
   TokenKind op;
 
   UnaryOperator(SourceLocation location, std::unique_ptr<Expr> rhs,
                 TokenKind op)
-      : Expr(location), RHS(std::move(rhs)), op(op) {}
+      : Expr(location), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "UnaryOperator: '";
-    if (op == TokenKind::excl)
+    std::cerr << indent(level) << "UnaryOperator: '";
+    if (op == TokenKind::Excl)
       std::cerr << '!';
     std::cerr << '\'' << '\n';
 
-    RHS->dump(level + 1);
+    rhs->dump(level + 1);
   }
 };
 
@@ -191,8 +183,8 @@ struct ParamDecl : public Decl {
       : Decl{location, std::move(identifier)}, type(std::move(type)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ParamDecl: " + identifier + ":" + type + "\n";
+    std::cerr << indent(level)
+              << "ParamDecl: " + identifier + ":" + type + "\n";
   }
 };
 
@@ -207,8 +199,7 @@ struct VarDecl : public Decl {
         isMutable(isMutable), initialzer(std::move(initializer)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "VarDecl: " + identifier + ":" + type + "\n";
+    std::cerr << indent(level) << "VarDecl: " + identifier + ":" + type + "\n";
     if (initialzer)
       initialzer->dump(level + 1);
   }
@@ -226,8 +217,8 @@ struct FunctionDecl : public Decl {
         params(std::move(params)), body(std::move(body)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "FunctionDecl: " + identifier + ":" + type + "\n";
+    std::cerr << indent(level)
+              << "FunctionDecl: " + identifier + ":" + type + "\n";
 
     for (auto &&param : params)
       param->dump(level + 1);
@@ -243,8 +234,7 @@ struct DeclStmt : public Stmt {
       : Stmt{location}, varDecl(std::move(varDecl)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "DeclStmt:\n";
+    std::cerr << indent(level) << "DeclStmt:\n";
     varDecl->dump(level + 1);
   }
 };
@@ -257,7 +247,7 @@ struct ResolvedStmt : public Dumpable {
   virtual ~ResolvedStmt() = default;
 };
 
-enum class Type { NUMBER, VOID };
+enum class Type { Number, Void };
 
 struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
                       public ResolvedStmt {
@@ -289,8 +279,7 @@ struct ResolvedBlock : public Dumpable {
       : location(location), statements(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedBlock\n";
+    std::cerr << indent(level) << "ResolvedBlock\n";
 
     for (auto &&stmt : statements)
       stmt->dump(level + 1);
@@ -320,8 +309,7 @@ struct ResolvedIfStmt : public ResolvedStmt {
         trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedIfStmt\n";
+    std::cerr << indent(level) << "ResolvedIfStmt\n";
 
     trueBlock->dump(level + 1);
     if (falseBlock)
@@ -336,8 +324,8 @@ struct ResolvedParamDecl : public ResolvedDecl {
       : ResolvedDecl{location, std::move(identifier), type} {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedParamDecl: @(" << this << ") " << identifier << ":"
+    std::cerr << indent(level) << "ResolvedParamDecl: @(" << this << ") "
+              << identifier << ":"
               << "\n";
   }
 };
@@ -353,8 +341,8 @@ struct ResolvedVarDecl : public ResolvedDecl {
         isMutable(isMutable), initializer(std::move(initializer)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedVarDecl: @(" << this << ") " << identifier << ":"
+    std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
+              << identifier << ":"
               << "\n";
     if (initializer)
       initializer->dump(level + 1);
@@ -373,8 +361,7 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
         params(std::move(params)), body(std::move(body)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedFunctionDecl: @(" << this << ") "
+    std::cerr << indent(level) << "ResolvedFunctionDecl: @(" << this << ") "
               << identifier + ":" + "\n";
 
     for (auto &&param : params)
@@ -388,11 +375,10 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
   double value;
 
   ResolvedNumberLiteral(SourceLocation location, double value)
-      : ResolvedExpr(location, Type::NUMBER), value(value) {}
+      : ResolvedExpr(location, Type::Number), value(value) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "NumberLiteral: '" << value << "'\n";
+    std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
   }
 };
 
@@ -403,9 +389,8 @@ struct ResolvedDeclRefExpr : public ResolvedExpr {
       : ResolvedExpr(location, decl.type), decl(&decl) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedDeclRefExpr: @(" << decl << ") " << decl->identifier
-              << "\n";
+    std::cerr << indent(level) << "ResolvedDeclRefExpr: @(" << decl << ") "
+              << decl->identifier << "\n";
   }
 };
 
@@ -419,9 +404,8 @@ struct ResolvedCallExpr : public ResolvedExpr {
         arguments(std::move(arguments)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedCallExpr: @(" << callee << ") " << callee->identifier
-              << "\n";
+    std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
+              << callee->identifier << "\n";
 
     for (auto &&arg : arguments)
       arg->dump(level + 1);
@@ -436,64 +420,61 @@ struct ResolvedGroupingExpr : public ResolvedExpr {
       : ResolvedExpr(location, expr->type), expr(std::move(expr)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedGroupingExpr:\n";
+    std::cerr << indent(level) << "ResolvedGroupingExpr:\n";
 
     expr->dump(level + 1);
   }
 };
 
 struct ResolvedBinaryOperator : public ResolvedExpr {
-  std::unique_ptr<ResolvedExpr> LHS;
-  std::unique_ptr<ResolvedExpr> RHS;
+  std::unique_ptr<ResolvedExpr> lhs;
+  std::unique_ptr<ResolvedExpr> rhs;
   TokenKind op;
 
   ResolvedBinaryOperator(SourceLocation location,
                          std::unique_ptr<ResolvedExpr> lhs,
                          std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
-      : ResolvedExpr(location, lhs->type), LHS(std::move(lhs)),
-        RHS(std::move(rhs)), op(op) {}
+      : ResolvedExpr(location, lhs->type), lhs(std::move(lhs)),
+        rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedBinaryOperator: '";
-    if (op == TokenKind::plus)
+    std::cerr << indent(level) << "ResolvedBinaryOperator: '";
+    if (op == TokenKind::Plus)
       std::cerr << '+';
-    if (op == TokenKind::minus)
+    if (op == TokenKind::Minus)
       std::cerr << '-';
-    if (op == TokenKind::asterisk)
+    if (op == TokenKind::Asterisk)
       std::cerr << '*';
-    if (op == TokenKind::slash)
+    if (op == TokenKind::Slash)
       std::cerr << '/';
-    if (op == TokenKind::equalequal)
+    if (op == TokenKind::EqualEqual)
       std::cerr << '=' << '=';
-    if (op == TokenKind::ampamp)
+    if (op == TokenKind::AmpAmp)
       std::cerr << '&' << '&';
-    if (op == TokenKind::pipepipe)
+    if (op == TokenKind::PipePipe)
       std::cerr << '|' << '|';
     std::cerr << '\'' << '\n';
 
-    LHS->dump(level + 1);
-    RHS->dump(level + 1);
+    lhs->dump(level + 1);
+    rhs->dump(level + 1);
   }
 };
 
 struct ResolvedUnaryOperator : public ResolvedExpr {
-  std::unique_ptr<ResolvedExpr> RHS;
+  std::unique_ptr<ResolvedExpr> rhs;
   TokenKind op;
 
   ResolvedUnaryOperator(SourceLocation location,
                         std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
-      : ResolvedExpr(location, rhs->type), RHS(std::move(rhs)), op(op) {}
+      : ResolvedExpr(location, rhs->type), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedUnaryOperator: '";
-    if (op == TokenKind::excl)
+    std::cerr << indent(level) << "ResolvedUnaryOperator: '";
+    if (op == TokenKind::Excl)
       std::cerr << '!';
     std::cerr << '\'' << '\n';
 
-    RHS->dump(level + 1);
+    rhs->dump(level + 1);
   }
 };
 
@@ -505,8 +486,7 @@ struct ResolvedDeclStmt : public ResolvedStmt {
       : ResolvedStmt{location}, varDecl(std::move(varDecl)) {}
 
   void dump(size_t level = 0) override {
-    indent(level);
-    std::cerr << "ResolvedDeclStmt:\n";
+    std::cerr << indent(level) << "ResolvedDeclStmt:\n";
     varDecl->dump(level + 1);
   }
 };

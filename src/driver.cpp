@@ -17,7 +17,7 @@ void displayHelp() {
             << "  -o <file>    write executable to <file>\n";
 }
 
-void error(std::string_view msg) {
+[[noreturn]] void error(std::string_view msg) {
   std::cerr << "error: " << msg << '\n';
   std::exit(1);
 }

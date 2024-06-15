@@ -13,10 +13,10 @@ bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 
 std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"void", TokenKind::kw_void},     {"fn", TokenKind::kw_fn},
-    {"number", TokenKind::kw_number}, {"if", TokenKind::kw_if},
-    {"else", TokenKind::kw_else},     {"let", TokenKind::kw_let},
-    {"var", TokenKind::kw_var}};
+    {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},
+    {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
+    {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
+    {"var", TokenKind::KwVar}};
 
 } // namespace
 
@@ -30,59 +30,61 @@ Token TheLexer::getNextToken() {
 
   switch (currentChar) {
   case '(':
-    return Token{tokenStartLocation, TokenKind::lpar};
+    return Token{tokenStartLocation, TokenKind::Lpar};
   case ')':
-    return Token{tokenStartLocation, TokenKind::rpar};
+    return Token{tokenStartLocation, TokenKind::Rpar};
   case '{':
-    return Token{tokenStartLocation, TokenKind::lbrace};
+    return Token{tokenStartLocation, TokenKind::Lbrace};
   case '}':
-    return Token{tokenStartLocation, TokenKind::rbrace};
+    return Token{tokenStartLocation, TokenKind::Rbrace};
   case ':':
-    return Token{tokenStartLocation, TokenKind::colon};
+    return Token{tokenStartLocation, TokenKind::Colon};
   case ';':
-    return Token{tokenStartLocation, TokenKind::semi};
+    return Token{tokenStartLocation, TokenKind::Semi};
   case ',':
-    return Token{tokenStartLocation, TokenKind::comma};
+    return Token{tokenStartLocation, TokenKind::Comma};
   case '\0':
-    return Token{tokenStartLocation, TokenKind::eof};
+    return Token{tokenStartLocation, TokenKind::Eof};
 
   case '+':
-    return Token{tokenStartLocation, TokenKind::plus};
+    return Token{tokenStartLocation, TokenKind::Plus};
   case '-':
-    return Token{tokenStartLocation, TokenKind::minus};
+    return Token{tokenStartLocation, TokenKind::Minus};
   case '*':
-    return Token{tokenStartLocation, TokenKind::asterisk};
+    return Token{tokenStartLocation, TokenKind::Asterisk};
   case '/':
-    return Token{tokenStartLocation, TokenKind::slash};
+    return Token{tokenStartLocation, TokenKind::Slash};
 
   case '<':
-    return Token{tokenStartLocation, TokenKind::lt};
+    return Token{tokenStartLocation, TokenKind::Lt};
   case '>':
-    return Token{tokenStartLocation, TokenKind::gt};
+    return Token{tokenStartLocation, TokenKind::Gt};
   case '!':
-    return Token{tokenStartLocation, TokenKind::excl};
+    return Token{tokenStartLocation, TokenKind::Excl};
 
   case '=': {
     if (peekNextChar() != '=')
-      return Token{tokenStartLocation, TokenKind::equal};
+      return Token{tokenStartLocation, TokenKind::Equal};
 
     eatNextChar();
-    return Token{tokenStartLocation, TokenKind::equalequal};
+    return Token{tokenStartLocation, TokenKind::EqualEqual};
   }
   case '&': {
     if (peekNextChar() != '&')
       break;
 
     eatNextChar();
-    return Token{tokenStartLocation, TokenKind::ampamp};
+    return Token{tokenStartLocation, TokenKind::AmpAmp};
   }
   case '|': {
     if (peekNextChar() != '|')
       break;
 
     eatNextChar();
-    return Token{tokenStartLocation, TokenKind::pipepipe};
+    return Token{tokenStartLocation, TokenKind::PipePipe};
   }
+  default:
+    break;
   }
 
   if (isAlpha(currentChar)) {
@@ -94,7 +96,7 @@ Token TheLexer::getNextToken() {
     if (keywords.count(value))
       return Token{tokenStartLocation, keywords[value], std::move(value)};
 
-    return Token{tokenStartLocation, TokenKind::identifier, std::move(value)};
+    return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
   }
 
   // [0-9]+ . [0-9]+
@@ -105,18 +107,18 @@ Token TheLexer::getNextToken() {
       value += eatNextChar();
 
     if (peekNextChar() != '.')
-      return Token{tokenStartLocation, TokenKind::unk};
+      return Token{tokenStartLocation, TokenKind::Unk};
 
     value += eatNextChar();
 
     if (!isNum(peekNextChar()))
-      return Token{tokenStartLocation, TokenKind::unk};
+      return Token{tokenStartLocation, TokenKind::Unk};
 
     while (isNum(peekNextChar()))
       value += eatNextChar();
 
-    return Token{tokenStartLocation, TokenKind::number, value};
+    return Token{tokenStartLocation, TokenKind::Number, value};
   }
 
-  return Token{tokenStartLocation, TokenKind::unk};
+  return Token{tokenStartLocation, TokenKind::Unk};
 }

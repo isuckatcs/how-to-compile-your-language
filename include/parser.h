@@ -21,13 +21,13 @@ class TheParser {
 
   std::unique_ptr<Stmt> parseStmt();
   std::unique_ptr<IfStmt> parseIfStmt();
-  std::unique_ptr<BinaryOperator> parseAssignmentRHS(std::unique_ptr<Expr> LHS);
+  std::unique_ptr<BinaryOperator> parseAssignmentRHS(std::unique_ptr<Expr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
 
   std::unique_ptr<Block> parseBlock();
 
   std::unique_ptr<Expr> parseExpr();
-  std::unique_ptr<Expr> parseExprRHS(std::unique_ptr<Expr> LHS, int precedence);
+  std::unique_ptr<Expr> parseExprRHS(std::unique_ptr<Expr> lhs, int precedence);
   std::unique_ptr<Expr> parsePrefixExpr();
   std::unique_ptr<Expr> parsePrimary();
 

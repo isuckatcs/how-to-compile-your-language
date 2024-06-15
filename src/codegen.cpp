@@ -4,26 +4,26 @@
 
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
-    : resolvedSourceFile(std::move(resolvedSourceFile)), Builder(Context),
-      Module("<translation_unit>", Context) {
-  Module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
+    : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
+      module("<translation_unit>", context) {
+  module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
 llvm::Type *Codegen::generateType(Type type) {
-  if (type == Type::NUMBER)
-    return Builder.getDoubleTy();
+  if (type == Type::Number)
+    return builder.getDoubleTy();
 
-  return Builder.getVoidTy();
+  return builder.getVoidTy();
 }
 
 llvm::Instruction::BinaryOps Codegen::getOperatorKind(TokenKind op) {
-  if (op == TokenKind::plus)
+  if (op == TokenKind::Plus)
     return llvm::BinaryOperator::FAdd;
-  if (op == TokenKind::minus)
+  if (op == TokenKind::Minus)
     return llvm::BinaryOperator::FSub;
-  if (op == TokenKind::asterisk)
+  if (op == TokenKind::Asterisk)
     return llvm::BinaryOperator::FMul;
-  if (op == TokenKind::slash)
+  if (op == TokenKind::Slash)
     return llvm::BinaryOperator::FDiv;
 
   llvm_unreachable("unknown operator");
@@ -40,48 +40,48 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
-  llvm::Function *parentFunction = Builder.GetInsertBlock()->getParent();
+  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
 
   llvm::Value *cond = generateExpr(*stmt.condition);
   llvm::BasicBlock *thenBB =
-      llvm::BasicBlock::Create(Context, "then", parentFunction);
+      llvm::BasicBlock::Create(context, "then", parentFunction);
   llvm::BasicBlock *elseBB = nullptr;
-  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(Context, "merge");
+  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "merge");
 
   bool hasElseBranch = stmt.falseBlock || stmt.falseBranch;
   if (hasElseBranch)
-    elseBB = llvm::BasicBlock::Create(Context, "else");
+    elseBB = llvm::BasicBlock::Create(context, "else");
 
-  Builder.CreateCondBr(doubleToBool(cond), thenBB,
+  builder.CreateCondBr(doubleToBool(cond), thenBB,
                        hasElseBranch ? elseBB : mergeBB);
 
-  Builder.SetInsertPoint(thenBB);
+  builder.SetInsertPoint(thenBB);
   generateBlock(*stmt.trueBlock);
-  Builder.CreateBr(mergeBB);
+  builder.CreateBr(mergeBB);
 
   if (hasElseBranch) {
     elseBB->insertInto(parentFunction);
-    Builder.SetInsertPoint(elseBB);
+    builder.SetInsertPoint(elseBB);
 
     if (stmt.falseBlock)
       generateBlock(*stmt.falseBlock);
     else
       generateIfStmt(*stmt.falseBranch);
 
-    Builder.CreateBr(mergeBB);
+    builder.CreateBr(mergeBB);
   }
 
   mergeBB->insertInto(parentFunction);
-  Builder.SetInsertPoint(mergeBB);
+  builder.SetInsertPoint(mergeBB);
   return nullptr;
 }
 
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (std::optional<double> val = expr.getConstantValue())
-    return llvm::ConstantFP::get(Builder.getDoubleTy(), *val);
+    return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *numLit = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
-    return llvm::ConstantFP::get(Builder.getDoubleTy(), numLit->value);
+    return llvm::ConstantFP::get(builder.getDoubleTy(), numLit->value);
 
   if (auto *declRefExpr = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
     return declarations[declRefExpr->decl];
@@ -102,56 +102,56 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
-  llvm::Function *callee = Module.getFunction(call.callee->identifier);
+  llvm::Function *callee = module.getFunction(call.callee->identifier);
 
   std::vector<llvm::Value *> args;
   for (auto &&arg : call.arguments)
     args.emplace_back(generateExpr(*arg));
 
-  return Builder.CreateCall(callee, args);
+  return builder.CreateCall(callee, args);
 }
 
 // FIXME: Refactor!!!
 llvm::Value *
 Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
-  llvm::Value *RHS = generateExpr(*unary.RHS);
+  llvm::Value *rhs = generateExpr(*unary.rhs);
 
-  if (unary.op == TokenKind::excl)
-    return boolToDouble(Builder.CreateNot(doubleToBool(RHS)));
+  if (unary.op == TokenKind::Excl)
+    return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
 
   llvm_unreachable("unknown unary op");
 }
 
 llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
-  llvm::Value *LHS = generateExpr(*binop.LHS);
-  llvm::Value *RHS = generateExpr(*binop.RHS);
+  llvm::Value *lhs = generateExpr(*binop.lhs);
+  llvm::Value *rhs = generateExpr(*binop.rhs);
 
   // FIXME: Refactor this!!!
-  if (binop.op == TokenKind::lt)
-    return boolToDouble(Builder.CreateFCmpOLT(LHS, RHS));
-  if (binop.op == TokenKind::gt)
-    return boolToDouble(Builder.CreateFCmpOGT(LHS, RHS));
-  if (binop.op == TokenKind::equalequal)
-    return boolToDouble(Builder.CreateFCmpOEQ(LHS, RHS));
-  if (binop.op == TokenKind::ampamp) {
+  if (binop.op == TokenKind::Lt)
+    return boolToDouble(builder.CreateFCmpOLT(lhs, rhs));
+  if (binop.op == TokenKind::Gt)
+    return boolToDouble(builder.CreateFCmpOGT(lhs, rhs));
+  if (binop.op == TokenKind::EqualEqual)
+    return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
+  if (binop.op == TokenKind::AmpAmp) {
     return boolToDouble(
-        Builder.CreateLogicalAnd(doubleToBool(LHS), doubleToBool(RHS)));
+        builder.CreateLogicalAnd(doubleToBool(lhs), doubleToBool(rhs)));
   }
-  if (binop.op == TokenKind::pipepipe)
+  if (binop.op == TokenKind::PipePipe)
     return boolToDouble(
-        Builder.CreateLogicalOr(doubleToBool(LHS), doubleToBool(RHS)));
+        builder.CreateLogicalOr(doubleToBool(lhs), doubleToBool(rhs)));
 
-  return Builder.CreateBinOp(getOperatorKind(binop.op), LHS, RHS);
+  return builder.CreateBinOp(getOperatorKind(binop.op), lhs, rhs);
 }
 
-llvm::Value *Codegen::doubleToBool(llvm::Value *V) {
-  return Builder.CreateFCmpONE(
-      V, llvm::ConstantFP::get(Builder.getDoubleTy(), 0.0), "toBool");
+llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
+  return builder.CreateFCmpONE(
+      v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "toBool");
 }
 
-llvm::Value *Codegen::boolToDouble(llvm::Value *V) {
-  return Builder.CreateUIToFP(V, Builder.getDoubleTy(), "toDouble");
+llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
+  return builder.CreateUIToFP(v, builder.getDoubleTy(), "toDouble");
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
@@ -160,26 +160,26 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
 }
 
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
-  auto *function = Module.getFunction(functionDecl.identifier);
-  auto *BB = llvm::BasicBlock::Create(Context, "", function);
+  auto *function = module.getFunction(functionDecl.identifier);
+  auto *bb = llvm::BasicBlock::Create(context, "", function);
 
-  Builder.SetInsertPoint(BB);
+  builder.SetInsertPoint(bb);
 
   if (functionDecl.identifier == "print")
     generateBuiltinPrintBody();
   else
     generateBlock(*functionDecl.body);
 
-  Builder.CreateRetVoid();
+  builder.CreateRetVoid();
 }
 
 void Codegen::generateBuiltinPrintBody() {
-  auto *functionType = llvm::FunctionType::get(Builder.getInt32Ty(),
-                                               {Builder.getInt8PtrTy()}, true);
+  auto *functionType = llvm::FunctionType::get(builder.getInt32Ty(),
+                                               {builder.getInt8PtrTy()}, true);
   auto *printf = llvm::Function::Create(
-      functionType, llvm::Function::ExternalLinkage, "printf", Module);
+      functionType, llvm::Function::ExternalLinkage, "printf", module);
 
-  auto *formatStr = Builder.CreateGlobalStringPtr("%f\n");
+  auto *formatStr = builder.CreateGlobalStringPtr("%f\n");
   llvm::Value *param;
   for (auto &&fn : resolvedSourceFile) {
     if (fn->identifier != "print")
@@ -188,36 +188,36 @@ void Codegen::generateBuiltinPrintBody() {
     param = declarations[fn->params[0].get()];
   }
 
-  Builder.CreateCall(printf, {formatStr, param});
+  builder.CreateCall(printf, {formatStr, param});
 }
 
 void Codegen::generateMainWrapper() {
-  auto *builtinMain = Module.getFunction("main");
+  auto *builtinMain = module.getFunction("main");
   builtinMain->setName("__builtin_main");
 
   auto *main = llvm::Function::Create(
-      llvm::FunctionType::get(Builder.getInt32Ty(), {}, false),
-      llvm::Function::ExternalLinkage, "main", Module);
+      llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
+      llvm::Function::ExternalLinkage, "main", module);
 
-  auto *BB = llvm::BasicBlock::Create(Context, "", main);
+  auto *bb = llvm::BasicBlock::Create(context, "", main);
 
-  Builder.SetInsertPoint(BB);
-  Builder.CreateCall(builtinMain);
-  Builder.CreateRet(
-      llvm::ConstantInt::get(Builder.getInt32Ty(), llvm::APInt(32, 0, true)));
+  builder.SetInsertPoint(bb);
+  builder.CreateCall(builtinMain);
+  builder.CreateRet(
+      llvm::ConstantInt::get(builder.getInt32Ty(), llvm::APInt(32, 0, true)));
 }
 
 void Codegen::generateFunction(const ResolvedFunctionDecl &functionDecl) {
-  auto returnType = generateType(functionDecl.type);
+  auto *returnType = generateType(functionDecl.type);
 
   std::vector<llvm::Type *> paramTypes;
   for (auto &&param : functionDecl.params)
     paramTypes.emplace_back(generateType(param->type));
 
-  auto functionType = llvm::FunctionType::get(returnType, paramTypes, false);
-  auto function =
+  auto *functionType = llvm::FunctionType::get(returnType, paramTypes, false);
+  auto *function =
       llvm::Function::Create(functionType, llvm::Function::ExternalLinkage,
-                             functionDecl.identifier, Module);
+                             functionDecl.identifier, module);
 
   int idx = 0;
   for (auto &&arg : function->args()) {
@@ -239,9 +239,9 @@ void Codegen::generateIR(std::string_view filePath) {
 
   generateMainWrapper();
 
-  Module.dump();
+  module.dump();
 
   std::error_code errorCode;
   llvm::raw_fd_ostream f{filePath, errorCode};
-  Module.print(f, nullptr);
+  module.print(f, nullptr);
 }

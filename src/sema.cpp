@@ -10,13 +10,13 @@ bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
     return false;
   }
 
-  Scopes.back().emplace_back(&decl);
+  scopes.back().emplace_back(&decl);
   return true;
 }
 
 std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
   int scopeIdx = 0;
-  for (auto it = Scopes.rbegin(); it != Scopes.rend(); ++it) {
+  for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
     for (auto &&decl : *it) {
       if (decl->identifier != id)
         continue;
@@ -34,7 +34,7 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
   SourceLocation builtinLocation = SourceLocation{"<builtin>", 0, 0};
 
   auto param =
-      std::make_unique<ResolvedParamDecl>(builtinLocation, "n", Type::NUMBER);
+      std::make_unique<ResolvedParamDecl>(builtinLocation, "n", Type::Number);
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> params;
   params.emplace_back(std::move(param));
@@ -43,22 +43,22 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
       builtinLocation, std::vector<std::unique_ptr<ResolvedStmt>>{});
 
   return std::make_unique<ResolvedFunctionDecl>(SourceLocation{}, "print",
-                                                Type::VOID, std::move(params),
+                                                Type::Void, std::move(params),
                                                 std::move(block));
 };
 
 std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
   if (typeSpecifier == "void")
-    return Type::VOID;
+    return Type::Void;
   if (typeSpecifier == "number")
-    return Type::NUMBER;
+    return Type::Number;
 
   return std::nullopt;
 }
 
 std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
-  auto resolvedRHS = resolveExpr(*unary.RHS);
+  auto resolvedRHS = resolveExpr(*unary.rhs);
 
   if (!resolvedRHS)
     return nullptr;
@@ -69,8 +69,8 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
 
 std::unique_ptr<ResolvedBinaryOperator>
 Sema::resolveBinaryOperator(const BinaryOperator &binop) {
-  auto resolvedLHS = resolveExpr(*binop.LHS);
-  auto resolvedRHS = resolveExpr(*binop.RHS);
+  auto resolvedLHS = resolveExpr(*binop.lhs);
+  auto resolvedRHS = resolveExpr(*binop.rhs);
 
   if (!resolvedLHS || !resolvedRHS)
     return nullptr;
@@ -103,7 +103,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   if (!resolvedCallee)
     return nullptr;
 
-  auto resolvedFunctionDecl =
+  const auto *resolvedFunctionDecl =
       dynamic_cast<const ResolvedFunctionDecl *>(resolvedCallee->decl);
 
   if (!resolvedFunctionDecl)
@@ -122,7 +122,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     if (resolvedArg->type != resolvedFunctionDecl->params[idx]->type)
       return error(resolvedArg->location, "unexpected type of argument");
 
-    if (std::optional<double> val = CEE.evaluate(*resolvedArg))
+    if (std::optional<double> val = cee.evaluate(*resolvedArg))
       resolvedArg->setConstantValue(val);
 
     ++idx;
@@ -154,7 +154,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   if (!condition)
     return nullptr;
 
-  if (condition->type != Type::NUMBER)
+  if (condition->type != Type::Number)
     return error(condition->location, "unexpected type of expression");
 
   auto trueBlock = resolveBlock(*ifStmt.trueBlock);
@@ -199,23 +199,23 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 }
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
-  if (auto numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
+  if (const auto *numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
     return std::make_unique<ResolvedNumberLiteral>(
         numberLiteral->location, std::stod(numberLiteral->value));
 
-  if (auto declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
+  if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
     return resolveDeclRefExpr(*declRefExpr);
 
-  if (auto callExpr = dynamic_cast<const CallExpr *>(&expr))
+  if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
     return resolveCallExpr(*callExpr);
 
-  if (auto groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
+  if (const auto *groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
     return resolveGroupingExpr(*groupingExpr);
 
-  if (auto binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
+  if (const auto *binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
     return resolveBinaryOperator(*binaryOperator);
 
-  if (auto unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
+  if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
     return resolveUnaryOperator(*unaryOperator);
 
   return nullptr;
@@ -236,7 +236,7 @@ std::unique_ptr<ResolvedParamDecl>
 Sema::resolveParamDecl(const ParamDecl &param) {
   std::optional<Type> type = resolveType(param.type);
 
-  if (!type || type == Type::VOID)
+  if (!type || type == Type::Void)
     return error(param.location, "parameter '" + param.identifier +
                                      "' has invalid '" + param.type + "' type");
 
@@ -247,7 +247,7 @@ Sema::resolveParamDecl(const ParamDecl &param) {
 std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
   std::optional<Type> type = resolveType(varDecl.type);
 
-  if (!type || type == Type::VOID)
+  if (!type || type == Type::Void)
     return error(varDecl.location, "variable '" + varDecl.identifier +
                                        "' has invalid '" + varDecl.type +
                                        "' type");
@@ -277,7 +277,7 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
                                         "' has invalid '" + function.type +
                                         "' type");
 
-  if (type != Type::VOID)
+  if (type != Type::Void)
     return error(function.location, "only void functions are supported");
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;

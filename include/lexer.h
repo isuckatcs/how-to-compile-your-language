@@ -7,41 +7,41 @@
 #include "utils.h"
 
 enum class TokenKind {
-  eof,
-  unk,
+  Eof,
+  Unk,
 
-  lpar,
-  rpar,
-  lbrace,
-  rbrace,
-  colon,
-  semi,
-  comma,
+  Lpar,
+  Rpar,
+  Lbrace,
+  Rbrace,
+  Colon,
+  Semi,
+  Comma,
 
-  plus,
-  minus,
-  asterisk,
-  slash,
+  Plus,
+  Minus,
+  Asterisk,
+  Slash,
 
-  lt,
-  gt,
-  excl,
-  equalequal,
-  ampamp,
-  pipepipe,
+  Lt,
+  Gt,
+  Excl,
+  EqualEqual,
+  AmpAmp,
+  PipePipe,
 
-  equal,
+  Equal,
 
-  identifier,
-  number,
+  Identifier,
+  Number,
 
-  kw_fn,
-  kw_number,
-  kw_void,
-  kw_if,
-  kw_else,
-  kw_let,
-  kw_var
+  KwFn,
+  KwNumber,
+  KwVoid,
+  KwIf,
+  KwElse,
+  KwLet,
+  KwVar
 };
 
 struct Token {
