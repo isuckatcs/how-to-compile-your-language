@@ -140,6 +140,12 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *ifStmt = dynamic_cast<const IfStmt *>(&stmt))
     return resolveIfStmt(*ifStmt);
 
+  if (auto *assignment = dynamic_cast<const BinaryOperator *>(&stmt))
+    return resolveBinaryOperator(*assignment);
+
+  if (auto *declStmt = dynamic_cast<const DeclStmt *>(&stmt))
+    return resolveDeclStmt(*declStmt);
+
   assert(false && "unknown statement");
 }
 
@@ -177,6 +183,19 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
 
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
                                           std::move(trueBlock));
+}
+
+std::unique_ptr<ResolvedDeclStmt>
+Sema::resolveDeclStmt(const DeclStmt &declStmt) {
+  auto resolvedVarDecl = resolveVarDecl(*declStmt.varDecl);
+  if (!resolvedVarDecl)
+    return nullptr;
+
+  if (!insertDeclToCurrentScope(*resolvedVarDecl))
+    return nullptr;
+
+  return std::make_unique<ResolvedDeclStmt>(declStmt.location,
+                                            std::move(resolvedVarDecl));
 }
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
@@ -223,6 +242,29 @@ Sema::resolveParamDecl(const ParamDecl &param) {
 
   return std::make_unique<ResolvedParamDecl>(param.location, param.identifier,
                                              *type);
+}
+
+std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
+  std::optional<Type> type = resolveType(varDecl.type);
+
+  if (!type || type == Type::VOID)
+    return error(varDecl.location, "variable '" + varDecl.identifier +
+                                       "' has invalid '" + varDecl.type +
+                                       "' type");
+
+  std::unique_ptr<ResolvedExpr> resolvedInitializer = nullptr;
+  if (varDecl.initialzer) {
+    resolvedInitializer = resolveExpr(*varDecl.initialzer);
+    if (!resolvedInitializer)
+      return nullptr;
+
+    if (resolvedInitializer->type != type)
+      return error(resolvedInitializer->location, "initializer type mismatch");
+  }
+
+  return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,
+                                           *type, varDecl.isMutable,
+                                           std::move(resolvedInitializer));
 }
 
 std::unique_ptr<ResolvedFunctionDecl>

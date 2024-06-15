@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <memory>
-#include <variant>
 #include <vector>
 
 #include "lexer.h"
@@ -197,6 +196,24 @@ struct ParamDecl : public Decl {
   }
 };
 
+struct VarDecl : public Decl {
+  std::string type;
+  std::unique_ptr<Expr> initialzer;
+  bool isMutable;
+
+  VarDecl(SourceLocation location, std::string identifier, std::string type,
+          bool isMutable, std::unique_ptr<Expr> initializer = nullptr)
+      : Decl{location, std::move(identifier)}, type(std::move(type)),
+        isMutable(isMutable), initialzer(std::move(initializer)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "VarDecl: " + identifier + ":" + type + "\n";
+    if (initialzer)
+      initialzer->dump(level + 1);
+  }
+};
+
 struct FunctionDecl : public Decl {
   std::string type;
   std::vector<std::unique_ptr<ParamDecl>> params;
@@ -216,6 +233,19 @@ struct FunctionDecl : public Decl {
       param->dump(level + 1);
 
     body->dump(level + 1);
+  }
+};
+
+struct DeclStmt : public Stmt {
+  std::unique_ptr<VarDecl> varDecl;
+
+  DeclStmt(SourceLocation location, std::unique_ptr<VarDecl> varDecl)
+      : Stmt{location}, varDecl(std::move(varDecl)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "DeclStmt:\n";
+    varDecl->dump(level + 1);
   }
 };
 
@@ -309,6 +339,25 @@ struct ResolvedParamDecl : public ResolvedDecl {
     indent(level);
     std::cerr << "ResolvedParamDecl: @(" << this << ") " << identifier << ":"
               << "\n";
+  }
+};
+
+struct ResolvedVarDecl : public ResolvedDecl {
+  std::unique_ptr<ResolvedExpr> initializer;
+  bool isMutable;
+
+  ResolvedVarDecl(SourceLocation location, std::string identifier, Type type,
+                  bool isMutable,
+                  std::unique_ptr<ResolvedExpr> initializer = nullptr)
+      : ResolvedDecl{location, std::move(identifier), type},
+        isMutable(isMutable), initializer(std::move(initializer)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedVarDecl: @(" << this << ") " << identifier << ":"
+              << "\n";
+    if (initializer)
+      initializer->dump(level + 1);
   }
 };
 
@@ -445,6 +494,20 @@ struct ResolvedUnaryOperator : public ResolvedExpr {
     std::cerr << '\'' << '\n';
 
     RHS->dump(level + 1);
+  }
+};
+
+struct ResolvedDeclStmt : public ResolvedStmt {
+  std::unique_ptr<ResolvedVarDecl> varDecl;
+
+  ResolvedDeclStmt(SourceLocation location,
+                   std::unique_ptr<ResolvedVarDecl> varDecl)
+      : ResolvedStmt{location}, varDecl(std::move(varDecl)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedDeclStmt:\n";
+    varDecl->dump(level + 1);
   }
 };
 

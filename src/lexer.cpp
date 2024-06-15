@@ -15,8 +15,8 @@ bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 std::unordered_map<std::string_view, TokenKind> keywords = {
     {"void", TokenKind::kw_void},     {"fn", TokenKind::kw_fn},
     {"number", TokenKind::kw_number}, {"if", TokenKind::kw_if},
-    {"else", TokenKind::kw_else},
-};
+    {"else", TokenKind::kw_else},     {"let", TokenKind::kw_let},
+    {"var", TokenKind::kw_var}};
 
 } // namespace
 
@@ -28,6 +28,7 @@ Token TheLexer::getNextToken() {
 
   SourceLocation tokenStartLocation = getSourceLocation();
 
+  // FIXME: refactor this using switch
   if (currentChar == '(')
     return Token{tokenStartLocation, TokenKind::lpar};
   if (currentChar == ')')
@@ -61,10 +62,15 @@ Token TheLexer::getNextToken() {
   if (currentChar == '!')
     return Token{tokenStartLocation, TokenKind::excl};
 
-  if (currentChar == '=' && peekNextChar() == '=') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::equalequal};
+  if (currentChar == '=') {
+    if (peekNextChar() == '=') {
+      eatNextChar();
+      return Token{tokenStartLocation, TokenKind::equalequal};
+    }
+
+    return Token{tokenStartLocation, TokenKind::equal};
   }
+
   if (currentChar == '&' && peekNextChar() == '&') {
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::ampamp};

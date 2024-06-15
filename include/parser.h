@@ -17,9 +17,12 @@ class TheParser {
   // AST node parser methods
   std::unique_ptr<FunctionDecl> parseFunctionDecl();
   std::unique_ptr<ParamDecl> parseParamDecl();
+  std::unique_ptr<VarDecl> parseVarDecl(bool isLet);
 
   std::unique_ptr<Stmt> parseStmt();
   std::unique_ptr<IfStmt> parseIfStmt();
+  std::unique_ptr<BinaryOperator> parseAssignmentRHS(std::unique_ptr<Expr> LHS);
+  std::unique_ptr<DeclStmt> parseDeclStmt();
 
   std::unique_ptr<Block> parseBlock();
 

@@ -30,6 +30,8 @@ enum class TokenKind {
   ampamp,
   pipepipe,
 
+  equal,
+
   identifier,
   number,
 
@@ -37,7 +39,9 @@ enum class TokenKind {
   kw_number,
   kw_void,
   kw_if,
-  kw_else
+  kw_else,
+  kw_let,
+  kw_var
 };
 
 struct Token {

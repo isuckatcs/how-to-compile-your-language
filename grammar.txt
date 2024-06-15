@@ -10,15 +10,26 @@
 <paramDecl>
     ::= <identifier> ':' <type>
 
+<varDecl>
+    ::= <identifier> ':' <type> ('=' <expr>)?
+
 <block>
     ::= '{' <statement>* '}'
 
 <statement>
     ::= <expr> ';'
     |   <ifStatement>
+    |   <assignment> ';'
+    |   <declStmt> ';'
 
 <ifStatement>
     ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
+
+<declStmt>
+    ::= ('let' | 'var') <varDecl>
+
+<assignment>
+    ::= <declRefExpr> '=' <expr>
 
 Precedence  Type            Symbols
 Highest     Prefix          !

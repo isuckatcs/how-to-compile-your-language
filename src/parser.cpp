@@ -80,6 +80,34 @@ std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
                                      std::move(*type));
 }
 
+// <varDecl>
+//  ::= <identifier> ':' <type> ('=' <expr>)?
+std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
+  SourceLocation location = nextToken.location;
+
+  std::string identifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  if (nextToken.kind != TokenKind::colon)
+    return error(nextToken.location, "expected ':'");
+  eatNextToken(); // eat ':'
+
+  std::optional<std::string> type = parseType();
+  if (!type)
+    return nullptr;
+
+  if (nextToken.kind != TokenKind::equal)
+    return std::make_unique<VarDecl>(location, identifier, *type, isLet);
+  eatNextToken(); // eat '='
+
+  auto initializer = parseExpr();
+  if (!initializer)
+    return nullptr;
+
+  return std::make_unique<VarDecl>(location, identifier, *type, isLet,
+                                   std::move(initializer));
+}
+
 // <block>
 //  ::= '{' <statement>* '}'
 std::unique_ptr<Block> TheParser::parseBlock() {
@@ -145,17 +173,62 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
                                   std::move(trueBranch), std::move(falseBlock));
 }
 
+// <assignment>
+//  ::= <declRefExpr> '=' <expr>
+std::unique_ptr<BinaryOperator>
+TheParser::parseAssignmentRHS(std::unique_ptr<Expr> LHS) {
+  eatNextToken(); // eat '='
+
+  auto RHS = parseExpr();
+  if (!RHS)
+    return nullptr;
+
+  return std::make_unique<BinaryOperator>(LHS->location, std::move(LHS),
+                                          std::move(RHS), TokenKind::equal);
+}
+
+// <declStmt>
+//  ::= ('let'|'var') <varDecl>
+std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
+  Token tok = nextToken;
+  eatNextToken(); // eat 'let' | 'var'
+
+  auto varDecl = parseVarDecl(tok.kind == TokenKind::kw_let);
+  if (!varDecl)
+    return nullptr;
+
+  return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
+}
+
 // <statement>
 //  ::= <expr> ';'
-//  |   <branch>
+//  |   <ifStatement>
+//  |   <assignment> ';'
+//  |   <declStmt> ';'
 std::unique_ptr<Stmt> TheParser::parseStmt() {
-  if (nextToken.kind == TokenKind::kw_if) {
+  if (nextToken.kind == TokenKind::kw_if)
     return parseIfStmt();
-  }
 
-  std::unique_ptr<Expr> expr = parseExpr();
-  if (!expr)
-    return nullptr;
+  std::unique_ptr<Stmt> expr = nullptr;
+  if (nextToken.kind == TokenKind::kw_let ||
+      nextToken.kind == TokenKind::kw_var)
+    expr = parseDeclStmt();
+  else {
+
+    auto LHS = parsePrefixExpr();
+    if (!LHS)
+      return nullptr;
+
+    if (nextToken.kind == TokenKind::equal) {
+      if (!dynamic_cast<const DeclRefExpr *>(LHS.get()))
+        return error(nextToken.location,
+                     "expected variable on the LHS of an assignment");
+
+      expr = parseAssignmentRHS(std::move(LHS));
+    } else {
+      expr = parseExprRHS(std::move(LHS), 0);
+    }
+  }
 
   if (nextToken.kind != TokenKind::semi)
     return error(nextToken.location,

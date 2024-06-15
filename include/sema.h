@@ -36,10 +36,12 @@ class Sema {
 
   std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt);
   std::unique_ptr<ResolvedIfStmt> resolveIfStmt(const IfStmt &ifStmt);
+  std::unique_ptr<ResolvedDeclStmt> resolveDeclStmt(const DeclStmt &declStmt);
 
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block);
 
   std::unique_ptr<ResolvedParamDecl> resolveParamDecl(const ParamDecl &param);
+  std::unique_ptr<ResolvedVarDecl> resolveVarDecl(const VarDecl &varDecl);
   std::unique_ptr<ResolvedFunctionDecl>
   resolveFunctionWithoutBody(const FunctionDecl &function);
 
