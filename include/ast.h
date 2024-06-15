@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <variant>
 #include <vector>
 
 #include "lexer.h"
@@ -17,26 +18,61 @@ struct Decl : public Dumpable {
   virtual ~Decl() = default;
 };
 
-struct Expr : public Dumpable {
+struct Stmt : public Dumpable {
   SourceLocation location;
-  Expr(SourceLocation location) : location(location) {}
+  Stmt(SourceLocation location) : location(location) {}
 
-  virtual ~Expr() = default;
+  virtual ~Stmt() = default;
+};
+
+struct Expr : public Stmt {
+  Expr(SourceLocation location) : Stmt(location) {}
 };
 
 struct Block : public Dumpable {
   SourceLocation location;
-  std::vector<std::unique_ptr<Expr>> expressions;
+  std::vector<std::unique_ptr<Stmt>> statements;
 
-  Block(SourceLocation location, std::vector<std::unique_ptr<Expr>> expressions)
-      : location(location), expressions(std::move(expressions)) {}
+  Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
+      : location(location), statements(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "Block\n";
 
-    for (auto &&stmt : expressions)
+    for (auto &&stmt : statements)
       stmt->dump(level + 1);
+  }
+};
+
+struct IfStmt : public Stmt {
+  std::unique_ptr<Expr> condition;
+  std::unique_ptr<Block> trueBlock;
+
+  // FIXME: Another layer of abstraction?
+  std::unique_ptr<Block> falseBlock;
+  std::unique_ptr<IfStmt> falseBranch;
+
+  IfStmt(SourceLocation location, std::unique_ptr<Expr> condition,
+         std::unique_ptr<Block> trueBlock, std::unique_ptr<IfStmt> falseBranch)
+      : Stmt(location), condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)), falseBranch(std::move(falseBranch)) {}
+
+  IfStmt(SourceLocation location, std::unique_ptr<Expr> condition,
+         std::unique_ptr<Block> trueBlock,
+         std::unique_ptr<Block> falseBlock = nullptr)
+      : Stmt(location), condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "IfStmt\n";
+
+    trueBlock->dump(level + 1);
+    if (falseBlock)
+      falseBlock->dump(level + 1);
+    if (falseBranch)
+      falseBranch->dump(level + 1);
   }
 };
 
@@ -183,15 +219,23 @@ struct FunctionDecl : public Decl {
   }
 };
 
+struct ResolvedStmt : public Dumpable {
+  SourceLocation location;
+
+  ResolvedStmt(SourceLocation location) : location(location) {}
+
+  virtual ~ResolvedStmt() = default;
+};
+
 enum class Type { NUMBER, VOID };
 
 struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
-                      public Dumpable {
+                      public ResolvedStmt {
   SourceLocation location;
   Type type;
 
   ResolvedExpr(SourceLocation location, Type type)
-      : location(location), type(type) {}
+      : ResolvedStmt(location), type(type) {}
 
   virtual ~ResolvedExpr() = default;
 };
@@ -208,18 +252,52 @@ struct ResolvedDecl : public Dumpable {
 
 struct ResolvedBlock : public Dumpable {
   SourceLocation location;
-  std::vector<std::unique_ptr<ResolvedExpr>> expressions;
+  std::vector<std::unique_ptr<ResolvedStmt>> statements;
 
   ResolvedBlock(SourceLocation location,
-                std::vector<std::unique_ptr<ResolvedExpr>> statements)
-      : location(location), expressions(std::move(statements)) {}
+                std::vector<std::unique_ptr<ResolvedStmt>> statements)
+      : location(location), statements(std::move(statements)) {}
 
   void dump(size_t level = 0) override {
     indent(level);
     std::cerr << "ResolvedBlock\n";
 
-    for (auto &&stmt : expressions)
+    for (auto &&stmt : statements)
       stmt->dump(level + 1);
+  }
+};
+
+struct ResolvedIfStmt : public ResolvedStmt {
+  std::unique_ptr<ResolvedExpr> condition;
+  std::unique_ptr<ResolvedBlock> trueBlock;
+
+  // FIXME: Another layer of abstraction?
+  std::unique_ptr<ResolvedBlock> falseBlock;
+  std::unique_ptr<ResolvedIfStmt> falseBranch;
+
+  ResolvedIfStmt(SourceLocation location,
+                 std::unique_ptr<ResolvedExpr> condition,
+                 std::unique_ptr<ResolvedBlock> trueBlock,
+                 std::unique_ptr<ResolvedIfStmt> falseBranch)
+      : ResolvedStmt(location), condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)), falseBranch(std::move(falseBranch)) {}
+
+  ResolvedIfStmt(SourceLocation location,
+                 std::unique_ptr<ResolvedExpr> condition,
+                 std::unique_ptr<ResolvedBlock> trueBlock,
+                 std::unique_ptr<ResolvedBlock> falseBlock = nullptr)
+      : ResolvedStmt(location), condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
+
+  void dump(size_t level = 0) override {
+    indent(level);
+    std::cerr << "ResolvedIfStmt\n";
+
+    trueBlock->dump(level + 1);
+    if (falseBlock)
+      falseBlock->dump(level + 1);
+    if (falseBranch)
+      falseBranch->dump(level + 1);
   }
 };
 

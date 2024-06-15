@@ -30,6 +30,8 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
 
 std::optional<double>
 ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
+  return std::nullopt;
+
   if (auto numberLiteral = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
     return numberLiteral->value;
 

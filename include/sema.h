@@ -34,6 +34,9 @@ class Sema {
   std::unique_ptr<ResolvedCallExpr> resolveCallExpr(const CallExpr &call);
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr);
 
+  std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt);
+  std::unique_ptr<ResolvedIfStmt> resolveIfStmt(const IfStmt &ifStmt);
+
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block);
 
   std::unique_ptr<ResolvedParamDecl> resolveParamDecl(const ParamDecl &param);

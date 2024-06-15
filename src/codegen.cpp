@@ -29,6 +29,53 @@ llvm::Instruction::BinaryOps Codegen::getOperatorKind(TokenKind op) {
   llvm_unreachable("unknown operator");
 }
 
+llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
+  if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
+    return generateExpr(*expr);
+
+  if (auto *ifStmt = dynamic_cast<const ResolvedIfStmt *>(&stmt))
+    return generateIfStmt(*ifStmt);
+
+  llvm_unreachable("unknown statement");
+}
+
+llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
+  llvm::Function *parentFunction = Builder.GetInsertBlock()->getParent();
+
+  llvm::Value *cond = generateExpr(*stmt.condition);
+  llvm::BasicBlock *thenBB =
+      llvm::BasicBlock::Create(Context, "then", parentFunction);
+  llvm::BasicBlock *elseBB = nullptr;
+  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(Context, "merge");
+
+  bool hasElseBranch = stmt.falseBlock || stmt.falseBranch;
+  if (hasElseBranch)
+    elseBB = llvm::BasicBlock::Create(Context, "else");
+
+  Builder.CreateCondBr(doubleToBool(cond), thenBB,
+                       hasElseBranch ? elseBB : mergeBB);
+
+  Builder.SetInsertPoint(thenBB);
+  generateBlock(*stmt.trueBlock);
+  Builder.CreateBr(mergeBB);
+
+  if (hasElseBranch) {
+    elseBB->insertInto(parentFunction);
+    Builder.SetInsertPoint(elseBB);
+
+    if (stmt.falseBlock)
+      generateBlock(*stmt.falseBlock);
+    else
+      generateIfStmt(*stmt.falseBranch);
+
+    Builder.CreateBr(mergeBB);
+  }
+
+  mergeBB->insertInto(parentFunction);
+  Builder.SetInsertPoint(mergeBB);
+  return nullptr;
+}
+
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (std::optional<double> val = expr.getConstantValue())
     return llvm::ConstantFP::get(Builder.getDoubleTy(), *val);
@@ -82,11 +129,11 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 
   // FIXME: Refactor this!!!
   if (binop.op == TokenKind::lt)
-    return Builder.CreateFCmpOLT(LHS, RHS);
+    return boolToDouble(Builder.CreateFCmpOLT(LHS, RHS));
   if (binop.op == TokenKind::gt)
-    return Builder.CreateFCmpOGT(LHS, RHS);
+    return boolToDouble(Builder.CreateFCmpOGT(LHS, RHS));
   if (binop.op == TokenKind::equalequal)
-    return Builder.CreateFCmpOEQ(LHS, RHS);
+    return boolToDouble(Builder.CreateFCmpOEQ(LHS, RHS));
   if (binop.op == TokenKind::ampamp) {
     return boolToDouble(
         Builder.CreateLogicalAnd(doubleToBool(LHS), doubleToBool(RHS)));
@@ -99,7 +146,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 }
 
 llvm::Value *Codegen::doubleToBool(llvm::Value *V) {
-  return Builder.CreateFCmpUNE(
+  return Builder.CreateFCmpONE(
       V, llvm::ConstantFP::get(Builder.getDoubleTy(), 0.0), "toBool");
 }
 
@@ -108,8 +155,8 @@ llvm::Value *Codegen::boolToDouble(llvm::Value *V) {
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
-  for (auto &&expr : block.expressions)
-    generateExpr(*expr);
+  for (auto &&stmt : block.statements)
+    generateStmt(*stmt);
 }
 
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {

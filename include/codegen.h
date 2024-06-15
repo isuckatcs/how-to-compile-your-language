@@ -20,6 +20,9 @@ class Codegen {
   llvm::Type *generateType(Type type);
   llvm::Instruction::BinaryOps getOperatorKind(TokenKind op);
 
+  llvm::Value *generateStmt(const ResolvedStmt &stmt);
+  llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
+
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);

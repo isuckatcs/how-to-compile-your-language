@@ -1,5 +1,6 @@
 #include "sema.h"
 #include "utils.h"
+#include <cassert>
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
@@ -39,7 +40,7 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
   params.emplace_back(std::move(param));
 
   auto block = std::make_unique<ResolvedBlock>(
-      builtinLocation, std::vector<std::unique_ptr<ResolvedExpr>>{});
+      builtinLocation, std::vector<std::unique_ptr<ResolvedStmt>>{});
 
   return std::make_unique<ResolvedFunctionDecl>(SourceLocation{}, "print",
                                                 Type::VOID, std::move(params),
@@ -132,6 +133,52 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
 }
 
+std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
+  if (auto *expr = dynamic_cast<const Expr *>(&stmt))
+    return resolveExpr(*expr);
+
+  if (auto *ifStmt = dynamic_cast<const IfStmt *>(&stmt))
+    return resolveIfStmt(*ifStmt);
+
+  assert(false && "unknown statement");
+}
+
+std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
+  std::unique_ptr<ResolvedExpr> condition = resolveExpr(*ifStmt.condition);
+  if (!condition)
+    return nullptr;
+
+  if (condition->type != Type::NUMBER)
+    return error(condition->location, "unexpected type of expression");
+
+  auto trueBlock = resolveBlock(*ifStmt.trueBlock);
+  if (!trueBlock)
+    return nullptr;
+
+  if (ifStmt.falseBlock) {
+    auto falseBlock = resolveBlock(*ifStmt.falseBlock);
+    if (!falseBlock)
+      return nullptr;
+
+    return std::make_unique<ResolvedIfStmt>(
+        ifStmt.location, std::move(condition), std::move(trueBlock),
+        std::move(falseBlock));
+  }
+
+  if (ifStmt.falseBranch) {
+    auto falseBranch = resolveIfStmt(*ifStmt.falseBranch);
+    if (!falseBranch)
+      return nullptr;
+
+    return std::make_unique<ResolvedIfStmt>(
+        ifStmt.location, std::move(condition), std::move(trueBlock),
+        std::move(falseBranch));
+  }
+
+  return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
+                                          std::move(trueBlock));
+}
+
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
   if (auto numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
     return std::make_unique<ResolvedNumberLiteral>(
@@ -156,14 +203,14 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
-  std::vector<std::unique_ptr<ResolvedExpr>> resolvedExpressions;
+  std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
-  for (auto &&expr : block.expressions)
-    if (!resolvedExpressions.emplace_back(resolveExpr(*expr)))
+  for (auto &&stmt : block.statements)
+    if (!resolvedStatements.emplace_back(resolveStmt(*stmt)))
       return nullptr;
 
   return std::make_unique<ResolvedBlock>(block.location,
-                                         std::move(resolvedExpressions));
+                                         std::move(resolvedStatements));
 }
 
 std::unique_ptr<ResolvedParamDecl>

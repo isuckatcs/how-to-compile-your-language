@@ -81,12 +81,12 @@ std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
 }
 
 // <block>
-//  ::= '{' (<expr> ';')* '}'
+//  ::= '{' <statement>* '}'
 std::unique_ptr<Block> TheParser::parseBlock() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '{'
 
-  std::vector<std::unique_ptr<Expr>> expressions;
+  std::vector<std::unique_ptr<Stmt>> expressions;
   while (true) {
     if (nextToken.kind == TokenKind::rbrace)
       break;
@@ -94,21 +94,75 @@ std::unique_ptr<Block> TheParser::parseBlock() {
     if (nextToken.kind == TokenKind::eof)
       return error(nextToken.location, "expected '}' at the end of a block");
 
-    std::unique_ptr<Expr> expr = parseExpr();
-    if (!expr)
+    std::unique_ptr<Stmt> stmt = parseStmt();
+    if (!stmt)
       return nullptr;
 
-    if (nextToken.kind != TokenKind::semi)
-      return error(nextToken.location,
-                   "expected ';' at the end of an expression");
-    eatNextToken(); // eat ';'
-
-    expressions.emplace_back(std::move(expr));
+    expressions.emplace_back(std::move(stmt));
   }
 
   eatNextToken(); // eat '}'
 
   return std::make_unique<Block>(location, std::move(expressions));
+}
+
+// <ifStatement>
+//  ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
+std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat 'if'
+
+  std::unique_ptr<Expr> condition = parseExpr();
+  if (!condition)
+    return nullptr;
+
+  if (nextToken.kind != TokenKind::lbrace)
+    return error(nextToken.location, "expected 'if' body");
+
+  std::unique_ptr<Block> trueBranch = parseBlock();
+  if (!trueBranch)
+    return nullptr;
+
+  if (nextToken.kind != TokenKind::kw_else)
+    return std::make_unique<IfStmt>(location, std::move(condition),
+                                    std::move(trueBranch));
+  eatNextToken(); // eat 'else'
+
+  if (nextToken.kind == TokenKind::kw_if) {
+    std::unique_ptr<IfStmt> elseIf = parseIfStmt();
+    if (!elseIf)
+      return nullptr;
+
+    return std::make_unique<IfStmt>(location, std::move(condition),
+                                    std::move(trueBranch), std::move(elseIf));
+  }
+
+  std::unique_ptr<Block> falseBlock = parseBlock();
+  if (!falseBlock)
+    return nullptr;
+
+  return std::make_unique<IfStmt>(location, std::move(condition),
+                                  std::move(trueBranch), std::move(falseBlock));
+}
+
+// <statement>
+//  ::= <expr> ';'
+//  |   <branch>
+std::unique_ptr<Stmt> TheParser::parseStmt() {
+  if (nextToken.kind == TokenKind::kw_if) {
+    return parseIfStmt();
+  }
+
+  std::unique_ptr<Expr> expr = parseExpr();
+  if (!expr)
+    return nullptr;
+
+  if (nextToken.kind != TokenKind::semi)
+    return error(nextToken.location,
+                 "expected ';' at the end of an expression");
+  eatNextToken(); // eat ';'
+
+  return expr;
 }
 
 std::unique_ptr<Expr> TheParser::parseExpr() {

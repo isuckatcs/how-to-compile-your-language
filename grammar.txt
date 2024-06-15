@@ -11,7 +11,14 @@
     ::= <identifier> ':' <type>
 
 <block>
-    ::= '{' (<expr> ';')* '}'
+    ::= '{' <statement>* '}'
+
+<statement>
+    ::= <expr> ';'
+    |   <ifStatement>
+
+<ifStatement>
+    ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
 
 Precedence  Type            Symbols
 Highest     Prefix          !
