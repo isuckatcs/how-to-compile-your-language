@@ -1,6 +1,7 @@
+#include <cassert>
+
 #include "sema.h"
 #include "utils.h"
-#include <cassert>
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
@@ -58,10 +59,7 @@ std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
 
 std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
-  auto resolvedRHS = resolveExpr(*unary.rhs);
-
-  if (!resolvedRHS)
-    return nullptr;
+  varOrReturn(resolvedRHS, resolveExpr(*unary.rhs));
 
   return std::make_unique<ResolvedUnaryOperator>(
       unary.location, std::move(resolvedRHS), unary.op);
@@ -69,11 +67,18 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
 
 std::unique_ptr<ResolvedBinaryOperator>
 Sema::resolveBinaryOperator(const BinaryOperator &binop) {
-  auto resolvedLHS = resolveExpr(*binop.lhs);
-  auto resolvedRHS = resolveExpr(*binop.rhs);
+  varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
+  varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
-  if (!resolvedLHS || !resolvedRHS)
-    return nullptr;
+  if (resolvedLHS->type == Type::Void)
+    return error(
+        resolvedLHS->location,
+        "void expression cannot be used as LHS operand to binary operator");
+
+  if (resolvedRHS->type == Type::Void)
+    return error(
+        resolvedRHS->location,
+        "void expression cannot be used as RHS operand to binary operator");
 
   return std::make_unique<ResolvedBinaryOperator>(
       binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
@@ -81,10 +86,7 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
 
 std::unique_ptr<ResolvedGroupingExpr>
 Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
-  auto resolvedExpr = resolveExpr(*grouping.expr);
-  if (!resolvedExpr)
-    return nullptr;
-
+  varOrReturn(resolvedExpr, resolveExpr(*grouping.expr));
   return std::make_unique<ResolvedGroupingExpr>(grouping.location,
                                                 std::move(resolvedExpr));
 }
@@ -99,9 +101,7 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr) {
 }
 
 std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
-  auto resolvedCallee = resolveDeclRefExpr(*call.identifier);
-  if (!resolvedCallee)
-    return nullptr;
+  varOrReturn(resolvedCallee, resolveDeclRefExpr(*call.identifier));
 
   const auto *resolvedFunctionDecl =
       dynamic_cast<const ResolvedFunctionDecl *>(resolvedCallee->decl);
@@ -115,9 +115,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   std::vector<std::unique_ptr<ResolvedExpr>> resolvedArguments;
   int idx = 0;
   for (auto &&arg : call.arguments) {
-    auto resolvedArg = resolveExpr(*arg);
-    if (!resolvedArg)
-      return nullptr;
+    varOrReturn(resolvedArg, resolveExpr(*arg));
 
     if (resolvedArg->type != resolvedFunctionDecl->params[idx]->type)
       return error(resolvedArg->location, "unexpected type of argument");
@@ -150,32 +148,22 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
 }
 
 std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
-  std::unique_ptr<ResolvedExpr> condition = resolveExpr(*ifStmt.condition);
-  if (!condition)
-    return nullptr;
+  varOrReturn(condition, resolveExpr(*ifStmt.condition));
 
   if (condition->type != Type::Number)
-    return error(condition->location, "unexpected type of expression");
+    return error(condition->location, "expected number in condition");
 
-  auto trueBlock = resolveBlock(*ifStmt.trueBlock);
-  if (!trueBlock)
-    return nullptr;
+  varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
 
   if (ifStmt.falseBlock) {
-    auto falseBlock = resolveBlock(*ifStmt.falseBlock);
-    if (!falseBlock)
-      return nullptr;
-
+    varOrReturn(falseBlock, resolveBlock(*ifStmt.falseBlock));
     return std::make_unique<ResolvedIfStmt>(
         ifStmt.location, std::move(condition), std::move(trueBlock),
         std::move(falseBlock));
   }
 
   if (ifStmt.falseBranch) {
-    auto falseBranch = resolveIfStmt(*ifStmt.falseBranch);
-    if (!falseBranch)
-      return nullptr;
-
+    varOrReturn(falseBranch, resolveIfStmt(*ifStmt.falseBranch));
     return std::make_unique<ResolvedIfStmt>(
         ifStmt.location, std::move(condition), std::move(trueBlock),
         std::move(falseBranch));
@@ -187,9 +175,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
 
 std::unique_ptr<ResolvedDeclStmt>
 Sema::resolveDeclStmt(const DeclStmt &declStmt) {
-  auto resolvedVarDecl = resolveVarDecl(*declStmt.varDecl);
-  if (!resolvedVarDecl)
-    return nullptr;
+  varOrReturn(resolvedVarDecl, resolveVarDecl(*declStmt.varDecl));
 
   if (!insertDeclToCurrentScope(*resolvedVarDecl))
     return nullptr;

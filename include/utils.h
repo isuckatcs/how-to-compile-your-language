@@ -1,6 +1,11 @@
 #ifndef A_LANGUAGE_UTILS_H
 #define A_LANGUAGE_UTILS_H
 
+#define varOrReturn(var, init)                                                 \
+  auto var = (init);                                                           \
+  if (!var)                                                                    \
+    return nullptr;
+
 #include <optional>
 #include <string>
 

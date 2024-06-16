@@ -1,27 +1,29 @@
-#include "parser.h"
 #include <cassert>
+
+#include "parser.h"
+#include "utils.h"
 
 namespace {
 int getTokPrecedence(TokenKind tok) {
-  if (tok == TokenKind::Asterisk || tok == TokenKind::Slash)
+  switch (tok) {
+  case TokenKind::Asterisk:
+  case TokenKind::Slash:
     return 6;
-
-  if (tok == TokenKind::Plus || tok == TokenKind::Minus)
+  case TokenKind::Plus:
+  case TokenKind::Minus:
     return 5;
-
-  if (tok == TokenKind::Lt || tok == TokenKind::Gt)
+  case TokenKind::Lt:
+  case TokenKind::Gt:
     return 4;
-
-  if (tok == TokenKind::EqualEqual)
+  case TokenKind::EqualEqual:
     return 3;
-
-  if (tok == TokenKind::AmpAmp)
+  case TokenKind::AmpAmp:
     return 2;
-
-  if (tok == TokenKind::PipePipe)
+  case TokenKind::PipePipe:
     return 1;
-
-  return -1;
+  default:
+    return -1;
+  }
 }
 }; // namespace
 
@@ -38,25 +40,18 @@ std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
   std::string functionIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  std::optional<ParameterList> parameterList = parseParameterList();
-  if (!parameterList)
-    return nullptr;
+  varOrReturn(parameterList, parseParameterList());
 
   if (nextToken.kind != TokenKind::Colon)
     return error(nextToken.location, "expected ':'");
   eatNextToken(); // eat ':'
 
-  std::optional<std::string> type = parseType();
-  if (!type)
-    return nullptr;
+  varOrReturn(type, parseType());
 
   if (nextToken.kind != TokenKind::Lbrace)
     return error(nextToken.location, "expected function body");
 
-  std::unique_ptr<Block> block = parseBlock();
-
-  if (!block)
-    return nullptr;
+  varOrReturn(block, parseBlock());
 
   return std::make_unique<FunctionDecl>(location, functionIdentifier, *type,
                                         std::move(*parameterList),
@@ -76,9 +71,7 @@ std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
     return error(nextToken.location, "expected ':'");
   eatNextToken(); // eat :
 
-  std::optional<std::string> type = parseType();
-  if (!type)
-    return nullptr;
+  varOrReturn(type, parseType());
 
   return std::make_unique<ParamDecl>(location, std::move(identifier),
                                      std::move(*type));
@@ -98,17 +91,13 @@ std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
     return error(nextToken.location, "expected ':'");
   eatNextToken(); // eat ':'
 
-  std::optional<std::string> type = parseType();
-  if (!type)
-    return nullptr;
+  varOrReturn(type, parseType());
 
   if (nextToken.kind != TokenKind::Equal)
     return std::make_unique<VarDecl>(location, identifier, *type, isLet);
   eatNextToken(); // eat '='
 
-  auto initializer = parseExpr();
-  if (!initializer)
-    return nullptr;
+  varOrReturn(initializer, parseExpr());
 
   return std::make_unique<VarDecl>(location, identifier, *type, isLet,
                                    std::move(initializer));
@@ -128,9 +117,7 @@ std::unique_ptr<Block> TheParser::parseBlock() {
     if (nextToken.kind == TokenKind::Eof)
       return error(nextToken.location, "expected '}' at the end of a block");
 
-    std::unique_ptr<Stmt> stmt = parseStmt();
-    if (!stmt)
-      return nullptr;
+    varOrReturn(stmt, parseStmt());
 
     expressions.emplace_back(std::move(stmt));
   }
@@ -146,16 +133,12 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'if'
 
-  std::unique_ptr<Expr> condition = parseExpr();
-  if (!condition)
-    return nullptr;
+  varOrReturn(condition, parseExpr());
 
   if (nextToken.kind != TokenKind::Lbrace)
     return error(nextToken.location, "expected 'if' body");
 
-  std::unique_ptr<Block> trueBranch = parseBlock();
-  if (!trueBranch)
-    return nullptr;
+  varOrReturn(trueBranch, parseBlock());
 
   if (nextToken.kind != TokenKind::KwElse)
     return std::make_unique<IfStmt>(location, std::move(condition),
@@ -163,17 +146,13 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
   eatNextToken(); // eat 'else'
 
   if (nextToken.kind == TokenKind::KwIf) {
-    std::unique_ptr<IfStmt> elseIf = parseIfStmt();
-    if (!elseIf)
-      return nullptr;
+    varOrReturn(elseIf, parseIfStmt());
 
     return std::make_unique<IfStmt>(location, std::move(condition),
                                     std::move(trueBranch), std::move(elseIf));
   }
 
-  std::unique_ptr<Block> falseBlock = parseBlock();
-  if (!falseBlock)
-    return nullptr;
+  varOrReturn(falseBlock, parseBlock());
 
   return std::make_unique<IfStmt>(location, std::move(condition),
                                   std::move(trueBranch), std::move(falseBlock));
@@ -185,9 +164,7 @@ std::unique_ptr<BinaryOperator>
 TheParser::parseAssignmentRHS(std::unique_ptr<Expr> lhs) {
   eatNextToken(); // eat '='
 
-  auto rhs = parseExpr();
-  if (!rhs)
-    return nullptr;
+  varOrReturn(rhs, parseExpr());
 
   return std::make_unique<BinaryOperator>(lhs->location, std::move(lhs),
                                           std::move(rhs), TokenKind::Equal);
@@ -199,9 +176,7 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
   Token tok = nextToken;
   eatNextToken(); // eat 'let' | 'var'
 
-  auto varDecl = parseVarDecl(tok.kind == TokenKind::KwLet);
-  if (!varDecl)
-    return nullptr;
+  varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
 
   return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
 }
@@ -219,10 +194,7 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
   if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)
     expr = parseDeclStmt();
   else {
-
-    auto lhs = parsePrefixExpr();
-    if (!lhs)
-      return nullptr;
+    varOrReturn(lhs, parsePrefixExpr());
 
     if (nextToken.kind == TokenKind::Equal) {
       if (!dynamic_cast<const DeclRefExpr *>(lhs.get()))
@@ -235,6 +207,9 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
     }
   }
 
+  if (!expr)
+    return nullptr;
+
   if (nextToken.kind != TokenKind::Semi)
     return error(nextToken.location,
                  "expected ';' at the end of an expression");
@@ -244,9 +219,7 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
 }
 
 std::unique_ptr<Expr> TheParser::parseExpr() {
-  auto lhs = parsePrefixExpr();
-  if (!lhs)
-    return nullptr;
+  varOrReturn(lhs, parsePrefixExpr());
   return parseExprRHS(std::move(lhs), 0);
 }
 
@@ -260,9 +233,7 @@ std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> lhs,
       return lhs;
     eatNextToken(); // eat opearator
 
-    auto rhs = parsePrefixExpr();
-    if (!rhs)
-      return nullptr;
+    varOrReturn(rhs, parsePrefixExpr());
 
     if (curOpPrec < getTokPrecedence(nextToken.kind)) {
       rhs = parseExprRHS(std::move(rhs), curOpPrec + 1);
@@ -282,9 +253,7 @@ std::unique_ptr<Expr> TheParser::parsePrefixExpr() {
     return parsePrimary();
   eatNextToken(); // eat !
 
-  auto rhs = parsePrefixExpr();
-  if (!rhs)
-    return nullptr;
+  varOrReturn(rhs, parsePrefixExpr());
 
   return std::make_unique<UnaryOperator>(tok.location, std::move(rhs),
                                          tok.kind);
@@ -310,9 +279,7 @@ std::unique_ptr<Expr> TheParser::parsePrimary() {
   if (nextToken.kind == TokenKind::Lpar) {
     eatNextToken(); // eat '('
 
-    auto expr = parseExpr();
-    if (!expr)
-      return nullptr;
+    varOrReturn(expr, parseExpr());
 
     if (nextToken.kind != TokenKind::Rpar)
       return error(nextToken.location, "expected ')'");
@@ -336,9 +303,7 @@ std::unique_ptr<Expr> TheParser::parsePrimary() {
       return declRefExpr;
     location = nextToken.location;
 
-    std::optional<ArgumentList> argumentList = parseArgumentList();
-    if (!argumentList)
-      return nullptr;
+    varOrReturn(argumentList, parseArgumentList());
 
     return std::make_unique<CallExpr>(location, std::move(declRefExpr),
                                       std::move(*argumentList));
