@@ -11,9 +11,10 @@
 
 struct Dumpable {
   [[nodiscard]] std::string indent(size_t level) {
-    return std::string(level, ' ');
+    return std::string(level * 2, ' ');
   }
 
+  virtual ~Dumpable() = default;
   virtual void dump(size_t level = 0) = 0;
 };
 

@@ -14,7 +14,10 @@ void displayHelp() {
             << "  your-compiler [options] <source_file>\n\n"
             << "Options:\n"
             << "  -h           display this message\n"
-            << "  -o <file>    write executable to <file>\n";
+            << "  -o <file>    write executable to <file>\n"
+            << "  -ast-dump    print the abstract syntax tree\n"
+            << "  -res-dump    print the resolved syntax tree\n"
+            << "  -llvm-dump   print the llvm module\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
@@ -26,6 +29,9 @@ struct CompilerOptions {
   std::optional<std::string_view> source;
   std::optional<std::string_view> output;
   bool displayHelp = false;
+  bool astDump = false;
+  bool resDump = false;
+  bool llvmDump = false;
 };
 
 CompilerOptions parseArguments(int argc, const char **argv) {
@@ -45,6 +51,12 @@ CompilerOptions parseArguments(int argc, const char **argv) {
         options.displayHelp = true;
       else if (arg == "-o")
         options.output = ++idx >= argc ? "" : argv[idx];
+      else if (arg == "-ast-dump")
+        options.astDump = true;
+      else if (arg == "-res-dump")
+        options.resDump = true;
+      else if (arg == "-llvm-dump")
+        options.llvmDump = true;
       else
         error("unexpected option '" + std::string{arg} + '\'');
     }
@@ -81,8 +93,11 @@ int main(int argc, const char **argv) {
   if (functions.empty())
     return 1;
 
-  for (auto &&fn : functions)
-    fn->dump();
+  if (options.astDump) {
+    for (auto &&fn : functions)
+      fn->dump();
+    return 0;
+  }
 
   Sema sema{std::move(functions)};
 
@@ -90,8 +105,11 @@ int main(int argc, const char **argv) {
   if (resolvedFunctions.empty())
     return 1;
 
-  for (auto &&fn : resolvedFunctions)
-    fn->dump();
+  if (options.resDump) {
+    for (auto &&fn : resolvedFunctions)
+      fn->dump();
+    return 0;
+  }
 
   Codegen codegen{std::move(resolvedFunctions)};
 
