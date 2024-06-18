@@ -21,7 +21,8 @@ class TheParser {
 
   std::unique_ptr<Stmt> parseStmt();
   std::unique_ptr<IfStmt> parseIfStmt();
-  std::unique_ptr<BinaryOperator> parseAssignmentRHS(std::unique_ptr<Expr> lhs);
+  std::unique_ptr<Assignment>
+  parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
 
   std::unique_ptr<Block> parseBlock();

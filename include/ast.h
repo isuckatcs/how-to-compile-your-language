@@ -239,6 +239,22 @@ struct DeclStmt : public Stmt {
   }
 };
 
+struct Assignment : public Stmt {
+  std::unique_ptr<DeclRefExpr> variable;
+  std::unique_ptr<Expr> expr;
+
+  Assignment(SourceLocation location, std::unique_ptr<DeclRefExpr> variable,
+             std::unique_ptr<Expr> expr)
+      : Stmt(location), variable(std::move(variable)), expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    std::cerr << indent(level) << "Assignment:\n";
+    variable->dump(level + 1);
+    if (expr)
+      expr->dump(level + 1);
+  }
+};
+
 struct ResolvedStmt : public Dumpable {
   SourceLocation location;
 
@@ -488,6 +504,24 @@ struct ResolvedDeclStmt : public ResolvedStmt {
   void dump(size_t level = 0) override {
     std::cerr << indent(level) << "ResolvedDeclStmt:\n";
     varDecl->dump(level + 1);
+  }
+};
+
+struct ResolvedAssignment : public ResolvedStmt {
+  std::unique_ptr<ResolvedDeclRefExpr> variable;
+  std::unique_ptr<ResolvedExpr> expr;
+
+  ResolvedAssignment(SourceLocation location,
+                     std::unique_ptr<ResolvedDeclRefExpr> variable,
+                     std::unique_ptr<ResolvedExpr> expr)
+      : ResolvedStmt(location), variable(std::move(variable)),
+        expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    std::cerr << indent(level) << "ResolvedAssignment:\n";
+    variable->dump(level + 1);
+    if (expr)
+      expr->dump(level + 1);
   }
 };
 

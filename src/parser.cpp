@@ -160,14 +160,14 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
 
 // <assignment>
 //  ::= <declRefExpr> '=' <expr>
-std::unique_ptr<BinaryOperator>
-TheParser::parseAssignmentRHS(std::unique_ptr<Expr> lhs) {
+std::unique_ptr<Assignment>
+TheParser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
   eatNextToken(); // eat '='
 
   varOrReturn(rhs, parseExpr());
 
-  return std::make_unique<BinaryOperator>(lhs->location, std::move(lhs),
-                                          std::move(rhs), TokenKind::Equal);
+  return std::make_unique<Assignment>(lhs->location, std::move(lhs),
+                                      std::move(rhs));
 }
 
 // <declStmt>
@@ -201,7 +201,9 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
         return error(nextToken.location,
                      "expected variable on the LHS of an assignment");
 
-      expr = parseAssignmentRHS(std::move(lhs));
+      // FIXME: ???
+      expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(
+          static_cast<DeclRefExpr *>(lhs.release())));
     } else {
       expr = parseExprRHS(std::move(lhs), 0);
     }

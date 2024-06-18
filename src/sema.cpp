@@ -138,8 +138,8 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *ifStmt = dynamic_cast<const IfStmt *>(&stmt))
     return resolveIfStmt(*ifStmt);
 
-  if (auto *assignment = dynamic_cast<const BinaryOperator *>(&stmt))
-    return resolveBinaryOperator(*assignment);
+  if (auto *assignment = dynamic_cast<const Assignment *>(&stmt))
+    return resolveAssignment(*assignment);
 
   if (auto *declStmt = dynamic_cast<const DeclStmt *>(&stmt))
     return resolveDeclStmt(*declStmt);
@@ -182,6 +182,29 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
   return std::make_unique<ResolvedDeclStmt>(declStmt.location,
                                             std::move(resolvedVarDecl));
+}
+
+std::unique_ptr<ResolvedAssignment>
+Sema::resolveAssignment(const Assignment &assignment) {
+  varOrReturn(resolvedLHS, resolveExpr(*assignment.variable));
+  varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
+
+  if (resolvedLHS->type == Type::Void)
+    return error(
+        resolvedLHS->location,
+        "void expression cannot be used as LHS operand to binary operator");
+
+  if (resolvedRHS->type == Type::Void)
+    return error(
+        resolvedRHS->location,
+        "void expression cannot be used as RHS operand to binary operator");
+
+  // FIXME: ??? too
+  return std::make_unique<ResolvedAssignment>(
+      assignment.location,
+      std::move(std::unique_ptr<ResolvedDeclRefExpr>(
+          static_cast<ResolvedDeclRefExpr *>(resolvedLHS.release()))),
+      std::move(resolvedRHS));
 }
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {

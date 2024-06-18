@@ -22,6 +22,8 @@ class Codegen {
 
   llvm::Value *generateStmt(const ResolvedStmt &stmt);
   llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
+  llvm::Value *generateDeclStmt(const ResolvedDeclStmt &stmt);
+  llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
@@ -30,6 +32,9 @@ class Codegen {
 
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
+
+  llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
+                                          const ResolvedVarDecl &var);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

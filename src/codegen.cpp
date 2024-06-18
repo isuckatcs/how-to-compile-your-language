@@ -36,6 +36,12 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
   if (auto *ifStmt = dynamic_cast<const ResolvedIfStmt *>(&stmt))
     return generateIfStmt(*ifStmt);
 
+  if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
+    return generateDeclStmt(*declStmt);
+
+  if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(&stmt))
+    return generateAssignment(*assignment);
+
   llvm_unreachable("unknown statement");
 }
 
@@ -76,6 +82,31 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   return nullptr;
 }
 
+llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
+  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
+
+  const auto &varDecl = stmt.varDecl;
+  llvm::AllocaInst *localVar = allocateStackVariable(parentFunction, *varDecl);
+
+  if (const auto &init = varDecl->initializer) {
+    llvm::Value *initVal = generateExpr(*init);
+    builder.CreateStore(initVal, localVar);
+  }
+
+  declarations[varDecl.get()] = localVar;
+
+  return nullptr;
+}
+
+llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
+  llvm::Value *var = generateExpr(*stmt.variable);
+  llvm::Value *lhs = generateExpr(*stmt.expr);
+
+  builder.CreateStore(lhs, declarations[stmt.variable->decl]);
+
+  return nullptr;
+}
+
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (std::optional<double> val = expr.getConstantValue())
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
@@ -84,7 +115,8 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), numLit->value);
 
   if (auto *declRefExpr = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return declarations[declRefExpr->decl];
+    return builder.CreateLoad(builder.getDoubleTy(),
+                              declarations[declRefExpr->decl]);
 
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -152,6 +184,17 @@ llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
 
 llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
   return builder.CreateUIToFP(v, builder.getDoubleTy(), "toDouble");
+}
+
+llvm::AllocaInst *Codegen::allocateStackVariable(llvm::Function *function,
+                                                 const ResolvedVarDecl &var) {
+  // FIXME: fix the ordering
+  llvm::IRBuilder<> tmpBuilder(context);
+  tmpBuilder.SetInsertPoint(&function->getEntryBlock(),
+                            function->getEntryBlock().begin());
+
+  return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr,
+                                 var.identifier);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
