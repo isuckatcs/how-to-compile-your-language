@@ -9,6 +9,8 @@
 #include "parser.h"
 #include "sema.h"
 
+#include <llvm/Support/Host.h>
+
 void displayHelp() {
   std::cout << "Usage:\n"
             << "  your-compiler [options] <source_file>\n\n"
@@ -112,9 +114,22 @@ int main(int argc, const char **argv) {
   }
 
   Codegen codegen{std::move(resolvedFunctions)};
+  std::unique_ptr<llvm::Module> ir = codegen.generateIR();
+
+  // FIXME: Is this the proper place to do this?
+  ir->setSourceFileName(*options.source);
+  ir->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+
+  if (options.llvmDump) {
+    ir->dump();
+    return 0;
+  }
 
   std::string_view outLL = "tmp.ll";
-  codegen.generateIR(outLL);
+
+  std::error_code errorCode;
+  llvm::raw_fd_ostream f{outLL, errorCode};
+  ir->print(f, nullptr);
 
   std::stringstream command;
   command << "clang " << outLL;

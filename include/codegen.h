@@ -15,7 +15,7 @@ class Codegen {
 
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;
-  llvm::Module module;
+  std::unique_ptr<llvm::Module> module;
 
   llvm::Type *generateType(Type type);
   llvm::Instruction::BinaryOps getOperatorKind(TokenKind op);
@@ -47,7 +47,7 @@ public:
   explicit Codegen(
       std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile);
 
-  void generateIR(std::string_view filePath);
+  std::unique_ptr<llvm::Module> generateIR();
 };
 
 #endif // A_COMPILER_CODEGEN_H

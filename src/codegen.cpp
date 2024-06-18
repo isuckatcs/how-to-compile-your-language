@@ -1,13 +1,9 @@
 #include "codegen.h"
 
-#include <llvm/Support/Host.h>
-
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
     : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
-      module("<translation_unit>", context) {
-  module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
-}
+      module(std::make_unique<llvm::Module>("<translation_unit>", context)) {}
 
 llvm::Type *Codegen::generateType(Type type) {
   if (type == Type::Number)
@@ -133,7 +129,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
-  llvm::Function *callee = module.getFunction(call.callee->identifier);
+  llvm::Function *callee = module->getFunction(call.callee->identifier);
 
   std::vector<llvm::Value *> args;
   for (auto &&arg : call.arguments)
@@ -202,7 +198,7 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
 }
 
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
-  auto *function = module.getFunction(functionDecl.identifier);
+  auto *function = module->getFunction(functionDecl.identifier);
   auto *bb = llvm::BasicBlock::Create(context, "", function);
 
   builder.SetInsertPoint(bb);
@@ -230,7 +226,7 @@ void Codegen::generateBuiltinPrintBody() {
   auto *functionType = llvm::FunctionType::get(builder.getInt32Ty(),
                                                {builder.getInt8PtrTy()}, true);
   auto *printf = llvm::Function::Create(
-      functionType, llvm::Function::ExternalLinkage, "printf", module);
+      functionType, llvm::Function::ExternalLinkage, "printf", *module);
 
   auto *formatStr = builder.CreateGlobalStringPtr("%f\n");
   llvm::Value *param;
@@ -246,12 +242,12 @@ void Codegen::generateBuiltinPrintBody() {
 }
 
 void Codegen::generateMainWrapper() {
-  auto *builtinMain = module.getFunction("main");
+  auto *builtinMain = module->getFunction("main");
   builtinMain->setName("__builtin_main");
 
   auto *main = llvm::Function::Create(
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
-      llvm::Function::ExternalLinkage, "main", module);
+      llvm::Function::ExternalLinkage, "main", *module);
 
   auto *bb = llvm::BasicBlock::Create(context, "", main);
 
@@ -271,10 +267,10 @@ void Codegen::generateFunction(const ResolvedFunctionDecl &functionDecl) {
   auto *functionType = llvm::FunctionType::get(returnType, paramTypes, false);
   auto *function =
       llvm::Function::Create(functionType, llvm::Function::ExternalLinkage,
-                             functionDecl.identifier, module);
+                             functionDecl.identifier, *module);
 }
 
-void Codegen::generateIR(std::string_view filePath) {
+std::unique_ptr<llvm::Module> Codegen::generateIR() {
   for (auto &&function : resolvedSourceFile)
     generateFunction(*function);
 
@@ -283,9 +279,5 @@ void Codegen::generateIR(std::string_view filePath) {
 
   generateMainWrapper();
 
-  module.dump();
-
-  std::error_code errorCode;
-  llvm::raw_fd_ostream f{filePath, errorCode};
-  module.print(f, nullptr);
+  return std::move(module);
 }
