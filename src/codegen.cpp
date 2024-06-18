@@ -99,7 +99,6 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  llvm::Value *var = generateExpr(*stmt.variable);
   llvm::Value *lhs = generateExpr(*stmt.expr);
 
   builder.CreateStore(lhs, declarations[stmt.variable->decl]);
@@ -187,14 +186,14 @@ llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
 }
 
 llvm::AllocaInst *Codegen::allocateStackVariable(llvm::Function *function,
-                                                 const ResolvedVarDecl &var) {
+                                                 const ResolvedDecl &decl) {
   // FIXME: fix the ordering
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(&function->getEntryBlock(),
                             function->getEntryBlock().begin());
 
   return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr,
-                                 var.identifier);
+                                 decl.identifier);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
@@ -207,6 +206,17 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *bb = llvm::BasicBlock::Create(context, "", function);
 
   builder.SetInsertPoint(bb);
+
+  int idx = 0;
+  for (auto &&arg : function->args()) {
+    const auto &paramDecl = functionDecl.params[idx];
+    arg.setName(paramDecl->identifier);
+
+    llvm::AllocaInst *stackParam = allocateStackVariable(function, *paramDecl);
+    declarations[paramDecl.get()] = stackParam;
+    builder.CreateStore(&arg, stackParam);
+    ++idx;
+  }
 
   if (functionDecl.identifier == "print")
     generateBuiltinPrintBody();
@@ -228,7 +238,8 @@ void Codegen::generateBuiltinPrintBody() {
     if (fn->identifier != "print")
       continue;
 
-    param = declarations[fn->params[0].get()];
+    param = builder.CreateLoad(builder.getDoubleTy(),
+                               declarations[fn->params[0].get()]);
   }
 
   builder.CreateCall(printf, {formatStr, param});
@@ -261,16 +272,6 @@ void Codegen::generateFunction(const ResolvedFunctionDecl &functionDecl) {
   auto *function =
       llvm::Function::Create(functionType, llvm::Function::ExternalLinkage,
                              functionDecl.identifier, module);
-
-  int idx = 0;
-  for (auto &&arg : function->args()) {
-    const auto &paramDecl = functionDecl.params[idx];
-
-    arg.setName(paramDecl->identifier);
-    declarations[paramDecl.get()] = &arg;
-
-    ++idx;
-  }
 }
 
 void Codegen::generateIR(std::string_view filePath) {

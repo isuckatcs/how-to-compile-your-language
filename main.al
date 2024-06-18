@@ -1,10 +1,8 @@
 fn ret(z:number): void {
-    var y: number = 10.0;
-    y = 2.0 * y;
-
-    print(y);
+    let x:number = 2.0 * z;
+    print(x * z);
 }
 
 fn main(): void {
-    ret(0.0);
+    ret(10.0);
 }

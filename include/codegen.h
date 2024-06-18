@@ -34,7 +34,7 @@ class Codegen {
   llvm::Value *boolToDouble(llvm::Value *v);
 
   llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
-                                          const ResolvedVarDecl &var);
+                                          const ResolvedDecl &decl);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);
