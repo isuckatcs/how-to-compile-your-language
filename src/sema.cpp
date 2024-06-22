@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "cfg.h"
 #include "sema.h"
 #include "utils.h"
 
@@ -335,6 +336,9 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
     if (!resolvedBody)
       return {};
     resolvedSourceFile[i]->body = std::move(resolvedBody);
+
+    CFGBuilder b;
+    b.build(*resolvedSourceFile[i]);
   }
 
   return std::move(resolvedSourceFile);
