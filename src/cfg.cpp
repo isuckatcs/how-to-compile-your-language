@@ -60,6 +60,27 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   }
 }
 
+void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
+  int exitBlock = currentBlock != -1 ? currentBlock : successorBlock;
+
+  int transitionBlock = currentCFG.insertNewBlock();
+
+  successorBlock = transitionBlock;
+  currentBlock = -1;
+  visit(*stmt.body);
+
+  int bodyBlock = currentBlock;
+  successorBlock = bodyBlock;
+  currentBlock = -1;
+
+  visit(*stmt.condition);
+  currentCFG.insertEdge(currentBlock, exitBlock);
+  currentCFG.insertEdge(transitionBlock, currentBlock);
+
+  successorBlock = currentBlock;
+  currentBlock = -1;
+}
+
 void CFGBuilder::visit(const ResolvedDeclStmt &stmt) {
   autoCreateBlock();
   currentCFG.insertStatement(currentBlock, &stmt);
@@ -150,6 +171,9 @@ void CFGBuilder::visit(const ResolvedStmt &stmt) {
   if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
     return visit(*declStmt);
 
+  if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
+    return visit(*whileStmt);
+
   assert(false && "unknown statement");
 }
 
@@ -173,8 +197,6 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
   successorBlock = currentBlock;
   currentBlock = -1;
   autoCreateBlock();
-
-  currentCFG.dump();
 
   return currentCFG;
 };

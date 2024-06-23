@@ -1,5 +1,8 @@
 #include "codegen.h"
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
+
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
     : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
@@ -38,6 +41,9 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
   if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(&stmt))
     return generateAssignment(*assignment);
 
+  if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
+    return generateWhileStmt(*whileStmt);
+
   llvm_unreachable("unknown statement");
 }
 
@@ -75,6 +81,30 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
 
   mergeBB->insertInto(parentFunction);
   builder.SetInsertPoint(mergeBB);
+  return nullptr;
+}
+
+llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
+  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
+
+  llvm::BasicBlock *header =
+      llvm::BasicBlock::Create(context, "whileCond", parentFunction);
+  llvm::BasicBlock *body =
+      llvm::BasicBlock::Create(context, "whileBody", parentFunction);
+  llvm::BasicBlock *exit =
+      llvm::BasicBlock::Create(context, "whileExit", parentFunction);
+
+  builder.CreateBr(header);
+
+  builder.SetInsertPoint(header);
+  llvm::Value *cond = generateExpr(*stmt.condition);
+  builder.CreateCondBr(doubleToBool(cond), body, exit);
+
+  builder.SetInsertPoint(body);
+  generateBlock(*stmt.body);
+  builder.CreateBr(header);
+
+  builder.SetInsertPoint(exit);
   return nullptr;
 }
 

@@ -48,6 +48,7 @@ class CFGBuilder {
 
   void visit(const ResolvedStmt &stmt);
   void visit(const ResolvedIfStmt &stmt);
+  void visit(const ResolvedWhileStmt &stmt);
   void visit(const ResolvedDeclStmt &stmt);
   void visit(const ResolvedAssignment &stmt);
 

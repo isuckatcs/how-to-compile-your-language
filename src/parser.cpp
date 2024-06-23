@@ -158,6 +158,23 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
                                   std::move(trueBranch), std::move(falseBlock));
 }
 
+// <whileStatement>
+//  ::= 'while' <expr> <block>
+std::unique_ptr<WhileStmt> TheParser::parseWhileStmt() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat 'while'
+
+  varOrReturn(cond, parseExpr());
+
+  if (nextToken.kind != TokenKind::Lbrace)
+    return error(nextToken.location, "expected 'while' body");
+
+  varOrReturn(body, parseBlock());
+
+  return std::make_unique<WhileStmt>(location, std::move(cond),
+                                     std::move(body));
+}
+
 // <assignment>
 //  ::= <declRefExpr> '=' <expr>
 std::unique_ptr<Assignment>
@@ -184,11 +201,15 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
 // <statement>
 //  ::= <expr> ';'
 //  |   <ifStatement>
+//  |   <whileStatement>
 //  |   <assignment> ';'
 //  |   <declStmt> ';'
 std::unique_ptr<Stmt> TheParser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();
+
+  if (nextToken.kind == TokenKind::KwWhile)
+    return parseWhileStmt();
 
   std::unique_ptr<Stmt> expr = nullptr;
   if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)

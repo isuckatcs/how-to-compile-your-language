@@ -145,6 +145,9 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *declStmt = dynamic_cast<const DeclStmt *>(&stmt))
     return resolveDeclStmt(*declStmt);
 
+  if (auto *whileStmt = dynamic_cast<const WhileStmt *>(&stmt))
+    return resolveWhileStmt(*whileStmt);
+
   assert(false && "unknown statement");
 }
 
@@ -172,6 +175,19 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
 
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
                                           std::move(trueBlock));
+}
+
+std::unique_ptr<ResolvedWhileStmt>
+Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
+  varOrReturn(condition, resolveExpr(*whileStmt.condition));
+
+  if (condition->type != Type::Number)
+    return error(condition->location, "expected number in condition");
+
+  varOrReturn(body, resolveBlock(*whileStmt.body));
+
+  return std::make_unique<ResolvedWhileStmt>(
+      whileStmt.location, std::move(condition), std::move(body));
 }
 
 std::unique_ptr<ResolvedDeclStmt>

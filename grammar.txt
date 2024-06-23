@@ -19,8 +19,12 @@
 <statement>
     ::= <expr> ';'
     |   <ifStatement>
+    |   <whileStatement>
     |   <assignment> ';'
     |   <declStmt> ';'
+
+<whileStatement>
+    ::= 'while' <expr> <block>
 
 <ifStatement>
     ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
