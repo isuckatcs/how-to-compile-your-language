@@ -53,6 +53,10 @@ class CFGBuilder {
 
   void visit(const ResolvedExpr &expr);
 
+  std::pair<int, int> visitCondition(const ResolvedBinaryOperator &cond,
+                                     const ResolvedStmt *Term, int trueBlock,
+                                     int falseBlock);
+
 public:
   CFG build(const ResolvedFunctionDecl &fn);
 };
