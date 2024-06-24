@@ -25,6 +25,7 @@ class TheParser {
   std::unique_ptr<Assignment>
   parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
+  std::unique_ptr<ReturnStmt> parseReturnStmt();
 
   std::unique_ptr<Block> parseBlock();
 

@@ -148,6 +148,9 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *whileStmt = dynamic_cast<const WhileStmt *>(&stmt))
     return resolveWhileStmt(*whileStmt);
 
+  if (auto *returnStmt = dynamic_cast<const ReturnStmt *>(&stmt))
+    return resolveReturnStmt(*returnStmt);
+
   assert(false && "unknown statement");
 }
 
@@ -222,6 +225,31 @@ Sema::resolveAssignment(const Assignment &assignment) {
       std::move(std::unique_ptr<ResolvedDeclRefExpr>(
           static_cast<ResolvedDeclRefExpr *>(resolvedLHS.release()))),
       std::move(resolvedRHS));
+}
+
+std::unique_ptr<ResolvedReturnStmt>
+Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
+  assert(currentFunction && "return stmt outside a function");
+
+  if (currentFunction->type == Type::Void && returnStmt.expr)
+    return error(returnStmt.location,
+                 "unexpected return value in void function");
+
+  if (currentFunction->type != Type::Void && !returnStmt.expr)
+    return error(returnStmt.location, "expected a return value");
+
+  std::unique_ptr<ResolvedExpr> resolvedExpr;
+  if (returnStmt.expr) {
+    resolvedExpr = resolveExpr(*returnStmt.expr);
+    if (!resolvedExpr)
+      return nullptr;
+
+    if (currentFunction->type != resolvedExpr->type)
+      return error(resolvedExpr->location, "unexpected return type");
+  }
+
+  return std::make_unique<ResolvedReturnStmt>(returnStmt.location,
+                                              std::move(resolvedExpr));
 }
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
@@ -303,9 +331,6 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
                                         "' has invalid '" + function.type +
                                         "' type");
 
-  if (type != Type::Void)
-    return error(function.location, "only void functions are supported");
-
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;
   for (auto &&param : function.params) {
     auto resolvedParamDecl = resolveParamDecl(*param);
@@ -348,10 +373,12 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
     for (auto &&param : resolvedSourceFile[i]->params)
       insertDeclToCurrentScope(*param);
 
+    currentFunction = resolvedSourceFile[i].get();
     auto resolvedBody = resolveBlock(*sourceFile[i]->body);
     if (!resolvedBody)
       return {};
     resolvedSourceFile[i]->body = std::move(resolvedBody);
+    currentFunction = nullptr;
 
     CFGBuilder b;
     b.build(*resolvedSourceFile[i]);

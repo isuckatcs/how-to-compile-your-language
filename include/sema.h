@@ -13,6 +13,8 @@ class Sema {
   std::vector<std::unique_ptr<FunctionDecl>> sourceFile;
   std::vector<std::vector<ResolvedDecl *>> scopes;
 
+  ResolvedFunctionDecl *currentFunction;
+
   class ScopeRAII {
     Sema *sema;
 
@@ -41,6 +43,8 @@ class Sema {
   std::unique_ptr<ResolvedDeclStmt> resolveDeclStmt(const DeclStmt &declStmt);
   std::unique_ptr<ResolvedAssignment>
   resolveAssignment(const Assignment &assignment);
+  std::unique_ptr<ResolvedReturnStmt>
+  resolveReturnStmt(const ReturnStmt &returnStmt);
 
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block);
 

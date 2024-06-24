@@ -90,6 +90,20 @@ struct WhileStmt : public Stmt {
   }
 };
 
+struct ReturnStmt : public Stmt {
+  std::unique_ptr<Expr> expr;
+
+  ReturnStmt(SourceLocation location, std::unique_ptr<Expr> expr = nullptr)
+      : Stmt(location), expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    std::cerr << indent(level) << "ReturnStmt\n";
+
+    if (expr)
+      expr->dump(level + 1);
+  }
+};
+
 struct NumberLiteral : public Expr {
   std::string value;
 
@@ -555,6 +569,21 @@ struct ResolvedAssignment : public ResolvedStmt {
   void dump(size_t level = 0) override {
     std::cerr << indent(level) << "ResolvedAssignment:\n";
     variable->dump(level + 1);
+    if (expr)
+      expr->dump(level + 1);
+  }
+};
+
+struct ResolvedReturnStmt : public ResolvedStmt {
+  std::unique_ptr<ResolvedExpr> expr;
+
+  ResolvedReturnStmt(SourceLocation location,
+                     std::unique_ptr<ResolvedExpr> expr = nullptr)
+      : ResolvedStmt(location), expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) override {
+    std::cerr << indent(level) << "ResolvedReturnStmt\n";
+
     if (expr)
       expr->dump(level + 1);
   }

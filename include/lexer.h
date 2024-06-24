@@ -42,7 +42,8 @@ enum class TokenKind {
   KwElse,
   KwLet,
   KwVar,
-  KwWhile
+  KwWhile,
+  KwReturn
 };
 
 struct Token {

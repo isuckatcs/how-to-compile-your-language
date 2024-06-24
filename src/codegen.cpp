@@ -44,6 +44,9 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
   if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
     return generateWhileStmt(*whileStmt);
 
+  if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
+    return generateReturnStmt(*returnStmt);
+
   llvm_unreachable("unknown statement");
 }
 
@@ -112,7 +115,8 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
   llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
 
   const auto &varDecl = stmt.varDecl;
-  llvm::AllocaInst *localVar = allocateStackVariable(parentFunction, *varDecl);
+  llvm::AllocaInst *localVar =
+      allocateStackVariable(parentFunction, varDecl->identifier);
 
   if (const auto &init = varDecl->initializer) {
     llvm::Value *initVal = generateExpr(*init);
@@ -128,6 +132,20 @@ llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
   llvm::Value *lhs = generateExpr(*stmt.expr);
 
   builder.CreateStore(lhs, declarations[stmt.variable->decl]);
+
+  return nullptr;
+}
+
+llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
+  llvm::Value *ret = nullptr;
+  if (stmt.expr)
+    ret = generateExpr(*stmt.expr);
+
+  if (ret)
+    builder.CreateStore(ret, retVal);
+
+  assert(retBlock && "function without return block");
+  builder.CreateBr(retBlock);
 
   return nullptr;
 }
@@ -211,15 +229,15 @@ llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
   return builder.CreateUIToFP(v, builder.getDoubleTy(), "toDouble");
 }
 
-llvm::AllocaInst *Codegen::allocateStackVariable(llvm::Function *function,
-                                                 const ResolvedDecl &decl) {
+llvm::AllocaInst *
+Codegen::allocateStackVariable(llvm::Function *function,
+                               const std::string_view identifier) {
   // FIXME: fix the ordering
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(&function->getEntryBlock(),
                             function->getEntryBlock().begin());
 
-  return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr,
-                                 decl.identifier);
+  return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr, identifier);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
@@ -233,12 +251,18 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 
   builder.SetInsertPoint(bb);
 
+  bool isVoidFunction = functionDecl.type == Type::Void;
+  if (!isVoidFunction)
+    retVal = allocateStackVariable(function, "retval");
+  retBlock = llvm::BasicBlock::Create(context, "return");
+
   int idx = 0;
   for (auto &&arg : function->args()) {
     const auto &paramDecl = functionDecl.params[idx];
     arg.setName(paramDecl->identifier);
 
-    llvm::AllocaInst *stackParam = allocateStackVariable(function, *paramDecl);
+    llvm::AllocaInst *stackParam =
+        allocateStackVariable(function, paramDecl->identifier);
     declarations[paramDecl.get()] = stackParam;
     builder.CreateStore(&arg, stackParam);
     ++idx;
@@ -249,7 +273,21 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   else
     generateBlock(*functionDecl.body);
 
-  builder.CreateRetVoid();
+  function->dump();
+
+  if (retBlock->hasNPredecessorsOrMore(1)) {
+    retBlock->insertInto(function);
+    builder.SetInsertPoint(retBlock);
+  }
+
+  function->dump();
+
+  if (isVoidFunction)
+    builder.CreateRetVoid();
+  else
+    builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
+
+  function->dump();
 }
 
 void Codegen::generateBuiltinPrintBody() {

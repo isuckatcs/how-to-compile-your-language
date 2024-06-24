@@ -51,6 +51,7 @@ class CFGBuilder {
   void visit(const ResolvedWhileStmt &stmt);
   void visit(const ResolvedDeclStmt &stmt);
   void visit(const ResolvedAssignment &stmt);
+  void visit(const ResolvedReturnStmt &stmt);
 
   void visit(const ResolvedExpr &expr);
 

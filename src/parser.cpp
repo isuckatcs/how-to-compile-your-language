@@ -198,8 +198,31 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
   return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
 }
 
+// <returnStmt>
+//  ::= 'return' <expr> ';'
+std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat 'return'
+
+  std::unique_ptr<Expr> expr;
+  if (nextToken.kind != TokenKind::Semi) {
+    expr = parseExpr();
+    if (!expr)
+      return nullptr;
+
+    if (nextToken.kind != TokenKind::Semi)
+      return error(nextToken.location,
+                   "expected ';' at the end of a return statement");
+  }
+
+  eatNextToken(); // eat ';'
+
+  return std::make_unique<ReturnStmt>(location, std::move(expr));
+}
+
 // <statement>
 //  ::= <expr> ';'
+//  |   <returnStmt>
 //  |   <ifStatement>
 //  |   <whileStatement>
 //  |   <assignment> ';'
@@ -210,6 +233,9 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
 
   if (nextToken.kind == TokenKind::KwWhile)
     return parseWhileStmt();
+
+  if (nextToken.kind == TokenKind::KwReturn)
+    return parseReturnStmt();
 
   std::unique_ptr<Stmt> expr = nullptr;
   if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)

@@ -13,6 +13,10 @@ class Codegen {
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
 
+  // FIXME: Keep these here?
+  llvm::Value *retVal = nullptr;
+  llvm::BasicBlock *retBlock = nullptr;
+
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;
   std::unique_ptr<llvm::Module> module;
@@ -25,6 +29,7 @@ class Codegen {
   llvm::Value *generateWhileStmt(const ResolvedWhileStmt &stmt);
   llvm::Value *generateDeclStmt(const ResolvedDeclStmt &stmt);
   llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
+  llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
@@ -35,7 +40,7 @@ class Codegen {
   llvm::Value *boolToDouble(llvm::Value *v);
 
   llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
-                                          const ResolvedDecl &decl);
+                                          const std::string_view identifier);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

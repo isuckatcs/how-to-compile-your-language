@@ -20,6 +20,7 @@
     ::= <expr> ';'
     |   <ifStatement>
     |   <whileStatement>
+    |   <returnStmt>
     |   <assignment> ';'
     |   <declStmt> ';'
 
@@ -34,6 +35,9 @@
 
 <assignment>
     ::= <declRefExpr> '=' <expr>
+
+<returnStmt>
+    ::= 'return' <expr>? ';'
 
 Precedence  Type            Symbols
 Highest     Prefix          !

@@ -73,6 +73,7 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   successorBlock = bodyBlock;
   currentBlock = -1;
 
+  // FIXME: Handle conditional
   visit(*stmt.condition);
   currentCFG.insertEdge(currentBlock, exitBlock);
   currentCFG.insertEdge(transitionBlock, currentBlock);
@@ -95,6 +96,14 @@ void CFGBuilder::visit(const ResolvedAssignment &stmt) {
 
   visit(*stmt.variable);
   visit(*stmt.expr);
+}
+
+void CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
+  // FIXME: Remove this pattern.
+  currentBlock = -1;
+  autoCreateBlock();
+
+  currentCFG.insertStatement(currentBlock, &stmt);
 }
 
 void CFGBuilder::visit(const ResolvedExpr &expr) {
@@ -173,6 +182,9 @@ void CFGBuilder::visit(const ResolvedStmt &stmt) {
 
   if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
     return visit(*whileStmt);
+
+  if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
+    return visit(*returnStmt);
 
   assert(false && "unknown statement");
 }
