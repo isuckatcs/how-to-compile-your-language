@@ -1,3 +1,6 @@
+# Grammar
+
+```bnf
 <sourceFile> 
     ::= <functionDecl>* EOF
 
@@ -38,15 +41,6 @@
 
 <returnStmt>
     ::= 'return' <expr>? ';'
-
-Precedence  Type            Symbols
-Highest     Prefix          !
-            Multiplicative  *, /
-            Additive        +, -
-            Comparison      <, >
-            Equality        ==
-            Conjuction      &&
-Lowest      Disjunction     ||
 
 <expr>
     ::= <disjunction>
@@ -100,3 +94,16 @@ Lowest      Disjunction     ||
 
 <number>
     ::= ('0'..'9')+ '.' ('0'..'9')+
+```
+# Operators
+
+| Precedence | Type           | Symbols |
+|------------|----------------|---------|
+| Highest    | Prefix         | !       |
+|            | Multiplicative | *, /    |
+|            | Additive       | +, -    |
+|            | Comparison     | <, >    |
+|            | Equality       | ==      |
+|            |Conjuction      | &&      |
+| Lowest     | Disjunction    | \|\|    |
+
