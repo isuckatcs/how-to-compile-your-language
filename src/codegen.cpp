@@ -245,6 +245,7 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
     generateStmt(*stmt);
 }
 
+// FIXME: Optimize return stmt emission.
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
   auto *bb = llvm::BasicBlock::Create(context, "", function);
@@ -273,21 +274,15 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   else
     generateBlock(*functionDecl.body);
 
-  function->dump();
-
   if (retBlock->hasNPredecessorsOrMore(1)) {
     retBlock->insertInto(function);
     builder.SetInsertPoint(retBlock);
   }
 
-  function->dump();
-
   if (isVoidFunction)
     builder.CreateRetVoid();
   else
     builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
-
-  function->dump();
 }
 
 void Codegen::generateBuiltinPrintBody() {
