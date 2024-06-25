@@ -29,6 +29,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
 
 std::optional<double>
 ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
+  // FIXME: reenable this
   return std::nullopt;
 
   if (const auto *numberLiteral =
