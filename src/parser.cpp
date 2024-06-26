@@ -30,6 +30,8 @@ int getTokPrecedence(TokenKind tok) {
 // <functionDecl>
 //  ::= 'fn' <identifier> <parameterList> ':' <type> <block>
 std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
+  // TODO: Add some kind of error recovery here.
+
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat fn
 
@@ -228,6 +230,8 @@ std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
 //  |   <assignment> ';'
 //  |   <declStmt> ';'
 std::unique_ptr<Stmt> TheParser::parseStmt() {
+  // TODO: Add some kind of error recovery here.
+
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();
 
