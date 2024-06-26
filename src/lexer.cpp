@@ -53,8 +53,15 @@ Token TheLexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Minus};
   case '*':
     return Token{tokenStartLocation, TokenKind::Asterisk};
-  case '/':
-    return Token{tokenStartLocation, TokenKind::Slash};
+  case '/': {
+    if (peekNextChar() != '/')
+      return Token{tokenStartLocation, TokenKind::Slash};
+
+    while (eatNextChar() != '\n')
+      ;
+
+    return getNextToken();
+  }
 
   case '<':
     return Token{tokenStartLocation, TokenKind::Lt};

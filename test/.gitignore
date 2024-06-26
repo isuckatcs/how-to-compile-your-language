@@ -1,0 +1,6 @@
+*
+!**/
+!**/*.al
+!CMakeLists.txt
+!*py
+!.gitignore

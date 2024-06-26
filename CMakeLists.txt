@@ -11,3 +11,4 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(include "${LLVM_INCLUDE_DIR}")
 
 add_subdirectory(src)
+add_subdirectory(test)
