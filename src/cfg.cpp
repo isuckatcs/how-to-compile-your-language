@@ -206,8 +206,10 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
 
   // Entry
   // FIXME: Remove this pattern.
-  successorBlock = currentBlock;
-  currentBlock = -1;
+  if (currentBlock != -1) {
+    successorBlock = currentBlock;
+    currentBlock = -1;
+  }
   autoCreateBlock();
 
   return currentCFG;

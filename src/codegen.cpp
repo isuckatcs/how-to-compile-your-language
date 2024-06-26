@@ -68,7 +68,11 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
 
   builder.SetInsertPoint(thenBB);
   generateBlock(*stmt.trueBlock);
-  builder.CreateBr(mergeBB);
+
+  // FIXME: Find a better way to handle this!
+  if (builder.GetInsertBlock()->getTerminator()->getOpcode() !=
+      llvm::Instruction::Br)
+    builder.CreateBr(mergeBB);
 
   if (hasElseBranch) {
     elseBB->insertInto(parentFunction);
@@ -79,7 +83,10 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
     else
       generateIfStmt(*stmt.falseBranch);
 
-    builder.CreateBr(mergeBB);
+    // FIXME: Find a better way to handle this!
+    if (builder.GetInsertBlock()->getTerminator()->getOpcode() !=
+        llvm::Instruction::Br)
+      builder.CreateBr(mergeBB);
   }
 
   mergeBB->insertInto(parentFunction);
