@@ -472,13 +472,33 @@ std::vector<std::unique_ptr<FunctionDecl>> TheParser::parseSourceFile() {
     if (nextToken.kind != TokenKind::KwFn) {
       error(nextToken.location,
             "only function definitions are allowed on the top level");
-      return {};
+      functions.clear();
+      break;
     }
 
+    // FIXME: Handle this with error recovery.
     auto fn = parseFunctionDecl();
-    if (!fn)
-      return {};
+    if (!fn) {
+      functions.clear();
+      break;
+    }
+
     functions.emplace_back(std::move(fn));
+  }
+
+  // Only the lexer and the parser has access to the tokens, so to report an
+  // error on the EOF token, we look for main() here.
+  bool hasMainFunction = false;
+  for (auto &&fn : functions)
+    hasMainFunction |= fn->identifier == "main";
+
+  if (!hasMainFunction) {
+    // FIXME: This is not needed once error recovery is implemented.
+    while (nextToken.kind != TokenKind::Eof)
+      eatNextToken();
+
+    error(nextToken.location, "main function not found");
+    return {};
   }
 
   return functions;
