@@ -354,31 +354,34 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
   ScopeRAII scope{this};
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
 
-  for (auto &&function : sourceFile) {
-    auto resolvedFunctionDecl = resolveFunctionWithoutBody(*function);
-
-    if (!resolvedFunctionDecl ||
-        !insertDeclToCurrentScope(*resolvedFunctionDecl))
-      continue;
-
-    resolvedSourceFile.emplace_back(std::move(resolvedFunctionDecl));
-  }
-
-  if (resolvedSourceFile.size() != sourceFile.size())
-    return {};
-
   std::unique_ptr<ResolvedFunctionDecl> builtinPrint = createBuiltinPrint();
   insertDeclToCurrentScope(
       *resolvedSourceFile.emplace_back(std::move(builtinPrint)));
 
-  for (size_t i = 0; i < sourceFile.size(); ++i) {
+  bool error = false;
+  for (auto &&function : sourceFile) {
+    auto resolvedFunctionDecl = resolveFunctionWithoutBody(*function);
+
+    if (!resolvedFunctionDecl ||
+        !insertDeclToCurrentScope(*resolvedFunctionDecl)) {
+      error = true;
+      continue;
+    }
+
+    resolvedSourceFile.emplace_back(std::move(resolvedFunctionDecl));
+  }
+
+  if (error)
+    return {};
+
+  for (size_t i = 1; i < resolvedSourceFile.size(); ++i) {
     ScopeRAII scope{this};
 
     for (auto &&param : resolvedSourceFile[i]->params)
       insertDeclToCurrentScope(*param);
 
     currentFunction = resolvedSourceFile[i].get();
-    auto resolvedBody = resolveBlock(*sourceFile[i]->body);
+    auto resolvedBody = resolveBlock(*sourceFile[i - 1]->body);
     if (!resolvedBody)
       return {};
     resolvedSourceFile[i]->body = std::move(resolvedBody);
