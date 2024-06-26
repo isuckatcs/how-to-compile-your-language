@@ -331,6 +331,10 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
                                         "' has invalid '" + function.type +
                                         "' type");
 
+  if (function.identifier == "main" && type != Type::Void)
+    return error(function.location,
+                 "'main' function is expected to have 'void' type");
+
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;
   for (auto &&param : function.params) {
     auto resolvedParamDecl = resolveParamDecl(*param);
