@@ -2,7 +2,7 @@
 #include <cassert>
 
 // FIXME: Refactor this source file.
-void CFG::dump() const {
+void CFG::dump(size_t) const {
   for (int i = 0; i < basicBlocks.size(); ++i) {
     std::cout << '[' << i << ']' << '\n';
 
@@ -16,9 +16,8 @@ void CFG::dump() const {
       std::cout << succ << ' ';
     std::cout << '\n';
 
-    // FIXME: make dump const
     for (auto &&stmt : basicBlocks[i].statements)
-      ((ResolvedStmt *)stmt)->dump(1);
+      stmt->dump(1);
     std::cout << '\n';
   }
 }

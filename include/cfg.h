@@ -11,7 +11,7 @@ struct BasicBlock {
   std::vector<const ResolvedStmt *> statements;
 };
 
-class CFG {
+class CFG : public Dumpable {
   std::vector<BasicBlock> basicBlocks;
 
 public:
@@ -29,7 +29,7 @@ public:
     basicBlocks[block].statements.emplace_back(statement);
   }
 
-  void dump() const;
+  void dump(size_t = 0) const override;
 };
 
 class CFGBuilder {
