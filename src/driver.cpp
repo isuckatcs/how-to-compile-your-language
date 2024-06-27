@@ -91,15 +91,16 @@ int main(int argc, const char **argv) {
   TheLexer lexer{sourceFile};
   TheParser parser{lexer};
 
-  auto functions = parser.parseSourceFile();
-  if (functions.empty())
-    return 1;
+  auto [functions, success] = parser.parseSourceFile();
 
   if (options.astDump) {
     for (auto &&fn : functions)
       fn->dump();
     return 0;
   }
+
+  if (!success)
+    return 1;
 
   Sema sema{std::move(functions)};
 

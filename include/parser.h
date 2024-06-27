@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "ast.h"
@@ -11,8 +12,16 @@
 class TheParser {
   TheLexer *lexer;
   Token nextToken;
+  bool incompleteAST = false;
 
   void eatNextToken() { nextToken = lexer->getNextToken(); }
+  void synchronize();
+  void synchronizeOn(TokenKind kind) {
+    incompleteAST = true;
+
+    while (nextToken.kind != kind && nextToken.kind != TokenKind::Eof)
+      eatNextToken();
+  }
 
   // AST node parser methods
   std::unique_ptr<FunctionDecl> parseFunctionDecl();
@@ -47,7 +56,7 @@ public:
   explicit TheParser(TheLexer &lexer)
       : lexer(&lexer), nextToken(lexer.getNextToken()) {}
 
-  std::vector<std::unique_ptr<FunctionDecl>> parseSourceFile();
+  std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool> parseSourceFile();
 };
 
 #endif // A_COMPILER_PARSER_H

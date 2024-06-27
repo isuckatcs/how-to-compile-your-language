@@ -27,11 +27,40 @@ int getTokPrecedence(TokenKind tok) {
 }
 }; // namespace
 
+// Synchronization points:
+// - start of a function decl
+// - end of the current block
+// - ';'
+// - EOF
+void TheParser::synchronize() {
+  incompleteAST = true;
+
+  int braces = 0;
+  while (true) {
+    TokenKind kind = nextToken.kind;
+
+    if (kind == TokenKind::Lbrace) {
+      ++braces;
+    } else if (kind == TokenKind::Rbrace) {
+      if (braces <= 1) {
+        eatNextToken(); // eat '}'
+        break;
+      }
+
+      --braces;
+    } else if (kind == TokenKind::Semi && braces == 0) {
+      eatNextToken(); // eat ';'
+      break;
+    } else if (kind == TokenKind::KwFn || kind == TokenKind::Eof)
+      break;
+
+    eatNextToken();
+  }
+}
+
 // <functionDecl>
 //  ::= 'fn' <identifier> <parameterList> ':' <type> <block>
 std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
-  // TODO: Add some kind of error recovery here.
-
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat fn
 
@@ -116,10 +145,14 @@ std::unique_ptr<Block> TheParser::parseBlock() {
     if (nextToken.kind == TokenKind::Rbrace)
       break;
 
-    if (nextToken.kind == TokenKind::Eof)
+    if (nextToken.kind == TokenKind::Eof || nextToken.kind == TokenKind::KwFn)
       return error(nextToken.location, "expected '}' at the end of a block");
 
-    varOrReturn(stmt, parseStmt());
+    std::unique_ptr<Stmt> stmt = parseStmt();
+    if (!stmt) {
+      synchronize();
+      continue;
+    }
 
     expressions.emplace_back(std::move(stmt));
   }
@@ -230,8 +263,6 @@ std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
 //  |   <assignment> ';'
 //  |   <declStmt> ';'
 std::unique_ptr<Stmt> TheParser::parseStmt() {
-  // TODO: Add some kind of error recovery here.
-
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();
 
@@ -465,26 +496,28 @@ std::optional<std::string> TheParser::parseType() {
 
 // <sourceFile>
 //     ::= <functionDecl>* EOF
-std::vector<std::unique_ptr<FunctionDecl>> TheParser::parseSourceFile() {
+std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool>
+TheParser::parseSourceFile() {
   std::vector<std::unique_ptr<FunctionDecl>> functions;
 
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind != TokenKind::KwFn) {
       error(nextToken.location,
             "only function definitions are allowed on the top level");
-      functions.clear();
-      break;
+      synchronizeOn(TokenKind::KwFn);
+      continue;
     }
 
-    // FIXME: Handle this with error recovery.
     auto fn = parseFunctionDecl();
     if (!fn) {
-      functions.clear();
-      break;
+      synchronizeOn(TokenKind::KwFn);
+      continue;
     }
 
     functions.emplace_back(std::move(fn));
   }
+
+  assert(nextToken.kind == TokenKind::Eof && "expected to see end of file");
 
   // Only the lexer and the parser has access to the tokens, so to report an
   // error on the EOF token, we look for main() here.
@@ -492,14 +525,8 @@ std::vector<std::unique_ptr<FunctionDecl>> TheParser::parseSourceFile() {
   for (auto &&fn : functions)
     hasMainFunction |= fn->identifier == "main";
 
-  if (!hasMainFunction) {
-    // FIXME: This is not needed once error recovery is implemented.
-    while (nextToken.kind != TokenKind::Eof)
-      eatNextToken();
-
+  if (!hasMainFunction && !incompleteAST)
     error(nextToken.location, "main function not found");
-    return {};
-  }
 
-  return functions;
+  return {std::move(functions), !incompleteAST};
 }
