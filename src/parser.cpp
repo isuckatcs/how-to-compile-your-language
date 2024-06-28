@@ -42,7 +42,10 @@ void TheParser::synchronize() {
     if (kind == TokenKind::Lbrace) {
       ++braces;
     } else if (kind == TokenKind::Rbrace) {
-      if (braces <= 1) {
+      if (braces == 0)
+        break;
+
+      if (braces == 1) {
         eatNextToken(); // eat '}'
         break;
       }
@@ -292,8 +295,7 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
     return nullptr;
 
   if (nextToken.kind != TokenKind::Semi)
-    return error(nextToken.location,
-                 "expected ';' at the end of an expression");
+    return error(nextToken.location, "expected ';' at the end of statement");
   eatNextToken(); // eat ';'
 
   return expr;
