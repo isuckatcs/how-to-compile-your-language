@@ -93,6 +93,7 @@ struct IfStmt : public Stmt {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "IfStmt\n";
 
+    condition->dump(level + 1);
     trueBlock->dump(level + 1);
     if (falseBlock)
       falseBlock->dump(level + 1);
@@ -370,6 +371,7 @@ struct ResolvedIfStmt : public ResolvedStmt {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedIfStmt\n";
 
+    condition->dump(level + 1);
     trueBlock->dump(level + 1);
     if (falseBlock)
       falseBlock->dump(level + 1);

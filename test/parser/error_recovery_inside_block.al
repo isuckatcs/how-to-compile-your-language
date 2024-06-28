@@ -18,8 +18,14 @@ fn error(x: number): void {
 // CHECK-NEXT:   ParamDecl: x:number
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     IfStmt
+// CHECK-NEXT:       BinaryOperator: '=='
+// CHECK-NEXT:         DeclRefExpr: x
+// CHECK-NEXT:         NumberLiteral: '0.0'
 // CHECK-NEXT:       Block
 // CHECK-NEXT:         IfStmt
+// CHECK-NEXT:           BinaryOperator: '=='
+// CHECK-NEXT:             DeclRefExpr: x
+// CHECK-NEXT:             NumberLiteral: '2.0
 // CHECK-NEXT:           Block
 // CHECK-NEXT:             NumberLiteral: '0.0'
 // CHECK-NEXT:           Block
