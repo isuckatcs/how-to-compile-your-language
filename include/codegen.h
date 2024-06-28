@@ -39,6 +39,7 @@ class Codegen {
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
 
+  llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
                                           const std::string_view identifier);
 

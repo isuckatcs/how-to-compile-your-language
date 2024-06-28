@@ -51,7 +51,7 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
-  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
+  llvm::Function *parentFunction = getCurrentFunction();
 
   llvm::Value *cond = generateExpr(*stmt.condition);
   llvm::BasicBlock *thenBB =
@@ -69,10 +69,7 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   builder.SetInsertPoint(thenBB);
   generateBlock(*stmt.trueBlock);
 
-  // FIXME: Find a better way to handle this!
-  if (builder.GetInsertBlock()->getTerminator()->getOpcode() !=
-      llvm::Instruction::Br)
-    builder.CreateBr(mergeBB);
+  builder.CreateBr(mergeBB);
 
   if (hasElseBranch) {
     elseBB->insertInto(parentFunction);
@@ -83,10 +80,7 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
     else
       generateIfStmt(*stmt.falseBranch);
 
-    // FIXME: Find a better way to handle this!
-    if (builder.GetInsertBlock()->getTerminator()->getOpcode() !=
-        llvm::Instruction::Br)
-      builder.CreateBr(mergeBB);
+    builder.CreateBr(mergeBB);
   }
 
   mergeBB->insertInto(parentFunction);
@@ -95,7 +89,7 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
-  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
+  llvm::Function *parentFunction = getCurrentFunction();
 
   llvm::BasicBlock *header =
       llvm::BasicBlock::Create(context, "whileCond", parentFunction);
@@ -119,7 +113,7 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
-  llvm::Function *parentFunction = builder.GetInsertBlock()->getParent();
+  llvm::Function *parentFunction = getCurrentFunction();
 
   const auto &varDecl = stmt.varDecl;
   llvm::AllocaInst *localVar =
@@ -137,10 +131,7 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
   llvm::Value *lhs = generateExpr(*stmt.expr);
-
-  builder.CreateStore(lhs, declarations[stmt.variable->decl]);
-
-  return nullptr;
+  return builder.CreateStore(lhs, declarations[stmt.variable->decl]);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
@@ -152,9 +143,7 @@ llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
     builder.CreateStore(ret, retVal);
 
   assert(retBlock && "function without return block");
-  builder.CreateBr(retBlock);
-
-  return nullptr;
+  return builder.CreateBr(retBlock);
 }
 
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
@@ -236,6 +225,14 @@ llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
   return builder.CreateUIToFP(v, builder.getDoubleTy(), "toDouble");
 }
 
+llvm::Function *Codegen::getCurrentFunction() {
+  llvm::BasicBlock *currentBlock = builder.GetInsertBlock();
+  if (!currentBlock)
+    return nullptr;
+
+  return currentBlock->getParent();
+};
+
 llvm::AllocaInst *
 Codegen::allocateStackVariable(llvm::Function *function,
                                const std::string_view identifier) {
@@ -248,8 +245,19 @@ Codegen::allocateStackVariable(llvm::Function *function,
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
-  for (auto &&stmt : block.statements)
+  for (auto &&stmt : block.statements) {
     generateStmt(*stmt);
+
+    // After a return statement we clear the insertion point, so that
+    // no other instructions are inserted into the current block and break.
+    // The break ensures that no other instruction is generated that will be
+    // inserted regardless of there is no insertion point and crash (e.g.:
+    // CreateStore, CreateLoad).
+    if (dynamic_cast<const ResolvedReturnStmt *>(stmt.get())) {
+      builder.ClearInsertionPoint();
+      break;
+    }
+  }
 }
 
 // FIXME: Optimize return stmt emission.

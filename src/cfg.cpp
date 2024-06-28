@@ -196,6 +196,9 @@ void CFGBuilder::visit(const ResolvedBlock &block) {
 CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
   currentCFG = CFG{};
 
+  // FIXME: Enable this once it not crashes.
+  return currentCFG;
+
   // Exit
   successorBlock = currentCFG.insertNewBlock();
 
