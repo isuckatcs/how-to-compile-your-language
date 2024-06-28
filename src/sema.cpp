@@ -249,26 +249,34 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
 }
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
+
+  std::unique_ptr<ResolvedExpr> resolvedExpr = nullptr;
+
   if (const auto *numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
-    return std::make_unique<ResolvedNumberLiteral>(
+    resolvedExpr = std::make_unique<ResolvedNumberLiteral>(
         numberLiteral->location, std::stod(numberLiteral->value));
+  else if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
+    resolvedExpr = resolveDeclRefExpr(*declRefExpr);
+  else if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
+    resolvedExpr = resolveCallExpr(*callExpr);
+  else if (const auto *groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
+    resolvedExpr = resolveGroupingExpr(*groupingExpr);
+  else if (const auto *binaryOperator =
+               dynamic_cast<const BinaryOperator *>(&expr))
+    resolvedExpr = resolveBinaryOperator(*binaryOperator);
+  else if (const auto *unaryOperator =
+               dynamic_cast<const UnaryOperator *>(&expr))
+    resolvedExpr = resolveUnaryOperator(*unaryOperator);
+  else
+    assert(false && "unexpected expression");
 
-  if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
-    return resolveDeclRefExpr(*declRefExpr);
+  if (!resolvedExpr)
+    return nullptr;
 
-  if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
-    return resolveCallExpr(*callExpr);
+  if (std::optional<double> val = cee.evaluate(*resolvedExpr))
+    resolvedExpr->setConstantValue(val);
 
-  if (const auto *groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
-    return resolveGroupingExpr(*groupingExpr);
-
-  if (const auto *binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
-    return resolveBinaryOperator(*binaryOperator);
-
-  if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
-    return resolveUnaryOperator(*unaryOperator);
-
-  return nullptr;
+  return resolvedExpr;
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {

@@ -128,12 +128,12 @@ std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
   varOrReturn(type, parseType());
 
   if (nextToken.kind != TokenKind::Equal)
-    return std::make_unique<VarDecl>(location, identifier, *type, isLet);
+    return std::make_unique<VarDecl>(location, identifier, *type, !isLet);
   eatNextToken(); // eat '='
 
   varOrReturn(initializer, parseExpr());
 
-  return std::make_unique<VarDecl>(location, identifier, *type, isLet,
+  return std::make_unique<VarDecl>(location, identifier, *type, !isLet,
                                    std::move(initializer));
 }
 

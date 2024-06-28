@@ -1,12 +1,40 @@
 #ifndef A_COMPILER_AST_H
 #define A_COMPILER_AST_H
 
+#include <cassert>
 #include <iostream>
 #include <memory>
 #include <vector>
 
 #include "lexer.h"
 #include "utils.h"
+
+namespace {
+std::string_view dumpOp(TokenKind op) {
+  if (op == TokenKind::Plus)
+    return "+";
+  if (op == TokenKind::Minus)
+    return "-";
+  if (op == TokenKind::Asterisk)
+    return "*";
+  if (op == TokenKind::Slash)
+    return "/";
+  if (op == TokenKind::EqualEqual)
+    return "==";
+  if (op == TokenKind::AmpAmp)
+    return "&&";
+  if (op == TokenKind::PipePipe)
+    return "||";
+  if (op == TokenKind::Lt)
+    return "<";
+  if (op == TokenKind::Gt)
+    return ">";
+  if (op == TokenKind::Excl)
+    return "!";
+
+  assert(false && "unexpected operator");
+}
+} // namespace
 
 struct Decl : public Dumpable {
   SourceLocation location;
@@ -168,22 +196,8 @@ struct BinaryOperator : public Expr {
       : Expr(location), lhs(std::move(lhs)), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "BinaryOperator: '";
-    if (op == TokenKind::Plus)
-      std::cerr << '+';
-    if (op == TokenKind::Minus)
-      std::cerr << '-';
-    if (op == TokenKind::Asterisk)
-      std::cerr << '*';
-    if (op == TokenKind::Slash)
-      std::cerr << '/';
-    if (op == TokenKind::EqualEqual)
-      std::cerr << '=' << '=';
-    if (op == TokenKind::AmpAmp)
-      std::cerr << '&' << '&';
-    if (op == TokenKind::PipePipe)
-      std::cerr << '|' << '|';
-    std::cerr << '\'' << '\n';
+    std::cerr << indent(level) << "BinaryOperator: '" << dumpOp(op) << '\''
+              << '\n';
 
     lhs->dump(level + 1);
     rhs->dump(level + 1);
@@ -199,10 +213,8 @@ struct UnaryOperator : public Expr {
       : Expr(location), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "UnaryOperator: '";
-    if (op == TokenKind::Excl)
-      std::cerr << '!';
-    std::cerr << '\'' << '\n';
+    std::cerr << indent(level) << "UnaryOperator: '" << dumpOp(op) << '\''
+              << '\n';
 
     rhs->dump(level + 1);
   }
@@ -444,6 +456,8 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
   }
 };
 
@@ -456,6 +470,8 @@ struct ResolvedDeclRefExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedDeclRefExpr: @(" << decl << ") "
               << decl->identifier << "\n";
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
   }
 };
 
@@ -471,6 +487,8 @@ struct ResolvedCallExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
               << callee->identifier << "\n";
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
 
     for (auto &&arg : arguments)
       arg->dump(level + 1);
@@ -486,6 +504,8 @@ struct ResolvedGroupingExpr : public ResolvedExpr {
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedGroupingExpr:\n";
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
 
     expr->dump(level + 1);
   }
@@ -503,22 +523,11 @@ struct ResolvedBinaryOperator : public ResolvedExpr {
         rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedBinaryOperator: '";
-    if (op == TokenKind::Plus)
-      std::cerr << '+';
-    if (op == TokenKind::Minus)
-      std::cerr << '-';
-    if (op == TokenKind::Asterisk)
-      std::cerr << '*';
-    if (op == TokenKind::Slash)
-      std::cerr << '/';
-    if (op == TokenKind::EqualEqual)
-      std::cerr << '=' << '=';
-    if (op == TokenKind::AmpAmp)
-      std::cerr << '&' << '&';
-    if (op == TokenKind::PipePipe)
-      std::cerr << '|' << '|';
-    std::cerr << '\'' << '\n';
+    std::cerr << indent(level) << "ResolvedBinaryOperator: '" << dumpOp(op)
+              << '\'' << '\n';
+
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
 
     lhs->dump(level + 1);
     rhs->dump(level + 1);
@@ -534,10 +543,11 @@ struct ResolvedUnaryOperator : public ResolvedExpr {
       : ResolvedExpr(location, rhs->type), rhs(std::move(rhs)), op(op) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedUnaryOperator: '";
-    if (op == TokenKind::Excl)
-      std::cerr << '!';
-    std::cerr << '\'' << '\n';
+    std::cerr << indent(level) << "ResolvedUnaryOperator: '" << dumpOp(op)
+              << '\'' << '\n';
+
+    if (auto val = getConstantValue())
+      std::cerr << indent(level) << "| value: " << *val << '\n';
 
     rhs->dump(level + 1);
   }
