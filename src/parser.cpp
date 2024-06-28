@@ -278,17 +278,14 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
   else {
     varOrReturn(lhs, parsePrefixExpr());
 
-    if (nextToken.kind == TokenKind::Equal) {
-      if (!dynamic_cast<const DeclRefExpr *>(lhs.get()))
-        return error(nextToken.location,
-                     "expected variable on the LHS of an assignment");
-
-      // FIXME: ???
-      expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(
-          static_cast<DeclRefExpr *>(lhs.release())));
-    } else {
+    if (nextToken.kind != TokenKind::Equal)
       expr = parseExprRHS(std::move(lhs), 0);
-    }
+    else if (auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get())) {
+      std::ignore = lhs.release();
+      expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre));
+    } else
+      return error(nextToken.location,
+                   "expected variable on the LHS of an assignment");
   }
 
   if (!expr)

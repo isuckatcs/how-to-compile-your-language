@@ -206,7 +206,7 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
 std::unique_ptr<ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
-  varOrReturn(resolvedLHS, resolveExpr(*assignment.variable));
+  varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
   if (resolvedLHS->type == Type::Void)
@@ -219,12 +219,8 @@ Sema::resolveAssignment(const Assignment &assignment) {
         resolvedRHS->location,
         "void expression cannot be used as RHS operand to binary operator");
 
-  // FIXME: ??? too
   return std::make_unique<ResolvedAssignment>(
-      assignment.location,
-      std::move(std::unique_ptr<ResolvedDeclRefExpr>(
-          static_cast<ResolvedDeclRefExpr *>(resolvedLHS.release()))),
-      std::move(resolvedRHS));
+      assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
 }
 
 std::unique_ptr<ResolvedReturnStmt>
