@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "codegen.h"
 #include "lexer.h"
@@ -126,7 +127,11 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  std::string_view outLL = "tmp.ll";
+  // Theoretically this can still generate the same tmp files for 2 different
+  // invocations and remove them later.
+  std::stringstream ss;
+  ss << "tmp-" << std::hash<std::string_view>{}(*options.source) << ".ll";
+  auto outLL = ss.str();
 
   std::error_code errorCode;
   llvm::raw_fd_ostream f{outLL, errorCode};
