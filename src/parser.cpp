@@ -527,5 +527,5 @@ TheParser::parseSourceFile() {
   if (!hasMainFunction && !incompleteAST)
     error(nextToken.location, "main function not found");
 
-  return {std::move(functions), !incompleteAST};
+  return {std::move(functions), !incompleteAST && hasMainFunction};
 }

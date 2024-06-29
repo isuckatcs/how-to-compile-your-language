@@ -48,3 +48,5 @@ fn foo(): number {
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 2 3 
 // CHECK-NEXT:   succs: 
+
+fn main(): void {}
