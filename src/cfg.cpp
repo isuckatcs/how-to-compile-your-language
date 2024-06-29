@@ -59,9 +59,8 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
         binaryOperator->op == TokenKind::PipePipe ? elseBlock : trueBlock,
         binaryOperator->op == TokenKind::PipePipe ? trueBlock : elseBlock);
   } else {
-    successorBlock = trueBlock;
-    currentBlock = -1;
-    autoCreateBlock();
+    currentBlock = currentCFG.insertNewBlock();
+    currentCFG.insertEdge(currentBlock, trueBlock, true);
     currentCFG.insertEdge(currentBlock, elseBlock, true);
 
     currentCFG.insertStatement(currentBlock, &stmt);
@@ -117,13 +116,8 @@ void CFGBuilder::visit(const ResolvedAssignment &stmt) {
 }
 
 void CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
-  // FIXME: Remove this pattern.
-  currentBlock = -1;
-
-  int currentSucc = successorBlock;
-  successorBlock = currentCFG.exit;
-  autoCreateBlock();
-  successorBlock = currentSucc;
+  currentBlock = currentCFG.insertNewBlock();
+  currentCFG.insertEdge(currentBlock, currentCFG.exit, true);
 
   currentCFG.insertStatement(currentBlock, &stmt);
 
@@ -180,10 +174,8 @@ CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
     return visitCondition(*binaryOperator, &cond, rhsBlock, falseBlock);
   }
 
-  // FIXME: Remove this pattern.
-  successorBlock = falseBlock;
-  currentBlock = -1;
-  autoCreateBlock();
+  currentBlock = currentCFG.insertNewBlock();
+  currentCFG.insertEdge(currentBlock, falseBlock, true);
 
   currentCFG.insertStatement(currentBlock, &cond);
   visit(*cond.lhs);
@@ -229,13 +221,9 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
   visit(*fn.body);
 
   // Entry
-  // FIXME: Remove this pattern.
-  if (currentBlock != -1) {
-    successorBlock = currentBlock;
-    currentBlock = -1;
-  }
-  autoCreateBlock();
-  currentCFG.entry = currentBlock;
+  int entry = currentCFG.entry = currentCFG.insertNewBlock();
+  currentCFG.insertEdge(
+      entry, currentBlock != -1 ? currentBlock : successorBlock, true);
 
   return currentCFG;
 };
