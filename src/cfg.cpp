@@ -110,7 +110,11 @@ void CFGBuilder::visit(const ResolvedAssignment &stmt) {
 void CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
   // FIXME: Remove this pattern.
   currentBlock = -1;
+
+  int currentSucc = successorBlock;
+  successorBlock = currentCFG.exit;
   autoCreateBlock();
+  successorBlock = currentSucc;
 
   currentCFG.insertStatement(currentBlock, &stmt);
 
@@ -211,7 +215,7 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
 
   // Exit
   successorBlock = currentCFG.insertNewBlock();
-  currentCFG.setExit(successorBlock);
+  currentCFG.exit = successorBlock;
 
   visit(*fn.body);
 
@@ -222,7 +226,7 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
     currentBlock = -1;
   }
   autoCreateBlock();
-  currentCFG.setEntry(currentBlock);
+  currentCFG.entry = currentBlock;
 
   return currentCFG;
 };

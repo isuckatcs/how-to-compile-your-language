@@ -14,10 +14,11 @@ struct BasicBlock {
 
 class CFG : public Dumpable {
   std::vector<BasicBlock> basicBlocks;
+
+public:
   int entry = -1;
   int exit = -1;
 
-public:
   int insertNewBlock() {
     basicBlocks.emplace_back();
     return basicBlocks.size() - 1;
@@ -31,9 +32,6 @@ public:
   void insertStatement(int block, const ResolvedStmt *statement) {
     basicBlocks[block].statements.emplace_back(statement);
   }
-
-  void setEntry(int b) { entry = b; }
-  void setExit(int b) { exit = b; }
 
   void dump(size_t = 0) const override;
 };
