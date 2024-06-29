@@ -78,7 +78,7 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   currentBlock = -1;
   visit(*stmt.body);
 
-  int bodyBlock = currentBlock;
+  int bodyBlock = currentBlock != -1 ? currentBlock : transitionBlock;
   successorBlock = bodyBlock;
   currentBlock = -1;
 

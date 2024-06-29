@@ -369,3 +369,28 @@ fn returnMidloop(): void {
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 5 
 // CHECK-NEXT:   succs: 
+
+fn whileOnly(): void {
+    while 1.0 {
+
+    }
+}
+// CHECK: whileOnly
+// CHECK-NEXT: ----------
+// CHECK-NEXT: [3 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 2 
+// CHECK-NEXT: 
+// CHECK-NEXT: [2]
+// CHECK-NEXT:   preds: 1 3 
+// CHECK-NEXT:   succs: 0 1 
+// CHECK-NEXT:   NumberLiteral: '1'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 2 
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs:
