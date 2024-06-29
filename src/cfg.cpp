@@ -3,6 +3,20 @@
 
 #include <cassert>
 
+namespace {
+const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
+  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(expr);
+  if (!binop)
+    return nullptr;
+
+  TokenKind op = binop->op;
+  if (op == TokenKind::PipePipe || op == TokenKind::AmpAmp)
+    return binop;
+
+  return nullptr;
+}
+} // namespace
+
 // FIXME: Refactor this source file.
 void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
@@ -50,14 +64,8 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   // false branches.
   int trueBlock = currentBlock == -1 ? exitBlock : currentBlock;
 
-  const auto *binaryOperator =
-      dynamic_cast<const ResolvedBinaryOperator *>(stmt.condition.get());
-  if (binaryOperator && (binaryOperator->op == TokenKind::PipePipe ||
-                         binaryOperator->op == TokenKind::AmpAmp)) {
-    visitCondition(
-        *binaryOperator, &stmt,
-        binaryOperator->op == TokenKind::PipePipe ? elseBlock : trueBlock,
-        binaryOperator->op == TokenKind::PipePipe ? trueBlock : elseBlock);
+  if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
+    visitCondition(*binop, &stmt, trueBlock, elseBlock);
   } else {
     currentBlock = currentCFG.insertNewBlock();
     currentCFG.insertEdge(currentBlock, trueBlock, true);
@@ -81,14 +89,8 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   successorBlock = bodyBlock;
   currentBlock = -1;
 
-  const auto *binaryOperator =
-      dynamic_cast<const ResolvedBinaryOperator *>(stmt.condition.get());
-  if (binaryOperator && (binaryOperator->op == TokenKind::PipePipe ||
-                         binaryOperator->op == TokenKind::AmpAmp)) {
-    visitCondition(
-        *binaryOperator, &stmt,
-        binaryOperator->op == TokenKind::PipePipe ? exitBlock : bodyBlock,
-        binaryOperator->op == TokenKind::PipePipe ? bodyBlock : exitBlock);
+  if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
+    visitCondition(*binop, &stmt, bodyBlock, exitBlock);
   } else {
     visit(*stmt.condition);
     currentCFG.insertEdge(currentBlock, exitBlock, true);
@@ -136,52 +138,61 @@ void CFGBuilder::visit(const ResolvedExpr &expr) {
   } else if (const auto *groupingExpr =
                  dynamic_cast<const ResolvedGroupingExpr *>(&expr)) {
     visit(*groupingExpr->expr);
+  } else if (const auto *cond = getAsConditionalBinop(&expr)) {
+    visitCondition(*cond, nullptr, currentBlock, currentBlock);
   } else if (const auto *binaryOperator =
                  dynamic_cast<const ResolvedBinaryOperator *>(&expr)) {
-    if (binaryOperator->op == TokenKind::PipePipe ||
-        binaryOperator->op == TokenKind::AmpAmp)
-      visitCondition(*binaryOperator, nullptr, currentBlock, currentBlock);
-    else {
-      visit(*binaryOperator->rhs);
-      visit(*binaryOperator->lhs);
-    }
+    visit(*binaryOperator->rhs);
+    visit(*binaryOperator->lhs);
   } else if (const auto *unaryOperator =
                  dynamic_cast<const ResolvedUnaryOperator *>(&expr)) {
     visit(*unaryOperator->rhs);
   }
 }
 
-std::pair<int, int>
-CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
-                           const ResolvedStmt *term, int trueBlock,
-                           int falseBlock) {
-  currentBlock = currentCFG.insertNewBlock();
+void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
+                                const ResolvedStmt *term, int trueBlock,
+                                int falseBlock) {
+  int rhsBlock = -1;
+  if (const auto *binop = getAsConditionalBinop(cond.rhs.get())) {
+    visitCondition(*binop, term, trueBlock, falseBlock);
+    rhsBlock = currentBlock;
+  } else {
+    // Create the block for the RHS.
+    currentBlock = currentCFG.insertNewBlock();
 
-  if (term)
-    currentCFG.insertStatement(currentBlock, term);
+    if (term)
+      currentCFG.insertStatement(currentBlock, term);
 
-  visit(*cond.rhs);
-  int rhsBlock = currentBlock;
+    visit(*cond.rhs);
+    rhsBlock = currentBlock;
 
-  currentCFG.insertEdge(rhsBlock, trueBlock, true);
-  if (trueBlock != falseBlock)
+    // From the RHS both the true and the false block is reachable.
+    currentCFG.insertEdge(rhsBlock, trueBlock, true);
     currentCFG.insertEdge(rhsBlock, falseBlock, true);
-
-  const auto *binaryOperator =
-      dynamic_cast<const ResolvedBinaryOperator *>(cond.lhs.get());
-  if (binaryOperator && (binaryOperator->op == TokenKind::PipePipe ||
-                         binaryOperator->op == TokenKind::AmpAmp)) {
-    return visitCondition(*binaryOperator, &cond, rhsBlock, falseBlock);
   }
 
-  currentBlock = currentCFG.insertNewBlock();
-  currentCFG.insertEdge(currentBlock, falseBlock, true);
+  bool isAnd = cond.op == TokenKind::AmpAmp;
+  if (const auto *binop = getAsConditionalBinop(cond.lhs.get())) {
+    // If LHS is another conditional OP and the current operator is && the false
+    // branch is reachable if LHS is false and the current RHS is reachable if
+    // the LHS is true. In case of ||, it's the opposite.
+    isAnd ? visitCondition(*binop, &cond, rhsBlock, falseBlock)
+          : visitCondition(*binop, &cond, trueBlock, rhsBlock);
+    return;
+  }
 
-  currentCFG.insertStatement(currentBlock, &cond);
-  visit(*cond.lhs);
+  // Create the block for the LHS.
+  currentBlock = currentCFG.insertNewBlock();
+
+  // If the current op is &&, the false block is reachable from the LHS if LHS
+  // is false. In case of ||, the true block is reachable if the LHS is true.
+  currentCFG.insertEdge(currentBlock, isAnd ? falseBlock : trueBlock, true);
   currentCFG.insertEdge(currentBlock, rhsBlock, true);
 
-  return {rhsBlock, falseBlock};
+  // The current block when the function exits is the LHS block.
+  currentCFG.insertStatement(currentBlock, &cond);
+  visit(*cond.lhs);
 }
 
 void CFGBuilder::visit(const ResolvedStmt &stmt) {
