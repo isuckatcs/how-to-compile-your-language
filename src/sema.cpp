@@ -280,6 +280,7 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
+  ScopeRAII scope{this};
   std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
   for (auto &&stmt : block.statements)
