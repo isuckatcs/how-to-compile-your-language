@@ -23,24 +23,24 @@ void CFG::dump(size_t) const {
 }
 
 void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
+  int exitBlock = currentBlock == -1 ? successorBlock : currentBlock;
 
-  int current = currentBlock;
-  if (current != -1)
-    successorBlock = current;
-
+  successorBlock = exitBlock;
   if (stmt.falseBlock) {
     currentBlock = -1;
     visit(*stmt.falseBlock);
   } else if (stmt.falseBranch) {
     visit(*stmt.falseBranch);
   }
+  int elseBlock = currentBlock == -1 ? exitBlock : currentBlock;
 
-  int elseBlock = currentBlock == -1 ? current : currentBlock;
-
-  if (current != -1)
-    successorBlock = current;
+  successorBlock = exitBlock;
   currentBlock = -1;
   visit(*stmt.trueBlock);
+
+  // An empty block can be inserted if we need to differentiate the true and the
+  // false branches.
+  int trueBlock = currentBlock == -1 ? exitBlock : currentBlock;
 
   const auto *binaryOperator =
       dynamic_cast<const ResolvedBinaryOperator *>(stmt.condition.get());
@@ -48,12 +48,10 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
                          binaryOperator->op == TokenKind::AmpAmp)) {
     visitCondition(*binaryOperator, &stmt, currentBlock, elseBlock);
   } else {
-    successorBlock = currentBlock;
+    successorBlock = trueBlock;
     currentBlock = -1;
     autoCreateBlock();
-
-    if (elseBlock != -1)
-      currentCFG.insertEdge(currentBlock, elseBlock);
+    currentCFG.insertEdge(currentBlock, elseBlock);
 
     visit(*stmt.condition);
   }
@@ -195,9 +193,6 @@ void CFGBuilder::visit(const ResolvedBlock &block) {
 
 CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
   currentCFG = CFG{};
-
-  // FIXME: Enable this once it not crashes.
-  return currentCFG;
 
   // Exit
   successorBlock = currentCFG.insertNewBlock();
