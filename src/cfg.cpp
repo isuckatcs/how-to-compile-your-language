@@ -1,23 +1,31 @@
 #include "cfg.h"
+#include "ast.h"
+
 #include <cassert>
 
 // FIXME: Refactor this source file.
 void CFG::dump(size_t) const {
-  for (int i = 0; i < basicBlocks.size(); ++i) {
-    std::cout << '[' << i << ']' << '\n';
+  for (int i = basicBlocks.size() - 1; i >= 0; --i) {
+    std::cout << '[' << i;
+    if (i == entry)
+      std::cout << " (entry)";
+    else if (i == exit)
+      std::cout << " (exit)";
+    std::cout << ']' << '\n';
 
     std::cout << "  preds: ";
-    for (auto &&pred : basicBlocks[i].predecessors)
-      std::cout << pred << ' ';
+    for (auto &&[id, reachable] : basicBlocks[i].predecessors)
+      std::cout << id << ((reachable) ? " " : " (U)");
     std::cout << '\n';
 
     std::cout << "  succs: ";
-    for (auto &&succ : basicBlocks[i].successors)
-      std::cout << succ << ' ';
+    for (auto &&[id, reachable] : basicBlocks[i].successors)
+      std::cout << id << ((reachable) ? " " : " (U)");
     std::cout << '\n';
 
-    for (auto &&stmt : basicBlocks[i].statements)
-      stmt->dump(1);
+    const auto &statements = basicBlocks[i].statements;
+    for (auto it = statements.rbegin(); it != statements.rend(); ++it)
+      (*it)->dump(1);
     std::cout << '\n';
   }
 }
@@ -46,13 +54,17 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
       dynamic_cast<const ResolvedBinaryOperator *>(stmt.condition.get());
   if (binaryOperator && (binaryOperator->op == TokenKind::PipePipe ||
                          binaryOperator->op == TokenKind::AmpAmp)) {
-    visitCondition(*binaryOperator, &stmt, currentBlock, elseBlock);
+    visitCondition(
+        *binaryOperator, &stmt,
+        binaryOperator->op == TokenKind::PipePipe ? elseBlock : trueBlock,
+        binaryOperator->op == TokenKind::PipePipe ? trueBlock : elseBlock);
   } else {
     successorBlock = trueBlock;
     currentBlock = -1;
     autoCreateBlock();
-    currentCFG.insertEdge(currentBlock, elseBlock);
+    currentCFG.insertEdge(currentBlock, elseBlock, true);
 
+    currentCFG.insertStatement(currentBlock, &stmt);
     visit(*stmt.condition);
   }
 }
@@ -72,8 +84,8 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
 
   // FIXME: Handle conditional
   visit(*stmt.condition);
-  currentCFG.insertEdge(currentBlock, exitBlock);
-  currentCFG.insertEdge(transitionBlock, currentBlock);
+  currentCFG.insertEdge(currentBlock, exitBlock, true);
+  currentCFG.insertEdge(transitionBlock, currentBlock, true);
 
   successorBlock = currentBlock;
   currentBlock = -1;
@@ -101,6 +113,9 @@ void CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
   autoCreateBlock();
 
   currentCFG.insertStatement(currentBlock, &stmt);
+
+  if (const auto &expr = stmt.expr.get())
+    visit(*expr);
 }
 
 void CFGBuilder::visit(const ResolvedExpr &expr) {
@@ -141,9 +156,9 @@ CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
   visit(*cond.rhs);
   int rhsBlock = currentBlock;
 
-  currentCFG.insertEdge(rhsBlock, trueBlock);
+  currentCFG.insertEdge(rhsBlock, trueBlock, true);
   if (trueBlock != falseBlock)
-    currentCFG.insertEdge(rhsBlock, falseBlock);
+    currentCFG.insertEdge(rhsBlock, falseBlock, true);
 
   const auto *binaryOperator =
       dynamic_cast<const ResolvedBinaryOperator *>(cond.lhs.get());
@@ -159,7 +174,7 @@ CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
 
   currentCFG.insertStatement(currentBlock, &cond);
   visit(*cond.lhs);
-  currentCFG.insertEdge(currentBlock, rhsBlock);
+  currentCFG.insertEdge(currentBlock, rhsBlock, true);
 
   return {rhsBlock, falseBlock};
 }
@@ -196,8 +211,7 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
 
   // Exit
   successorBlock = currentCFG.insertNewBlock();
-
-  // FIXME: This crashes if the only statement in the body is an ifStmt.
+  currentCFG.setExit(successorBlock);
 
   visit(*fn.body);
 
@@ -208,6 +222,7 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
     currentBlock = -1;
   }
   autoCreateBlock();
+  currentCFG.setEntry(currentBlock);
 
   return currentCFG;
 };

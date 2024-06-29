@@ -1,18 +1,21 @@
 #ifndef A_COMPILER_CFG_H
 #define A_COMPILER_CFG_H
 
+#include <set>
 #include <vector>
 
 #include "ast.h"
 
 struct BasicBlock {
-  std::vector<int> predecessors;
-  std::vector<int> successors;
+  std::set<std::pair<int, bool>> predecessors;
+  std::set<std::pair<int, bool>> successors;
   std::vector<const ResolvedStmt *> statements;
 };
 
 class CFG : public Dumpable {
   std::vector<BasicBlock> basicBlocks;
+  int entry = -1;
+  int exit = -1;
 
 public:
   int insertNewBlock() {
@@ -20,14 +23,17 @@ public:
     return basicBlocks.size() - 1;
   };
 
-  void insertEdge(int from, int to) {
-    basicBlocks[from].successors.emplace_back(to);
-    basicBlocks[to].predecessors.emplace_back(from);
+  void insertEdge(int from, int to, bool reachable) {
+    basicBlocks[from].successors.emplace(std::make_pair(to, reachable));
+    basicBlocks[to].predecessors.emplace(std::make_pair(from, reachable));
   }
 
   void insertStatement(int block, const ResolvedStmt *statement) {
     basicBlocks[block].statements.emplace_back(statement);
   }
+
+  void setEntry(int b) { entry = b; }
+  void setExit(int b) { exit = b; }
 
   void dump(size_t = 0) const override;
 };
@@ -40,7 +46,7 @@ class CFGBuilder {
   void autoCreateBlock() {
     if (currentBlock == -1) {
       currentBlock = currentCFG.insertNewBlock();
-      currentCFG.insertEdge(currentBlock, successorBlock);
+      currentCFG.insertEdge(currentBlock, successorBlock, true);
     }
   }
 

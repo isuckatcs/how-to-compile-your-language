@@ -117,8 +117,11 @@ int main(int argc, const char **argv) {
   // FIXME: Is this the proper place to do this?
   if (options.cfgDump) {
     for (auto &&fn : resolvedFunctions) {
+      std::cout << "----------" << '\n';
+      std::cout << fn->identifier << '\n';
+      std::cout << "----------" << '\n';
       CFGBuilder b;
-      b.build(*fn).dump();
+      b.build(*fn).dump(1);
     }
 
     return 0;
