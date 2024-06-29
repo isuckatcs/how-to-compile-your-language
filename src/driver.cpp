@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 
+#include "cfg.h"
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
@@ -20,7 +21,8 @@ void displayHelp() {
             << "  -o <file>    write executable to <file>\n"
             << "  -ast-dump    print the abstract syntax tree\n"
             << "  -res-dump    print the resolved syntax tree\n"
-            << "  -llvm-dump   print the llvm module\n";
+            << "  -llvm-dump   print the llvm module\n"
+            << "  -cfg-dump   print the control flow graph\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
@@ -35,6 +37,7 @@ struct CompilerOptions {
   bool astDump = false;
   bool resDump = false;
   bool llvmDump = false;
+  bool cfgDump = false;
 };
 
 CompilerOptions parseArguments(int argc, const char **argv) {
@@ -60,6 +63,8 @@ CompilerOptions parseArguments(int argc, const char **argv) {
         options.resDump = true;
       else if (arg == "-llvm-dump")
         options.llvmDump = true;
+      else if (arg == "-cfg-dump")
+        options.cfgDump = true;
       else
         error("unexpected option '" + std::string{arg} + '\'');
     }
@@ -108,6 +113,16 @@ int main(int argc, const char **argv) {
   auto resolvedFunctions = sema.resolveSourceFile();
   if (resolvedFunctions.empty())
     return 1;
+
+  // FIXME: Is this the proper place to do this?
+  if (options.cfgDump) {
+    for (auto &&fn : resolvedFunctions) {
+      CFGBuilder b;
+      b.build(*fn).dump();
+    }
+
+    return 0;
+  }
 
   if (options.resDump) {
     for (auto &&fn : resolvedFunctions)
