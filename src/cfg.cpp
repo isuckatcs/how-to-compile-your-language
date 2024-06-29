@@ -17,7 +17,6 @@ const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
 }
 } // namespace
 
-// FIXME: Refactor this source file.
 void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
     std::cout << '[' << i;
@@ -92,8 +91,12 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
     visitCondition(*binop, &stmt, bodyBlock, exitBlock);
   } else {
-    visit(*stmt.condition);
+    currentBlock = currentCFG.insertNewBlock();
     currentCFG.insertEdge(currentBlock, exitBlock, true);
+    currentCFG.insertEdge(currentBlock, bodyBlock, true);
+
+    currentCFG.insertStatement(currentBlock, &stmt);
+    visit(*stmt.condition);
   }
   currentCFG.insertEdge(transitionBlock, currentBlock, true);
 

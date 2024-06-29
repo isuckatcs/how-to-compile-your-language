@@ -24,6 +24,12 @@ fn main(): void {
 // CHECK-NEXT:   succs: 1 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:     | value: 4
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       NumberLiteral: '3'
+// CHECK-NEXT:       | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
@@ -249,6 +255,18 @@ fn nestedLoops(): void {
 // CHECK-NEXT:   succs: 1 6 
 // CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '7'
+// CHECK-NEXT:     | value: 7
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       NumberLiteral: '6'
+// CHECK-NEXT:       | value: 6
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         | value: 5
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           NumberLiteral: '4'
+// CHECK-NEXT:           | value: 4
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7 
@@ -261,6 +279,12 @@ fn nestedLoops(): void {
 // CHECK-NEXT:   succs: 2 4 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '5'
+// CHECK-NEXT:     | value: 5
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:       | value: 4
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
@@ -319,6 +343,23 @@ fn returnMidloop(): void {
 // CHECK-NEXT:   succs: 1 6 
 // CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '7'
+// CHECK-NEXT:     | value: 7
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       NumberLiteral: '6'
+// CHECK-NEXT:       | value: 6
+// CHECK-NEXT:       ResolvedIfStmt
+// CHECK-NEXT:         NumberLiteral: '6'
+// CHECK-NEXT:         | value: 6
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           NumberLiteral: '5'
+// CHECK-NEXT:           | value: 5
+// CHECK-NEXT:           ResolvedReturnStmt
+// CHECK-NEXT:           NumberLiteral: '4'
+// CHECK-NEXT:           | value: 4
+// CHECK-NEXT:       NumberLiteral: '3'
+// CHECK-NEXT:       | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7 
@@ -386,6 +427,10 @@ fn whileOnly(): void {
 // CHECK-NEXT:   succs: 0 1 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '1'
+// CHECK-NEXT:     | value: 1
+// CHECK-NEXT:     ResolvedBlock
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
