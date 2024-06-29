@@ -82,9 +82,18 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   successorBlock = bodyBlock;
   currentBlock = -1;
 
-  // FIXME: Handle conditional
-  visit(*stmt.condition);
-  currentCFG.insertEdge(currentBlock, exitBlock, true);
+  const auto *binaryOperator =
+      dynamic_cast<const ResolvedBinaryOperator *>(stmt.condition.get());
+  if (binaryOperator && (binaryOperator->op == TokenKind::PipePipe ||
+                         binaryOperator->op == TokenKind::AmpAmp)) {
+    visitCondition(
+        *binaryOperator, &stmt,
+        binaryOperator->op == TokenKind::PipePipe ? exitBlock : bodyBlock,
+        binaryOperator->op == TokenKind::PipePipe ? bodyBlock : exitBlock);
+  } else {
+    visit(*stmt.condition);
+    currentCFG.insertEdge(currentBlock, exitBlock, true);
+  }
   currentCFG.insertEdge(transitionBlock, currentBlock, true);
 
   successorBlock = currentBlock;
