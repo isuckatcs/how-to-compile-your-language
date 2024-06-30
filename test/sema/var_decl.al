@@ -15,4 +15,7 @@ fn main(): void {
     let x4: number;
     
     let x5: number = bar();
+
+    // CHECK: [[# @LINE + 1 ]]:22: error: symbol 'y' not found
+    let x6: number = y;
 }

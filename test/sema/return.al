@@ -14,6 +14,9 @@ fn foo(): number {
 fn bar(): number {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected a return value
     return;
+
+    // CHECK: [[# @LINE + 1 ]]:12: error: symbol 'y' not found
+    return y;
 }
 
 fn main(): void {
