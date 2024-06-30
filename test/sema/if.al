@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(): void {}
+
+fn bar(): number { return 1.0; }
+
+fn main(): void {
+    // CHECK: [[# @LINE + 1 ]]:11: error: expected number in condition
+    if foo() {}
+
+    if bar() {}
+    
+    // CHECK: [[# @LINE + 1 ]]:16: error: expected number in condition
+    else if foo() {}
+}

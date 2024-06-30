@@ -62,6 +62,10 @@ std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.rhs));
 
+  if (resolvedRHS->type == Type::Void)
+    return error(resolvedRHS->location,
+                 "void expression cannot be used as operand to unary operator");
+
   return std::make_unique<ResolvedUnaryOperator>(
       unary.location, std::move(resolvedRHS), unary.op);
 }
@@ -81,6 +85,9 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
         resolvedRHS->location,
         "void expression cannot be used as RHS operand to binary operator");
 
+  assert(resolvedLHS->type == resolvedRHS->type &&
+         resolvedLHS->type == Type::Number && "unexpexted type in binop");
+
   return std::make_unique<ResolvedBinaryOperator>(
       binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
 }
@@ -93,16 +100,21 @@ Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
 }
 
 std::unique_ptr<ResolvedDeclRefExpr>
-Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr) {
-  if (ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first)
-    return std::make_unique<ResolvedDeclRefExpr>(declRefExpr.location, *decl);
+Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall) {
+  ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
+  if (!decl)
+    return error(declRefExpr.location,
+                 "symbol '" + declRefExpr.identifier + "' not found");
 
-  return error(declRefExpr.location,
-               "symbol '" + declRefExpr.identifier + "' not found");
+  if (!inCall && dynamic_cast<ResolvedFunctionDecl *>(decl))
+    return error(declRefExpr.location,
+                 "expected to call function '" + declRefExpr.identifier + "'");
+
+  return std::make_unique<ResolvedDeclRefExpr>(declRefExpr.location, *decl);
 }
 
 std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
-  varOrReturn(resolvedCallee, resolveDeclRefExpr(*call.identifier));
+  varOrReturn(resolvedCallee, resolveDeclRefExpr(*call.identifier, true));
 
   const auto *resolvedFunctionDecl =
       dynamic_cast<const ResolvedFunctionDecl *>(resolvedCallee->decl);
@@ -209,15 +221,23 @@ Sema::resolveAssignment(const Assignment &assignment) {
   varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
-  if (resolvedLHS->type == Type::Void)
-    return error(
-        resolvedLHS->location,
-        "void expression cannot be used as LHS operand to binary operator");
+  assert(resolvedLHS->type != Type::Void &&
+         "reference to void variable in assignment LHS");
 
-  if (resolvedRHS->type == Type::Void)
-    return error(
-        resolvedRHS->location,
-        "void expression cannot be used as RHS operand to binary operator");
+  if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
+    return error(resolvedLHS->location,
+                 "parameters are immutable and cannot be assigned");
+
+  auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
+  assert(var && "assignment LHS is not a variable");
+
+  // The variable is not late initialized, so we can error out safely.
+  if (var->initializer && !var->isMutable)
+    return error(assignment.location, "immutable variables cannot be assigned");
+
+  if (resolvedRHS->type != resolvedLHS->type)
+    return error(resolvedRHS->location,
+                 "assigned value type doesn't match variable type");
 
   return std::make_unique<ResolvedAssignment>(
       assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
@@ -347,9 +367,15 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
                                         "' has invalid '" + function.type +
                                         "' type");
 
-  if (function.identifier == "main" && type != Type::Void)
-    return error(function.location,
-                 "'main' function is expected to have 'void' type");
+  if (function.identifier == "main") {
+    if (type != Type::Void)
+      return error(function.location,
+                   "'main' function is expected to have 'void' type");
+
+    if (!function.params.empty())
+      return error(function.location,
+                   "'main' function is expected to take no arguments");
+  }
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;
   for (auto &&param : function.params) {
@@ -386,6 +412,9 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
 
     resolvedSourceFile.emplace_back(std::move(resolvedFunctionDecl));
   }
+
+  if (error)
+    return {};
 
   for (size_t i = 1; i < resolvedSourceFile.size(); ++i) {
     ScopeRAII scope{this};
