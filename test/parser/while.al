@@ -1,0 +1,16 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main(): void {
+    // CHECK: [[# @LINE + 1 ]]:11: error: expected expression
+    while & {}
+    
+    // CHECK: [[# @LINE + 1 ]]:15: error: expected 'while' body
+    while 0.0 ;
+
+    while 0.0 {
+        1.0;
+    }
+    // CHECK: WhileStmt
+    // CHECK-NEXT:   NumberLiteral: '0.0'
+    // CHECK-NEXT:   Block
+    // CHECK-NEXT:     NumberLiteral: '1.0'
+}

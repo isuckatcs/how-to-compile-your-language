@@ -1,0 +1,22 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:4: error: expected identifier
+fn {}
+
+// CHECK: [[# @LINE + 1 ]]:6: error: expected '('
+fn f {}
+
+// CHECK: [[# @LINE + 1 ]]:8: error: expected ':'
+fn f() {}
+
+// CHECK: [[# @LINE + 1 ]]:9: error: expected type specifier
+fn f(): {}
+
+// CHECK: [[# @LINE + 1 ]]:9: error: expected type specifier
+fn f(): 1.0 {}
+
+// CHECK: [[# @LINE + 1 ]]:14: error: expected function body
+fn f(): void }
+
+fn main(): validCustomTypeDuringParsing {}
+// CHECK: FunctionDecl: main:validCustomTypeDuringParsing
+// CHECK-NEXT:   Block
