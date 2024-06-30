@@ -17,7 +17,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
   if (binop.op == TokenKind::PipePipe && toBool(*lhs))
     return 1.0;
 
-  // If the LHS of && if false, we don't need to evaluate the RHS.
+  // If the LHS of && is false, we don't need to evaluate the RHS.
   if (binop.op == TokenKind::AmpAmp && !toBool(*lhs))
     return 0.0;
 
