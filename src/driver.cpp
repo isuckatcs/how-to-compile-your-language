@@ -111,6 +111,13 @@ int main(int argc, const char **argv) {
   Sema sema{std::move(functions)};
 
   auto resolvedFunctions = sema.resolveSourceFile();
+
+  if (options.resDump) {
+    for (auto &&fn : resolvedFunctions)
+      fn->dump();
+    return 0;
+  }
+
   if (resolvedFunctions.empty())
     return 1;
 
@@ -124,12 +131,6 @@ int main(int argc, const char **argv) {
       b.build(*fn).dump(1);
     }
 
-    return 0;
-  }
-
-  if (options.resDump) {
-    for (auto &&fn : resolvedFunctions)
-      fn->dump();
     return 0;
   }
 
