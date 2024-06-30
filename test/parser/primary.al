@@ -7,6 +7,9 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
     .0;
 
+    // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
+    0.;
+
     // CHECK: [[# @LINE + 1 ]]:6: error: expected expression
     ();
 
