@@ -283,9 +283,20 @@ std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
   ScopeRAII scope{this};
   std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
-  for (auto &&stmt : block.statements)
-    if (!resolvedStatements.emplace_back(resolveStmt(*stmt)))
-      return nullptr;
+  bool errorHappened = false;
+  for (auto &&stmt : block.statements) {
+    std::unique_ptr<ResolvedStmt> resolvedStmt = resolveStmt(*stmt);
+
+    if (!resolvedStmt) {
+      errorHappened = true;
+      continue;
+    }
+
+    resolvedStatements.emplace_back(std::move(resolvedStmt));
+  }
+
+  if (errorHappened)
+    return nullptr;
 
   return std::make_unique<ResolvedBlock>(block.location,
                                          std::move(resolvedStatements));
@@ -376,9 +387,6 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
     resolvedSourceFile.emplace_back(std::move(resolvedFunctionDecl));
   }
 
-  if (error)
-    return {};
-
   for (size_t i = 1; i < resolvedSourceFile.size(); ++i) {
     ScopeRAII scope{this};
 
@@ -387,14 +395,19 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
 
     currentFunction = resolvedSourceFile[i].get();
     auto resolvedBody = resolveBlock(*sourceFile[i - 1]->body);
-    if (!resolvedBody)
-      return {};
+    if (!resolvedBody) {
+      error = true;
+      continue;
+    }
     resolvedSourceFile[i]->body = std::move(resolvedBody);
     currentFunction = nullptr;
 
     CFGBuilder b;
     b.build(*resolvedSourceFile[i]);
   }
+
+  if (error)
+    return {};
 
   return std::move(resolvedSourceFile);
 }
