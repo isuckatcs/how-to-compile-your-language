@@ -311,7 +311,6 @@ enum class Type { Number, Void };
 
 struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
                       public ResolvedStmt {
-  SourceLocation location;
   Type type;
 
   ResolvedExpr(SourceLocation location, Type type)
