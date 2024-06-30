@@ -294,8 +294,7 @@ struct Assignment : public Stmt {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "Assignment:\n";
     variable->dump(level + 1);
-    if (expr)
-      expr->dump(level + 1);
+    expr->dump(level + 1);
   }
 };
 
@@ -580,8 +579,7 @@ struct ResolvedAssignment : public ResolvedStmt {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedAssignment:\n";
     variable->dump(level + 1);
-    if (expr)
-      expr->dump(level + 1);
+    expr->dump(level + 1);
   }
 };
 
