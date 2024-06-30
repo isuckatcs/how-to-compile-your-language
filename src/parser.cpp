@@ -190,6 +190,9 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
                                     std::move(trueBranch), std::move(elseIf));
   }
 
+  if (nextToken.kind != TokenKind::Lbrace)
+    return error(nextToken.location, "expected 'else' body");
+
   varOrReturn(falseBlock, parseBlock());
 
   return std::make_unique<IfStmt>(location, std::move(condition),
