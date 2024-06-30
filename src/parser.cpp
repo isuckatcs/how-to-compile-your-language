@@ -234,6 +234,9 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
   Token tok = nextToken;
   eatNextToken(); // eat 'let' | 'var'
 
+  if (nextToken.kind != TokenKind::Identifier)
+    return error(nextToken.location, "expected identifier");
+
   varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
 
   return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
