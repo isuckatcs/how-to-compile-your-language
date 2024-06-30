@@ -57,8 +57,9 @@ Token TheLexer::getNextToken() {
     if (peekNextChar() != '/')
       return Token{tokenStartLocation, TokenKind::Slash};
 
-    while (eatNextChar() != '\n')
-      ;
+    char c = eatNextChar();
+    while (c != '\n' && c != '\0')
+      c = eatNextChar();
 
     return getNextToken();
   }
