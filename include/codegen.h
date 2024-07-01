@@ -33,6 +33,11 @@ class Codegen {
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
+
+  void generateConditionalOperator(const ResolvedExpr &op,
+                                   llvm::BasicBlock *trueBlock,
+                                   llvm::BasicBlock *falseBlock);
+
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unary);
 

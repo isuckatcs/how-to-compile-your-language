@@ -3,6 +3,21 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
+// FIXME: Move this to utility
+namespace {
+const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
+  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(expr);
+  if (!binop)
+    return nullptr;
+
+  TokenKind op = binop->op;
+  if (op == TokenKind::PipePipe || op == TokenKind::AmpAmp)
+    return binop;
+
+  return nullptr;
+}
+} // namespace
+
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
     : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
@@ -193,27 +208,82 @@ Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
   llvm_unreachable("unknown unary op");
 }
 
+void Codegen::generateConditionalOperator(const ResolvedExpr &op,
+                                          llvm::BasicBlock *trueBlock,
+                                          llvm::BasicBlock *falseBlock) {
+  if (const auto *condBinop = getAsConditionalBinop(&op)) {
+    if (condBinop->op == TokenKind::PipePipe) {
+      llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
+          context, "or.lhs.false", trueBlock->getParent());
+      generateConditionalOperator(*condBinop->lhs, trueBlock, nextBlock);
+
+      builder.SetInsertPoint(nextBlock);
+      generateConditionalOperator(*condBinop->rhs, trueBlock, falseBlock);
+      return;
+    }
+
+    if (condBinop->op == TokenKind::AmpAmp) {
+      llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
+          context, "and.lhs.true", trueBlock->getParent());
+      generateConditionalOperator(*condBinop->lhs, nextBlock, falseBlock);
+
+      builder.SetInsertPoint(nextBlock);
+      generateConditionalOperator(*condBinop->rhs, trueBlock, falseBlock);
+      return;
+    }
+  }
+
+  llvm::Value *val = doubleToBool(generateExpr(op));
+  builder.CreateCondBr(val, trueBlock, falseBlock);
+};
+
 llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
+
+  TokenKind op = binop.op;
+  if (op == TokenKind::AmpAmp || op == TokenKind::PipePipe) {
+    bool isOr = op == TokenKind::PipePipe;
+
+    llvm::BasicBlock *rhsBlock =
+        llvm::BasicBlock::Create(context, isOr ? "or.rhs" : "and.rhs",
+                                 builder.GetInsertBlock()->getParent());
+    llvm::BasicBlock *mergeBlock =
+        llvm::BasicBlock::Create(context, isOr ? "or.merge" : "and.merge",
+                                 builder.GetInsertBlock()->getParent());
+
+    generateConditionalOperator(*binop.lhs, isOr ? mergeBlock : rhsBlock,
+                                isOr ? rhsBlock : mergeBlock);
+    builder.SetInsertPoint(rhsBlock);
+
+    llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
+    builder.CreateBr(mergeBlock);
+
+    builder.SetInsertPoint(mergeBlock);
+
+    llvm::PHINode *phi = builder.CreatePHI(builder.getInt1Ty(), 0);
+
+    for (llvm::pred_iterator pi = pred_begin(mergeBlock),
+                             pe = pred_end(mergeBlock);
+         pi != pe; ++pi)
+      phi->addIncoming(builder.getInt1(isOr), *pi);
+    phi->addIncoming(rhs, rhsBlock);
+
+    return boolToDouble(phi);
+  }
+
   llvm::Value *lhs = generateExpr(*binop.lhs);
   llvm::Value *rhs = generateExpr(*binop.rhs);
 
-  // FIXME: Refactor this!!!
-  if (binop.op == TokenKind::Lt)
+  if (op == TokenKind::Lt)
     return boolToDouble(builder.CreateFCmpOLT(lhs, rhs));
-  if (binop.op == TokenKind::Gt)
-    return boolToDouble(builder.CreateFCmpOGT(lhs, rhs));
-  if (binop.op == TokenKind::EqualEqual)
-    return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
-  if (binop.op == TokenKind::AmpAmp) {
-    return boolToDouble(
-        builder.CreateLogicalAnd(doubleToBool(lhs), doubleToBool(rhs)));
-  }
-  if (binop.op == TokenKind::PipePipe)
-    return boolToDouble(
-        builder.CreateLogicalOr(doubleToBool(lhs), doubleToBool(rhs)));
 
-  return builder.CreateBinOp(getOperatorKind(binop.op), lhs, rhs);
+  if (op == TokenKind::Gt)
+    return boolToDouble(builder.CreateFCmpOGT(lhs, rhs));
+
+  if (op == TokenKind::EqualEqual)
+    return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
+
+  return builder.CreateBinOp(getOperatorKind(op), lhs, rhs);
 }
 
 llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
