@@ -328,6 +328,11 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
       break;
     }
   }
+
+  // FIXME: This should disappear with return optimization.
+  if (const llvm::BasicBlock *bb = builder.GetInsertBlock();
+      bb && bb->empty() && !retBlock->hasNPredecessors(0))
+    builder.CreateUnreachable();
 }
 
 // FIXME: Optimize return stmt emission.
