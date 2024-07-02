@@ -4,22 +4,46 @@
 #include <optional>
 
 namespace {
-bool toBool(double d) { return d != 0.0; }
+std::optional<bool> toBool(std::optional<double> d) {
+  if (!d)
+    return std::nullopt;
+
+  return d != 0.0;
+}
 } // namespace
 
 std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     const ResolvedBinaryOperator &binop) {
   std::optional<double> lhs = evaluate(*binop.lhs);
+
+  if (binop.op == TokenKind::PipePipe) {
+    // If the LHS of || is true, we don't need to evaluate the RHS.
+    if (toBool(lhs).value_or(false))
+      return 1.0;
+
+    return toBool(evaluate(*binop.rhs));
+  }
+
+  if (binop.op == TokenKind::AmpAmp) {
+    // If the LHS of && is false, we don't need to evaluate the RHS.
+    if (binop.op == TokenKind::AmpAmp && !toBool(lhs).value_or(true))
+      return 0.0;
+
+    // If the LHS is unknown, but the RHS is false, the expression is false.
+    std::optional<double> rhs = evaluate(*binop.rhs);
+    if (!lhs) {
+      if (rhs == 0.0)
+        return rhs;
+
+      return std::nullopt;
+    }
+
+    // Otherwise LHS is known to be true, so the result depends on the RHS.
+    return toBool(rhs);
+  }
+
   if (!lhs)
     return std::nullopt;
-
-  // If the LHS of || is true, we don't need to evaluate the RHS.
-  if (binop.op == TokenKind::PipePipe && toBool(*lhs))
-    return 1.0;
-
-  // If the LHS of && is false, we don't need to evaluate the RHS.
-  if (binop.op == TokenKind::AmpAmp && !toBool(*lhs))
-    return 0.0;
 
   std::optional<double> rhs = evaluate(*binop.rhs);
   if (!rhs)
@@ -40,9 +64,6 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     return *lhs > *rhs;
   case TokenKind::EqualEqual:
     return *lhs == *rhs;
-  case TokenKind::AmpAmp:
-  case TokenKind::PipePipe:
-    return toBool(*rhs); // The LHS is already handled.
   default:
     assert(false && "unexpected binary operator");
   }
@@ -55,7 +76,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
     return std::nullopt;
 
   if (op.op == TokenKind::Excl)
-    return !toBool(*rhs);
+    return !*toBool(rhs);
 
   assert(false && "unexpected unary operator");
 }

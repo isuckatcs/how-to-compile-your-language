@@ -57,4 +57,29 @@ fn lhsKnownRhsNot(): number {
 // CHECK-NEXT:        | value: 1
 // CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) y
 
+fn lhsUnknownRhsFalse(x: number): number {
+    return x && 0.0;
+}
+// CHECK:    ResolvedReturnStmt
+// CHECK-NEXT:      ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:      | value: 0
+// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        NumberLiteral: '0'
+// CHECK-NEXT:        | value: 0
+
+fn lhsUnknownRhsTrue(x: number): number {
+    return x && (0.0 - 1.0);
+}
+// CHECK: ResolvedReturnStmt
+// CHECK-NEXT:   ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:     ResolvedGroupingExpr:
+// CHECK-NEXT:     | value: -1
+// CHECK-NEXT:       ResolvedBinaryOperator: '-'
+// CHECK-NEXT:       | value: -1
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:         | value: 0
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:         | value: 1
+
 fn main(): void {}
