@@ -258,15 +258,20 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
     llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
     builder.CreateBr(mergeBlock);
 
+    rhsBlock = builder.GetInsertBlock();
+
     builder.SetInsertPoint(mergeBlock);
 
     llvm::PHINode *phi = builder.CreatePHI(builder.getInt1Ty(), 0);
 
     for (llvm::pred_iterator pi = pred_begin(mergeBlock),
                              pe = pred_end(mergeBlock);
-         pi != pe; ++pi)
-      phi->addIncoming(builder.getInt1(isOr), *pi);
-    phi->addIncoming(rhs, rhsBlock);
+         pi != pe; ++pi) {
+      if (*pi == rhsBlock)
+        phi->addIncoming(rhs, rhsBlock);
+      else
+        phi->addIncoming(builder.getInt1(isOr), *pi);
+    }
 
     return boolToDouble(phi);
   }
