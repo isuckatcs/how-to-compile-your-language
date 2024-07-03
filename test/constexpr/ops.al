@@ -1,7 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn prefix(): void {
+fn prefix(x: number): void {
     !1.0;
     !0.0;
+    !x;
 }
 // CHECK:    ResolvedUnaryOperator: '!'
 // CHECK-NEXT:    | value: 0
@@ -11,10 +12,15 @@ fn prefix(): void {
 // CHECK-NEXT:    | value: 1
 // CHECK-NEXT:      NumberLiteral: '0'
 // CHECK-NEXT:      | value: 0
+// CHECK-NEXT:    ResolvedUnaryOperator: '!'
+// CHECK-NEXT:      ResolvedDeclRefExpr: @({{.*}}) x
 
-fn multiplicative(): void {
+fn multiplicative(x: number): void {
     5.0 * 3.0;
     20.0 / 4.0;
+    
+    x * 1.0;
+    1.0 * x;
 }
 // CHECK:    ResolvedBinaryOperator: '*'
 // CHECK-NEXT:    | value: 15
@@ -28,6 +34,14 @@ fn multiplicative(): void {
 // CHECK-NEXT:      | value: 20
 // CHECK-NEXT:      NumberLiteral: '4'
 // CHECK-NEXT:      | value: 4
+// CHECK-NEXT:    ResolvedBinaryOperator: '*'
+// CHECK-NEXT:      ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:      NumberLiteral: '1'
+// CHECK-NEXT:      | value: 1
+// CHECK-NEXT:    ResolvedBinaryOperator: '*'
+// CHECK-NEXT:      NumberLiteral: '1'
+// CHECK-NEXT:      | value: 1
+// CHECK-NEXT:      ResolvedDeclRefExpr: @({{.*}}) x
 
 fn additive(): void {
     5.0 + 3.0;
