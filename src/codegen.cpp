@@ -386,7 +386,7 @@ void Codegen::generateBuiltinPrintBody() {
   auto *printf = llvm::Function::Create(
       functionType, llvm::Function::ExternalLinkage, "printf", *module);
 
-  auto *formatStr = builder.CreateGlobalStringPtr("%f\n");
+  auto *formatStr = builder.CreateGlobalStringPtr("%.15g\n");
   llvm::Value *param;
   for (auto &&fn : resolvedSourceFile) {
     if (fn->identifier != "print")

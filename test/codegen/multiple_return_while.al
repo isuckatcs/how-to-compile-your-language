@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o multiple_return_while && ./multiple_return_while | grep -Plz '0.000000\n5.000000\n3.000000\n'
+// RUN: compiler %s -o multiple_return_while && ./multiple_return_while | grep -Plzx '0\n5\n3\n'
 fn foo(x: number): number {
     var n: number = x;
     while n > 10.0 {

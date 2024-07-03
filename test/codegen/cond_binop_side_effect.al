@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o cond_binop_side_effect && ./cond_binop_side_effect | grep -Plzx '1.000000\n2.000000\n3.000000\n4.000000\n5.000000\n7.000000\n10.000000\n13.000000\n14.000000\n15.000000\n16.000000\n'
+// RUN: compiler %s -o cond_binop_side_effect && ./cond_binop_side_effect | grep -Plzx '1\n2\n3\n4\n5\n7\n10\n13\n14\n15\n16\n'
 fn true(x: number): number {
     print(x);
     return 1.0;

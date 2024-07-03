@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o while_empty_exit_ret && ./while_empty_exit_ret | grep -Plzx '2.000000\n'
+// RUN: compiler %s -o while_empty_exit_ret && ./while_empty_exit_ret | grep -Plzx '2\n'
 fn foo(x: number): void {
     var i: number = x;
 

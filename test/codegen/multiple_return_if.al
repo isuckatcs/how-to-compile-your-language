@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o multiple_return_if && ./multiple_return_if | grep -Plz '2.000000\n10.000000\n5.200000\n'
+// RUN: compiler %s -o multiple_return_if && ./multiple_return_if | grep -Plzx '2\n10\n5.2\n'
 fn foo(x: number): number {
     if x == 1.0 {
         return 2.0;
