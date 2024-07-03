@@ -11,7 +11,7 @@ fn main(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   succs: 1 2(U) 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -22,7 +22,7 @@ fn main(): void {
 // CHECK-NEXT:     | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
-// CHECK-NEXT:   preds: 3 
+// CHECK-NEXT:   preds: 3(U) 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT:   NumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
@@ -55,7 +55,7 @@ fn and(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -72,7 +72,7 @@ fn and(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 2 3 
+// CHECK-NEXT:   preds: 2 3(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
 // CHECK-NEXT:   | value: 1
@@ -163,7 +163,7 @@ fn multipleAnd(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   succs: 1(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -175,7 +175,7 @@ fn multipleAnd(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -196,7 +196,7 @@ fn multipleAnd(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 2 3 4 
+// CHECK-NEXT:   preds: 2 3(U) 4(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
 // CHECK-NEXT:   | value: 1
@@ -227,7 +227,7 @@ fn andOr(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 2 3 
+// CHECK-NEXT:   succs: 2(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -239,7 +239,7 @@ fn andOr(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   succs: 1 2(U) 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -254,7 +254,7 @@ fn andOr(): void {
 // CHECK-NEXT:     | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
-// CHECK-NEXT:   preds: 3 4 
+// CHECK-NEXT:   preds: 3(U) 4(U) 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT:   NumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
@@ -291,7 +291,7 @@ fn orAnd(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   succs: 1 3(U) 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -306,8 +306,8 @@ fn orAnd(): void {
 // CHECK-NEXT:       | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
-// CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   preds: 4(U) 
+// CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -324,7 +324,7 @@ fn orAnd(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 2 3 4 
+// CHECK-NEXT:   preds: 2 3(U) 4 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
 // CHECK-NEXT:   | value: 1

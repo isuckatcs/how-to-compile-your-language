@@ -117,7 +117,7 @@ fn multipleBranches(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [8]
 // CHECK-NEXT:   preds: 9 
-// CHECK-NEXT:   succs: 6 7 
+// CHECK-NEXT:   succs: 6 7(U) 
 // CHECK-NEXT:   NumberLiteral: '0'
 // CHECK-NEXT:   | value: 0
 // CHECK-NEXT:   ResolvedIfStmt
@@ -143,14 +143,14 @@ fn multipleBranches(): void {
 // CHECK-NEXT:           | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
-// CHECK-NEXT:   preds: 8 
+// CHECK-NEXT:   preds: 8(U) 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT:   NumberLiteral: '0'
 // CHECK-NEXT:   | value: 0
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 8 
-// CHECK-NEXT:   succs: 4 5 
+// CHECK-NEXT:   succs: 4(U) 5 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
 // CHECK-NEXT:   ResolvedIfStmt
@@ -176,8 +176,8 @@ fn multipleBranches(): void {
 // CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
-// CHECK-NEXT:   preds: 6 
-// CHECK-NEXT:   succs: 2 3 
+// CHECK-NEXT:   preds: 6(U) 
+// CHECK-NEXT:   succs: 2(U) 3 
 // CHECK-NEXT:   NumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedIfStmt
@@ -197,7 +197,7 @@ fn multipleBranches(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
-// CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   preds: 4(U) 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
@@ -301,7 +301,7 @@ fn orCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6 
-// CHECK-NEXT:   succs: 2 4 
+// CHECK-NEXT:   succs: 2 4(U) 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
 // CHECK-NEXT:   NumberLiteral: '5'
@@ -314,8 +314,8 @@ fn orCondition(): void {
 // CHECK-NEXT:     | value: 4
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
-// CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 2 3 
+// CHECK-NEXT:   preds: 5(U) 
+// CHECK-NEXT:   succs: 2 3(U) 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -330,8 +330,8 @@ fn orCondition(): void {
 // CHECK-NEXT:     | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
-// CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   preds: 4(U) 
+// CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedIfStmt
@@ -356,7 +356,7 @@ fn orCondition(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 2 3 
+// CHECK-NEXT:   preds: 2 3(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
@@ -381,7 +381,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6 
-// CHECK-NEXT:   succs: 1 4 
+// CHECK-NEXT:   succs: 1(U) 4 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
 // CHECK-NEXT:   NumberLiteral: '5'
@@ -395,7 +395,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   succs: 1(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -411,7 +411,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
-// CHECK-NEXT:   succs: 1 2 
+// CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedIfStmt
@@ -436,7 +436,7 @@ fn andCondition(): void {
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 2 3 4 5 
+// CHECK-NEXT:   preds: 2 3(U) 4(U) 5(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1

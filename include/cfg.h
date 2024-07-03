@@ -12,10 +12,8 @@ struct BasicBlock {
   std::vector<const ResolvedStmt *> statements;
 };
 
-class CFG : public Dumpable {
+struct CFG : public Dumpable {
   std::vector<BasicBlock> basicBlocks;
-
-public:
   int entry = -1;
   int exit = -1;
 

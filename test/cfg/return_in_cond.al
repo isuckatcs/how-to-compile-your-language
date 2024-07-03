@@ -14,7 +14,7 @@ fn foo(): number {
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3 
-// CHECK-NEXT:   succs: 0 1 
+// CHECK-NEXT:   succs: 0(U) 1 
 // CHECK-NEXT:   NumberLiteral: '0'
 // CHECK-NEXT:   | value: 0
 // CHECK-NEXT:   ResolvedIfStmt
@@ -36,7 +36,7 @@ fn foo(): number {
 // CHECK-NEXT:     | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
-// CHECK-NEXT:   preds: 1 2 
+// CHECK-NEXT:   preds: 1 2(U) 
 // CHECK-NEXT:   succs:
 
 fn main(): void {}

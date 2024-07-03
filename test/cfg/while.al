@@ -21,7 +21,7 @@ fn main(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   succs: 1(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -73,7 +73,7 @@ fn orCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 2 7 
-// CHECK-NEXT:   succs: 3 5 
+// CHECK-NEXT:   succs: 3 5(U) 
 // CHECK-NEXT:   NumberLiteral: '6'
 // CHECK-NEXT:   | value: 6
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -84,8 +84,8 @@ fn orCondition(): void {
 // CHECK-NEXT:     | value: 5
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
-// CHECK-NEXT:   preds: 6 
-// CHECK-NEXT:   succs: 3 4 
+// CHECK-NEXT:   preds: 6(U) 
+// CHECK-NEXT:   succs: 3 4(U) 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
@@ -100,8 +100,8 @@ fn orCondition(): void {
 // CHECK-NEXT:     | value: 4
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
-// CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   preds: 5(U) 
+// CHECK-NEXT:   succs: 1(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -130,7 +130,7 @@ fn orCondition(): void {
 // CHECK-NEXT:   succs: 6
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   preds: 4(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
@@ -161,7 +161,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 2 7 
-// CHECK-NEXT:   succs: 1 5 
+// CHECK-NEXT:   succs: 1(U) 5 
 // CHECK-NEXT:   NumberLiteral: '6'
 // CHECK-NEXT:   | value: 6
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -173,7 +173,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6 
-// CHECK-NEXT:   succs: 1 4 
+// CHECK-NEXT:   succs: 1(U) 4 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
@@ -189,7 +189,7 @@ fn andCondition(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
-// CHECK-NEXT:   succs: 1 3 
+// CHECK-NEXT:   succs: 1(U) 3 
 // CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -218,7 +218,7 @@ fn andCondition(): void {
 // CHECK-NEXT:   succs: 6
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 4 5 6 
+// CHECK-NEXT:   preds: 4(U) 5(U) 6(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
@@ -252,7 +252,7 @@ fn nestedLoops(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8 
-// CHECK-NEXT:   succs: 1 6 
+// CHECK-NEXT:   succs: 1(U) 6 
 // CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -276,7 +276,7 @@ fn nestedLoops(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 3 6 
-// CHECK-NEXT:   succs: 2 4 
+// CHECK-NEXT:   succs: 2(U) 4 
 // CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -297,11 +297,11 @@ fn nestedLoops(): void {
 // CHECK-NEXT:   succs: 5 
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
-// CHECK-NEXT:   preds: 5 
+// CHECK-NEXT:   preds: 5(U) 
 // CHECK-NEXT:   succs: 7 
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 7 
+// CHECK-NEXT:   preds: 7(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
@@ -340,7 +340,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8 
-// CHECK-NEXT:   succs: 1 6 
+// CHECK-NEXT:   succs: 1(U) 6 
 // CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -363,7 +363,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7 
-// CHECK-NEXT:   succs: 3 5 
+// CHECK-NEXT:   succs: 3(U) 5 
 // CHECK-NEXT:   NumberLiteral: '6'
 // CHECK-NEXT:   | value: 6
 // CHECK-NEXT:   NumberLiteral: '6'
@@ -392,7 +392,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT:   | value: 4
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
-// CHECK-NEXT:   preds: 4 6 
+// CHECK-NEXT:   preds: 4 6(U) 
 // CHECK-NEXT:   succs: 2 
 // CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
@@ -402,7 +402,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT:   succs: 7 
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
-// CHECK-NEXT:   preds: 7 
+// CHECK-NEXT:   preds: 7(U) 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
@@ -424,7 +424,7 @@ fn whileOnly(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 1 3 
-// CHECK-NEXT:   succs: 0 1 
+// CHECK-NEXT:   succs: 0(U) 1 
 // CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
 // CHECK-NEXT:   ResolvedWhileStmt
@@ -437,5 +437,5 @@ fn whileOnly(): void {
 // CHECK-NEXT:   succs: 2 
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
-// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   preds: 2(U) 
 // CHECK-NEXT:   succs:

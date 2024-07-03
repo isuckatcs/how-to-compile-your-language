@@ -28,12 +28,12 @@ void CFG::dump(size_t) const {
 
     std::cout << "  preds: ";
     for (auto &&[id, reachable] : basicBlocks[i].predecessors)
-      std::cout << id << ((reachable) ? " " : " (U)");
+      std::cout << id << ((reachable) ? " " : "(U) ");
     std::cout << '\n';
 
     std::cout << "  succs: ";
     for (auto &&[id, reachable] : basicBlocks[i].successors)
-      std::cout << id << ((reachable) ? " " : " (U)");
+      std::cout << id << ((reachable) ? " " : "(U) ");
     std::cout << '\n';
 
     const auto &statements = basicBlocks[i].statements;
@@ -66,9 +66,13 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
     visitCondition(*binop, &stmt, trueBlock, elseBlock);
   } else {
+    std::optional<double> conditionVal = stmt.condition->getConstantValue();
+
     currentBlock = currentCFG.insertNewBlock();
-    currentCFG.insertEdge(currentBlock, trueBlock, true);
-    currentCFG.insertEdge(currentBlock, elseBlock, true);
+    currentCFG.insertEdge(currentBlock, trueBlock,
+                          conditionVal == 0 ? false : true);
+    currentCFG.insertEdge(currentBlock, elseBlock,
+                          conditionVal.value_or(0) != 0 ? false : true);
 
     currentCFG.insertStatement(currentBlock, &stmt);
     visit(*stmt.condition);
@@ -91,9 +95,13 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
     visitCondition(*binop, &stmt, bodyBlock, exitBlock);
   } else {
+    std::optional<double> conditionVal = stmt.condition->getConstantValue();
+
     currentBlock = currentCFG.insertNewBlock();
-    currentCFG.insertEdge(currentBlock, exitBlock, true);
-    currentCFG.insertEdge(currentBlock, bodyBlock, true);
+    currentCFG.insertEdge(currentBlock, exitBlock,
+                          conditionVal.value_or(0) != 0 ? false : true);
+    currentCFG.insertEdge(currentBlock, bodyBlock,
+                          conditionVal == 0 ? false : true);
 
     currentCFG.insertStatement(currentBlock, &stmt);
     visit(*stmt.condition);
@@ -171,8 +179,13 @@ void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
     rhsBlock = currentBlock;
 
     // From the RHS both the true and the false block is reachable.
-    currentCFG.insertEdge(rhsBlock, trueBlock, true);
-    currentCFG.insertEdge(rhsBlock, falseBlock, true);
+    std::optional<double> conditionVal = cond.rhs->getConstantValue();
+    currentCFG.insertEdge(rhsBlock, trueBlock,
+                          conditionVal == 0 ? false : true);
+
+    if (trueBlock != falseBlock)
+      currentCFG.insertEdge(rhsBlock, falseBlock,
+                            conditionVal.value_or(0) != 0 ? false : true);
   }
 
   bool isAnd = cond.op == TokenKind::AmpAmp;
@@ -190,8 +203,16 @@ void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
 
   // If the current op is &&, the false block is reachable from the LHS if LHS
   // is false. In case of ||, the true block is reachable if the LHS is true.
-  currentCFG.insertEdge(currentBlock, isAnd ? falseBlock : trueBlock, true);
-  currentCFG.insertEdge(currentBlock, rhsBlock, true);
+  std::optional<double> conditionVal = cond.lhs->getConstantValue();
+
+  bool firstReachable = isAnd ? (conditionVal.value_or(0) != 0 ? false : true)
+                              : (conditionVal == 0 ? false : true);
+  currentCFG.insertEdge(currentBlock, isAnd ? falseBlock : trueBlock,
+                        firstReachable);
+
+  bool secondReachable = isAnd ? (conditionVal == 0 ? false : true)
+                               : (conditionVal.value_or(0) != 0 ? false : true);
+  currentCFG.insertEdge(currentBlock, rhsBlock, secondReachable);
 
   // The current block when the function exits is the LHS block.
   currentCFG.insertStatement(currentBlock, &cond);
