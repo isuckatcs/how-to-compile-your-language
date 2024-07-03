@@ -129,4 +129,19 @@ fn alwaysReturnCondition2(x: number): number {
     return 0.0;
 }
 
+// CHECK: [[# @LINE + 1 ]]:1: error: non-void function doesn't return a value
+fn noReturnLoop(x: number): number {
+    while x {}
+}
+
+// CHECK: [[# @LINE + 1 ]]:1: error: non-void function doesn't return a value
+fn noReturnInfiniteLoop(): number {
+    while 1.0 {}
+}
+
+// CHECK: [[# @LINE + 1 ]]:1: error: non-void function doesn't return a value
+fn noReturnNeverRunningLoop(): number {
+    while 0.0 {}
+}
+
 fn main(): void {}

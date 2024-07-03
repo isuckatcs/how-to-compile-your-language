@@ -22,12 +22,16 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
   int returnCount = 0;
   bool exitReached = false;
 
+  std::set<int> visited;
   std::vector<int> worklist;
   worklist.emplace_back(cfg.entry);
 
   while (!worklist.empty()) {
     int bb = worklist.back();
     worklist.pop_back();
+
+    if (!visited.emplace(bb).second)
+      continue;
 
     exitReached |= bb == cfg.exit;
 
@@ -43,14 +47,14 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
         worklist.emplace_back(succ);
   }
 
-  if (exitReached) {
+  if (exitReached || returnCount == 0) {
     error(fn.location,
           returnCount > 0
               ? "non-void function doesn't return a value on every path"
               : "non-void function doesn't return a value");
   }
 
-  return exitReached;
+  return exitReached || returnCount == 0;
 }
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
