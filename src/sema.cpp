@@ -352,6 +352,9 @@ std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
   ScopeRAII scope{this};
   std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
+  bool reportUnreachable = false;
+  bool unreachableReported = false;
+
   bool errorHappened = false;
   for (auto &&stmt : block.statements) {
     std::unique_ptr<ResolvedStmt> resolvedStmt = resolveStmt(*stmt);
@@ -362,6 +365,18 @@ std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
     }
 
     resolvedStatements.emplace_back(std::move(resolvedStmt));
+
+    if (errorHappened)
+      continue;
+
+    if (!unreachableReported && reportUnreachable) {
+      // FIXME: This should be a warning.
+      error(stmt->location, "unreachable statement");
+      unreachableReported = true;
+    }
+
+    if (dynamic_cast<ReturnStmt *>(stmt.get()))
+      reportUnreachable = true;
   }
 
   if (errorHappened)
