@@ -124,7 +124,9 @@ void CFGBuilder::visit(const ResolvedAssignment &stmt) {
   autoCreateBlock();
   currentCFG.insertStatement(currentBlock, &stmt);
 
-  visit(*stmt.variable);
+  // FIXME: there is no way to differentiate, whether a declref is the LHS of an
+  // assignment or a different binop.
+  // visit(*stmt.variable);
   visit(*stmt.expr);
 }
 
