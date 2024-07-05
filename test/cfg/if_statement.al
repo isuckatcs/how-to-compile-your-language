@@ -126,21 +126,23 @@ fn multipleBranches(): void {
 // CHECK-NEXT:     ResolvedBlock
 // CHECK-NEXT:       NumberLiteral: '0'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:     ResolvedIfStmt
-// CHECK-NEXT:       NumberLiteral: '1'
-// CHECK-NEXT:       | value: 1
-// CHECK-NEXT:       ResolvedBlock
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedIfStmt
 // CHECK-NEXT:         NumberLiteral: '1'
 // CHECK-NEXT:         | value: 1
-// CHECK-NEXT:       ResolvedIfStmt
-// CHECK-NEXT:         NumberLiteral: '2'
-// CHECK-NEXT:         | value: 2
 // CHECK-NEXT:         ResolvedBlock
-// CHECK-NEXT:           NumberLiteral: '2'
-// CHECK-NEXT:           | value: 2
+// CHECK-NEXT:           NumberLiteral: '1'
+// CHECK-NEXT:           | value: 1
 // CHECK-NEXT:         ResolvedBlock
-// CHECK-NEXT:           NumberLiteral: '3'
-// CHECK-NEXT:           | value: 3
+// CHECK-NEXT:           ResolvedIfStmt
+// CHECK-NEXT:             NumberLiteral: '2'
+// CHECK-NEXT:             | value: 2
+// CHECK-NEXT:             ResolvedBlock
+// CHECK-NEXT:               NumberLiteral: '2'
+// CHECK-NEXT:               | value: 2
+// CHECK-NEXT:             ResolvedBlock
+// CHECK-NEXT:               NumberLiteral: '3'
+// CHECK-NEXT:               | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 8(U) 
@@ -159,15 +161,16 @@ fn multipleBranches(): void {
 // CHECK-NEXT:     ResolvedBlock
 // CHECK-NEXT:       NumberLiteral: '1'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:     ResolvedIfStmt
-// CHECK-NEXT:       NumberLiteral: '2'
-// CHECK-NEXT:       | value: 2
-// CHECK-NEXT:       ResolvedBlock
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedIfStmt
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         | value: 2
-// CHECK-NEXT:       ResolvedBlock
-// CHECK-NEXT:         NumberLiteral: '3'
-// CHECK-NEXT:         | value: 3
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           NumberLiteral: '2'
+// CHECK-NEXT:           | value: 2
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           NumberLiteral: '3'
+// CHECK-NEXT:           | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6 

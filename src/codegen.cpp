@@ -74,26 +74,22 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   llvm::BasicBlock *elseBB = nullptr;
   llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "merge");
 
-  bool hasElseBranch = stmt.falseBlock || stmt.falseBranch;
-  if (hasElseBranch)
+  if (stmt.falseBlock)
     elseBB = llvm::BasicBlock::Create(context, "else");
 
   builder.CreateCondBr(doubleToBool(cond), thenBB,
-                       hasElseBranch ? elseBB : mergeBB);
+                       stmt.falseBlock ? elseBB : mergeBB);
 
   builder.SetInsertPoint(thenBB);
   generateBlock(*stmt.trueBlock);
 
   builder.CreateBr(mergeBB);
 
-  if (hasElseBranch) {
+  if (stmt.falseBlock) {
     elseBB->insertInto(parentFunction);
     builder.SetInsertPoint(elseBB);
 
-    if (stmt.falseBlock)
-      generateBlock(*stmt.falseBlock);
-    else
-      generateIfStmt(*stmt.falseBranch);
+    generateBlock(*stmt.falseBlock);
 
     builder.CreateBr(mergeBB);
   }

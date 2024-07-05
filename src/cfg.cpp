@@ -50,9 +50,8 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   if (stmt.falseBlock) {
     currentBlock = -1;
     visit(*stmt.falseBlock);
-  } else if (stmt.falseBranch) {
-    visit(*stmt.falseBranch);
   }
+
   int elseBlock = currentBlock == -1 ? exitBlock : currentBlock;
 
   successorBlock = exitBlock;

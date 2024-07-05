@@ -333,13 +333,6 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
         std::move(falseBlock));
   }
 
-  if (ifStmt.falseBranch) {
-    varOrReturn(falseBranch, resolveIfStmt(*ifStmt.falseBranch));
-    return std::make_unique<ResolvedIfStmt>(
-        ifStmt.location, std::move(condition), std::move(trueBlock),
-        std::move(falseBranch));
-  }
-
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
                                           std::move(trueBlock));
 }

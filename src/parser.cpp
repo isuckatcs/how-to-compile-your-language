@@ -183,17 +183,23 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
                                     std::move(trueBranch));
   eatNextToken(); // eat 'else'
 
+  std::unique_ptr<Block> falseBlock;
   if (nextToken.kind == TokenKind::KwIf) {
     varOrReturn(elseIf, parseIfStmt());
 
-    return std::make_unique<IfStmt>(location, std::move(condition),
-                                    std::move(trueBranch), std::move(elseIf));
+    SourceLocation loc = elseIf->location;
+    std::vector<std::unique_ptr<Stmt>> stmts;
+    stmts.emplace_back(std::move(elseIf));
+
+    falseBlock = std::make_unique<Block>(loc, std::move(stmts));
+  } else {
+    if (nextToken.kind != TokenKind::Lbrace)
+      return error(nextToken.location, "expected 'else' body");
+
+    falseBlock = parseBlock();
+    if (!falseBlock)
+      return nullptr;
   }
-
-  if (nextToken.kind != TokenKind::Lbrace)
-    return error(nextToken.location, "expected 'else' body");
-
-  varOrReturn(falseBlock, parseBlock());
 
   return std::make_unique<IfStmt>(location, std::move(condition),
                                   std::move(trueBranch), std::move(falseBlock));

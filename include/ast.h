@@ -74,15 +74,7 @@ struct Block : public Dumpable {
 struct IfStmt : public Stmt {
   std::unique_ptr<Expr> condition;
   std::unique_ptr<Block> trueBlock;
-
-  // FIXME: Another layer of abstraction?
   std::unique_ptr<Block> falseBlock;
-  std::unique_ptr<IfStmt> falseBranch;
-
-  IfStmt(SourceLocation location, std::unique_ptr<Expr> condition,
-         std::unique_ptr<Block> trueBlock, std::unique_ptr<IfStmt> falseBranch)
-      : Stmt(location), condition(std::move(condition)),
-        trueBlock(std::move(trueBlock)), falseBranch(std::move(falseBranch)) {}
 
   IfStmt(SourceLocation location, std::unique_ptr<Expr> condition,
          std::unique_ptr<Block> trueBlock,
@@ -97,8 +89,6 @@ struct IfStmt : public Stmt {
     trueBlock->dump(level + 1);
     if (falseBlock)
       falseBlock->dump(level + 1);
-    if (falseBranch)
-      falseBranch->dump(level + 1);
   }
 };
 
@@ -347,17 +337,7 @@ struct ResolvedBlock : public Dumpable {
 struct ResolvedIfStmt : public ResolvedStmt {
   std::unique_ptr<ResolvedExpr> condition;
   std::unique_ptr<ResolvedBlock> trueBlock;
-
-  // FIXME: Another layer of abstraction?
   std::unique_ptr<ResolvedBlock> falseBlock;
-  std::unique_ptr<ResolvedIfStmt> falseBranch;
-
-  ResolvedIfStmt(SourceLocation location,
-                 std::unique_ptr<ResolvedExpr> condition,
-                 std::unique_ptr<ResolvedBlock> trueBlock,
-                 std::unique_ptr<ResolvedIfStmt> falseBranch)
-      : ResolvedStmt(location), condition(std::move(condition)),
-        trueBlock(std::move(trueBlock)), falseBranch(std::move(falseBranch)) {}
 
   ResolvedIfStmt(SourceLocation location,
                  std::unique_ptr<ResolvedExpr> condition,
@@ -373,8 +353,6 @@ struct ResolvedIfStmt : public ResolvedStmt {
     trueBlock->dump(level + 1);
     if (falseBlock)
       falseBlock->dump(level + 1);
-    if (falseBranch)
-      falseBranch->dump(level + 1);
   }
 };
 

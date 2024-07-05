@@ -35,11 +35,13 @@ fn main(): void {
     // CHECK: IfStmt
     // CHECK-NEXT:   NumberLiteral: '0.0'
     // CHECK-NEXT:   Block
-    // CHECK-NEXT:   IfStmt
-    // CHECK-NEXT:     NumberLiteral: '1.0'
-    // CHECK-NEXT:     Block
+    // CHECK-NEXT:   Block
     // CHECK-NEXT:     IfStmt
-    // CHECK-NEXT:       NumberLiteral: '2.0'
+    // CHECK-NEXT:       NumberLiteral: '1.0'
     // CHECK-NEXT:       Block
     // CHECK-NEXT:       Block
+    // CHECK-NEXT:         IfStmt
+    // CHECK-NEXT:           NumberLiteral: '2.0'
+    // CHECK-NEXT:           Block
+    // CHECK-NEXT:           Block
 }
