@@ -1,5 +1,3 @@
-#include <unordered_map>
-
 #include "lexer.h"
 
 namespace {
@@ -11,14 +9,6 @@ bool isSpace(char c) {
 bool isAlpha(char c) { return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'; }
 bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
-
-std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},
-    {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
-    {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
-    {"var", TokenKind::KwVar},       {"while", TokenKind::KwWhile},
-    {"return", TokenKind::KwReturn}};
-
 } // namespace
 
 Token TheLexer::getNextToken() {
@@ -27,33 +17,13 @@ Token TheLexer::getNextToken() {
   while (isSpace(currentChar))
     currentChar = eatNextChar();
 
-  SourceLocation tokenStartLocation = getSourceLocation();
+  SourceLocation tokenStartLocation{source->path, line, column};
 
-  switch (currentChar) {
-  case '(':
-    return Token{tokenStartLocation, TokenKind::Lpar};
-  case ')':
-    return Token{tokenStartLocation, TokenKind::Rpar};
-  case '{':
-    return Token{tokenStartLocation, TokenKind::Lbrace};
-  case '}':
-    return Token{tokenStartLocation, TokenKind::Rbrace};
-  case ':':
-    return Token{tokenStartLocation, TokenKind::Colon};
-  case ';':
-    return Token{tokenStartLocation, TokenKind::Semi};
-  case ',':
-    return Token{tokenStartLocation, TokenKind::Comma};
-  case '\0':
-    return Token{tokenStartLocation, TokenKind::Eof};
+  for (auto &&c : singleCharTokens)
+    if (c == currentChar)
+      return Token{tokenStartLocation, static_cast<TokenKind>(c)};
 
-  case '+':
-    return Token{tokenStartLocation, TokenKind::Plus};
-  case '-':
-    return Token{tokenStartLocation, TokenKind::Minus};
-  case '*':
-    return Token{tokenStartLocation, TokenKind::Asterisk};
-  case '/': {
+  if (currentChar == '/') {
     if (peekNextChar() != '/')
       return Token{tokenStartLocation, TokenKind::Slash};
 
@@ -64,36 +34,22 @@ Token TheLexer::getNextToken() {
     return getNextToken();
   }
 
-  case '<':
-    return Token{tokenStartLocation, TokenKind::Lt};
-  case '>':
-    return Token{tokenStartLocation, TokenKind::Gt};
-  case '!':
-    return Token{tokenStartLocation, TokenKind::Excl};
-
-  case '=': {
+  if (currentChar == '=') {
     if (peekNextChar() != '=')
       return Token{tokenStartLocation, TokenKind::Equal};
 
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::EqualEqual};
   }
-  case '&': {
-    if (peekNextChar() != '&')
-      break;
 
+  if (currentChar == '&' && peekNextChar() == '&') {
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::AmpAmp};
   }
-  case '|': {
-    if (peekNextChar() != '|')
-      break;
 
+  if (currentChar == '|' && peekNextChar() == '|') {
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::PipePipe};
-  }
-  default:
-    break;
   }
 
   if (isAlpha(currentChar)) {
@@ -103,7 +59,7 @@ Token TheLexer::getNextToken() {
       value += eatNextChar();
 
     if (keywords.count(value))
-      return Token{tokenStartLocation, keywords[value], std::move(value)};
+      return Token{tokenStartLocation, keywords.at(value), std::move(value)};
 
     return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
   }

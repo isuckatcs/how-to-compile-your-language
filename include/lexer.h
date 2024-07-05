@@ -3,34 +3,21 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "utils.h"
 
-enum class TokenKind {
-  Eof,
-  Unk,
+constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';',
+                                     ',',  '+', '-', '*', '<', '>', '!'};
 
-  Lpar,
-  Rpar,
-  Lbrace,
-  Rbrace,
-  Colon,
-  Semi,
-  Comma,
-
-  Plus,
-  Minus,
-  Asterisk,
+enum class TokenKind : char {
+  Unk = -128,
   Slash,
 
-  Lt,
-  Gt,
-  Excl,
+  Equal,
   EqualEqual,
   AmpAmp,
   PipePipe,
-
-  Equal,
 
   Identifier,
   Number,
@@ -43,8 +30,30 @@ enum class TokenKind {
   KwLet,
   KwVar,
   KwWhile,
-  KwReturn
+  KwReturn,
+
+  Eof = singleCharTokens[0],
+  Lpar = singleCharTokens[1],
+  Rpar = singleCharTokens[2],
+  Lbrace = singleCharTokens[3],
+  Rbrace = singleCharTokens[4],
+  Colon = singleCharTokens[5],
+  Semi = singleCharTokens[6],
+  Comma = singleCharTokens[7],
+  Plus = singleCharTokens[8],
+  Minus = singleCharTokens[9],
+  Asterisk = singleCharTokens[10],
+  Lt = singleCharTokens[11],
+  Gt = singleCharTokens[12],
+  Excl = singleCharTokens[13],
 };
+
+const std::unordered_map<std::string_view, TokenKind> keywords = {
+    {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},
+    {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
+    {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
+    {"var", TokenKind::KwVar},       {"while", TokenKind::KwWhile},
+    {"return", TokenKind::KwReturn}};
 
 struct Token {
   SourceLocation location;
@@ -59,9 +68,6 @@ class TheLexer {
   int line = 1;
   int column = 0;
 
-  SourceLocation getSourceLocation() const {
-    return SourceLocation{source->path, line, column};
-  }
   char peekNextChar() const { return source->buffer[idx]; }
   char eatNextChar() {
     ++column;
