@@ -1,4 +1,4 @@
-// RUN: compiler %s -res-dump
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main(): void {
     let x: number;
     
@@ -115,4 +115,32 @@ fn shadowInitialized(): void {
     }
 
     x;
+}
+
+fn nestedInLoop(param: number): void {
+    var x: number;
+
+    if param {
+        while param {
+            if param {
+                x = param - 1.0;
+            }
+
+            // CHECK: [[# @LINE + 1 ]]:29: error: 'x' is not initialized
+            var y: number = x;
+        }
+    } else {
+        while param {
+            if param {
+                x = param - 1.0;
+            }
+
+            // CHECK: [[# @LINE + 1 ]]:29: error: 'x' is not initialized
+            var y: number = x;
+        }
+    }
+
+    // CHECK: [[# @LINE + 2 ]]:5: error: 'x' is not initialized
+    // CHECK: [[# @LINE + 1 ]]:9: error: 'x' is not initialized
+    x + x;
 }

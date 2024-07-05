@@ -62,23 +62,16 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
 
 bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
                                        const CFG &cfg) {
-
   enum class State { Bottom, Unassigned, Assigned, Top };
 
   auto joinStates = [](State s1, State s2) {
-    if (s1 == State::Top)
+    if (s1 == s2)
       return s1;
-
-    if (s2 == State::Top)
-      return s2;
 
     if (s1 == State::Bottom)
       return s2;
 
     if (s2 == State::Bottom)
-      return s1;
-
-    if (s1 == s2)
       return s1;
 
     return State::Top;
@@ -87,7 +80,7 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
   using Lattice = std::map<const ResolvedVarDecl *, State>;
 
   std::vector<Lattice> curLattices(cfg.basicBlocks.size());
-  std::map<const SourceLocation *, std::string> pendingErrors;
+  std::vector<std::pair<SourceLocation, std::string>> pendingErrors;
 
   bool changed = true;
   while (changed) {
@@ -97,14 +90,9 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
       const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
 
       Lattice tmp;
-      for (auto &&pred : preds) {
-        for (auto &&[decl, state] : curLattices[pred.first]) {
-          if (tmp.count(decl))
-            tmp[decl] = joinStates(tmp[decl], state);
-          else
-            tmp[decl] = state;
-        }
-      }
+      for (auto &&pred : preds)
+        for (auto &&[decl, state] : curLattices[pred.first])
+          tmp[decl] = joinStates(tmp[decl], state);
 
       auto stmtsReversed = stmts;
       std::reverse(stmtsReversed.begin(), stmtsReversed.end());
@@ -120,13 +108,13 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
           const auto *varDecl =
               dynamic_cast<const ResolvedVarDecl *>(assignment->variable->decl);
 
-          if (!varDecl)
-            continue;
+          assert(varDecl &&
+                 "assignment to non-variables should have been caught by sema");
 
-          if (!varDecl->isMutable && tmp.count(varDecl) &&
-              tmp[varDecl] != State::Unassigned)
-            pendingErrors[&assignment->location] =
-                '\'' + varDecl->identifier + "' cannot be mutated";
+          if (!varDecl->isMutable && tmp[varDecl] != State::Unassigned)
+            pendingErrors.emplace_back(assignment->location,
+                                       '\'' + varDecl->identifier +
+                                           "' cannot be mutated");
 
           tmp[varDecl] = State::Assigned;
         } else if (const auto *declRefExpr =
@@ -134,12 +122,10 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
           const auto *varDecl =
               dynamic_cast<const ResolvedVarDecl *>(declRefExpr->decl);
 
-          if (!varDecl || !tmp.count(varDecl))
-            continue;
-
-          if (tmp[varDecl] != State::Assigned)
-            pendingErrors[&declRefExpr->location] =
-                '\'' + varDecl->identifier + "' is not initialized";
+          if (varDecl && tmp[varDecl] != State::Assigned)
+            pendingErrors.emplace_back(declRefExpr->location,
+                                       '\'' + varDecl->identifier +
+                                           "' is not initialized");
         }
       }
 
@@ -151,7 +137,7 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
   }
 
   for (auto &&[loc, msg] : pendingErrors)
-    error(*loc, msg);
+    error(loc, msg);
 
   return !pendingErrors.empty();
 }
