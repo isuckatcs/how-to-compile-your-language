@@ -54,6 +54,13 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
 
   int elseBlock = currentBlock == -1 ? exitBlock : currentBlock;
 
+  // HACK: we have no way to get the elseBlock if the first stmt in the block is
+  // whileStmt.
+  if (stmt.falseBlock && !stmt.falseBlock->statements.empty() &&
+      dynamic_cast<const ResolvedWhileStmt *>(
+          stmt.falseBlock->statements[0].get()))
+    elseBlock = successorBlock;
+
   successorBlock = exitBlock;
   currentBlock = -1;
   visit(*stmt.trueBlock);
@@ -61,6 +68,13 @@ void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   // An empty block can be inserted if we need to differentiate the true and the
   // false branches.
   int trueBlock = currentBlock == -1 ? exitBlock : currentBlock;
+
+  // HACK: we have no way to get the trueBlock if the first stmt in the block is
+  // whileStmt.
+  if (!stmt.trueBlock->statements.empty() &&
+      dynamic_cast<const ResolvedWhileStmt *>(
+          stmt.trueBlock->statements[0].get()))
+    trueBlock = successorBlock;
 
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
     visitCondition(*binop, &stmt, trueBlock, elseBlock);

@@ -447,3 +447,203 @@ fn andCondition(): void {
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
+
+fn ifWhileFirstStmt(p: number): void {
+    if p {
+        while p {}
+    } else {
+        while p {}
+    }
+}
+// CHECK: ifWhileFirstStmt
+// CHECK-NEXT: ----------
+// CHECK-NEXT: [6 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 5 
+// CHECK-NEXT: 
+// CHECK-NEXT: [5]
+// CHECK-NEXT:   preds: 6 
+// CHECK-NEXT:   succs: 2 4 
+// CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:   ResolvedIfStmt
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [4]
+// CHECK-NEXT:   preds: 3 5 
+// CHECK-NEXT:   succs: 0 3 
+// CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [3]
+// CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   succs: 4 
+// CHECK-NEXT: 
+// CHECK-NEXT: [2]
+// CHECK-NEXT:   preds: 1 5
+// CHECK-NEXT:   succs: 0 1 
+// CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) p
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 2 
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 2 4 
+// CHECK-NEXT:   succs:
+
+fn nestedInLoopConditionalOps(): void {
+    if 10.0 || 9.0 {
+        while 8.0 {}
+    } else if 6.0 && 5.0 {
+        while 4.0 {}
+    } else {
+        while 2.0 {}
+    }
+}
+// CHECK: nestedInLoop
+// CHECK-NEXT: ----------
+// CHECK-NEXT: [11 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 10 
+// CHECK-NEXT: 
+// CHECK-NEXT: [10]
+// CHECK-NEXT:   preds: 11 
+// CHECK-NEXT:   succs: 8 9(U) 
+// CHECK-NEXT:   NumberLiteral: '10'
+// CHECK-NEXT:   | value: 10
+// CHECK-NEXT:   ResolvedBinaryOperator: '||'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:     NumberLiteral: '10'
+// CHECK-NEXT:     | value: 10
+// CHECK-NEXT:     NumberLiteral: '9'
+// CHECK-NEXT:     | value: 9
+// CHECK-NEXT: 
+// CHECK-NEXT: [9]
+// CHECK-NEXT:   preds: 10(U) 
+// CHECK-NEXT:   succs: 6(U) 8 
+// CHECK-NEXT:   NumberLiteral: '9'
+// CHECK-NEXT:   | value: 9
+// CHECK-NEXT:   ResolvedIfStmt
+// CHECK-NEXT:     ResolvedBinaryOperator: '||'
+// CHECK-NEXT:     | value: 1
+// CHECK-NEXT:       NumberLiteral: '10'
+// CHECK-NEXT:       | value: 10
+// CHECK-NEXT:       NumberLiteral: '9'
+// CHECK-NEXT:       | value: 9
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         NumberLiteral: '8'
+// CHECK-NEXT:         | value: 8
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedIfStmt
+// CHECK-NEXT:         ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:         | value: 1
+// CHECK-NEXT:           NumberLiteral: '6'
+// CHECK-NEXT:           | value: 6
+// CHECK-NEXT:           NumberLiteral: '5'
+// CHECK-NEXT:           | value: 5
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           ResolvedWhileStmt
+// CHECK-NEXT:             NumberLiteral: '4'
+// CHECK-NEXT:             | value: 4
+// CHECK-NEXT:             ResolvedBlock
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:           ResolvedWhileStmt
+// CHECK-NEXT:             NumberLiteral: '2'
+// CHECK-NEXT:             | value: 2
+// CHECK-NEXT:             ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [8]
+// CHECK-NEXT:   preds: 7 9 10 
+// CHECK-NEXT:   succs: 0(U) 7 
+// CHECK-NEXT:   NumberLiteral: '8'
+// CHECK-NEXT:   | value: 8
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '8'
+// CHECK-NEXT:     | value: 8
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [7]
+// CHECK-NEXT:   preds: 8 
+// CHECK-NEXT:   succs: 8 
+// CHECK-NEXT: 
+// CHECK-NEXT: [6]
+// CHECK-NEXT:   preds: 9(U) 
+// CHECK-NEXT:   succs: 2(U) 5 
+// CHECK-NEXT:   NumberLiteral: '6'
+// CHECK-NEXT:   | value: 6
+// CHECK-NEXT:   ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:     NumberLiteral: '6'
+// CHECK-NEXT:     | value: 6
+// CHECK-NEXT:     NumberLiteral: '5'
+// CHECK-NEXT:     | value: 5
+// CHECK-NEXT: 
+// CHECK-NEXT: [5]
+// CHECK-NEXT:   preds: 6 
+// CHECK-NEXT:   succs: 2(U) 4 
+// CHECK-NEXT:   NumberLiteral: '5'
+// CHECK-NEXT:   | value: 5
+// CHECK-NEXT:   ResolvedIfStmt
+// CHECK-NEXT:     ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:     | value: 1
+// CHECK-NEXT:       NumberLiteral: '6'
+// CHECK-NEXT:       | value: 6
+// CHECK-NEXT:       NumberLiteral: '5'
+// CHECK-NEXT:       | value: 5
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:         | value: 4
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:       ResolvedWhileStmt
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         | value: 2
+// CHECK-NEXT:         ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [4]
+// CHECK-NEXT:   preds: 3 5 
+// CHECK-NEXT:   succs: 0(U) 3 
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   | value: 4
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:     | value: 4
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [3]
+// CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   succs: 4 
+// CHECK-NEXT: 
+// CHECK-NEXT: [2]
+// CHECK-NEXT:   preds: 1 5(U) 6(U) 
+// CHECK-NEXT:   succs: 0(U) 1 
+// CHECK-NEXT:   NumberLiteral: '2'
+// CHECK-NEXT:   | value: 2
+// CHECK-NEXT:   ResolvedWhileStmt
+// CHECK-NEXT:     NumberLiteral: '2'
+// CHECK-NEXT:     | value: 2
+// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 2 
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 2(U) 4(U) 8(U) 
+// CHECK-NEXT:   succs: 
