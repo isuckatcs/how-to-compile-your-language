@@ -1,7 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn binaryLhsKnown(): number {
+fn binaryLhsKnown(y: number): number {
     var x: number = 2.1;
-    let y: number;
 
     return (0.0 && y) + (1.0 || x);
 }
@@ -46,9 +45,7 @@ fn call(): void {
 // CHECK-NEXT:      ResolvedBlock
 // CHECK-NEXT:        ResolvedReturnStmt
 
-fn lhsKnownRhsNot(): number {
-    let y: number;
-
+fn lhsKnownRhsNot(y: number): number {
     return 1.0 && y;
 }
 // CHECK:    ResolvedReturnStmt

@@ -61,6 +61,8 @@ class Sema {
   // FIXME: Consider moving this a different class
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
   bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);
+  bool checkVariableInitialization(const ResolvedFunctionDecl &fn,
+                                   const CFG &cfg);
 
 public:
   explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> sourceFile)

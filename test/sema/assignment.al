@@ -11,7 +11,6 @@ fn main(): void {
 
     let y: number = 3.0;
     
-    // CHECK: [[# @LINE + 1 ]]:5: error: immutable variables cannot be assigned
     y = 3.0;
 
     // CHECK: [[# @LINE + 1 ]]:5: error: expected to call function 'bar'

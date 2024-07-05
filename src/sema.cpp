@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cassert>
+#include <map>
 
 #include "cfg.h"
 #include "sema.h"
@@ -10,6 +12,7 @@ bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
 
   bool error = false;
   error |= checkReturnOnAllPaths(fn, cfg);
+  error |= checkVariableInitialization(fn, cfg);
 
   return error;
 };
@@ -55,6 +58,102 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
   }
 
   return exitReached || returnCount == 0;
+}
+
+bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
+                                       const CFG &cfg) {
+
+  enum class State { Bottom, Unassigned, Assigned, Top };
+
+  auto joinStates = [](State s1, State s2) {
+    if (s1 == State::Top)
+      return s1;
+
+    if (s2 == State::Top)
+      return s2;
+
+    if (s1 == State::Bottom)
+      return s2;
+
+    if (s2 == State::Bottom)
+      return s1;
+
+    if (s1 == s2)
+      return s1;
+
+    return State::Top;
+  };
+
+  using Lattice = std::map<const ResolvedVarDecl *, State>;
+
+  std::vector<Lattice> curLattices(cfg.basicBlocks.size());
+  std::map<const SourceLocation *, std::string> pendingErrors;
+
+  bool changed = true;
+  while (changed) {
+    changed = false;
+
+    for (int bb = cfg.entry; bb != cfg.exit; --bb) {
+      const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
+
+      Lattice tmp;
+      for (auto &&pred : preds) {
+        for (auto &&[decl, state] : curLattices[pred.first]) {
+          if (tmp.count(decl))
+            tmp[decl] = joinStates(tmp[decl], state);
+          else
+            tmp[decl] = state;
+        }
+      }
+
+      auto stmtsReversed = stmts;
+      std::reverse(stmtsReversed.begin(), stmtsReversed.end());
+
+      for (auto &&stmt : stmtsReversed) {
+        if (const auto *declStmt =
+                dynamic_cast<const ResolvedDeclStmt *>(stmt)) {
+          tmp[declStmt->varDecl.get()] = declStmt->varDecl->initializer
+                                             ? State::Assigned
+                                             : State::Unassigned;
+        } else if (const auto *assignment =
+                       dynamic_cast<const ResolvedAssignment *>(stmt)) {
+          const auto *varDecl =
+              dynamic_cast<const ResolvedVarDecl *>(assignment->variable->decl);
+
+          if (!varDecl)
+            continue;
+
+          if (!varDecl->isMutable && tmp.count(varDecl) &&
+              tmp[varDecl] != State::Unassigned)
+            pendingErrors[&assignment->location] =
+                '\'' + varDecl->identifier + "' cannot be mutated";
+
+          tmp[varDecl] = State::Assigned;
+        } else if (const auto *declRefExpr =
+                       dynamic_cast<const ResolvedDeclRefExpr *>(stmt)) {
+          const auto *varDecl =
+              dynamic_cast<const ResolvedVarDecl *>(declRefExpr->decl);
+
+          if (!varDecl || !tmp.count(varDecl))
+            continue;
+
+          if (tmp[varDecl] != State::Assigned)
+            pendingErrors[&declRefExpr->location] =
+                '\'' + varDecl->identifier + "' is not initialized";
+        }
+      }
+
+      if (curLattices[bb] != tmp) {
+        curLattices[bb] = tmp;
+        changed = true;
+      }
+    }
+  }
+
+  for (auto &&[loc, msg] : pendingErrors)
+    error(*loc, msg);
+
+  return !pendingErrors.empty();
 }
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
@@ -283,10 +382,6 @@ Sema::resolveAssignment(const Assignment &assignment) {
 
   auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
   assert(var && "assignment LHS is not a variable");
-
-  // The variable is not late initialized, so we can error out safely.
-  if (var->initializer && !var->isMutable)
-    return error(assignment.location, "immutable variables cannot be assigned");
 
   if (resolvedRHS->type != resolvedLHS->type)
     return error(resolvedRHS->location,
