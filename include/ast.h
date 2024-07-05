@@ -29,10 +29,10 @@ std::string_view dumpOp(TokenKind op) {
     return "<";
   if (op == TokenKind::Gt)
     return ">";
-  if (op == TokenKind::Excl)
-    return "!";
 
-  assert(false && "unexpected operator");
+  assert(op == TokenKind::Excl && "unexpected operator");
+
+  return "!";
 }
 } // namespace
 

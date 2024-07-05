@@ -255,10 +255,11 @@ int CFGBuilder::visit(const ResolvedStmt &stmt) {
   if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
     return visit(*whileStmt);
 
-  if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
-    return visit(*returnStmt);
+  auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt);
 
-  assert(false && "unknown statement");
+  assert(returnStmt && "unexpected statement");
+
+  return visit(*returnStmt);
 }
 
 int CFGBuilder::visit(const ResolvedBlock &block) {

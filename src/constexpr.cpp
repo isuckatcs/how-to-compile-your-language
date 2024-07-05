@@ -62,10 +62,9 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     return *lhs < *rhs;
   case TokenKind::Gt:
     return *lhs > *rhs;
-  case TokenKind::EqualEqual:
-    return *lhs == *rhs;
   default:
-    assert(false && "unexpected binary operator");
+    assert(binop.op == TokenKind::EqualEqual && "unexpected binary operator");
+    return *lhs == *rhs;
   }
 }
 
@@ -75,10 +74,8 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
   if (!rhs)
     return std::nullopt;
 
-  if (op.op == TokenKind::Excl)
-    return !*toBool(rhs);
-
-  assert(false && "unexpected unary operator");
+  assert(op.op == TokenKind::Excl && "unexpected unary operator");
+  return !*toBool(rhs);
 }
 
 std::optional<double> ConstantExpressionEvaluator::evaluateDeclRefExpr(
