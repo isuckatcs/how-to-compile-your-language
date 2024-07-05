@@ -197,9 +197,10 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
       return error(nextToken.location, "expected 'else' body");
 
     falseBlock = parseBlock();
-    if (!falseBlock)
-      return nullptr;
   }
+
+  if (!falseBlock)
+    return nullptr;
 
   return std::make_unique<IfStmt>(location, std::move(condition),
                                   std::move(trueBranch), std::move(falseBlock));
