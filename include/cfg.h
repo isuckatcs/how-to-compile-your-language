@@ -46,19 +46,18 @@ class CFGBuilder {
     }
   }
 
-  void visit(const ResolvedBlock &block);
+  int visit(const ResolvedBlock &block);
 
-  void visit(const ResolvedStmt &stmt);
-  void visit(const ResolvedIfStmt &stmt);
-  void visit(const ResolvedWhileStmt &stmt);
-  void visit(const ResolvedDeclStmt &stmt);
-  void visit(const ResolvedAssignment &stmt);
-  void visit(const ResolvedReturnStmt &stmt);
+  int visit(const ResolvedStmt &stmt);
+  int visit(const ResolvedIfStmt &stmt);
+  int visit(const ResolvedWhileStmt &stmt);
+  int visit(const ResolvedDeclStmt &stmt);
+  int visit(const ResolvedAssignment &stmt);
+  int visit(const ResolvedReturnStmt &stmt);
+  int visit(const ResolvedExpr &expr);
 
-  void visit(const ResolvedExpr &expr);
-
-  void visitCondition(const ResolvedBinaryOperator &cond,
-                      const ResolvedStmt *term, int trueBlock, int falseBlock);
+  int visitCondition(const ResolvedBinaryOperator &cond,
+                     const ResolvedStmt *term, int trueBlock, int falseBlock);
 
 public:
   CFG build(const ResolvedFunctionDecl &fn);

@@ -43,65 +43,58 @@ void CFG::dump(size_t) const {
   }
 }
 
-void CFGBuilder::visit(const ResolvedIfStmt &stmt) {
+int CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   int exitBlock = currentBlock == -1 ? successorBlock : currentBlock;
 
-  successorBlock = exitBlock;
+  int elseBlock = exitBlock;
   if (stmt.falseBlock) {
+    successorBlock = exitBlock;
     currentBlock = -1;
-    visit(*stmt.falseBlock);
+
+    elseBlock = visit(*stmt.falseBlock);
+
+    if (elseBlock == -1)
+      elseBlock = exitBlock;
   }
 
-  int elseBlock = currentBlock == -1 ? exitBlock : currentBlock;
-
-  // HACK: we have no way to get the elseBlock if the first stmt in the block is
-  // whileStmt.
-  if (stmt.falseBlock && !stmt.falseBlock->statements.empty() &&
-      dynamic_cast<const ResolvedWhileStmt *>(
-          stmt.falseBlock->statements[0].get()))
-    elseBlock = successorBlock;
-
+  int trueBlock = -1;
   successorBlock = exitBlock;
   currentBlock = -1;
-  visit(*stmt.trueBlock);
 
-  // An empty block can be inserted if we need to differentiate the true and the
-  // false branches.
-  int trueBlock = currentBlock == -1 ? exitBlock : currentBlock;
+  trueBlock = visit(*stmt.trueBlock);
 
-  // HACK: we have no way to get the trueBlock if the first stmt in the block is
-  // whileStmt.
-  if (!stmt.trueBlock->statements.empty() &&
-      dynamic_cast<const ResolvedWhileStmt *>(
-          stmt.trueBlock->statements[0].get()))
-    trueBlock = successorBlock;
+  if (trueBlock == -1)
+    trueBlock = exitBlock;
 
-  if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
-    visitCondition(*binop, &stmt, trueBlock, elseBlock);
-  } else {
-    std::optional<double> conditionVal = stmt.condition->getConstantValue();
+  if (const auto *binop = getAsConditionalBinop(stmt.condition.get()))
+    return visitCondition(*binop, &stmt, trueBlock, elseBlock);
 
-    currentBlock = currentCFG.insertNewBlock();
-    currentCFG.insertEdge(currentBlock, trueBlock,
-                          conditionVal == 0 ? false : true);
-    currentCFG.insertEdge(currentBlock, elseBlock,
-                          conditionVal.value_or(0) != 0 ? false : true);
+  std::optional<double> conditionVal = stmt.condition->getConstantValue();
 
-    currentCFG.insertStatement(currentBlock, &stmt);
-    visit(*stmt.condition);
-  }
+  currentBlock = currentCFG.insertNewBlock();
+  currentCFG.insertEdge(currentBlock, trueBlock,
+                        conditionVal == 0 ? false : true);
+  currentCFG.insertEdge(currentBlock, elseBlock,
+                        conditionVal.value_or(0) != 0 ? false : true);
+
+  currentCFG.insertStatement(currentBlock, &stmt);
+
+  return visit(*stmt.condition);
 }
 
-void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
+int CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   int exitBlock = currentBlock != -1 ? currentBlock : successorBlock;
 
   int transitionBlock = currentCFG.insertNewBlock();
 
   successorBlock = transitionBlock;
   currentBlock = -1;
-  visit(*stmt.body);
 
-  int bodyBlock = currentBlock != -1 ? currentBlock : transitionBlock;
+  int bodyBlock = visit(*stmt.body);
+
+  if (bodyBlock == -1)
+    bodyBlock = transitionBlock;
+
   successorBlock = bodyBlock;
   currentBlock = -1;
 
@@ -123,37 +116,40 @@ void CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
 
   successorBlock = currentBlock;
   currentBlock = -1;
+
+  return successorBlock;
 }
 
-void CFGBuilder::visit(const ResolvedDeclStmt &stmt) {
+int CFGBuilder::visit(const ResolvedDeclStmt &stmt) {
   autoCreateBlock();
   currentCFG.insertStatement(currentBlock, &stmt);
 
   if (const auto *init = stmt.varDecl->initializer.get())
-    visit(*init);
+    return visit(*init);
+
+  return currentBlock;
 }
 
-void CFGBuilder::visit(const ResolvedAssignment &stmt) {
+int CFGBuilder::visit(const ResolvedAssignment &stmt) {
   autoCreateBlock();
   currentCFG.insertStatement(currentBlock, &stmt);
 
-  // FIXME: there is no way to differentiate, whether a declref is the LHS of an
-  // assignment or a different binop.
-  // visit(*stmt.variable);
-  visit(*stmt.expr);
+  return visit(*stmt.expr);
 }
 
-void CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
+int CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
   currentBlock = currentCFG.insertNewBlock();
   currentCFG.insertEdge(currentBlock, currentCFG.exit, true);
 
   currentCFG.insertStatement(currentBlock, &stmt);
 
-  if (const auto &expr = stmt.expr.get())
-    visit(*expr);
+  if (stmt.expr)
+    return visit(*stmt.expr);
+
+  return currentBlock;
 }
 
-void CFGBuilder::visit(const ResolvedExpr &expr) {
+int CFGBuilder::visit(const ResolvedExpr &expr) {
   autoCreateBlock();
   currentCFG.insertStatement(currentBlock, &expr);
 
@@ -161,24 +157,32 @@ void CFGBuilder::visit(const ResolvedExpr &expr) {
     for (auto it = callExpr->arguments.rbegin();
          it != callExpr->arguments.rend(); ++it)
       visit(**it);
-  } else if (const auto *groupingExpr =
-                 dynamic_cast<const ResolvedGroupingExpr *>(&expr)) {
-    visit(*groupingExpr->expr);
-  } else if (const auto *cond = getAsConditionalBinop(&expr)) {
-    visitCondition(*cond, nullptr, currentBlock, currentBlock);
-  } else if (const auto *binaryOperator =
-                 dynamic_cast<const ResolvedBinaryOperator *>(&expr)) {
-    visit(*binaryOperator->rhs);
-    visit(*binaryOperator->lhs);
-  } else if (const auto *unaryOperator =
-                 dynamic_cast<const ResolvedUnaryOperator *>(&expr)) {
-    visit(*unaryOperator->rhs);
+    return currentBlock;
   }
+
+  if (const auto *groupingExpr =
+          dynamic_cast<const ResolvedGroupingExpr *>(&expr))
+    return visit(*groupingExpr->expr);
+
+  if (const auto *cond = getAsConditionalBinop(&expr))
+    return visitCondition(*cond, nullptr, currentBlock, currentBlock);
+
+  if (const auto *binaryOperator =
+          dynamic_cast<const ResolvedBinaryOperator *>(&expr)) {
+    visit(*binaryOperator->rhs);
+    return visit(*binaryOperator->lhs);
+  }
+
+  if (const auto *unaryOperator =
+          dynamic_cast<const ResolvedUnaryOperator *>(&expr))
+    return visit(*unaryOperator->rhs);
+
+  return currentBlock;
 }
 
-void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
-                                const ResolvedStmt *term, int trueBlock,
-                                int falseBlock) {
+int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
+                               const ResolvedStmt *term, int trueBlock,
+                               int falseBlock) {
   int rhsBlock = -1;
   if (const auto *binop = getAsConditionalBinop(cond.rhs.get())) {
     visitCondition(*binop, term, trueBlock, falseBlock);
@@ -208,9 +212,10 @@ void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
     // If LHS is another conditional OP and the current operator is && the false
     // branch is reachable if LHS is false and the current RHS is reachable if
     // the LHS is true. In case of ||, it's the opposite.
-    isAnd ? visitCondition(*binop, &cond, rhsBlock, falseBlock)
-          : visitCondition(*binop, &cond, trueBlock, rhsBlock);
-    return;
+    if (isAnd)
+      return visitCondition(*binop, &cond, rhsBlock, falseBlock);
+
+    return visitCondition(*binop, &cond, trueBlock, rhsBlock);
   }
 
   // Create the block for the LHS.
@@ -231,10 +236,10 @@ void CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
 
   // The current block when the function exits is the LHS block.
   currentCFG.insertStatement(currentBlock, &cond);
-  visit(*cond.lhs);
+  return visit(*cond.lhs);
 }
 
-void CFGBuilder::visit(const ResolvedStmt &stmt) {
+int CFGBuilder::visit(const ResolvedStmt &stmt) {
   if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
     return visit(*expr);
 
@@ -256,9 +261,13 @@ void CFGBuilder::visit(const ResolvedStmt &stmt) {
   assert(false && "unknown statement");
 }
 
-void CFGBuilder::visit(const ResolvedBlock &block) {
+int CFGBuilder::visit(const ResolvedBlock &block) {
+  int b = currentBlock;
+
   for (auto it = block.statements.rbegin(); it != block.statements.rend(); ++it)
-    visit(**it);
+    b = visit(**it);
+
+  return b;
 }
 
 CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
