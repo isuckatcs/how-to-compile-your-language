@@ -21,9 +21,9 @@ fn foo(x: number): void {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: whileExit:                                        ; preds = %whileCond
-// CHECK-NEXT:   unreachable
+// CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %whileBody
+// CHECK-NEXT: return:                                           ; preds = %whileExit, %whileBody
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

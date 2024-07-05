@@ -10,6 +10,6 @@ fn main(): void {
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %0
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %0
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

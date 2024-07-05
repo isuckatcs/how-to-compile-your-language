@@ -333,14 +333,8 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
       break;
     }
   }
-
-  // FIXME: This should disappear with return optimization.
-  if (const llvm::BasicBlock *bb = builder.GetInsertBlock();
-      bb && bb->empty() && !retBlock->hasNPredecessors(0))
-    builder.CreateUnreachable();
 }
 
-// FIXME: Optimize return stmt emission.
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
   auto *bb = llvm::BasicBlock::Create(context, "", function);
@@ -370,6 +364,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     generateBlock(*functionDecl.body);
 
   if (retBlock->hasNPredecessorsOrMore(1)) {
+    builder.CreateBr(retBlock);
     retBlock->insertInto(function);
     builder.SetInsertPoint(retBlock);
   }

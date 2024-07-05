@@ -23,8 +23,8 @@ fn main(): void {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: merge:                                            ; preds = <null operand!>, %0
-// CHECK-NEXT:   unreachable
+// CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %then
+// CHECK-NEXT: return:                                           ; preds = %merge, %then
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

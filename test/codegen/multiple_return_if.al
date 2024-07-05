@@ -35,7 +35,7 @@ fn foo(x: number): number {
 // CHECK-NEXT:   store double 5.200000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %merge5, %then3, %then
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %merge5, %then3, %then
 // CHECK-NEXT:   %5 = load double, double* %retval, align 8
 // CHECK-NEXT:   ret double %5
 
