@@ -51,10 +51,10 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
   }
 
   if (exitReached || returnCount == 0) {
-    error(fn.location,
-          returnCount > 0
-              ? "non-void function doesn't return a value on every path"
-              : "non-void function doesn't return a value");
+    report(fn.location,
+           returnCount > 0
+               ? "non-void function doesn't return a value on every path"
+               : "non-void function doesn't return a value");
   }
 
   return exitReached || returnCount == 0;
@@ -137,7 +137,7 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
   }
 
   for (auto &&[loc, msg] : pendingErrors)
-    error(loc, msg);
+    report(loc, msg);
 
   return !pendingErrors.empty();
 }
@@ -146,7 +146,7 @@ bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
 
   if (foundDecl && scopeIdx == 0) {
-    error(decl.location, "redeclaration of '" + decl.identifier + '\'');
+    report(decl.location, "redeclaration of '" + decl.identifier + '\'');
     return false;
   }
 
@@ -201,8 +201,9 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.rhs));
 
   if (resolvedRHS->type == Type::Void)
-    return error(resolvedRHS->location,
-                 "void expression cannot be used as operand to unary operator");
+    return report(
+        resolvedRHS->location,
+        "void expression cannot be used as operand to unary operator");
 
   return std::make_unique<ResolvedUnaryOperator>(
       unary.location, std::move(resolvedRHS), unary.op);
@@ -214,12 +215,12 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
   if (resolvedLHS->type == Type::Void)
-    return error(
+    return report(
         resolvedLHS->location,
         "void expression cannot be used as LHS operand to binary operator");
 
   if (resolvedRHS->type == Type::Void)
-    return error(
+    return report(
         resolvedRHS->location,
         "void expression cannot be used as RHS operand to binary operator");
 
@@ -241,12 +242,12 @@ std::unique_ptr<ResolvedDeclRefExpr>
 Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall) {
   ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
   if (!decl)
-    return error(declRefExpr.location,
-                 "symbol '" + declRefExpr.identifier + "' not found");
+    return report(declRefExpr.location,
+                  "symbol '" + declRefExpr.identifier + "' not found");
 
   if (!inCall && dynamic_cast<ResolvedFunctionDecl *>(decl))
-    return error(declRefExpr.location,
-                 "expected to call function '" + declRefExpr.identifier + "'");
+    return report(declRefExpr.location,
+                  "expected to call function '" + declRefExpr.identifier + "'");
 
   return std::make_unique<ResolvedDeclRefExpr>(declRefExpr.location, *decl);
 }
@@ -258,10 +259,10 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
       dynamic_cast<const ResolvedFunctionDecl *>(resolvedCallee->decl);
 
   if (!resolvedFunctionDecl)
-    return error(call.location, "calling non-function symbol");
+    return report(call.location, "calling non-function symbol");
 
   if (call.arguments.size() != resolvedFunctionDecl->params.size())
-    return error(call.location, "argument count missmatch in function call");
+    return report(call.location, "argument count missmatch in function call");
 
   std::vector<std::unique_ptr<ResolvedExpr>> resolvedArguments;
   int idx = 0;
@@ -269,7 +270,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     varOrReturn(resolvedArg, resolveExpr(*arg));
 
     if (resolvedArg->type != resolvedFunctionDecl->params[idx]->type)
-      return error(resolvedArg->location, "unexpected type of argument");
+      return report(resolvedArg->location, "unexpected type of argument");
 
     if (std::optional<double> val = cee.evaluate(*resolvedArg))
       resolvedArg->setConstantValue(val);
@@ -308,7 +309,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   varOrReturn(condition, resolveExpr(*ifStmt.condition));
 
   if (condition->type != Type::Number)
-    return error(condition->location, "expected number in condition");
+    return report(condition->location, "expected number in condition");
 
   varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
 
@@ -328,7 +329,7 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   varOrReturn(condition, resolveExpr(*whileStmt.condition));
 
   if (condition->type != Type::Number)
-    return error(condition->location, "expected number in condition");
+    return report(condition->location, "expected number in condition");
 
   varOrReturn(body, resolveBlock(*whileStmt.body));
 
@@ -356,15 +357,15 @@ Sema::resolveAssignment(const Assignment &assignment) {
          "reference to void variable in assignment LHS");
 
   if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
-    return error(resolvedLHS->location,
-                 "parameters are immutable and cannot be assigned");
+    return report(resolvedLHS->location,
+                  "parameters are immutable and cannot be assigned");
 
   auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
   assert(var && "assignment LHS is not a variable");
 
   if (resolvedRHS->type != resolvedLHS->type)
-    return error(resolvedRHS->location,
-                 "assigned value type doesn't match variable type");
+    return report(resolvedRHS->location,
+                  "assigned value type doesn't match variable type");
 
   return std::make_unique<ResolvedAssignment>(
       assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
@@ -375,11 +376,11 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
   if (currentFunction->type == Type::Void && returnStmt.expr)
-    return error(returnStmt.location,
-                 "unexpected return value in void function");
+    return report(returnStmt.location,
+                  "unexpected return value in void function");
 
   if (currentFunction->type != Type::Void && !returnStmt.expr)
-    return error(returnStmt.location, "expected a return value");
+    return report(returnStmt.location, "expected a return value");
 
   std::unique_ptr<ResolvedExpr> resolvedExpr;
   if (returnStmt.expr) {
@@ -388,7 +389,7 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
       return nullptr;
 
     if (currentFunction->type != resolvedExpr->type)
-      return error(resolvedExpr->location, "unexpected return type");
+      return report(resolvedExpr->location, "unexpected return type");
   }
 
   return std::make_unique<ResolvedReturnStmt>(returnStmt.location,
@@ -448,8 +449,7 @@ std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
       continue;
 
     if (!unreachableReported && reportUnreachable) {
-      // FIXME: This should be a warning.
-      error(stmt->location, "unreachable statement");
+      report(stmt->location, "unreachable statement", true);
       unreachableReported = true;
     }
 
@@ -469,8 +469,9 @@ Sema::resolveParamDecl(const ParamDecl &param) {
   std::optional<Type> type = resolveType(param.type);
 
   if (!type || type == Type::Void)
-    return error(param.location, "parameter '" + param.identifier +
-                                     "' has invalid '" + param.type + "' type");
+    return report(param.location, "parameter '" + param.identifier +
+                                      "' has invalid '" + param.type +
+                                      "' type");
 
   return std::make_unique<ResolvedParamDecl>(param.location, param.identifier,
                                              *type);
@@ -480,9 +481,9 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
   std::optional<Type> type = resolveType(varDecl.type);
 
   if (!type || type == Type::Void)
-    return error(varDecl.location, "variable '" + varDecl.identifier +
-                                       "' has invalid '" + varDecl.type +
-                                       "' type");
+    return report(varDecl.location, "variable '" + varDecl.identifier +
+                                        "' has invalid '" + varDecl.type +
+                                        "' type");
 
   std::unique_ptr<ResolvedExpr> resolvedInitializer = nullptr;
   if (varDecl.initialzer) {
@@ -491,7 +492,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
       return nullptr;
 
     if (resolvedInitializer->type != type)
-      return error(resolvedInitializer->location, "initializer type mismatch");
+      return report(resolvedInitializer->location, "initializer type mismatch");
   }
 
   return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,
@@ -505,18 +506,18 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
   std::optional<Type> type = resolveType(function.type);
 
   if (!type)
-    return error(function.location, "function '" + function.identifier +
-                                        "' has invalid '" + function.type +
-                                        "' type");
+    return report(function.location, "function '" + function.identifier +
+                                         "' has invalid '" + function.type +
+                                         "' type");
 
   if (function.identifier == "main") {
     if (type != Type::Void)
-      return error(function.location,
-                   "'main' function is expected to have 'void' type");
+      return report(function.location,
+                    "'main' function is expected to have 'void' type");
 
     if (!function.params.empty())
-      return error(function.location,
-                   "'main' function is expected to take no arguments");
+      return report(function.location,
+                    "'main' function is expected to take no arguments");
   }
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;

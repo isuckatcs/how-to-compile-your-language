@@ -68,7 +68,7 @@ std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
   eatNextToken(); // eat fn
 
   if (nextToken.kind != TokenKind::Identifier)
-    return error(nextToken.location, "expected identifier");
+    return report(nextToken.location, "expected identifier");
 
   assert(nextToken.value && "identifier token without value");
   std::string functionIdentifier = *nextToken.value;
@@ -77,13 +77,13 @@ std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
   varOrReturn(parameterList, parseParameterList());
 
   if (nextToken.kind != TokenKind::Colon)
-    return error(nextToken.location, "expected ':'");
+    return report(nextToken.location, "expected ':'");
   eatNextToken(); // eat ':'
 
   varOrReturn(type, parseType());
 
   if (nextToken.kind != TokenKind::Lbrace)
-    return error(nextToken.location, "expected function body");
+    return report(nextToken.location, "expected function body");
 
   varOrReturn(block, parseBlock());
 
@@ -102,7 +102,7 @@ std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
   eatNextToken(); // eat identifier
 
   if (nextToken.kind != TokenKind::Colon)
-    return error(nextToken.location, "expected ':'");
+    return report(nextToken.location, "expected ':'");
   eatNextToken(); // eat :
 
   varOrReturn(type, parseType());
@@ -122,7 +122,7 @@ std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
   eatNextToken(); // eat identifier
 
   if (nextToken.kind != TokenKind::Colon)
-    return error(nextToken.location, "expected ':'");
+    return report(nextToken.location, "expected ':'");
   eatNextToken(); // eat ':'
 
   varOrReturn(type, parseType());
@@ -149,7 +149,7 @@ std::unique_ptr<Block> TheParser::parseBlock() {
       break;
 
     if (nextToken.kind == TokenKind::Eof || nextToken.kind == TokenKind::KwFn)
-      return error(nextToken.location, "expected '}' at the end of a block");
+      return report(nextToken.location, "expected '}' at the end of a block");
 
     std::unique_ptr<Stmt> stmt = parseStmt();
     if (!stmt) {
@@ -174,7 +174,7 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
   varOrReturn(condition, parseExpr());
 
   if (nextToken.kind != TokenKind::Lbrace)
-    return error(nextToken.location, "expected 'if' body");
+    return report(nextToken.location, "expected 'if' body");
 
   varOrReturn(trueBranch, parseBlock());
 
@@ -194,7 +194,7 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
     falseBlock = std::make_unique<Block>(loc, std::move(stmts));
   } else {
     if (nextToken.kind != TokenKind::Lbrace)
-      return error(nextToken.location, "expected 'else' body");
+      return report(nextToken.location, "expected 'else' body");
 
     falseBlock = parseBlock();
   }
@@ -215,7 +215,7 @@ std::unique_ptr<WhileStmt> TheParser::parseWhileStmt() {
   varOrReturn(cond, parseExpr());
 
   if (nextToken.kind != TokenKind::Lbrace)
-    return error(nextToken.location, "expected 'while' body");
+    return report(nextToken.location, "expected 'while' body");
 
   varOrReturn(body, parseBlock());
 
@@ -242,7 +242,7 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
   eatNextToken(); // eat 'let' | 'var'
 
   if (nextToken.kind != TokenKind::Identifier)
-    return error(nextToken.location, "expected identifier");
+    return report(nextToken.location, "expected identifier");
 
   varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
 
@@ -262,8 +262,8 @@ std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
       return nullptr;
 
     if (nextToken.kind != TokenKind::Semi)
-      return error(nextToken.location,
-                   "expected ';' at the end of a return statement");
+      return report(nextToken.location,
+                    "expected ';' at the end of a return statement");
   }
 
   eatNextToken(); // eat ';'
@@ -300,15 +300,15 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
       std::ignore = lhs.release();
       expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre));
     } else
-      return error(nextToken.location,
-                   "expected variable on the LHS of an assignment");
+      return report(nextToken.location,
+                    "expected variable on the LHS of an assignment");
   }
 
   if (!expr)
     return nullptr;
 
   if (nextToken.kind != TokenKind::Semi)
-    return error(nextToken.location, "expected ';' at the end of statement");
+    return report(nextToken.location, "expected ';' at the end of statement");
   eatNextToken(); // eat ';'
 
   return expr;
@@ -378,7 +378,7 @@ std::unique_ptr<Expr> TheParser::parsePrimary() {
     varOrReturn(expr, parseExpr());
 
     if (nextToken.kind != TokenKind::Rpar)
-      return error(nextToken.location, "expected ')'");
+      return report(nextToken.location, "expected ')'");
     eatNextToken(); // eat ')'
 
     return std::make_unique<GroupingExpr>(location, std::move(expr));
@@ -405,14 +405,14 @@ std::unique_ptr<Expr> TheParser::parsePrimary() {
                                       std::move(*argumentList));
   }
 
-  return error(location, "expected expression");
+  return report(location, "expected expression");
 }
 
 // <parameterList>
 //  ::= '(' (<paramDecl> (',' <paramDecl>)*)? ')'
 std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
   if (nextToken.kind != TokenKind::Lpar) {
-    error(nextToken.location, "expected '('");
+    report(nextToken.location, "expected '('");
     return std::nullopt;
   }
   eatNextToken(); // eat '('
@@ -426,7 +426,7 @@ std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
 
   while (true) {
     if (nextToken.kind != TokenKind::Identifier) {
-      error(nextToken.location, "expected parameter declaration");
+      report(nextToken.location, "expected parameter declaration");
       return std::nullopt;
     }
 
@@ -441,7 +441,7 @@ std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
   }
 
   if (nextToken.kind != TokenKind::Rpar) {
-    error(nextToken.location, "expected ')'");
+    report(nextToken.location, "expected ')'");
     return std::nullopt;
   }
   eatNextToken(); // eat ')'
@@ -453,7 +453,7 @@ std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
 //  ::= '(' (<expr> (',' <expr>)*)? ')'
 std::optional<TheParser::ArgumentList> TheParser::parseArgumentList() {
   if (nextToken.kind != TokenKind::Lpar) {
-    error(nextToken.location, "expected '('");
+    report(nextToken.location, "expected '('");
     return std::nullopt;
   }
   eatNextToken(); // eat '('
@@ -477,7 +477,7 @@ std::optional<TheParser::ArgumentList> TheParser::parseArgumentList() {
   }
 
   if (nextToken.kind != TokenKind::Rpar) {
-    error(nextToken.location, "expected ')'");
+    report(nextToken.location, "expected ')'");
     return std::nullopt;
   }
   eatNextToken(); // eat ')'
@@ -494,7 +494,7 @@ std::optional<std::string> TheParser::parseType() {
 
   if (kind != TokenKind::KwNumber && kind != TokenKind::KwVoid &&
       kind != TokenKind::Identifier) {
-    error(nextToken.location, "expected type specifier");
+    report(nextToken.location, "expected type specifier");
     return std::nullopt;
   }
 
@@ -514,8 +514,8 @@ TheParser::parseSourceFile() {
 
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind != TokenKind::KwFn) {
-      error(nextToken.location,
-            "only function definitions are allowed on the top level");
+      report(nextToken.location,
+             "only function definitions are allowed on the top level");
       synchronizeOn(TokenKind::KwFn);
       continue;
     }
@@ -538,7 +538,7 @@ TheParser::parseSourceFile() {
     hasMainFunction |= fn->identifier == "main";
 
   if (!hasMainFunction && !incompleteAST)
-    error(nextToken.location, "main function not found");
+    report(nextToken.location, "main function not found");
 
   return {std::move(functions), !incompleteAST && hasMainFunction};
 }

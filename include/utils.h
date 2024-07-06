@@ -29,7 +29,8 @@ struct SourceLocation {
   int col;
 };
 
-std::nullptr_t error(SourceLocation location, std::string_view message);
+std::nullptr_t report(SourceLocation location, std::string_view message,
+                      bool isWarning = false);
 
 template <typename Base, typename Ty> class ConstantValueContainer {
   std::optional<Ty> value = std::nullopt;
