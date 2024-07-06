@@ -3,21 +3,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
-// FIXME: Move this to utility
-namespace {
-const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
-  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(expr);
-  if (!binop)
-    return nullptr;
-
-  TokenKind op = binop->op;
-  if (op == TokenKind::PipePipe || op == TokenKind::AmpAmp)
-    return binop;
-
-  return nullptr;
-}
-} // namespace
-
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
     : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
@@ -207,24 +192,24 @@ Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
 void Codegen::generateConditionalOperator(const ResolvedExpr &op,
                                           llvm::BasicBlock *trueBlock,
                                           llvm::BasicBlock *falseBlock) {
-  if (const auto *condBinop = getAsConditionalBinop(&op)) {
-    if (condBinop->op == TokenKind::PipePipe) {
+  if (const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&op)) {
+    if (binop->op == TokenKind::PipePipe) {
       llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
           context, "or.lhs.false", trueBlock->getParent());
-      generateConditionalOperator(*condBinop->lhs, trueBlock, nextBlock);
+      generateConditionalOperator(*binop->lhs, trueBlock, nextBlock);
 
       builder.SetInsertPoint(nextBlock);
-      generateConditionalOperator(*condBinop->rhs, trueBlock, falseBlock);
+      generateConditionalOperator(*binop->rhs, trueBlock, falseBlock);
       return;
     }
 
-    if (condBinop->op == TokenKind::AmpAmp) {
+    if (binop->op == TokenKind::AmpAmp) {
       llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
           context, "and.lhs.true", trueBlock->getParent());
-      generateConditionalOperator(*condBinop->lhs, nextBlock, falseBlock);
+      generateConditionalOperator(*binop->lhs, nextBlock, falseBlock);
 
       builder.SetInsertPoint(nextBlock);
-      generateConditionalOperator(*condBinop->rhs, trueBlock, falseBlock);
+      generateConditionalOperator(*binop->rhs, trueBlock, falseBlock);
       return;
     }
   }
