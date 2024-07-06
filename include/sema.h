@@ -58,7 +58,6 @@ class Sema {
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
   std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrint();
 
-  // FIXME: Consider moving this a different class
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
   bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);
   bool checkVariableInitialization(const ResolvedFunctionDecl &fn,

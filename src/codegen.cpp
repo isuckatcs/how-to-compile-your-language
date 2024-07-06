@@ -178,7 +178,6 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   return builder.CreateCall(callee, args);
 }
 
-// FIXME: Refactor!!!
 llvm::Value *
 Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
   llvm::Value *rhs = generateExpr(*unary.rhs);
