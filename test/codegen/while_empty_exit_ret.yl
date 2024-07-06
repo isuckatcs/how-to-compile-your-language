@@ -4,7 +4,7 @@ fn foo(x: number): void {
     var i: number = x;
 
     while i > 1.0 {
-        print(i);
+        println(i);
         i = i - 1.0;
     }
 }
@@ -29,7 +29,7 @@ fn main(): void {
 // CHECK-NEXT: 
 // CHECK-NEXT: whileBody:                                        ; preds = %whileCond
 // CHECK-NEXT:   %4 = load double, double* %i, align 8
-// CHECK-NEXT:   call void @print(double %4)
+// CHECK-NEXT:   call void @println(double %4)
 // CHECK-NEXT:   %5 = load double, double* %i, align 8
 // CHECK-NEXT:   %6 = fsub double %5, 1.000000e+00
 // CHECK-NEXT:   store double %6, double* %i, align 8

@@ -36,7 +36,7 @@ fn main(): void {
 
     while cnt < 10.0 {
         if isPrime(n) {
-            print(n);
+            println(n);
             cnt = cnt + 1.0;
         }
 

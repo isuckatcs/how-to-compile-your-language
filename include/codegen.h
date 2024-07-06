@@ -53,7 +53,7 @@ class Codegen {
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);
   void generateFunction(const ResolvedFunctionDecl &functionDecl);
 
-  void generateBuiltinPrintBody();
+  void generateBuiltinPrintlnBody();
   void generateMainWrapper();
 
 public:

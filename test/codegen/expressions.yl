@@ -16,7 +16,7 @@ fn foo(x: number): number {
 }
 
 fn main(): void {
-    print(foo(6.0));
-    print(foo(0.0 - 6.0));
-    print(foo(1.0));
+    println(foo(6.0));
+    println(foo(0.0 - 6.0));
+    println(foo(1.0));
 }

@@ -1,12 +1,12 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o cond_binop_side_effect && ./cond_binop_side_effect | grep -Plzx '1\n2\n3\n4\n5\n7\n10\n13\n14\n15\n16\n'
 fn true(x: number): number {
-    print(x);
+    println(x);
     return 1.0;
 }
 
 fn false(x: number): number {
-    print(x);
+    println(x);
     return 0.0;
 }
 

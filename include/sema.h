@@ -57,7 +57,7 @@ class Sema {
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
-  std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrint();
+  std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrintln();
 
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
   bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);

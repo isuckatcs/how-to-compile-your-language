@@ -1,0 +1,21 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o print && ./print | grep -Plzx '0\n1\n1.2345\n1.0002345\n12345.6789\n'
+fn main(): void {
+    println(0.0);
+    println(01.0);
+    println(1.234500000);
+    println(1.000234500000);
+    println(12345.6789);
+}
+
+// CHECK: @0 = private unnamed_addr constant [7 x i8] c"%.15g\0A\00", align 1
+
+// CHECK: define void @println(double %n) {
+// CHECK-NEXT:   %n1 = alloca double, align 8
+// CHECK-NEXT:   store double %n, double* %n1, align 8
+// CHECK-NEXT:   %1 = load double, double* %n1, align 8
+// CHECK-NEXT:   %2 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), double %1)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: declare i32 @printf(i8* %0, ...)

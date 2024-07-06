@@ -40,7 +40,7 @@ fn foo(x: number): number {
 // CHECK-NEXT:   ret double %5
 
 fn main(): void {
-    print(foo(1.0));
-    print(foo(2.0));
-    print(foo(3.0));
+    println(foo(1.0));
+    println(foo(2.0));
+    println(foo(3.0));
 }

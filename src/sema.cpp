@@ -169,7 +169,7 @@ std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
   return {nullptr, -1};
 }
 
-std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
+std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
   SourceLocation loc = SourceLocation{"<builtin>", 0, 0};
 
   auto param = std::make_unique<ResolvedParamDecl>(loc, "n", Type::Number);
@@ -181,7 +181,7 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
       loc, std::vector<std::unique_ptr<ResolvedStmt>>());
 
   return std::make_unique<ResolvedFunctionDecl>(
-      loc, "print", Type::Void, std::move(params), std::move(block));
+      loc, "println", Type::Void, std::move(params), std::move(block));
 };
 
 std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
@@ -538,8 +538,8 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
 
   // Insert print first to be able to detect possible redeclarations.
-  auto builtinPrint = createBuiltinPrint();
-  insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(builtinPrint)));
+  auto println = createBuiltinPrintln();
+  insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
 
   bool error = false;
   for (auto &&fn : ast) {

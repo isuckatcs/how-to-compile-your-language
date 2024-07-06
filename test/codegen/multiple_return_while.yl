@@ -43,7 +43,7 @@ fn foo(x: number): number {
 // CHECK-NEXT:   ret double %8
 
 fn main(): void {
-    print(foo(10.0));
-    print(foo(11.0));
-    print(foo(15.0));
+    println(foo(10.0));
+    println(foo(11.0));
+    println(foo(15.0));
 }

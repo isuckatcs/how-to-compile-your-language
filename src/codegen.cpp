@@ -348,8 +348,8 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     ++idx;
   }
 
-  if (functionDecl.identifier == "print")
-    generateBuiltinPrintBody();
+  if (functionDecl.identifier == "println")
+    generateBuiltinPrintlnBody();
   else
     generateBlock(*functionDecl.body);
 
@@ -368,7 +368,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
 }
 
-void Codegen::generateBuiltinPrintBody() {
+void Codegen::generateBuiltinPrintlnBody() {
   auto *functionType = llvm::FunctionType::get(builder.getInt32Ty(),
                                                {builder.getInt8PtrTy()}, true);
   auto *printf = llvm::Function::Create(
@@ -377,7 +377,7 @@ void Codegen::generateBuiltinPrintBody() {
   auto *formatStr = builder.CreateGlobalStringPtr("%.15g\n");
   llvm::Value *param;
   for (auto &&fn : resolvedSourceFile) {
-    if (fn->identifier != "print")
+    if (fn->identifier != "println")
       continue;
 
     param = builder.CreateLoad(builder.getDoubleTy(),
