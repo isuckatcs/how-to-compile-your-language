@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_CONSTEXPR_H
-#define A_COMPILER_CONSTEXPR_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_CONSTEXPR_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_CONSTEXPR_H
 
 #include "ast.h"
 
@@ -15,4 +15,4 @@ public:
   std::optional<double> evaluate(const ResolvedExpr &expr);
 };
 
-#endif // A_COMPILER_CONSTEXPR_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_CONSTEXPR_H

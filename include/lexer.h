@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_LEXER_H
-#define A_COMPILER_LEXER_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
 
 #include <optional>
 #include <string>
@@ -85,4 +85,4 @@ public:
   Token getNextToken();
 };
 
-#endif // A_COMPILER_LEXER_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H

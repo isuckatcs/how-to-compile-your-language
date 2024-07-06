@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_PARSER_H
-#define A_COMPILER_PARSER_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H
 
 #include <memory>
 #include <optional>
@@ -59,4 +59,4 @@ public:
   std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool> parseSourceFile();
 };
 
-#endif // A_COMPILER_PARSER_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H

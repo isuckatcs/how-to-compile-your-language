@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_CFG_H
-#define A_COMPILER_CFG_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_CFG_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_CFG_H
 
 #include <set>
 #include <vector>
@@ -65,4 +65,4 @@ public:
   CFG build(const ResolvedFunctionDecl &fn);
 };
 
-#endif // A_COMPILER_CFG_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_CFG_H

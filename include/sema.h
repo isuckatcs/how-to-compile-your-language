@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_SEMA_H
-#define A_COMPILER_SEMA_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H
 
 #include <memory>
 #include <optional>
@@ -70,4 +70,4 @@ public:
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();
 };
 
-#endif // A_COMPILER_SEMA_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H

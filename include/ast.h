@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_AST_H
-#define A_COMPILER_AST_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 
 #include <cassert>
 #include <iostream>
@@ -576,4 +576,4 @@ struct ResolvedReturnStmt : public ResolvedStmt {
   }
 };
 
-#endif // A_COMPILER_AST_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H

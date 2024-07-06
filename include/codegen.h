@@ -1,5 +1,5 @@
-#ifndef A_COMPILER_CODEGEN_H
-#define A_COMPILER_CODEGEN_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H
 
 #include "ast.h"
 
@@ -63,4 +63,4 @@ public:
   std::unique_ptr<llvm::Module> generateIR();
 };
 
-#endif // A_COMPILER_CODEGEN_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H

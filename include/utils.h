@@ -1,5 +1,5 @@
-#ifndef A_LANGUAGE_UTILS_H
-#define A_LANGUAGE_UTILS_H
+#ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H
+#define HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H
 
 #define varOrReturn(var, init)                                                 \
   auto var = (init);                                                           \
@@ -43,4 +43,4 @@ public:
   std::optional<Ty> getConstantValue() const { return value; }
 };
 
-#endif // A_LANGUAGE_UTILS_H
+#endif // HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H
