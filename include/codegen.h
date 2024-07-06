@@ -13,9 +13,9 @@ class Codegen {
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
 
-  // FIXME: Keep these here?
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBlock = nullptr;
+  llvm::Instruction *allocaInsertPoint;
 
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;

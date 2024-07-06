@@ -292,10 +292,9 @@ llvm::Function *Codegen::getCurrentFunction() {
 llvm::AllocaInst *
 Codegen::allocateStackVariable(llvm::Function *function,
                                const std::string_view identifier) {
-  // FIXME: fix the ordering
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(&function->getEntryBlock(),
-                            function->getEntryBlock().begin());
+                            allocaInsertPoint->getIterator());
 
   return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr, identifier);
 }
@@ -321,6 +320,11 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *bb = llvm::BasicBlock::Create(context, "", function);
 
   builder.SetInsertPoint(bb);
+
+  // Note: llvm:Instruction has a protected destructor.
+  llvm::Value *undef = llvm::UndefValue::get(builder.getInt32Ty());
+  allocaInsertPoint =
+      new llvm::BitCastInst(undef, undef->getType(), "alloca.placeholder", bb);
 
   bool isVoidFunction = functionDecl.type == Type::Void;
   if (!isVoidFunction)
@@ -349,6 +353,9 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     retBlock->insertInto(function);
     builder.SetInsertPoint(retBlock);
   }
+
+  allocaInsertPoint->eraseFromParent();
+  allocaInsertPoint = nullptr;
 
   if (isVoidFunction)
     builder.CreateRetVoid();

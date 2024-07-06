@@ -13,8 +13,8 @@ fn main(): void {
     foo(2.0);
 }
 // CHECK: define void @foo(double %x) {
-// CHECK-NEXT:   %i = alloca double, align 8
 // CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   %i = alloca double, align 8
 // CHECK-NEXT:   store double %x, double* %x1, align 8
 // CHECK-NEXT:   %1 = load double, double* %x1, align 8
 // CHECK-NEXT:   store double %1, double* %i, align 8
