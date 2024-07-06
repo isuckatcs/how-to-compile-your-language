@@ -1,4 +1,4 @@
-// RUN: compiler -h 2>&1 | filecheck %s
+// RUN: compiler -h 2>&1 | filecheck %s --strict-whitespace
 
 // CHECK: Usage:
 // CHECK-NEXT:   your-compiler [options] <source_file>
@@ -9,4 +9,4 @@
 // CHECK-NEXT:   -ast-dump    print the abstract syntax tree
 // CHECK-NEXT:   -res-dump    print the resolved syntax tree
 // CHECK-NEXT:   -llvm-dump   print the llvm module
-// CHECK-NEXT:   -cfg-dump   print the control flow graph
+// CHECK-NEXT:   -cfg-dump    print the control flow graph

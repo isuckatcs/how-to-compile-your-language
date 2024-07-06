@@ -20,7 +20,7 @@ void displayHelp() {
             << "  -ast-dump    print the abstract syntax tree\n"
             << "  -res-dump    print the resolved syntax tree\n"
             << "  -llvm-dump   print the llvm module\n"
-            << "  -cfg-dump   print the control flow graph\n";
+            << "  -cfg-dump    print the control flow graph\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
