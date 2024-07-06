@@ -14,7 +14,7 @@
     ::= <identifier> ':' <type>
 
 <varDecl>
-    ::= <identifier> ':' <type> ('=' <expr>)?
+    ::= <identifier> (':' <type>)? ('=' <expr>)?
 
 <block>
     ::= '{' <statement>* '}'

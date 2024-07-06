@@ -470,22 +470,28 @@ Sema::resolveParamDecl(const ParamDecl &param) {
 }
 
 std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
-  std::optional<Type> type = resolveType(varDecl.type);
-
-  if (!type || type == Type::Void)
-    return report(varDecl.location, "variable '" + varDecl.identifier +
-                                        "' has invalid '" + varDecl.type +
-                                        "' type");
+  if (!varDecl.type && !varDecl.initialzer)
+    return report(
+        varDecl.location,
+        "an uninitialized variable is expected to have a type specifier");
 
   std::unique_ptr<ResolvedExpr> resolvedInitializer = nullptr;
   if (varDecl.initialzer) {
     resolvedInitializer = resolveExpr(*varDecl.initialzer);
     if (!resolvedInitializer)
       return nullptr;
-
-    if (resolvedInitializer->type != type)
-      return report(resolvedInitializer->location, "initializer type mismatch");
   }
+
+  std::optional<Type> type =
+      varDecl.type ? resolveType(*varDecl.type) : resolvedInitializer->type;
+
+  if (!type || type == Type::Void)
+    return report(varDecl.location,
+                  "variable '" + varDecl.identifier + "' has invalid '" +
+                      varDecl.type.value_or("void") + "' type");
+
+  if (resolvedInitializer && resolvedInitializer->type != type)
+    return report(resolvedInitializer->location, "initializer type mismatch");
 
   return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,
                                            *type, varDecl.isMutable,

@@ -113,7 +113,7 @@ std::unique_ptr<ParamDecl> Parser::parseParamDecl() {
 }
 
 // <varDecl>
-//  ::= <identifier> ':' <type> ('=' <expr>)?
+//  ::= <identifier> (':' <type>)? ('=' <expr>)?
 std::unique_ptr<VarDecl> Parser::parseVarDecl(bool isLet) {
   SourceLocation location = nextToken.location;
 
@@ -122,19 +122,22 @@ std::unique_ptr<VarDecl> Parser::parseVarDecl(bool isLet) {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  if (nextToken.kind != TokenKind::Colon)
-    return report(nextToken.location, "expected ':'");
-  eatNextToken(); // eat ':'
+  std::optional<std::string> type;
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat ':'
 
-  varOrReturn(type, parseType());
+    type = parseType();
+    if (!type)
+      return nullptr;
+  }
 
   if (nextToken.kind != TokenKind::Equal)
-    return std::make_unique<VarDecl>(location, identifier, *type, !isLet);
+    return std::make_unique<VarDecl>(location, identifier, type, !isLet);
   eatNextToken(); // eat '='
 
   varOrReturn(initializer, parseExpr());
 
-  return std::make_unique<VarDecl>(location, identifier, *type, !isLet,
+  return std::make_unique<VarDecl>(location, identifier, type, !isLet,
                                    std::move(initializer));
 }
 

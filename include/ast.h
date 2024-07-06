@@ -224,17 +224,22 @@ struct ParamDecl : public Decl {
 };
 
 struct VarDecl : public Decl {
-  std::string type;
+  std::optional<std::string> type;
   std::unique_ptr<Expr> initialzer;
   bool isMutable;
 
-  VarDecl(SourceLocation location, std::string identifier, std::string type,
-          bool isMutable, std::unique_ptr<Expr> initializer = nullptr)
+  VarDecl(SourceLocation location, std::string identifier,
+          std::optional<std::string> type, bool isMutable,
+          std::unique_ptr<Expr> initializer = nullptr)
       : Decl{location, std::move(identifier)}, type(std::move(type)),
         isMutable(isMutable), initialzer(std::move(initializer)) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "VarDecl: " + identifier + ":" + type + "\n";
+    std::cerr << indent(level) << "VarDecl: " << identifier;
+    if (type)
+      std::cerr << ':' << *type;
+    std::cerr << '\n';
+
     if (initialzer)
       initialzer->dump(level + 1);
   }

@@ -4,8 +4,8 @@ fn error(x: number): void {
     if x == 0.0 {
         if x == 2.0 {
             0.0;
-            let x
-        // CHECK: [[# @LINE + 1 ]]:9: error: expected ':'
+            let
+        // CHECK: [[# @LINE + 1 ]]:9: error: expected identifier
         } else {
             1.0;
         }

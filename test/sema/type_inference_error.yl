@@ -1,0 +1,20 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main(): void {
+    // CHECK: [[# @LINE + 1 ]]:9: error: variable 'x' has invalid 'void' type
+    let x = main();
+    
+    // CHECK: [[# @LINE + 1 ]]:9: error: variable 'y' has invalid 'void' type
+    var y = main();
+
+    // CHECK: [[# @LINE + 1 ]]:9: error: an uninitialized variable is expected to have a type specifier
+    let x2;
+    
+    // CHECK: [[# @LINE + 1 ]]:9: error: an uninitialized variable is expected to have a type specifier
+    var y2;
+
+    // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'x2' not found
+    x2 = 0.0;
+    
+    // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'y2' not found
+    y2 = 0.0;
+}
