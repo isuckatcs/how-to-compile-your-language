@@ -87,7 +87,7 @@ int main(int argc, const char **argv) {
   if (options.source.empty())
     error("no source file specified");
 
-  if (options.source.extension() != ".al")
+  if (options.source.extension() != ".yl")
     error("unexpected source file extension");
 
   std::ifstream file(options.source);

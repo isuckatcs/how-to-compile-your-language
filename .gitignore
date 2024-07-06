@@ -1,5 +1,5 @@
 .vscode
 .cache
 build
-*.al
-!examples/*.al
+*.yl
+!examples/*.yl
