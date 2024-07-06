@@ -59,6 +59,8 @@ class CFGBuilder {
   int visitCondition(const ResolvedBinaryOperator &cond,
                      const ResolvedStmt *term, int trueBlock, int falseBlock);
 
+  template <typename T> int buildIntoNewBlock(T &&element, int successor);
+
 public:
   CFG build(const ResolvedFunctionDecl &fn);
 };

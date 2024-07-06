@@ -19,65 +19,60 @@ const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
 
 void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
-    std::cout << '[' << i;
+    std::cerr << '[' << i;
     if (i == entry)
-      std::cout << " (entry)";
+      std::cerr << " (entry)";
     else if (i == exit)
-      std::cout << " (exit)";
-    std::cout << ']' << '\n';
+      std::cerr << " (exit)";
+    std::cerr << ']' << '\n';
 
-    std::cout << "  preds: ";
+    std::cerr << "  preds: ";
     for (auto &&[id, reachable] : basicBlocks[i].predecessors)
-      std::cout << id << ((reachable) ? " " : "(U) ");
-    std::cout << '\n';
+      std::cerr << id << ((reachable) ? " " : "(U) ");
+    std::cerr << '\n';
 
-    std::cout << "  succs: ";
+    std::cerr << " succs: ";
     for (auto &&[id, reachable] : basicBlocks[i].successors)
-      std::cout << id << ((reachable) ? " " : "(U) ");
-    std::cout << '\n';
+      std::cerr << id << ((reachable) ? " " : "(U) ");
+    std::cerr << '\n';
 
     const auto &statements = basicBlocks[i].statements;
     for (auto it = statements.rbegin(); it != statements.rend(); ++it)
       (*it)->dump(1);
-    std::cout << '\n';
+    std::cerr << '\n';
   }
+}
+
+template <typename T>
+int CFGBuilder::buildIntoNewBlock(T &&element, int successor) {
+  successorBlock = successor;
+  currentBlock = -1;
+
+  int newBlock = visit(std::forward<T>(element));
+
+  if (newBlock == -1)
+    return successor;
+  return newBlock;
 }
 
 int CFGBuilder::visit(const ResolvedIfStmt &stmt) {
   int exitBlock = currentBlock == -1 ? successorBlock : currentBlock;
 
   int elseBlock = exitBlock;
-  if (stmt.falseBlock) {
-    successorBlock = exitBlock;
-    currentBlock = -1;
+  if (stmt.falseBlock)
+    elseBlock = buildIntoNewBlock(*stmt.falseBlock, exitBlock);
 
-    elseBlock = visit(*stmt.falseBlock);
-
-    if (elseBlock == -1)
-      elseBlock = exitBlock;
-  }
-
-  int trueBlock = -1;
-  successorBlock = exitBlock;
-  currentBlock = -1;
-
-  trueBlock = visit(*stmt.trueBlock);
-
-  if (trueBlock == -1)
-    trueBlock = exitBlock;
+  int trueBlock = buildIntoNewBlock(*stmt.trueBlock, exitBlock);
 
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get()))
     return visitCondition(*binop, &stmt, trueBlock, elseBlock);
 
-  std::optional<double> conditionVal = stmt.condition->getConstantValue();
-
   currentBlock = currentCFG.insertNewBlock();
-  currentCFG.insertEdge(currentBlock, trueBlock,
-                        conditionVal == 0 ? false : true);
-  currentCFG.insertEdge(currentBlock, elseBlock,
-                        conditionVal.value_or(0) != 0 ? false : true);
-
   currentCFG.insertStatement(currentBlock, &stmt);
+
+  std::optional<double> val = stmt.condition->getConstantValue();
+  currentCFG.insertEdge(currentBlock, trueBlock, val != 0);
+  currentCFG.insertEdge(currentBlock, elseBlock, val.value_or(0) == 0);
 
   return visit(*stmt.condition);
 }
@@ -86,14 +81,7 @@ int CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   int exitBlock = currentBlock != -1 ? currentBlock : successorBlock;
 
   int transitionBlock = currentCFG.insertNewBlock();
-
-  successorBlock = transitionBlock;
-  currentBlock = -1;
-
-  int bodyBlock = visit(*stmt.body);
-
-  if (bodyBlock == -1)
-    bodyBlock = transitionBlock;
+  int bodyBlock = buildIntoNewBlock(*stmt.body, transitionBlock);
 
   successorBlock = bodyBlock;
   currentBlock = -1;
@@ -101,15 +89,13 @@ int CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
   if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
     visitCondition(*binop, &stmt, bodyBlock, exitBlock);
   } else {
-    std::optional<double> conditionVal = stmt.condition->getConstantValue();
-
     currentBlock = currentCFG.insertNewBlock();
-    currentCFG.insertEdge(currentBlock, exitBlock,
-                          conditionVal.value_or(0) != 0 ? false : true);
-    currentCFG.insertEdge(currentBlock, bodyBlock,
-                          conditionVal == 0 ? false : true);
-
     currentCFG.insertStatement(currentBlock, &stmt);
+
+    std::optional<double> val = stmt.condition->getConstantValue();
+    currentCFG.insertEdge(currentBlock, exitBlock, val.value_or(0) == 0);
+    currentCFG.insertEdge(currentBlock, bodyBlock, val != 0);
+
     visit(*stmt.condition);
   }
   currentCFG.insertEdge(transitionBlock, currentBlock, true);
@@ -139,9 +125,9 @@ int CFGBuilder::visit(const ResolvedAssignment &stmt) {
 
 int CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
   currentBlock = currentCFG.insertNewBlock();
-  currentCFG.insertEdge(currentBlock, currentCFG.exit, true);
-
   currentCFG.insertStatement(currentBlock, &stmt);
+
+  currentCFG.insertEdge(currentBlock, currentCFG.exit, true);
 
   if (stmt.expr)
     return visit(*stmt.expr);
@@ -185,8 +171,7 @@ int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
                                int falseBlock) {
   int rhsBlock = -1;
   if (const auto *binop = getAsConditionalBinop(cond.rhs.get())) {
-    visitCondition(*binop, term, trueBlock, falseBlock);
-    rhsBlock = currentBlock;
+    rhsBlock = visitCondition(*binop, term, trueBlock, falseBlock);
   } else {
     // Create the block for the RHS.
     currentBlock = currentCFG.insertNewBlock();
@@ -194,17 +179,14 @@ int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
     if (term)
       currentCFG.insertStatement(currentBlock, term);
 
-    visit(*cond.rhs);
-    rhsBlock = currentBlock;
+    rhsBlock = visit(*cond.rhs);
 
     // From the RHS both the true and the false block is reachable.
-    std::optional<double> conditionVal = cond.rhs->getConstantValue();
-    currentCFG.insertEdge(rhsBlock, trueBlock,
-                          conditionVal == 0 ? false : true);
+    std::optional<double> val = cond.rhs->getConstantValue();
+    currentCFG.insertEdge(rhsBlock, trueBlock, val != 0);
 
     if (trueBlock != falseBlock)
-      currentCFG.insertEdge(rhsBlock, falseBlock,
-                            conditionVal.value_or(0) != 0 ? false : true);
+      currentCFG.insertEdge(rhsBlock, falseBlock, val.value_or(0) == 0);
   }
 
   bool isAnd = cond.op == TokenKind::AmpAmp;
@@ -223,16 +205,11 @@ int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
 
   // If the current op is &&, the false block is reachable from the LHS if LHS
   // is false. In case of ||, the true block is reachable if the LHS is true.
-  std::optional<double> conditionVal = cond.lhs->getConstantValue();
-
-  bool firstReachable = isAnd ? (conditionVal.value_or(0) != 0 ? false : true)
-                              : (conditionVal == 0 ? false : true);
+  std::optional<double> val = cond.lhs->getConstantValue();
   currentCFG.insertEdge(currentBlock, isAnd ? falseBlock : trueBlock,
-                        firstReachable);
-
-  bool secondReachable = isAnd ? (conditionVal == 0 ? false : true)
-                               : (conditionVal.value_or(0) != 0 ? false : true);
-  currentCFG.insertEdge(currentBlock, rhsBlock, secondReachable);
+                        isAnd ? val.value_or(0) == 0 : val != 0);
+  currentCFG.insertEdge(currentBlock, rhsBlock,
+                        isAnd ? val != 0 : val.value_or(0) == 0);
 
   // The current block when the function exits is the LHS block.
   currentCFG.insertStatement(currentBlock, &cond);
@@ -240,11 +217,14 @@ int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
 }
 
 int CFGBuilder::visit(const ResolvedStmt &stmt) {
-  if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
-    return visit(*expr);
-
   if (auto *ifStmt = dynamic_cast<const ResolvedIfStmt *>(&stmt))
     return visit(*ifStmt);
+
+  if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
+    return visit(*whileStmt);
+
+  if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
+    return visit(*expr);
 
   if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(&stmt))
     return visit(*assignment);
@@ -252,11 +232,7 @@ int CFGBuilder::visit(const ResolvedStmt &stmt) {
   if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
     return visit(*declStmt);
 
-  if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
-    return visit(*whileStmt);
-
   auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt);
-
   assert(returnStmt && "unexpected statement");
 
   return visit(*returnStmt);
@@ -275,15 +251,13 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
   currentCFG = CFG{};
 
   // Exit
-  successorBlock = currentCFG.insertNewBlock();
-  currentCFG.exit = successorBlock;
+  currentCFG.exit = currentCFG.insertNewBlock();
 
-  visit(*fn.body);
+  int b = buildIntoNewBlock(*fn.body, currentCFG.exit);
 
   // Entry
-  int entry = currentCFG.entry = currentCFG.insertNewBlock();
-  currentCFG.insertEdge(
-      entry, currentBlock != -1 ? currentBlock : successorBlock, true);
+  currentCFG.entry = currentCFG.insertNewBlock();
+  currentCFG.insertEdge(currentCFG.entry, b, true);
 
   return currentCFG;
 };
