@@ -7,6 +7,7 @@
 
 #include "utils.h"
 
+namespace yl {
 constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';',
                                      ',',  '+', '-', '*', '<', '>', '!'};
 
@@ -61,7 +62,7 @@ struct Token {
   std::optional<std::string> value;
 };
 
-class TheLexer {
+class Lexer {
   const SourceFile *source;
   size_t idx = 0;
 
@@ -81,8 +82,9 @@ class TheLexer {
   }
 
 public:
-  explicit TheLexer(const SourceFile &source) : source(&source) {}
+  explicit Lexer(const SourceFile &source) : source(&source) {}
   Token getNextToken();
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H

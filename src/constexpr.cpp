@@ -1,7 +1,7 @@
-#include "constexpr.h"
-
 #include <cassert>
 #include <optional>
+
+#include "constexpr.h"
 
 namespace {
 std::optional<bool> toBool(std::optional<double> d) {
@@ -12,6 +12,7 @@ std::optional<bool> toBool(std::optional<double> d) {
 }
 } // namespace
 
+namespace yl {
 std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     const ResolvedBinaryOperator &binop) {
   std::optional<double> lhs = evaluate(*binop.lhs);
@@ -116,3 +117,4 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
 
   return std::nullopt;
 }
+} // namespace yl

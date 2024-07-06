@@ -1,14 +1,15 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H
 
-#include "ast.h"
+#include <llvm/IR/IRBuilder.h>
 
 #include <map>
 #include <memory>
 #include <vector>
 
-#include <llvm/IR/IRBuilder.h>
+#include "ast.h"
 
+namespace yl {
 class Codegen {
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
@@ -62,5 +63,6 @@ public:
 
   std::unique_ptr<llvm::Module> generateIR();
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H

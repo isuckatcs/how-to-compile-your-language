@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "utils.h"
 
+namespace yl {
 namespace {
 int getTokPrecedence(TokenKind tok) {
   switch (tok) {
@@ -32,7 +33,7 @@ int getTokPrecedence(TokenKind tok) {
 // - end of the current block
 // - ';'
 // - EOF
-void TheParser::synchronize() {
+void Parser::synchronize() {
   incompleteAST = true;
 
   int braces = 0;
@@ -63,7 +64,7 @@ void TheParser::synchronize() {
 
 // <functionDecl>
 //  ::= 'fn' <identifier> <parameterList> ':' <type> <block>
-std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
+std::unique_ptr<FunctionDecl> Parser::parseFunctionDecl() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat fn
 
@@ -94,7 +95,7 @@ std::unique_ptr<FunctionDecl> TheParser::parseFunctionDecl() {
 
 // <paramDecl>
 //  ::= <identifier> ':' <type>
-std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
+std::unique_ptr<ParamDecl> Parser::parseParamDecl() {
   SourceLocation location = nextToken.location;
   assert(nextToken.value && "identifier token without value");
 
@@ -113,7 +114,7 @@ std::unique_ptr<ParamDecl> TheParser::parseParamDecl() {
 
 // <varDecl>
 //  ::= <identifier> ':' <type> ('=' <expr>)?
-std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
+std::unique_ptr<VarDecl> Parser::parseVarDecl(bool isLet) {
   SourceLocation location = nextToken.location;
 
   assert(nextToken.value && "identifier token without value");
@@ -139,7 +140,7 @@ std::unique_ptr<VarDecl> TheParser::parseVarDecl(bool isLet) {
 
 // <block>
 //  ::= '{' <statement>* '}'
-std::unique_ptr<Block> TheParser::parseBlock() {
+std::unique_ptr<Block> Parser::parseBlock() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '{'
 
@@ -167,7 +168,7 @@ std::unique_ptr<Block> TheParser::parseBlock() {
 
 // <ifStatement>
 //  ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
-std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
+std::unique_ptr<IfStmt> Parser::parseIfStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'if'
 
@@ -208,7 +209,7 @@ std::unique_ptr<IfStmt> TheParser::parseIfStmt() {
 
 // <whileStatement>
 //  ::= 'while' <expr> <block>
-std::unique_ptr<WhileStmt> TheParser::parseWhileStmt() {
+std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'while'
 
@@ -226,7 +227,7 @@ std::unique_ptr<WhileStmt> TheParser::parseWhileStmt() {
 // <assignment>
 //  ::= <declRefExpr> '=' <expr>
 std::unique_ptr<Assignment>
-TheParser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
+Parser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
   eatNextToken(); // eat '='
 
   varOrReturn(rhs, parseExpr());
@@ -237,7 +238,7 @@ TheParser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
 
 // <declStmt>
 //  ::= ('let'|'var') <varDecl>
-std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
+std::unique_ptr<DeclStmt> Parser::parseDeclStmt() {
   Token tok = nextToken;
   eatNextToken(); // eat 'let' | 'var'
 
@@ -251,7 +252,7 @@ std::unique_ptr<DeclStmt> TheParser::parseDeclStmt() {
 
 // <returnStmt>
 //  ::= 'return' <expr> ';'
-std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
+std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'return'
 
@@ -278,7 +279,7 @@ std::unique_ptr<ReturnStmt> TheParser::parseReturnStmt() {
 //  |   <whileStatement>
 //  |   <assignment> ';'
 //  |   <declStmt> ';'
-std::unique_ptr<Stmt> TheParser::parseStmt() {
+std::unique_ptr<Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();
 
@@ -314,13 +315,13 @@ std::unique_ptr<Stmt> TheParser::parseStmt() {
   return expr;
 }
 
-std::unique_ptr<Expr> TheParser::parseExpr() {
+std::unique_ptr<Expr> Parser::parseExpr() {
   varOrReturn(lhs, parsePrefixExpr());
   return parseExprRHS(std::move(lhs), 0);
 }
 
-std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> lhs,
-                                              int precedence) {
+std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
+                                           int precedence) {
   while (true) {
     TokenKind op = nextToken.kind;
     int curOpPrec = getTokPrecedence(op);
@@ -342,7 +343,7 @@ std::unique_ptr<Expr> TheParser::parseExprRHS(std::unique_ptr<Expr> lhs,
   }
 }
 
-std::unique_ptr<Expr> TheParser::parsePrefixExpr() {
+std::unique_ptr<Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
   if (tok.kind != TokenKind::Excl)
@@ -369,7 +370,7 @@ std::unique_ptr<Expr> TheParser::parsePrefixExpr() {
 //
 // <callExpr>
 //  ::= <declRefExpr> <argumentList>
-std::unique_ptr<Expr> TheParser::parsePrimary() {
+std::unique_ptr<Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
   if (nextToken.kind == TokenKind::Lpar) {
@@ -410,7 +411,7 @@ std::unique_ptr<Expr> TheParser::parsePrimary() {
 
 // <parameterList>
 //  ::= '(' (<paramDecl> (',' <paramDecl>)*)? ')'
-std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
+std::optional<Parser::ParameterList> Parser::parseParameterList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
     return std::nullopt;
@@ -451,7 +452,7 @@ std::optional<TheParser::ParameterList> TheParser::parseParameterList() {
 
 // <argumentList>
 //  ::= '(' (<expr> (',' <expr>)*)? ')'
-std::optional<TheParser::ArgumentList> TheParser::parseArgumentList() {
+std::optional<Parser::ArgumentList> Parser::parseArgumentList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
     return std::nullopt;
@@ -489,7 +490,7 @@ std::optional<TheParser::ArgumentList> TheParser::parseArgumentList() {
 //  ::= 'number'
 //  |   'void'
 //  |   <identifier>
-std::optional<std::string> TheParser::parseType() {
+std::optional<std::string> Parser::parseType() {
   TokenKind kind = nextToken.kind;
 
   if (kind != TokenKind::KwNumber && kind != TokenKind::KwVoid &&
@@ -509,7 +510,7 @@ std::optional<std::string> TheParser::parseType() {
 // <sourceFile>
 //     ::= <functionDecl>* EOF
 std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool>
-TheParser::parseSourceFile() {
+Parser::parseSourceFile() {
   std::vector<std::unique_ptr<FunctionDecl>> functions;
 
   while (nextToken.kind != TokenKind::Eof) {
@@ -542,3 +543,4 @@ TheParser::parseSourceFile() {
 
   return {std::move(functions), !incompleteAST && hasMainFunction};
 }
+} // namespace yl

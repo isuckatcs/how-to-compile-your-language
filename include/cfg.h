@@ -6,6 +6,7 @@
 
 #include "ast.h"
 
+namespace yl {
 struct BasicBlock {
   std::set<std::pair<int, bool>> predecessors;
   std::set<std::pair<int, bool>> successors;
@@ -64,5 +65,6 @@ class CFGBuilder {
 public:
   CFG build(const ResolvedFunctionDecl &fn);
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_CFG_H

@@ -1,9 +1,10 @@
-#include "codegen.h"
-
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/Host.h>
 
+#include "codegen.h"
+
+namespace yl {
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
     std::string_view sourcePath)
@@ -426,3 +427,4 @@ std::unique_ptr<llvm::Module> Codegen::generateIR() {
 
   return std::move(module);
 }
+} // namespace yl

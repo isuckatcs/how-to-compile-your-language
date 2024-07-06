@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 
+namespace yl {
 struct Dumpable {
   [[nodiscard]] std::string indent(size_t level) const {
     return std::string(level * 2, ' ');
@@ -42,5 +43,6 @@ public:
   void setConstantValue(std::optional<Ty> val) { value = std::move(val); }
   std::optional<Ty> getConstantValue() const { return value; }
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H

@@ -10,6 +10,9 @@
 #include "parser.h"
 #include "sema.h"
 
+using namespace yl;
+
+namespace {
 void displayHelp() {
   std::cout << "Usage:\n"
             << "  your-compiler [options] <source_file>\n\n"
@@ -71,6 +74,7 @@ CompilerOptions parseArguments(int argc, const char **argv) {
 
   return options;
 }
+} // namespace
 
 int main(int argc, const char **argv) {
   CompilerOptions options = parseArguments(argc, argv);
@@ -94,8 +98,8 @@ int main(int argc, const char **argv) {
   buffer << file.rdbuf();
   SourceFile sourceFile = {options.source.c_str(), buffer.str()};
 
-  TheLexer lexer(sourceFile);
-  TheParser parser(lexer);
+  Lexer lexer(sourceFile);
+  Parser parser(lexer);
   auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {

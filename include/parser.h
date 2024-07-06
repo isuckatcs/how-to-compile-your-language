@@ -9,8 +9,9 @@
 #include "ast.h"
 #include "lexer.h"
 
-class TheParser {
-  TheLexer *lexer;
+namespace yl {
+class Parser {
+  Lexer *lexer;
   Token nextToken;
   bool incompleteAST = false;
 
@@ -53,10 +54,11 @@ class TheParser {
   std::optional<std::string> parseType();
 
 public:
-  explicit TheParser(TheLexer &lexer)
+  explicit Parser(Lexer &lexer)
       : lexer(&lexer), nextToken(lexer.getNextToken()) {}
 
   std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool> parseSourceFile();
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H

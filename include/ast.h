@@ -9,6 +9,7 @@
 #include "lexer.h"
 #include "utils.h"
 
+namespace yl {
 namespace {
 std::string_view dumpOp(TokenKind op) {
   if (op == TokenKind::Plus)
@@ -575,5 +576,6 @@ struct ResolvedReturnStmt : public ResolvedStmt {
       expr->dump(level + 1);
   }
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H

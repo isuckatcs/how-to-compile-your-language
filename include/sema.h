@@ -9,6 +9,7 @@
 #include "cfg.h"
 #include "constexpr.h"
 
+namespace yl {
 class Sema {
   ConstantExpressionEvaluator cee;
   std::vector<std::unique_ptr<FunctionDecl>> ast;
@@ -69,5 +70,6 @@ public:
 
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();
 };
+} // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H

@@ -6,6 +6,7 @@
 #include "sema.h"
 #include "utils.h"
 
+namespace yl {
 bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
   CFG cfg = CFGBuilder().build(fn);
 
@@ -572,3 +573,4 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
 
   return std::move(resolvedTree);
 }
+} // namespace yl

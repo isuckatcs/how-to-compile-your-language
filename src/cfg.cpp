@@ -1,8 +1,9 @@
-#include "cfg.h"
-#include "ast.h"
-
 #include <cassert>
 
+#include "ast.h"
+#include "cfg.h"
+
+namespace yl {
 namespace {
 const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
   const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(expr);
@@ -261,3 +262,4 @@ CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
 
   return currentCFG;
 };
+} // namespace yl

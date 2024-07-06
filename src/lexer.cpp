@@ -11,7 +11,8 @@ bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 } // namespace
 
-Token TheLexer::getNextToken() {
+namespace yl {
+Token Lexer::getNextToken() {
   char currentChar = eatNextChar();
 
   while (isSpace(currentChar))
@@ -87,3 +88,4 @@ Token TheLexer::getNextToken() {
 
   return Token{tokenStartLocation, TokenKind::Unk};
 }
+} // namespace yl
