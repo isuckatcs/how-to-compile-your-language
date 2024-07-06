@@ -8,8 +8,7 @@ fn main(): void {
 
     x = x + 1.0;
 }
-// CHECK: main
-// CHECK-NEXT: ----------
+// CHECK: main:
 // CHECK-NEXT: [2 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

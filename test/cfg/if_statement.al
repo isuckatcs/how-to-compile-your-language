@@ -2,8 +2,7 @@
 fn main(): void {
     if 0.0 {}
 }
-// CHECK: main
-// CHECK-NEXT: ----------
+// CHECK: main:
 // CHECK-NEXT: [2 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -27,8 +26,7 @@ fn body(): void {
         1.0;
     }
 }
-// CHECK: body
-// CHECK-NEXT: ----------
+// CHECK: body:
 // CHECK-NEXT: [3 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 2 
@@ -62,8 +60,7 @@ fn additionalBlockAfterIf(): void {
 
     2.0;
 }
-// CHECK: additionalBlockAfterIf
-// CHECK-NEXT: ----------
+// CHECK: additionalBlockAfterIf:
 // CHECK-NEXT: [4 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -109,8 +106,7 @@ fn multipleBranches(): void {
 
     4.0;
 }
-// CHECK: multipleBranches
-// CHECK-NEXT: ----------
+// CHECK: multipleBranches:
 // CHECK-NEXT: [9 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -226,8 +222,7 @@ fn nestedIfStatements(): void {
 
     2.0;
 }
-// CHECK: nestedIfStatements
-// CHECK-NEXT: ----------
+// CHECK: nestedIfStatements:
 // CHECK-NEXT: [6 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -296,8 +291,7 @@ fn orCondition(): void {
 
     1.0;
 }
-// CHECK: orCondition
-// CHECK-NEXT: ----------
+// CHECK: orCondition:
 // CHECK-NEXT: [6 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -376,8 +370,7 @@ fn andCondition(): void {
 
     1.0;
 }
-// CHECK: andCondition
-// CHECK-NEXT: ----------
+// CHECK: andCondition:
 // CHECK-NEXT: [6 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -455,8 +448,7 @@ fn ifWhileFirstStmt(p: number): void {
         while p {}
     }
 }
-// CHECK: ifWhileFirstStmt
-// CHECK-NEXT: ----------
+// CHECK: ifWhileFirstStmt:
 // CHECK-NEXT: [6 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -513,8 +505,7 @@ fn nestedInLoopConditionalOps(): void {
         while 2.0 {}
     }
 }
-// CHECK: nestedInLoop
-// CHECK-NEXT: ----------
+// CHECK: nestedInLoopConditionalOps:
 // CHECK-NEXT: [11 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 10 

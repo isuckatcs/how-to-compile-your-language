@@ -119,14 +119,10 @@ int main(int argc, const char **argv) {
   if (resolvedFunctions.empty())
     return 1;
 
-  // FIXME: Is this the proper place to do this?
   if (options.cfgDump) {
     for (auto &&fn : resolvedFunctions) {
-      std::cout << "----------" << '\n';
-      std::cout << fn->identifier << '\n';
-      std::cout << "----------" << '\n';
-      CFGBuilder b;
-      b.build(*fn).dump(1);
+      std::cerr << fn->identifier << ':' << '\n';
+      CFGBuilder().build(*fn).dump();
     }
 
     return 0;

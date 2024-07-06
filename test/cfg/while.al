@@ -7,8 +7,7 @@ fn main(): void {
 
     1.0;
 }
-// CHECK: main
-// CHECK-NEXT: ----------
+// CHECK: main:
 // CHECK-NEXT: [6 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -59,8 +58,7 @@ fn orCondition(): void {
 
     1.0;
 }
-// CHECK: orCondition
-// CHECK-NEXT: ----------
+// CHECK: orCondition:
 // CHECK-NEXT: [8 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 7 
@@ -147,8 +145,7 @@ fn andCondition(): void {
 
     1.0;
 }
-// CHECK: andCondition
-// CHECK-NEXT: ----------
+// CHECK: andCondition:
 // CHECK-NEXT: [8 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 7 
@@ -238,8 +235,7 @@ fn nestedLoops(): void {
 
     1.0;
 }
-// CHECK: nestedLoops
-// CHECK-NEXT: ----------
+// CHECK: nestedLoops:
 // CHECK-NEXT: [9 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -326,8 +322,7 @@ fn returnMidloop(): void {
 
     1.0;
 }
-// CHECK: returnMidloop
-// CHECK-NEXT: ----------
+// CHECK: returnMidloop:
 // CHECK-NEXT: [9 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -416,8 +411,7 @@ fn whileOnly(): void {
 
     }
 }
-// CHECK: whileOnly
-// CHECK-NEXT: ----------
+// CHECK: whileOnly:
 // CHECK-NEXT: [3 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 2 

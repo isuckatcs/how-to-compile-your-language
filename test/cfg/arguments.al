@@ -4,8 +4,7 @@ fn foo(x: number, y: number): void{}
 fn main(): void {
     foo(1.0 + 2.0, 3.0 + 4.0);
 }
-// CHECK: main
-// CHECK-NEXT: ----------
+// CHECK: main:
 // CHECK-NEXT: [2 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

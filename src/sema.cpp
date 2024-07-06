@@ -7,8 +7,7 @@
 #include "utils.h"
 
 bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
-  CFGBuilder b;
-  CFG cfg = b.build(fn);
+  CFG cfg = CFGBuilder().build(fn);
 
   bool error = false;
   error |= checkReturnOnAllPaths(fn, cfg);

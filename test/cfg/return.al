@@ -8,8 +8,7 @@ fn foo(): number {
 
     return 1.0;
 }
-// CHECK: foo
-// CHECK-NEXT: ----------
+// CHECK: foo:
 // CHECK-NEXT: [4 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 

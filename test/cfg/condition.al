@@ -3,8 +3,7 @@ fn main(): void {
     3.0 || 2.0;
     1.0;
 }
-// CHECK: main
-// CHECK-NEXT: ----------
+// CHECK: main:
 // CHECK-NEXT: [4 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -47,8 +46,7 @@ fn and(): void {
     3.0 && 2.0;
     1.0;
 }
-// CHECK: and
-// CHECK-NEXT: ----------
+// CHECK: and:
 // CHECK-NEXT: [4 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -91,8 +89,7 @@ fn multipleOr(): void {
     4.0 || 3.0 || 2.0;
     1.0;
 }
-// CHECK: multipleOr
-// CHECK-NEXT: ----------
+// CHECK: multipleOr:
 // CHECK-NEXT: [5 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 4 
@@ -155,8 +152,7 @@ fn multipleAnd(): void {
     4.0 && 3.0 && 2.0;
     1.0;
 }
-// CHECK: multipleAnd
-// CHECK-NEXT: ----------
+// CHECK: multipleAnd:
 // CHECK-NEXT: [5 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 4 
@@ -219,8 +215,7 @@ fn andOr(): void {
     4.0 && 3.0 || 2.0;
     1.0;
 }
-// CHECK: andOr
-// CHECK-NEXT: ----------
+// CHECK: andOr:
 // CHECK-NEXT: [5 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 4 
@@ -283,8 +278,7 @@ fn orAnd(): void {
     4.0 || 3.0 && 2.0;
     1.0;
 }
-// CHECK: orAnd
-// CHECK-NEXT: ----------
+// CHECK: orAnd:
 // CHECK-NEXT: [5 (entry)]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 4 

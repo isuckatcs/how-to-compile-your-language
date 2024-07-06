@@ -31,7 +31,7 @@ void CFG::dump(size_t) const {
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
-    std::cerr << " succs: ";
+    std::cerr << "  succs: ";
     for (auto &&[id, reachable] : basicBlocks[i].successors)
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
