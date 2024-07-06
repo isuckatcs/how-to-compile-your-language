@@ -11,8 +11,6 @@
 #include "parser.h"
 #include "sema.h"
 
-#include <llvm/Support/Host.h>
-
 void displayHelp() {
   std::cout << "Usage:\n"
             << "  your-compiler [options] <source_file>\n\n"
@@ -134,12 +132,8 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  Codegen codegen{std::move(resolvedFunctions)};
+  Codegen codegen{std::move(resolvedFunctions), *options.source};
   std::unique_ptr<llvm::Module> ir = codegen.generateIR();
-
-  // FIXME: Is this the proper place to do this?
-  ir->setSourceFileName(*options.source);
-  ir->setTargetTriple(llvm::sys::getDefaultTargetTriple());
 
   if (options.llvmDump) {
     ir->dump();

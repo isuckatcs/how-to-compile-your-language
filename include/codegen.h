@@ -57,7 +57,8 @@ class Codegen {
 
 public:
   explicit Codegen(
-      std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile);
+      std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
+      std::string_view sourcePath);
 
   std::unique_ptr<llvm::Module> generateIR();
 };

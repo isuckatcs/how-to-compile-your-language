@@ -2,11 +2,16 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/Host.h>
 
 Codegen::Codegen(
-    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile)
+    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
+    std::string_view sourcePath)
     : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
-      module(std::make_unique<llvm::Module>("<translation_unit>", context)) {}
+      module(std::make_unique<llvm::Module>("<translation_unit>", context)) {
+  module->setSourceFileName(sourcePath);
+  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+}
 
 llvm::Type *Codegen::generateType(Type type) {
   if (type == Type::Number)
