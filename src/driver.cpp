@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -29,8 +28,8 @@ void displayHelp() {
 }
 
 struct CompilerOptions {
-  std::optional<std::string_view> source;
-  std::optional<std::string_view> output;
+  std::filesystem::path source;
+  std::filesystem::path output;
   bool displayHelp = false;
   bool astDump = false;
   bool resDump = false;
@@ -39,15 +38,15 @@ struct CompilerOptions {
 };
 
 CompilerOptions parseArguments(int argc, const char **argv) {
-  CompilerOptions options{std::nullopt, std::nullopt, false};
+  CompilerOptions options;
 
   int idx = 1;
   while (idx < argc) {
-    std::string_view arg{argv[idx]};
+    std::string_view arg = argv[idx];
 
     if (arg[0] != '-') {
-      if (options.source)
-        error("unexpected argument '" + std::string{arg} + '\'');
+      if (!options.source.empty())
+        error("unexpected argument '" + std::string(arg) + '\'');
 
       options.source = arg;
     } else {
@@ -64,7 +63,7 @@ CompilerOptions parseArguments(int argc, const char **argv) {
       else if (arg == "-cfg-dump")
         options.cfgDump = true;
       else
-        error("unexpected option '" + std::string{arg} + '\'');
+        error("unexpected option '" + std::string(arg) + '\'');
     }
 
     ++idx;
@@ -81,24 +80,26 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  if (!options.source)
+  if (options.source.empty())
     error("no source file specified");
 
-  std::ifstream file{options.source->data()};
+  if (options.source.extension() != ".al")
+    error("unexpected source file extension");
+
+  std::ifstream file(options.source);
   if (!file)
-    error("failed to open '" + std::string{*options.source} + '\'');
+    error("failed to open '" + options.source.string() + '\'');
 
   std::stringstream buffer;
   buffer << file.rdbuf();
-  SourceFile sourceFile{*options.source, buffer.str()};
+  SourceFile sourceFile = {options.source.c_str(), buffer.str()};
 
-  TheLexer lexer{sourceFile};
-  TheParser parser{lexer};
-
-  auto [functions, success] = parser.parseSourceFile();
+  TheLexer lexer(sourceFile);
+  TheParser parser(lexer);
+  auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {
-    for (auto &&fn : functions)
+    for (auto &&fn : ast)
       fn->dump();
     return 0;
   }
@@ -106,53 +107,51 @@ int main(int argc, const char **argv) {
   if (!success)
     return 1;
 
-  Sema sema{std::move(functions)};
-
-  auto resolvedFunctions = sema.resolveSourceFile();
+  Sema sema(std::move(ast));
+  auto resolvedTree = sema.resolveSourceFile();
 
   if (options.resDump) {
-    for (auto &&fn : resolvedFunctions)
+    for (auto &&fn : resolvedTree)
       fn->dump();
     return 0;
   }
 
-  if (resolvedFunctions.empty())
-    return 1;
-
   if (options.cfgDump) {
-    for (auto &&fn : resolvedFunctions) {
+    for (auto &&fn : resolvedTree) {
       std::cerr << fn->identifier << ':' << '\n';
       CFGBuilder().build(*fn).dump();
     }
-
     return 0;
   }
 
-  Codegen codegen{std::move(resolvedFunctions), *options.source};
-  std::unique_ptr<llvm::Module> ir = codegen.generateIR();
+  if (resolvedTree.empty())
+    return 1;
+
+  Codegen codegen(std::move(resolvedTree), options.source.c_str());
+  std::unique_ptr<llvm::Module> llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
-    ir->dump();
+    llvmIR->dump();
     return 0;
   }
 
   // Theoretically this can still generate the same tmp files for 2 different
   // invocations and remove them later.
-  std::stringstream ss;
-  ss << "tmp-" << std::hash<std::string_view>{}(*options.source) << ".ll";
-  auto outLL = ss.str();
+  std::stringstream path;
+  path << "tmp-" << std::filesystem::hash_value(options.source) << ".ll";
+  const std::string &llvmIRPath = path.str();
 
   std::error_code errorCode;
-  llvm::raw_fd_ostream f{outLL, errorCode};
-  ir->print(f, nullptr);
+  llvm::raw_fd_ostream f(llvmIRPath, errorCode);
+  llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  command << "clang " << outLL;
-  if (options.output)
-    command << " -o " << *options.output;
+  command << "clang " << llvmIRPath;
+  if (!options.output.empty())
+    command << " -o " << options.output;
 
   int ret = std::system(command.str().c_str());
-  std::filesystem::remove(outLL);
+  std::filesystem::remove(llvmIRPath);
 
   return ret;
 }
