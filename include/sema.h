@@ -11,7 +11,7 @@
 
 class Sema {
   ConstantExpressionEvaluator cee;
-  std::vector<std::unique_ptr<FunctionDecl>> sourceFile;
+  std::vector<std::unique_ptr<FunctionDecl>> ast;
   std::vector<std::vector<ResolvedDecl *>> scopes;
 
   ResolvedFunctionDecl *currentFunction;
@@ -52,7 +52,7 @@ class Sema {
   std::unique_ptr<ResolvedParamDecl> resolveParamDecl(const ParamDecl &param);
   std::unique_ptr<ResolvedVarDecl> resolveVarDecl(const VarDecl &varDecl);
   std::unique_ptr<ResolvedFunctionDecl>
-  resolveFunctionWithoutBody(const FunctionDecl &function);
+  resolveFunctionDeclaration(const FunctionDecl &function);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
@@ -64,10 +64,10 @@ class Sema {
                                    const CFG &cfg);
 
 public:
-  explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> sourceFile)
-      : sourceFile(std::move(sourceFile)) {}
+  explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)
+      : ast(std::move(ast)) {}
 
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveSourceFile();
+  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();
 };
 
 #endif // A_COMPILER_SEMA_H

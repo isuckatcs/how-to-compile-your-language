@@ -1,6 +1,6 @@
-#include <algorithm>
 #include <cassert>
 #include <map>
+#include <set>
 
 #include "cfg.h"
 #include "sema.h"
@@ -93,10 +93,9 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
         for (auto &&[decl, state] : curLattices[pred.first])
           tmp[decl] = joinStates(tmp[decl], state);
 
-      auto stmtsReversed = stmts;
-      std::reverse(stmtsReversed.begin(), stmtsReversed.end());
+      for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
+        const ResolvedStmt *stmt = *it;
 
-      for (auto &&stmt : stmtsReversed) {
         if (const auto *declStmt =
                 dynamic_cast<const ResolvedDeclStmt *>(stmt)) {
           tmp[declStmt->varDecl.get()] = declStmt->varDecl->initializer
@@ -170,25 +169,24 @@ std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrint() {
-  SourceLocation builtinLocation = SourceLocation{"<builtin>", 0, 0};
+  SourceLocation loc = SourceLocation{"<builtin>", 0, 0};
 
-  auto param =
-      std::make_unique<ResolvedParamDecl>(builtinLocation, "n", Type::Number);
+  auto param = std::make_unique<ResolvedParamDecl>(loc, "n", Type::Number);
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> params;
   params.emplace_back(std::move(param));
 
   auto block = std::make_unique<ResolvedBlock>(
-      builtinLocation, std::vector<std::unique_ptr<ResolvedStmt>>{});
+      loc, std::vector<std::unique_ptr<ResolvedStmt>>());
 
-  return std::make_unique<ResolvedFunctionDecl>(SourceLocation{}, "print",
-                                                Type::Void, std::move(params),
-                                                std::move(block));
+  return std::make_unique<ResolvedFunctionDecl>(
+      loc, "print", Type::Void, std::move(params), std::move(block));
 };
 
 std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
   if (typeSpecifier == "void")
     return Type::Void;
+
   if (typeSpecifier == "number")
     return Type::Number;
 
@@ -312,15 +310,16 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
 
   varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
 
+  std::unique_ptr<ResolvedBlock> resolvedFalseBlock;
   if (ifStmt.falseBlock) {
-    varOrReturn(falseBlock, resolveBlock(*ifStmt.falseBlock));
-    return std::make_unique<ResolvedIfStmt>(
-        ifStmt.location, std::move(condition), std::move(trueBlock),
-        std::move(falseBlock));
+    resolvedFalseBlock = resolveBlock(*ifStmt.falseBlock);
+    if (!resolvedFalseBlock)
+      return nullptr;
   }
 
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
-                                          std::move(trueBlock));
+                                          std::move(trueBlock),
+                                          std::move(resolvedFalseBlock));
 }
 
 std::unique_ptr<ResolvedWhileStmt>
@@ -353,7 +352,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
   assert(resolvedLHS->type != Type::Void &&
-         "reference to void variable in assignment LHS");
+         "reference to void declaration in assignment LHS");
 
   if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
     return report(resolvedLHS->location,
@@ -427,36 +426,29 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
-  ScopeRAII scope{this};
+  ScopeRAII blockScope{this};
   std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
-  bool reportUnreachable = false;
-  bool unreachableReported = false;
+  bool error = false;
+  int reportUnreachableCount = 0;
 
-  bool errorHappened = false;
   for (auto &&stmt : block.statements) {
-    std::unique_ptr<ResolvedStmt> resolvedStmt = resolveStmt(*stmt);
+    auto resolvedStmt = resolveStmt(*stmt);
 
-    if (!resolvedStmt) {
-      errorHappened = true;
-      continue;
-    }
-
-    resolvedStatements.emplace_back(std::move(resolvedStmt));
-
-    if (errorHappened)
+    error |= !resolvedStatements.emplace_back(std::move(resolvedStmt));
+    if (error)
       continue;
 
-    if (!unreachableReported && reportUnreachable) {
+    if (reportUnreachableCount == 1) {
       report(stmt->location, "unreachable statement", true);
-      unreachableReported = true;
+      ++reportUnreachableCount;
     }
 
     if (dynamic_cast<ReturnStmt *>(stmt.get()))
-      reportUnreachable = true;
+      ++reportUnreachableCount;
   }
 
-  if (errorHappened)
+  if (error)
     return nullptr;
 
   return std::make_unique<ResolvedBlock>(block.location,
@@ -500,8 +492,8 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl>
-Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
-  ScopeRAII scope{this};
+Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
+  ScopeRAII paramScope{this};
   std::optional<Type> type = resolveType(function.type);
 
   if (!type)
@@ -521,12 +513,12 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;
   for (auto &&param : function.params) {
-    auto resolvedParamDecl = resolveParamDecl(*param);
+    auto resolvedParam = resolveParamDecl(*param);
 
-    if (!resolvedParamDecl || !insertDeclToCurrentScope(*resolvedParamDecl))
+    if (!resolvedParam || !insertDeclToCurrentScope(*resolvedParam))
       return nullptr;
 
-    resolvedParams.emplace_back(std::move(resolvedParamDecl));
+    resolvedParams.emplace_back(std::move(resolvedParam));
   }
 
   return std::make_unique<ResolvedFunctionDecl>(
@@ -534,17 +526,17 @@ Sema::resolveFunctionWithoutBody(const FunctionDecl &function) {
       nullptr);
 };
 
-std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
-  ScopeRAII scope{this};
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
+std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
+  ScopeRAII globalScope{this};
+  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
 
-  std::unique_ptr<ResolvedFunctionDecl> builtinPrint = createBuiltinPrint();
-  insertDeclToCurrentScope(
-      *resolvedSourceFile.emplace_back(std::move(builtinPrint)));
+  // Insert print first to be able to detect possible redeclarations.
+  auto builtinPrint = createBuiltinPrint();
+  insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(builtinPrint)));
 
   bool error = false;
-  for (auto &&function : sourceFile) {
-    auto resolvedFunctionDecl = resolveFunctionWithoutBody(*function);
+  for (auto &&fn : ast) {
+    auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
 
     if (!resolvedFunctionDecl ||
         !insertDeclToCurrentScope(*resolvedFunctionDecl)) {
@@ -552,20 +544,20 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
       continue;
     }
 
-    resolvedSourceFile.emplace_back(std::move(resolvedFunctionDecl));
+    resolvedTree.emplace_back(std::move(resolvedFunctionDecl));
   }
 
   if (error)
     return {};
 
-  for (size_t i = 1; i < resolvedSourceFile.size(); ++i) {
+  for (size_t i = 1; i < resolvedTree.size(); ++i) {
     ScopeRAII scope{this};
+    currentFunction = resolvedTree[i].get();
 
-    for (auto &&param : resolvedSourceFile[i]->params)
+    for (auto &&param : currentFunction->params)
       insertDeclToCurrentScope(*param);
 
-    currentFunction = resolvedSourceFile[i].get();
-    auto resolvedBody = resolveBlock(*sourceFile[i - 1]->body);
+    auto resolvedBody = resolveBlock(*ast[i - 1]->body);
     if (!resolvedBody) {
       error = true;
       continue;
@@ -578,5 +570,5 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveSourceFile() {
   if (error)
     return {};
 
-  return std::move(resolvedSourceFile);
+  return std::move(resolvedTree);
 }

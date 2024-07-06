@@ -108,7 +108,7 @@ int main(int argc, const char **argv) {
     return 1;
 
   Sema sema(std::move(ast));
-  auto resolvedTree = sema.resolveSourceFile();
+  auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
     for (auto &&fn : resolvedTree)
