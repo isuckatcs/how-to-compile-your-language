@@ -19,7 +19,7 @@ bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
 
 bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
-  if (fn.type == Type::Void)
+  if (fn.type.kind == Type::Kind::Void)
     return false;
 
   int returnCount = 0;
@@ -172,7 +172,8 @@ std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
   SourceLocation loc = SourceLocation{"<builtin>", 0, 0};
 
-  auto param = std::make_unique<ResolvedParamDecl>(loc, "n", Type::Number);
+  auto param =
+      std::make_unique<ResolvedParamDecl>(loc, "n", Type::builtinNumber());
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> params;
   params.emplace_back(std::move(param));
@@ -181,24 +182,21 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
       loc, std::vector<std::unique_ptr<ResolvedStmt>>());
 
   return std::make_unique<ResolvedFunctionDecl>(
-      loc, "println", Type::Void, std::move(params), std::move(block));
+      loc, "println", Type::builtinVoid(), std::move(params), std::move(block));
 };
 
-std::optional<Type> Sema::resolveType(const std::string &typeSpecifier) {
-  if (typeSpecifier == "void")
-    return Type::Void;
+std::optional<Type> Sema::resolveType(Type parsedType) {
+  if (parsedType.kind == Type::Kind::Custom)
+    return std::nullopt;
 
-  if (typeSpecifier == "number")
-    return Type::Number;
-
-  return std::nullopt;
+  return parsedType;
 }
 
 std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.rhs));
 
-  if (resolvedRHS->type == Type::Void)
+  if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(
         resolvedRHS->location,
         "void expression cannot be used as operand to unary operator");
@@ -212,18 +210,19 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
-  if (resolvedLHS->type == Type::Void)
+  if (resolvedLHS->type.kind == Type::Kind::Void)
     return report(
         resolvedLHS->location,
         "void expression cannot be used as LHS operand to binary operator");
 
-  if (resolvedRHS->type == Type::Void)
+  if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(
         resolvedRHS->location,
         "void expression cannot be used as RHS operand to binary operator");
 
-  assert(resolvedLHS->type == resolvedRHS->type &&
-         resolvedLHS->type == Type::Number && "unexpexted type in binop");
+  assert(resolvedLHS->type.kind == resolvedRHS->type.kind &&
+         resolvedLHS->type.kind == Type::Kind::Number &&
+         "unexpexted type in binop");
 
   return std::make_unique<ResolvedBinaryOperator>(
       binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
@@ -267,7 +266,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   for (auto &&arg : call.arguments) {
     varOrReturn(resolvedArg, resolveExpr(*arg));
 
-    if (resolvedArg->type != resolvedFunctionDecl->params[idx]->type)
+    if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
       return report(resolvedArg->location, "unexpected type of argument");
 
     if (std::optional<double> val = cee.evaluate(*resolvedArg))
@@ -306,7 +305,7 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
 std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   varOrReturn(condition, resolveExpr(*ifStmt.condition));
 
-  if (condition->type != Type::Number)
+  if (condition->type.kind != Type::Kind::Number)
     return report(condition->location, "expected number in condition");
 
   varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
@@ -327,7 +326,7 @@ std::unique_ptr<ResolvedWhileStmt>
 Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   varOrReturn(condition, resolveExpr(*whileStmt.condition));
 
-  if (condition->type != Type::Number)
+  if (condition->type.kind != Type::Kind::Number)
     return report(condition->location, "expected number in condition");
 
   varOrReturn(body, resolveBlock(*whileStmt.body));
@@ -352,7 +351,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
   varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
-  assert(resolvedLHS->type != Type::Void &&
+  assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
 
   if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
@@ -362,7 +361,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
   auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
   assert(var && "assignment LHS is not a variable");
 
-  if (resolvedRHS->type != resolvedLHS->type)
+  if (resolvedRHS->type.kind != resolvedLHS->type.kind)
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
 
@@ -374,11 +373,11 @@ std::unique_ptr<ResolvedReturnStmt>
 Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
-  if (currentFunction->type == Type::Void && returnStmt.expr)
+  if (currentFunction->type.kind == Type::Kind::Void && returnStmt.expr)
     return report(returnStmt.location,
                   "unexpected return value in void function");
 
-  if (currentFunction->type != Type::Void && !returnStmt.expr)
+  if (currentFunction->type.kind != Type::Kind::Void && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
 
   std::unique_ptr<ResolvedExpr> resolvedExpr;
@@ -387,7 +386,7 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
     if (!resolvedExpr)
       return nullptr;
 
-    if (currentFunction->type != resolvedExpr->type)
+    if (currentFunction->type.kind != resolvedExpr->type.kind)
       return report(resolvedExpr->location, "unexpected return type");
   }
 
@@ -460,9 +459,9 @@ std::unique_ptr<ResolvedParamDecl>
 Sema::resolveParamDecl(const ParamDecl &param) {
   std::optional<Type> type = resolveType(param.type);
 
-  if (!type || type == Type::Void)
+  if (!type || type->kind == Type::Kind::Void)
     return report(param.location, "parameter '" + param.identifier +
-                                      "' has invalid '" + param.type +
+                                      "' has invalid '" + param.type.name +
                                       "' type");
 
   return std::make_unique<ResolvedParamDecl>(param.location, param.identifier,
@@ -482,15 +481,15 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
       return nullptr;
   }
 
-  std::optional<Type> type =
-      varDecl.type ? resolveType(*varDecl.type) : resolvedInitializer->type;
+  Type resolvableType = varDecl.type.value_or(resolvedInitializer->type);
+  std::optional<Type> type = resolveType(resolvableType);
 
-  if (!type || type == Type::Void)
-    return report(varDecl.location,
-                  "variable '" + varDecl.identifier + "' has invalid '" +
-                      varDecl.type.value_or("void") + "' type");
+  if (!type || type->kind == Type::Kind::Void)
+    return report(varDecl.location, "variable '" + varDecl.identifier +
+                                        "' has invalid '" +
+                                        resolvableType.name + "' type");
 
-  if (resolvedInitializer && resolvedInitializer->type != type)
+  if (resolvedInitializer && resolvedInitializer->type.kind != type->kind)
     return report(resolvedInitializer->location, "initializer type mismatch");
 
   return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,
@@ -505,11 +504,11 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
 
   if (!type)
     return report(function.location, "function '" + function.identifier +
-                                         "' has invalid '" + function.type +
-                                         "' type");
+                                         "' has invalid '" +
+                                         function.type.name + "' type");
 
   if (function.identifier == "main") {
-    if (type != Type::Void)
+    if (type->kind != Type::Kind::Void)
       return report(function.location,
                     "'main' function is expected to have 'void' type");
 

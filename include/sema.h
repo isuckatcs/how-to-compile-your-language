@@ -25,7 +25,7 @@ class Sema {
     ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 
-  std::optional<Type> resolveType(const std::string &typeSpecifier);
+  std::optional<Type> resolveType(Type parsedType);
 
   std::unique_ptr<ResolvedUnaryOperator>
   resolveUnaryOperator(const UnaryOperator &unary);

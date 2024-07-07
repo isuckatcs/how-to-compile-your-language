@@ -51,7 +51,7 @@ class Parser {
   using ArgumentList = std::vector<std::unique_ptr<Expr>>;
   std::optional<ArgumentList> parseArgumentList();
 
-  std::optional<std::string> parseType();
+  std::optional<Type> parseType();
 
 public:
   explicit Parser(Lexer &lexer)

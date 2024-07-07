@@ -37,6 +37,20 @@ std::string_view dumpOp(TokenKind op) {
 }
 } // namespace
 
+struct Type {
+  enum class Kind { Void, Number, Custom };
+
+  Kind kind;
+  std::string name;
+
+  static Type builtinVoid() { return {Kind::Void, "void"}; }
+  static Type builtinNumber() { return {Kind::Number, "number"}; }
+  static Type custom(const std::string &name) { return {Kind::Custom, name}; }
+
+private:
+  Type(Kind kind, std::string name) : kind(kind), name(std::move(name)){};
+};
+
 struct Decl : public Dumpable {
   SourceLocation location;
   std::string identifier;
@@ -213,23 +227,23 @@ struct UnaryOperator : public Expr {
 };
 
 struct ParamDecl : public Decl {
-  std::string type;
-  ParamDecl(SourceLocation location, std::string identifier, std::string type)
+  Type type;
+  ParamDecl(SourceLocation location, std::string identifier, Type type)
       : Decl{location, std::move(identifier)}, type(std::move(type)) {}
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level)
-              << "ParamDecl: " + identifier + ":" + type + "\n";
+              << "ParamDecl: " + identifier + ":" + type.name + "\n";
   }
 };
 
 struct VarDecl : public Decl {
-  std::optional<std::string> type;
+  std::optional<Type> type;
   std::unique_ptr<Expr> initialzer;
   bool isMutable;
 
   VarDecl(SourceLocation location, std::string identifier,
-          std::optional<std::string> type, bool isMutable,
+          std::optional<Type> type, bool isMutable,
           std::unique_ptr<Expr> initializer = nullptr)
       : Decl{location, std::move(identifier)}, type(std::move(type)),
         isMutable(isMutable), initialzer(std::move(initializer)) {}
@@ -237,7 +251,7 @@ struct VarDecl : public Decl {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "VarDecl: " << identifier;
     if (type)
-      std::cerr << ':' << *type;
+      std::cerr << ':' << type->name;
     std::cerr << '\n';
 
     if (initialzer)
@@ -246,19 +260,19 @@ struct VarDecl : public Decl {
 };
 
 struct FunctionDecl : public Decl {
-  std::string type;
+  Type type;
   std::vector<std::unique_ptr<ParamDecl>> params;
   std::unique_ptr<Block> body;
 
-  FunctionDecl(SourceLocation location, std::string identifier,
-               std::string type, std::vector<std::unique_ptr<ParamDecl>> params,
+  FunctionDecl(SourceLocation location, std::string identifier, Type type,
+               std::vector<std::unique_ptr<ParamDecl>> params,
                std::unique_ptr<Block> body)
       : Decl{location, std::move(identifier)}, type(std::move(type)),
         params(std::move(params)), body(std::move(body)) {}
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level)
-              << "FunctionDecl: " + identifier + ":" + type + "\n";
+              << "FunctionDecl: " + identifier + ":" + type.name + "\n";
 
     for (auto &&param : params)
       param->dump(level + 1);
@@ -301,8 +315,6 @@ struct ResolvedStmt : public Dumpable {
 
   virtual ~ResolvedStmt() = default;
 };
-
-enum class Type { Number, Void };
 
 struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
                       public ResolvedStmt {
@@ -436,7 +448,7 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
   double value;
 
   ResolvedNumberLiteral(SourceLocation location, double value)
-      : ResolvedExpr(location, Type::Number), value(value) {}
+      : ResolvedExpr(location, Type::builtinNumber()), value(value) {}
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";

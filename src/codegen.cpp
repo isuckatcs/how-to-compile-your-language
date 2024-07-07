@@ -15,7 +15,7 @@ Codegen::Codegen(
 }
 
 llvm::Type *Codegen::generateType(Type type) {
-  if (type == Type::Number)
+  if (type.kind == Type::Kind::Number)
     return builder.getDoubleTy();
 
   return builder.getVoidTy();
@@ -331,7 +331,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   allocaInsertPoint =
       new llvm::BitCastInst(undef, undef->getType(), "alloca.placeholder", bb);
 
-  bool isVoidFunction = functionDecl.type == Type::Void;
+  bool isVoidFunction = functionDecl.type.kind == Type::Kind::Void;
   if (!isVoidFunction)
     retVal = allocateStackVariable(function, "retval");
   retBlock = llvm::BasicBlock::Create(context, "return");

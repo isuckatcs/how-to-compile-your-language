@@ -122,7 +122,7 @@ std::unique_ptr<VarDecl> Parser::parseVarDecl(bool isLet) {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  std::optional<std::string> type;
+  std::optional<Type> type;
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat ':'
 
@@ -493,21 +493,28 @@ std::optional<Parser::ArgumentList> Parser::parseArgumentList() {
 //  ::= 'number'
 //  |   'void'
 //  |   <identifier>
-std::optional<std::string> Parser::parseType() {
+std::optional<Type> Parser::parseType() {
   TokenKind kind = nextToken.kind;
 
-  if (kind != TokenKind::KwNumber && kind != TokenKind::KwVoid &&
-      kind != TokenKind::Identifier) {
-    report(nextToken.location, "expected type specifier");
-    return std::nullopt;
+  if (kind == TokenKind::KwNumber) {
+    eatNextToken(); // eat 'number'
+    return Type::builtinNumber();
   }
 
-  assert(nextToken.value && "type token has no value");
+  if (kind == TokenKind::KwVoid) {
+    eatNextToken(); // eat 'void'
+    return Type::builtinVoid();
+  }
 
-  std::string value = *nextToken.value;
-  eatNextToken(); // eat 'number' | 'void' | identifier
+  if (kind == TokenKind::Identifier) {
+    assert(nextToken.value && "identifier token has no value");
+    auto t = Type::custom(*nextToken.value);
+    eatNextToken(); // eat identifier
+    return t;
+  }
 
-  return value;
+  report(nextToken.location, "expected type specifier");
+  return std::nullopt;
 };
 
 // <sourceFile>
