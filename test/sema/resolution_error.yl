@@ -1,0 +1,5 @@
+// RUN: compiler %s || echo $? | filecheck %s
+// CHECK: 1
+fn foo(): custom {}
+
+fn main(): void {}
