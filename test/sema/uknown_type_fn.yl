@@ -4,3 +4,4 @@
 fn foo(): userDefinedType {}
 
 fn main(): void {}
+// CHECK-NOT: {{.*}}

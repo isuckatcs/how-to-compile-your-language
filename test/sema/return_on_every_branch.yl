@@ -1,4 +1,4 @@
-// RUN: (compiler %s || true) 2>&1 | filecheck %s
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
 // CHECK: [[# @LINE + 1 ]]:1: error: non-void function doesn't return a value
 fn noReturn(): number {}
 
@@ -145,3 +145,4 @@ fn noReturnNeverRunningLoop(): number {
 }
 
 fn main(): void {}
+// CHECK-NOT: {{.*}}

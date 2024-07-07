@@ -9,3 +9,4 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:14: error: expected number in condition
     while foo() {}
 }
+// CHECK-NOT: {{.*}}

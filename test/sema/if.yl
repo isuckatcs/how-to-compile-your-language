@@ -12,3 +12,4 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:16: error: expected number in condition
     else if foo() {}
 }
+// CHECK-NOT: {{.*}}

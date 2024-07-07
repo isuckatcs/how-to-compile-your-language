@@ -19,3 +19,4 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:22: error: symbol 'y' not found
     let x6: number = y;
 }
+// CHECK-NOT: {{.*}}

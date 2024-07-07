@@ -27,3 +27,4 @@ fn assignParam(x: number): void {
     // CHECK: [[# @LINE + 1 ]]:5: error: parameters are immutable and cannot be assigned
     x = 1.0;
 }
+// CHECK-NOT: {{.*}}

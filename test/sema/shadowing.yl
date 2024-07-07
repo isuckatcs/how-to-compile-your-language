@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s --implicit-check-not error
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s --implicit-check-not error
 // CHECK: {{.*}}
 fn foo(x: number): void {
     let x: number = 1.0;

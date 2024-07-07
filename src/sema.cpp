@@ -85,6 +85,7 @@ bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
   bool changed = true;
   while (changed) {
     changed = false;
+    pendingErrors.clear();
 
     for (int bb = cfg.entry; bb != cfg.exit; --bb) {
       const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];

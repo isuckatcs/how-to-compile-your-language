@@ -1,4 +1,4 @@
-// RUN: (compiler %s || true) 2>&1 | filecheck %s
+// RUN: compiler %s 2>&1 | filecheck %s
 fn singleReturn(): void {
     return;
 }
@@ -43,3 +43,4 @@ fn loop(x: number): void {
 }
 
 fn main(): void {}
+// CHECK-NOT: {{.*}}
