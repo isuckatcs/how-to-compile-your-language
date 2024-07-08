@@ -191,6 +191,9 @@ Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
   if (unary.op == TokenKind::Excl)
     return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
 
+  if (unary.op == TokenKind::Minus)
+    return builder.CreateFNeg(rhs);
+
   llvm_unreachable("unknown unary op");
 }
 

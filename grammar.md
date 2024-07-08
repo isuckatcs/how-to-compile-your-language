@@ -64,7 +64,7 @@
     ::= <prefixExpression> (('*' | '/') <multiplicativeExpression>)*
 
 <prefixExpression>
-    ::= '!'* <primaryExpr>
+    ::= ('!' | '-')* <primaryExpr>
 
 <primaryExpr>
     ::= <numberLiteral>
@@ -99,11 +99,11 @@
 
 | Precedence | Type           | Symbols |
 |------------|----------------|---------|
-| Highest    | Prefix         | !       |
+| Highest    | Prefix         | !, -    |
 |            | Multiplicative | *, /    |
 |            | Additive       | +, -    |
 |            | Comparison     | <, >    |
 |            | Equality       | ==      |
-|            | Conjuction      | &&      |
+|            | Conjuction     | &&      |
 | Lowest     | Disjunction    | \|\|    |
 

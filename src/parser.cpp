@@ -346,12 +346,14 @@ std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
   }
 }
 
+// <prefixExpression>
+//  ::= ('!' | '-')* <primaryExpr>
 std::unique_ptr<Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
-  if (tok.kind != TokenKind::Excl)
+  if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus)
     return parsePrimary();
-  eatNextToken(); // eat !
+  eatNextToken(); // eat '!' or '-'
 
   varOrReturn(rhs, parsePrefixExpr());
 

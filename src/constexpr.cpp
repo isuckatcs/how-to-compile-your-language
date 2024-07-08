@@ -75,8 +75,13 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
   if (!rhs)
     return std::nullopt;
 
-  assert(op.op == TokenKind::Excl && "unexpected unary operator");
-  return !*toBool(rhs);
+  if (op.op == TokenKind::Excl)
+    return !*toBool(rhs);
+
+  if (op.op == TokenKind::Minus)
+    return -*rhs;
+
+  assert(false && "unexpected unary operator");
 }
 
 std::optional<double> ConstantExpressionEvaluator::evaluateDeclRefExpr(

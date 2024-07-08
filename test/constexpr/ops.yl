@@ -3,6 +3,8 @@ fn prefix(x: number): void {
     !1.0;
     !0.0;
     !x;
+    -x;
+    -1.23;
 }
 // CHECK:    ResolvedUnaryOperator: '!'
 // CHECK-NEXT:    | value: 0
@@ -14,6 +16,12 @@ fn prefix(x: number): void {
 // CHECK-NEXT:      | value: 0
 // CHECK-NEXT:    ResolvedUnaryOperator: '!'
 // CHECK-NEXT:      ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:    ResolvedUnaryOperator: '-'
+// CHECK-NEXT:      ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:    ResolvedUnaryOperator: '-'
+// CHECK-NEXT:    | value: -1.23
+// CHECK-NEXT:      ResolvedNumberLiteral: '1.23'
+// CHECK-NEXT:      | value: 1.23
 
 fn multiplicative(x: number): void {
     5.0 * 3.0;
