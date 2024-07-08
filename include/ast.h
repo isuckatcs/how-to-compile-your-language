@@ -451,7 +451,7 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
       : ResolvedExpr(location, Type::builtinNumber()), value(value) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+    std::cerr << indent(level) << "ResolvedNumberLiteral: '" << value << "'\n";
     if (auto val = getConstantValue())
       std::cerr << indent(level) << "| value: " << *val << '\n';
   }

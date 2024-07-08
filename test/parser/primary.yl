@@ -2,9 +2,6 @@
 
 fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
-    1;
-
-    // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
     .0;
 
     // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
@@ -30,6 +27,9 @@ fn main(): void {
 
     // CHECK: [[# @LINE + 1 ]]:9: error: expected expression
     a(x,;
+
+    1;
+    // CHECK: NumberLiteral: '1'
 
     1.0;
     // CHECK: NumberLiteral: '1.0'

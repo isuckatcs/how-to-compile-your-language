@@ -65,7 +65,7 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
   }
 
-  // [0-9]+ . [0-9]+
+  // [0-9]+ (. [0-9]+)?
   if (isNum(currentChar)) {
     std::string value{currentChar};
 
@@ -73,7 +73,7 @@ Token Lexer::getNextToken() {
       value += eatNextChar();
 
     if (peekNextChar() != '.')
-      return Token{tokenStartLocation, TokenKind::Unk};
+      return Token{tokenStartLocation, TokenKind::Number, value};
 
     value += eatNextChar();
 

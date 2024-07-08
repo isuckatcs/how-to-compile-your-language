@@ -93,7 +93,7 @@
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
 
 <number>
-    ::= ('0'..'9')+ '.' ('0'..'9')+
+    ::= ('0'..'9')+ ('.' ('0'..'9')+)?
 ```
 # Operators
 
@@ -104,6 +104,6 @@
 |            | Additive       | +, -    |
 |            | Comparison     | <, >    |
 |            | Equality       | ==      |
-|            |Conjuction      | &&      |
+|            | Conjuction      | &&      |
 | Lowest     | Disjunction    | \|\|    |
 
