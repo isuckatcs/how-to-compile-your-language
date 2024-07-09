@@ -1,4 +1,4 @@
-name: How To Compile Your Language Pipeline
+name: Pipeline
 
 on:
   push:
