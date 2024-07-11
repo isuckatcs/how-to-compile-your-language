@@ -1,15 +1,17 @@
-![example workflow](https://github.com/isuckatcs/how-to-compile-your-language/actions/workflows/pipeline.yml/badge.svg)
-[![codecov](https://codecov.io/github/isuckatcs/how-to-compile-your-language/branch/main/graph/badge.svg?token=SLOD84JALB)](https://codecov.io/github/isuckatcs/how-to-compile-your-language)
+<div align="center">
+<img src="https://github.com/isuckatcs/how-to-compile-your-language/actions/workflows/pipeline.yml/badge.svg" />
+<a href="https://codecov.io/github/isuckatcs/how-to-compile-your-language" target="_blank"><img src="https://codecov.io/github/isuckatcs/how-to-compile-your-language/branch/main/graph/badge.svg?token=SLOD84JALB" /></a>
+<br>
+<br>
+</div>
 
-# How to Compile Your Language
+![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
-![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/httyd.jpg)
+A simple programming language that displays modern compiler techniques for education purposes.
 
-The repository contains the implementation of *your language*, a programming language created for educational purposes on top of the LLVM infrastructure. The compiler displays various techniques which can also be found in the implementations of the most popular languages such as C++, Kotlin or Rust.
+## Getting Started
 
-# Getting Started
-
-This guide assumes that the project is being built on Linux*, but equivalent steps can be performed on any other operating system.
+This guide assumes that the project is being built on Linux* but equivalent steps can be performed on any other operating system.
 
 1. Install CMake 3.20 or newer
    - `apt-get install cmake`
@@ -36,10 +38,11 @@ To run the tests, proceed with these following optional steps.
    - `cmake --build . --target check`
 
 \* tested on Ubuntu 22.04.3 LTS
-  
-# Syntax
 
-A clean, modern and easy to parse C-style syntax, free of ambiguities with elements inspired by C++, Kotlin, Rust and JavaScript.
+## Features
+### Clean Syntax
+
+Unambigous, modern and easy to parse syntax with elements inspired by C, Kotlin, Rust and Swift.
 
 ```
 fn main(): void {
@@ -47,9 +50,11 @@ fn main(): void {
 }
 ```
 
-# Type System
+### Static Type System
 
-A small static type system, currently supporting the `number` and `void` types with the capability to be expanded for user-defined types. The `number` type can be used to represent arbitrary real numbers representable by a 64-bit floating point value.
+Simple type system currently supporting the `number` and `void` types with the capability to be expanded by user-defined types. 
+
+The `number` type is implemented as a 64-bit floating point value.
 
 ```
 fn main(): void {
@@ -58,11 +63,9 @@ fn main(): void {
 }
 ```
 
-# Semantic Analysis
+### Lazy Initialization
 
-Fully featured semantic analyzer with user-friendly error messages, the latest analysis techniques and support for the modern trends.
-
-Data-flow analysis based support for late variable initialization. 
+Data-flow analysis based support for detecting lazily initialized and uninitialized variables.
 
 ```
 fn dataFlowAnalysis(n: number): void {
@@ -79,6 +82,7 @@ fn dataFlowAnalysis(n: number): void {
 main.yl:8:13: error: 'uninit' is not initialized
 ```
 
+### Naive Type Inference
 When a variable is initialized, the type specifier can be omitted as the type is inferred from the initializer.
 
 ```
@@ -86,6 +90,8 @@ fn main(): void {
     let typeInference = 1; 
 }
 ```
+
+### Immutability
 
 Immutable and mutable variables declared with the `let` and `var` keywords.
 
@@ -104,7 +110,9 @@ fn main(): void {
 main.yl:6:7: error: 'immutable' cannot be mutated
 ```
 
-Constant expression evaluation with a tree-walk interpreter for better code generation.
+### Compile Time Expression Evaluation
+
+Expressions are evaluated by a tree-walk interpreter during compilation if possible.
 
 ```
 fn main(): void {
@@ -117,14 +125,15 @@ $ compiler main.yl -res-dump
 
 ResolvedFunctionDecl: @(main.addr) main:
   ResolvedBlock
-    ResolvedDeclStmt:
-      ...
+    ...
     ResolvedCallExpr: @(println.addr) println
       ResolvedDeclRefExpr: @(x.addr) x
       | value: 13
 ```
 
-Flow-sensitive return value analysis made smarter by constant expression evaluation.
+### Smart Return Check
+
+Flow-sensitive return value analysis made smarter with compile time expression evaluation.
 
 ```
 fn maybeReturns(n: number): number {
@@ -149,9 +158,8 @@ fn alwaysReturns(n: number): number {
 main.yl:1:1: error: non-void function doesn't return a value on every path
 ```
 
-# Code Generation
+### Native Code Generation
 
-Native code generation made easy with the help of the utilities provided by LLVM.
 A source file is first compiled to LLVM IR, which is then passed to the host platform specific LLVM backend to generate a native executable.
 
 ```
@@ -165,7 +173,7 @@ $ ./main.out
 1.23
 ```
 
-# Accessible Internals
+### Accessible Internals
 
 Capability to print the Abstract Syntax Tree before and after resolution, the Control-Flow Graph and the generated LLVM IR module.
 ```
