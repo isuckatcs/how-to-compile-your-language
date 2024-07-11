@@ -5,16 +5,10 @@
 
 namespace yl {
 namespace {
-const ResolvedBinaryOperator *getAsConditionalBinop(const ResolvedExpr *expr) {
-  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(expr);
-  if (!binop)
-    return nullptr;
-
-  TokenKind op = binop->op;
-  if (op == TokenKind::PipePipe || op == TokenKind::AmpAmp)
-    return binop;
-
-  return nullptr;
+bool isTerminator(const ResolvedStmt &stmt) {
+  return dynamic_cast<const ResolvedIfStmt *>(&stmt) ||
+         dynamic_cast<const ResolvedWhileStmt *>(&stmt) ||
+         dynamic_cast<const ResolvedReturnStmt *>(&stmt);
 }
 } // namespace
 
@@ -44,222 +38,128 @@ void CFG::dump(size_t) const {
   }
 }
 
-template <typename T>
-int CFGBuilder::buildIntoNewBlock(T &&element, int successor) {
-  successorBlock = successor;
-  currentBlock = -1;
-
-  int newBlock = visit(std::forward<T>(element));
-
-  if (newBlock == -1)
-    return successor;
-  return newBlock;
-}
-
-int CFGBuilder::visit(const ResolvedIfStmt &stmt) {
-  int exitBlock = currentBlock == -1 ? successorBlock : currentBlock;
-
-  int elseBlock = exitBlock;
+int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
+  int falseBlock = exit;
   if (stmt.falseBlock)
-    elseBlock = buildIntoNewBlock(*stmt.falseBlock, exitBlock);
+    falseBlock = insertBlock(*stmt.falseBlock, exit);
 
-  int trueBlock = buildIntoNewBlock(*stmt.trueBlock, exitBlock);
-
-  if (const auto *binop = getAsConditionalBinop(stmt.condition.get()))
-    return visitCondition(*binop, &stmt, trueBlock, elseBlock);
-
-  currentBlock = currentCFG.insertNewBlock();
-  currentCFG.insertStatement(currentBlock, &stmt);
+  int trueBlock = insertBlock(*stmt.trueBlock, exit);
+  int entry = cfg.insertNewBlock();
 
   std::optional<double> val = stmt.condition->getConstantValue();
-  currentCFG.insertEdge(currentBlock, trueBlock, val != 0);
-  currentCFG.insertEdge(currentBlock, elseBlock, val.value_or(0) == 0);
+  cfg.insertEdge(entry, trueBlock, val != 0);
+  cfg.insertEdge(entry, falseBlock, val.value_or(0) == 0);
 
-  return visit(*stmt.condition);
+  cfg.insertStmt(&stmt, entry);
+  return insertExpr(*stmt.condition, entry);
 }
 
-int CFGBuilder::visit(const ResolvedWhileStmt &stmt) {
-  int exitBlock = currentBlock != -1 ? currentBlock : successorBlock;
+int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
+  int latch = cfg.insertNewBlock();
+  int body = insertBlock(*stmt.body, latch);
 
-  int transitionBlock = currentCFG.insertNewBlock();
-  int bodyBlock = buildIntoNewBlock(*stmt.body, transitionBlock);
+  int header = cfg.insertNewBlock();
+  cfg.insertEdge(latch, header, true);
 
-  successorBlock = bodyBlock;
-  currentBlock = -1;
+  std::optional<double> val = stmt.condition->getConstantValue();
+  cfg.insertEdge(header, body, val != 0);
+  cfg.insertEdge(header, exit, val.value_or(0) == 0);
 
-  if (const auto *binop = getAsConditionalBinop(stmt.condition.get())) {
-    visitCondition(*binop, &stmt, bodyBlock, exitBlock);
-  } else {
-    currentBlock = currentCFG.insertNewBlock();
-    currentCFG.insertStatement(currentBlock, &stmt);
+  cfg.insertStmt(&stmt, header);
+  insertExpr(*stmt.condition, header);
 
-    std::optional<double> val = stmt.condition->getConstantValue();
-    currentCFG.insertEdge(currentBlock, exitBlock, val.value_or(0) == 0);
-    currentCFG.insertEdge(currentBlock, bodyBlock, val != 0);
-
-    visit(*stmt.condition);
-  }
-  currentCFG.insertEdge(transitionBlock, currentBlock, true);
-
-  successorBlock = currentBlock;
-  currentBlock = -1;
-
-  return successorBlock;
+  return header;
 }
 
-int CFGBuilder::visit(const ResolvedDeclStmt &stmt) {
-  autoCreateBlock();
-  currentCFG.insertStatement(currentBlock, &stmt);
+int CFGBuilder::insertDeclStmt(const ResolvedDeclStmt &stmt, int block) {
+  cfg.insertStmt(&stmt, block);
 
-  if (const auto *init = stmt.varDecl->initializer.get())
-    return visit(*init);
+  if (const auto &init = stmt.varDecl->initializer)
+    return insertExpr(*init, block);
 
-  return currentBlock;
+  return block;
 }
 
-int CFGBuilder::visit(const ResolvedAssignment &stmt) {
-  autoCreateBlock();
-  currentCFG.insertStatement(currentBlock, &stmt);
-
-  return visit(*stmt.expr);
+int CFGBuilder::insertAssignment(const ResolvedAssignment &stmt, int block) {
+  cfg.insertStmt(&stmt, block);
+  return insertExpr(*stmt.expr, block);
 }
 
-int CFGBuilder::visit(const ResolvedReturnStmt &stmt) {
-  currentBlock = currentCFG.insertNewBlock();
-  currentCFG.insertStatement(currentBlock, &stmt);
+int CFGBuilder::insertReturnStmt(const ResolvedReturnStmt &stmt, int block) {
+  block = cfg.insertNewBlockBefore(cfg.exit, true);
 
-  currentCFG.insertEdge(currentBlock, currentCFG.exit, true);
-
+  cfg.insertStmt(&stmt, block);
   if (stmt.expr)
-    return visit(*stmt.expr);
+    return insertExpr(*stmt.expr, block);
 
-  return currentBlock;
+  return block;
 }
 
-int CFGBuilder::visit(const ResolvedExpr &expr) {
-  autoCreateBlock();
-  currentCFG.insertStatement(currentBlock, &expr);
+int CFGBuilder::insertExpr(const ResolvedExpr &expr, int block) {
+  cfg.insertStmt(&expr, block);
 
-  if (const auto *callExpr = dynamic_cast<const ResolvedCallExpr *>(&expr)) {
-    for (auto it = callExpr->arguments.rbegin();
-         it != callExpr->arguments.rend(); ++it)
-      visit(**it);
-    return currentBlock;
+  if (const auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr)) {
+    for (auto it = call->arguments.rbegin(); it != call->arguments.rend(); ++it)
+      insertExpr(**it, block);
+    return block;
   }
 
-  if (const auto *groupingExpr =
-          dynamic_cast<const ResolvedGroupingExpr *>(&expr))
-    return visit(*groupingExpr->expr);
+  if (const auto *grouping = dynamic_cast<const ResolvedGroupingExpr *>(&expr))
+    return insertExpr(*grouping->expr, block);
 
-  if (const auto *cond = getAsConditionalBinop(&expr))
-    return visitCondition(*cond, nullptr, currentBlock, currentBlock);
+  if (const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&expr))
+    return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);
 
-  if (const auto *binaryOperator =
-          dynamic_cast<const ResolvedBinaryOperator *>(&expr)) {
-    visit(*binaryOperator->rhs);
-    return visit(*binaryOperator->lhs);
-  }
+  if (const auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
+    return insertExpr(*unop->rhs, block);
 
-  if (const auto *unaryOperator =
-          dynamic_cast<const ResolvedUnaryOperator *>(&expr))
-    return visit(*unaryOperator->rhs);
-
-  return currentBlock;
+  return block;
 }
 
-int CFGBuilder::visitCondition(const ResolvedBinaryOperator &cond,
-                               const ResolvedStmt *term, int trueBlock,
-                               int falseBlock) {
-  int rhsBlock = -1;
-  if (const auto *binop = getAsConditionalBinop(cond.rhs.get())) {
-    rhsBlock = visitCondition(*binop, term, trueBlock, falseBlock);
-  } else {
-    // Create the block for the RHS.
-    currentBlock = currentCFG.insertNewBlock();
-
-    if (term)
-      currentCFG.insertStatement(currentBlock, term);
-
-    rhsBlock = visit(*cond.rhs);
-
-    // From the RHS both the true and the false block is reachable.
-    std::optional<double> val = cond.rhs->getConstantValue();
-    currentCFG.insertEdge(rhsBlock, trueBlock, val != 0);
-
-    if (trueBlock != falseBlock)
-      currentCFG.insertEdge(rhsBlock, falseBlock, val.value_or(0) == 0);
-  }
-
-  bool isAnd = cond.op == TokenKind::AmpAmp;
-  if (const auto *binop = getAsConditionalBinop(cond.lhs.get())) {
-    // If LHS is another conditional OP and the current operator is && the false
-    // branch is reachable if LHS is false and the current RHS is reachable if
-    // the LHS is true. In case of ||, it's the opposite.
-    if (isAnd)
-      return visitCondition(*binop, &cond, rhsBlock, falseBlock);
-
-    return visitCondition(*binop, &cond, trueBlock, rhsBlock);
-  }
-
-  // Create the block for the LHS.
-  currentBlock = currentCFG.insertNewBlock();
-
-  // If the current op is &&, the false block is reachable from the LHS if LHS
-  // is false. In case of ||, the true block is reachable if the LHS is true.
-  std::optional<double> val = cond.lhs->getConstantValue();
-  currentCFG.insertEdge(currentBlock, isAnd ? falseBlock : trueBlock,
-                        isAnd ? val.value_or(0) == 0 : val != 0);
-  currentCFG.insertEdge(currentBlock, rhsBlock,
-                        isAnd ? val != 0 : val.value_or(0) == 0);
-
-  // The current block when the function exits is the LHS block.
-  currentCFG.insertStatement(currentBlock, &cond);
-  return visit(*cond.lhs);
-}
-
-int CFGBuilder::visit(const ResolvedStmt &stmt) {
+int CFGBuilder::insertStmt(const ResolvedStmt &stmt, int block) {
   if (auto *ifStmt = dynamic_cast<const ResolvedIfStmt *>(&stmt))
-    return visit(*ifStmt);
+    return insertIfStmt(*ifStmt, block);
 
   if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
-    return visit(*whileStmt);
+    return insertWhileStmt(*whileStmt, block);
 
   if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
-    return visit(*expr);
+    return insertExpr(*expr, block);
 
   if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(&stmt))
-    return visit(*assignment);
+    return insertAssignment(*assignment, block);
 
   if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
-    return visit(*declStmt);
+    return insertDeclStmt(*declStmt, block);
 
   auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt);
   assert(returnStmt && "unexpected statement");
 
-  return visit(*returnStmt);
+  return insertReturnStmt(*returnStmt, block);
 }
 
-int CFGBuilder::visit(const ResolvedBlock &block) {
-  int b = currentBlock;
+int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {
+  const auto &stmts = block.statements;
 
-  for (auto it = block.statements.rbegin(); it != block.statements.rend(); ++it)
-    b = visit(**it);
+  bool insertNewBlock = true;
+  for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
+    if (insertNewBlock && !isTerminator(**it))
+      succ = cfg.insertNewBlockBefore(succ, true);
 
-  return b;
+    insertNewBlock = dynamic_cast<const ResolvedWhileStmt *>(it->get());
+    succ = insertStmt(**it, succ);
+  }
+
+  return succ;
 }
 
 CFG CFGBuilder::build(const ResolvedFunctionDecl &fn) {
-  currentCFG = CFG{};
+  cfg = {};
+  cfg.exit = cfg.insertNewBlock();
 
-  // Exit
-  currentCFG.exit = currentCFG.insertNewBlock();
+  int body = insertBlock(*fn.body, cfg.exit);
 
-  int b = buildIntoNewBlock(*fn.body, currentCFG.exit);
-
-  // Entry
-  currentCFG.entry = currentCFG.insertNewBlock();
-  currentCFG.insertEdge(currentCFG.entry, b, true);
-
-  return currentCFG;
+  cfg.entry = cfg.insertNewBlockBefore(body, true);
+  return cfg;
 };
 } // namespace yl

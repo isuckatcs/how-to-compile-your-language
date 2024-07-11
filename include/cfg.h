@@ -23,44 +23,36 @@ struct CFG : public Dumpable {
     return basicBlocks.size() - 1;
   };
 
+  int insertNewBlockBefore(int before, bool reachable) {
+    int b = insertNewBlock();
+    insertEdge(b, before, reachable);
+    return b;
+  }
+
   void insertEdge(int from, int to, bool reachable) {
     basicBlocks[from].successors.emplace(std::make_pair(to, reachable));
     basicBlocks[to].predecessors.emplace(std::make_pair(from, reachable));
   }
 
-  void insertStatement(int block, const ResolvedStmt *statement) {
-    basicBlocks[block].statements.emplace_back(statement);
+  void insertStmt(const ResolvedStmt *stmt, int block) {
+    basicBlocks[block].statements.emplace_back(stmt);
   }
 
   void dump(size_t = 0) const override;
 };
 
 class CFGBuilder {
-  CFG currentCFG;
-  int currentBlock = -1;
-  int successorBlock = -1;
+  CFG cfg;
 
-  void autoCreateBlock() {
-    if (currentBlock == -1) {
-      currentBlock = currentCFG.insertNewBlock();
-      currentCFG.insertEdge(currentBlock, successorBlock, true);
-    }
-  }
+  int insertBlock(const ResolvedBlock &block, int successor);
+  int insertIfStmt(const ResolvedIfStmt &stmt, int exit);
+  int insertWhileStmt(const ResolvedWhileStmt &stmt, int exit);
 
-  int visit(const ResolvedBlock &block);
-
-  int visit(const ResolvedStmt &stmt);
-  int visit(const ResolvedIfStmt &stmt);
-  int visit(const ResolvedWhileStmt &stmt);
-  int visit(const ResolvedDeclStmt &stmt);
-  int visit(const ResolvedAssignment &stmt);
-  int visit(const ResolvedReturnStmt &stmt);
-  int visit(const ResolvedExpr &expr);
-
-  int visitCondition(const ResolvedBinaryOperator &cond,
-                     const ResolvedStmt *term, int trueBlock, int falseBlock);
-
-  template <typename T> int buildIntoNewBlock(T &&element, int successor);
+  int insertStmt(const ResolvedStmt &stmt, int block);
+  int insertDeclStmt(const ResolvedDeclStmt &stmt, int block);
+  int insertAssignment(const ResolvedAssignment &stmt, int block);
+  int insertReturnStmt(const ResolvedReturnStmt &stmt, int block);
+  int insertExpr(const ResolvedExpr &expr, int block);
 
 public:
   CFG build(const ResolvedFunctionDecl &fn);
