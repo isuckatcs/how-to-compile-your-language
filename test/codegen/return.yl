@@ -18,15 +18,15 @@ fn insertPointEmptyBlock(): void {
     }
 }
 // CHECK: define void @insertPointEmptyBlock() {
-// CHECK-NEXT:   br i1 true, label %then, label %merge
+// CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: then:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                             ; preds = %0
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: merge:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %merge, %then
+// CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -36,18 +36,18 @@ fn insertPointEmptyBlock2(): void {
     }
 }
 // CHECK: define void @insertPointEmptyBlock2() {
-// CHECK-NEXT:   br label %whileCond
+// CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: whileCond:                                        ; preds = <null operand!>, %0
-// CHECK-NEXT:   br i1 true, label %whileBody, label %whileExit
+// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %0
+// CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: whileBody:                                        ; preds = %whileCond
+// CHECK-NEXT: while.body:                                        ; preds = %while.cond
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: whileExit:                                        ; preds = %whileCond
+// CHECK-NEXT: while.exit:                                        ; preds = %while.cond
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %whileExit, %whileBody
+// CHECK-NEXT: return:                                           ; preds = %while.exit, %while.body
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -60,16 +60,16 @@ fn insertPointNonEmptyBlock(): void {
 }
 // CHECK: define void @insertPointNonEmptyBlock() {
 // CHECK-NEXT:   %x = alloca double, align 8
-// CHECK-NEXT:   br i1 true, label %then, label %merge
+// CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: then:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                             ; preds = %0
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: merge:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
 // CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %merge, %then
+// CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -82,18 +82,18 @@ fn insertPointNonEmptyBlock2(): void {
 }
 // CHECK: define void @insertPointNonEmptyBlock2() {
 // CHECK-NEXT:   %x = alloca double, align 8
-// CHECK-NEXT:   br label %whileCond
+// CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: whileCond:                                        ; preds = <null operand!>, %0
-// CHECK-NEXT:   br i1 true, label %whileBody, label %whileExit
+// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %0
+// CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: whileBody:                                        ; preds = %whileCond
+// CHECK-NEXT: while.body:                                        ; preds = %while.cond
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: whileExit:                                        ; preds = %whileCond
+// CHECK-NEXT: while.exit:                                        ; preds = %while.cond
 // CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %whileExit, %whileBody
+// CHECK-NEXT: return:                                           ; preds = %while.exit, %while.body
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -8,7 +8,7 @@ namespace yl {
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
     std::string_view sourcePath)
-    : resolvedSourceFile(std::move(resolvedSourceFile)), builder(context),
+    : resolvedTree(std::move(resolvedSourceFile)), builder(context),
       module(std::make_unique<llvm::Module>("<translation_unit>", context)) {
   module->setSourceFileName(sourcePath);
   module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
@@ -19,19 +19,6 @@ llvm::Type *Codegen::generateType(Type type) {
     return builder.getDoubleTy();
 
   return builder.getVoidTy();
-}
-
-llvm::Instruction::BinaryOps Codegen::getOperatorKind(TokenKind op) {
-  if (op == TokenKind::Plus)
-    return llvm::BinaryOperator::FAdd;
-  if (op == TokenKind::Minus)
-    return llvm::BinaryOperator::FSub;
-  if (op == TokenKind::Asterisk)
-    return llvm::BinaryOperator::FMul;
-  if (op == TokenKind::Slash)
-    return llvm::BinaryOperator::FDiv;
-
-  llvm_unreachable("unknown operator");
 }
 
 llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
@@ -54,51 +41,44 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
     return generateReturnStmt(*returnStmt);
 
   llvm_unreachable("unknown statement");
+  return nullptr;
 }
 
 llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
-  llvm::Function *parentFunction = getCurrentFunction();
+  llvm::Function *function = getCurrentFunction();
+  auto *trueBB = llvm::BasicBlock::Create(context, "if.true");
+  auto *exitBB = llvm::BasicBlock::Create(context, "if.exit");
+
+  llvm::BasicBlock *elseBB = exitBB;
+  if (stmt.falseBlock)
+    elseBB = llvm::BasicBlock::Create(context, "if.false");
 
   llvm::Value *cond = generateExpr(*stmt.condition);
-  llvm::BasicBlock *thenBB =
-      llvm::BasicBlock::Create(context, "then", parentFunction);
-  llvm::BasicBlock *elseBB = nullptr;
-  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "merge");
+  builder.CreateCondBr(doubleToBool(cond), trueBB, elseBB);
 
-  if (stmt.falseBlock)
-    elseBB = llvm::BasicBlock::Create(context, "else");
-
-  builder.CreateCondBr(doubleToBool(cond), thenBB,
-                       stmt.falseBlock ? elseBB : mergeBB);
-
-  builder.SetInsertPoint(thenBB);
+  trueBB->insertInto(function);
+  builder.SetInsertPoint(trueBB);
   generateBlock(*stmt.trueBlock);
-
-  builder.CreateBr(mergeBB);
+  builder.CreateBr(exitBB);
 
   if (stmt.falseBlock) {
-    elseBB->insertInto(parentFunction);
+    elseBB->insertInto(function);
+
     builder.SetInsertPoint(elseBB);
-
     generateBlock(*stmt.falseBlock);
-
-    builder.CreateBr(mergeBB);
+    builder.CreateBr(exitBB);
   }
 
-  mergeBB->insertInto(parentFunction);
-  builder.SetInsertPoint(mergeBB);
+  exitBB->insertInto(function);
+  builder.SetInsertPoint(exitBB);
   return nullptr;
 }
 
 llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
-  llvm::Function *parentFunction = getCurrentFunction();
-
-  llvm::BasicBlock *header =
-      llvm::BasicBlock::Create(context, "whileCond", parentFunction);
-  llvm::BasicBlock *body =
-      llvm::BasicBlock::Create(context, "whileBody", parentFunction);
-  llvm::BasicBlock *exit =
-      llvm::BasicBlock::Create(context, "whileExit", parentFunction);
+  llvm::Function *function = getCurrentFunction();
+  auto *header = llvm::BasicBlock::Create(context, "while.cond", function);
+  auto *body = llvm::BasicBlock::Create(context, "while.body", function);
+  auto *exit = llvm::BasicBlock::Create(context, "while.exit", function);
 
   builder.CreateBr(header);
 
@@ -115,49 +95,40 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
-  llvm::Function *parentFunction = getCurrentFunction();
+  llvm::Function *function = getCurrentFunction();
+  const auto *decl = stmt.varDecl.get();
 
-  const auto &varDecl = stmt.varDecl;
-  llvm::AllocaInst *localVar =
-      allocateStackVariable(parentFunction, varDecl->identifier);
+  llvm::AllocaInst *var = allocateStackVariable(function, decl->identifier);
 
-  if (const auto &init = varDecl->initializer) {
-    llvm::Value *initVal = generateExpr(*init);
-    builder.CreateStore(initVal, localVar);
-  }
+  if (const auto &init = decl->initializer)
+    builder.CreateStore(generateExpr(*init), var);
 
-  declarations[varDecl.get()] = localVar;
-
+  declarations[decl] = var;
   return nullptr;
 }
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  llvm::Value *lhs = generateExpr(*stmt.expr);
-  return builder.CreateStore(lhs, declarations[stmt.variable->decl]);
+  return builder.CreateStore(generateExpr(*stmt.expr),
+                             declarations[stmt.variable->decl]);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
-  llvm::Value *ret = nullptr;
   if (stmt.expr)
-    ret = generateExpr(*stmt.expr);
+    builder.CreateStore(generateExpr(*stmt.expr), retVal);
 
-  if (ret)
-    builder.CreateStore(ret, retVal);
-
-  assert(retBlock && "function without return block");
-  return builder.CreateBr(retBlock);
+  assert(retBB && "function with return stmt doesn't have a return block");
+  return builder.CreateBr(retBB);
 }
 
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
-  if (std::optional<double> val = expr.getConstantValue())
+  if (auto *number = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
+    return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
+
+  if (auto val = expr.getConstantValue())
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
-  if (auto *numLit = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
-    return llvm::ConstantFP::get(builder.getDoubleTy(), numLit->value);
-
-  if (auto *declRefExpr = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return builder.CreateLoad(builder.getDoubleTy(),
-                              declarations[declRefExpr->decl]);
+  if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
+    return builder.CreateLoad(builder.getDoubleTy(), declarations[dre->decl]);
 
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -172,6 +143,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return generateUnaryOperator(*unop);
 
   llvm_unreachable("unknown expression encountered");
+  return nullptr;
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
@@ -184,82 +156,80 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   return builder.CreateCall(callee, args);
 }
 
-llvm::Value *
-Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unary) {
-  llvm::Value *rhs = generateExpr(*unary.rhs);
+llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
+  llvm::Value *rhs = generateExpr(*unop.rhs);
 
-  if (unary.op == TokenKind::Excl)
+  if (unop.op == TokenKind::Excl)
     return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
 
-  if (unary.op == TokenKind::Minus)
+  if (unop.op == TokenKind::Minus)
     return builder.CreateFNeg(rhs);
 
   llvm_unreachable("unknown unary op");
+  return nullptr;
 }
 
 void Codegen::generateConditionalOperator(const ResolvedExpr &op,
-                                          llvm::BasicBlock *trueBlock,
-                                          llvm::BasicBlock *falseBlock) {
-  if (const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&op)) {
-    if (binop->op == TokenKind::PipePipe) {
-      llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
-          context, "or.lhs.false", trueBlock->getParent());
-      generateConditionalOperator(*binop->lhs, trueBlock, nextBlock);
+                                          llvm::BasicBlock *trueBB,
+                                          llvm::BasicBlock *falseBB) {
+  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&op);
 
-      builder.SetInsertPoint(nextBlock);
-      generateConditionalOperator(*binop->rhs, trueBlock, falseBlock);
-      return;
-    }
+  if (binop && binop->op == TokenKind::PipePipe) {
+    llvm::BasicBlock *nextBB =
+        llvm::BasicBlock::Create(context, "or.lhs.false", trueBB->getParent());
+    generateConditionalOperator(*binop->lhs, trueBB, nextBB);
 
-    if (binop->op == TokenKind::AmpAmp) {
-      llvm::BasicBlock *nextBlock = llvm::BasicBlock::Create(
-          context, "and.lhs.true", trueBlock->getParent());
-      generateConditionalOperator(*binop->lhs, nextBlock, falseBlock);
+    builder.SetInsertPoint(nextBB);
+    generateConditionalOperator(*binop->rhs, trueBB, falseBB);
+    return;
+  }
 
-      builder.SetInsertPoint(nextBlock);
-      generateConditionalOperator(*binop->rhs, trueBlock, falseBlock);
-      return;
-    }
+  if (binop && binop->op == TokenKind::AmpAmp) {
+    llvm::BasicBlock *nextBB =
+        llvm::BasicBlock::Create(context, "and.lhs.true", trueBB->getParent());
+    generateConditionalOperator(*binop->lhs, nextBB, falseBB);
+
+    builder.SetInsertPoint(nextBB);
+    generateConditionalOperator(*binop->rhs, trueBB, falseBB);
+    return;
   }
 
   llvm::Value *val = doubleToBool(generateExpr(op));
-  builder.CreateCondBr(val, trueBlock, falseBlock);
+  builder.CreateCondBr(val, trueBB, falseBB);
+  return;
 };
 
 llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
-
   TokenKind op = binop.op;
+
   if (op == TokenKind::AmpAmp || op == TokenKind::PipePipe) {
+    llvm::Function *function = getCurrentFunction();
     bool isOr = op == TokenKind::PipePipe;
 
-    llvm::BasicBlock *rhsBlock =
-        llvm::BasicBlock::Create(context, isOr ? "or.rhs" : "and.rhs",
-                                 builder.GetInsertBlock()->getParent());
-    llvm::BasicBlock *mergeBlock =
-        llvm::BasicBlock::Create(context, isOr ? "or.merge" : "and.merge",
-                                 builder.GetInsertBlock()->getParent());
+    auto *rhsTag = isOr ? "or.rhs" : "and.rhs";
+    auto *mergeTag = isOr ? "or.merge" : "and.merge";
 
-    generateConditionalOperator(*binop.lhs, isOr ? mergeBlock : rhsBlock,
-                                isOr ? rhsBlock : mergeBlock);
-    builder.SetInsertPoint(rhsBlock);
+    auto *rhsBB = llvm::BasicBlock::Create(context, rhsTag, function);
+    auto *mergeBB = llvm::BasicBlock::Create(context, mergeTag, function);
 
+    llvm::BasicBlock *trueBB = isOr ? mergeBB : rhsBB;
+    llvm::BasicBlock *falseBB = isOr ? rhsBB : mergeBB;
+    generateConditionalOperator(*binop.lhs, trueBB, falseBB);
+
+    builder.SetInsertPoint(rhsBB);
     llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
-    builder.CreateBr(mergeBlock);
+    builder.CreateBr(mergeBB);
 
-    rhsBlock = builder.GetInsertBlock();
+    rhsBB = builder.GetInsertBlock();
+    builder.SetInsertPoint(mergeBB);
+    llvm::PHINode *phi = builder.CreatePHI(builder.getInt1Ty(), 2);
 
-    builder.SetInsertPoint(mergeBlock);
-
-    llvm::PHINode *phi = builder.CreatePHI(builder.getInt1Ty(), 0);
-
-    for (llvm::pred_iterator pi = pred_begin(mergeBlock),
-                             pe = pred_end(mergeBlock);
-         pi != pe; ++pi) {
-      if (*pi == rhsBlock)
-        phi->addIncoming(rhs, rhsBlock);
+    for (auto it = pred_begin(mergeBB); it != pred_end(mergeBB); ++it) {
+      if (*it == rhsBB)
+        phi->addIncoming(rhs, rhsBB);
       else
-        phi->addIncoming(builder.getInt1(isOr), *pi);
+        phi->addIncoming(builder.getInt1(isOr), *it);
     }
 
     return boolToDouble(phi);
@@ -277,32 +247,40 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   if (op == TokenKind::EqualEqual)
     return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
 
-  return builder.CreateBinOp(getOperatorKind(op), lhs, rhs);
+  if (op == TokenKind::Plus)
+    return builder.CreateFAdd(lhs, rhs);
+
+  if (op == TokenKind::Minus)
+    return builder.CreateFSub(lhs, rhs);
+
+  if (op == TokenKind::Asterisk)
+    return builder.CreateFMul(lhs, rhs);
+
+  if (op == TokenKind::Slash)
+    return builder.CreateFDiv(lhs, rhs);
+
+  llvm_unreachable("unexpected binary operator");
+  return nullptr;
 }
 
 llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
   return builder.CreateFCmpONE(
-      v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "toBool");
+      v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "to.bool");
 }
 
 llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
-  return builder.CreateUIToFP(v, builder.getDoubleTy(), "toDouble");
+  return builder.CreateUIToFP(v, builder.getDoubleTy(), "to.double");
 }
 
 llvm::Function *Codegen::getCurrentFunction() {
-  llvm::BasicBlock *currentBlock = builder.GetInsertBlock();
-  if (!currentBlock)
-    return nullptr;
-
-  return currentBlock->getParent();
+  return builder.GetInsertBlock()->getParent();
 };
 
 llvm::AllocaInst *
 Codegen::allocateStackVariable(llvm::Function *function,
                                const std::string_view identifier) {
   llvm::IRBuilder<> tmpBuilder(context);
-  tmpBuilder.SetInsertPoint(&function->getEntryBlock(),
-                            allocaInsertPoint->getIterator());
+  tmpBuilder.SetInsertPoint(allocaInsertPoint);
 
   return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr, identifier);
 }
@@ -325,69 +303,66 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
 
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
-  auto *bb = llvm::BasicBlock::Create(context, "", function);
 
-  builder.SetInsertPoint(bb);
+  // FIXME: rename this to entry.
+  auto *entryBB = llvm::BasicBlock::Create(context, "", function);
+  builder.SetInsertPoint(entryBB);
 
   // Note: llvm:Instruction has a protected destructor.
   llvm::Value *undef = llvm::UndefValue::get(builder.getInt32Ty());
-  allocaInsertPoint =
-      new llvm::BitCastInst(undef, undef->getType(), "alloca.placeholder", bb);
+  allocaInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
+                                            "alloca.placeholder", entryBB);
 
-  bool isVoidFunction = functionDecl.type.kind == Type::Kind::Void;
-  if (!isVoidFunction)
+  bool isVoid = functionDecl.type.kind == Type::Kind::Void;
+  if (!isVoid)
     retVal = allocateStackVariable(function, "retval");
-  retBlock = llvm::BasicBlock::Create(context, "return");
+  retBB = llvm::BasicBlock::Create(context, "return");
 
   int idx = 0;
   for (auto &&arg : function->args()) {
-    const auto &paramDecl = functionDecl.params[idx];
+    const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
-    llvm::AllocaInst *stackParam =
-        allocateStackVariable(function, paramDecl->identifier);
-    declarations[paramDecl.get()] = stackParam;
-    builder.CreateStore(&arg, stackParam);
+    llvm::Value *var = allocateStackVariable(function, paramDecl->identifier);
+    builder.CreateStore(&arg, var);
+
+    declarations[paramDecl] = var;
     ++idx;
   }
 
   if (functionDecl.identifier == "println")
-    generateBuiltinPrintlnBody();
+    generateBuiltinPrintlnBody(functionDecl);
   else
     generateBlock(*functionDecl.body);
 
-  if (retBlock->hasNPredecessorsOrMore(1)) {
-    builder.CreateBr(retBlock);
-    retBlock->insertInto(function);
-    builder.SetInsertPoint(retBlock);
+  if (retBB->hasNPredecessorsOrMore(1)) {
+    builder.CreateBr(retBB);
+    retBB->insertInto(function);
+    builder.SetInsertPoint(retBB);
   }
 
   allocaInsertPoint->eraseFromParent();
   allocaInsertPoint = nullptr;
 
-  if (isVoidFunction)
+  if (isVoid) {
     builder.CreateRetVoid();
-  else
-    builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
-}
-
-void Codegen::generateBuiltinPrintlnBody() {
-  auto *functionType = llvm::FunctionType::get(builder.getInt32Ty(),
-                                               {builder.getInt8PtrTy()}, true);
-  auto *printf = llvm::Function::Create(
-      functionType, llvm::Function::ExternalLinkage, "printf", *module);
-
-  auto *formatStr = builder.CreateGlobalStringPtr("%.15g\n");
-  llvm::Value *param;
-  for (auto &&fn : resolvedSourceFile) {
-    if (fn->identifier != "println")
-      continue;
-
-    param = builder.CreateLoad(builder.getDoubleTy(),
-                               declarations[fn->params[0].get()]);
+    return;
   }
 
-  builder.CreateCall(printf, {formatStr, param});
+  builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
+}
+
+void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
+  auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
+                                       {builder.getInt8PtrTy()}, true);
+  auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
+                                        "printf", *module);
+  auto *format = builder.CreateGlobalStringPtr("%.15g\n");
+
+  llvm::Value *param = builder.CreateLoad(
+      builder.getDoubleTy(), declarations[println.params[0].get()]);
+
+  builder.CreateCall(printf, {format, param});
 }
 
 void Codegen::generateMainWrapper() {
@@ -398,32 +373,30 @@ void Codegen::generateMainWrapper() {
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
       llvm::Function::ExternalLinkage, "main", *module);
 
-  auto *bb = llvm::BasicBlock::Create(context, "", main);
+  auto *entry = llvm::BasicBlock::Create(context, "", main);
+  builder.SetInsertPoint(entry);
 
-  builder.SetInsertPoint(bb);
   builder.CreateCall(builtinMain);
-  builder.CreateRet(
-      llvm::ConstantInt::get(builder.getInt32Ty(), llvm::APInt(32, 0, true)));
+  builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
-void Codegen::generateFunction(const ResolvedFunctionDecl &functionDecl) {
-  auto *returnType = generateType(functionDecl.type);
+void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
+  auto *retType = generateType(functionDecl.type);
 
   std::vector<llvm::Type *> paramTypes;
   for (auto &&param : functionDecl.params)
     paramTypes.emplace_back(generateType(param->type));
 
-  auto *functionType = llvm::FunctionType::get(returnType, paramTypes, false);
-  auto *function =
-      llvm::Function::Create(functionType, llvm::Function::ExternalLinkage,
-                             functionDecl.identifier, *module);
+  auto *type = llvm::FunctionType::get(retType, paramTypes, false);
+  auto *function = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
+                                          functionDecl.identifier, *module);
 }
 
 std::unique_ptr<llvm::Module> Codegen::generateIR() {
-  for (auto &&function : resolvedSourceFile)
-    generateFunction(*function);
+  for (auto &&function : resolvedTree)
+    generateFunctionDecl(*function);
 
-  for (auto &&function : resolvedSourceFile)
+  for (auto &&function : resolvedTree)
     generateFunctionBody(*function);
 
   generateMainWrapper();

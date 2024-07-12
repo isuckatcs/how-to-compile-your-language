@@ -11,11 +11,11 @@
 
 namespace yl {
 class Codegen {
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile;
+  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
 
   llvm::Value *retVal = nullptr;
-  llvm::BasicBlock *retBlock = nullptr;
+  llvm::BasicBlock *retBB = nullptr;
   llvm::Instruction *allocaInsertPoint;
 
   llvm::LLVMContext context;
@@ -23,7 +23,6 @@ class Codegen {
   std::unique_ptr<llvm::Module> module;
 
   llvm::Type *generateType(Type type);
-  llvm::Instruction::BinaryOps getOperatorKind(TokenKind op);
 
   llvm::Value *generateStmt(const ResolvedStmt &stmt);
   llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
@@ -34,13 +33,12 @@ class Codegen {
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
+  llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
+  llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
 
   void generateConditionalOperator(const ResolvedExpr &op,
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
-
-  llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
-  llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unary);
 
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
@@ -51,9 +49,9 @@ class Codegen {
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);
-  void generateFunction(const ResolvedFunctionDecl &functionDecl);
+  void generateFunctionDecl(const ResolvedFunctionDecl &functionDecl);
 
-  void generateBuiltinPrintlnBody();
+  void generateBuiltinPrintlnBody(const ResolvedFunctionDecl &prinln);
   void generateMainWrapper();
 
 public:

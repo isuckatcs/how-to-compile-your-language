@@ -1,0 +1,49 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+fn foo(x: number): void {
+    if x == 1 || x == 2 && x > 3 {
+
+    }
+}
+// CHECK: define void @foo(double %x) {
+// CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   store double %x, double* %x1, align 8
+// CHECK-NEXT:   %1 = load double, double* %x1, align 8
+// CHECK-NEXT:   %2 = fcmp oeq double %1, 1.000000e+00
+// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
+// CHECK-NEXT: 
+// CHECK-NEXT: or.rhs:                                           ; preds = %0
+// CHECK-NEXT:   %3 = load double, double* %x1, align 8
+// CHECK-NEXT:   %4 = fcmp oeq double %3, 2.000000e+00
+// CHECK-NEXT:   %to.double2 = uitofp i1 %4 to double
+// CHECK-NEXT:   %to.bool3 = fcmp one double %to.double2, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool3, label %and.rhs, label %and.merge
+// CHECK-NEXT: 
+// CHECK-NEXT: or.merge:                                         ; preds = %and.merge, %0
+// CHECK-NEXT:   %5 = phi i1 [ %to.bool7, %and.merge ], [ true, %0 ]
+// CHECK-NEXT:   %to.double8 = uitofp i1 %5 to double
+// CHECK-NEXT:   %to.bool9 = fcmp one double %to.double8, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool9, label %if.true, label %if.exit
+// CHECK-NEXT: 
+// CHECK-NEXT: and.rhs:                                          ; preds = %or.rhs
+// CHECK-NEXT:   %6 = load double, double* %x1, align 8
+// CHECK-NEXT:   %7 = fcmp ogt double %6, 3.000000e+00
+// CHECK-NEXT:   %to.double4 = uitofp i1 %7 to double
+// CHECK-NEXT:   %to.bool5 = fcmp one double %to.double4, 0.000000e+00
+// CHECK-NEXT:   br label %and.merge
+// CHECK-NEXT: 
+// CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %or.rhs
+// CHECK-NEXT:   %8 = phi i1 [ %to.bool5, %and.rhs ], [ false, %or.rhs ]
+// CHECK-NEXT:   %to.double6 = uitofp i1 %8 to double
+// CHECK-NEXT:   %to.bool7 = fcmp one double %to.double6, 0.000000e+00
+// CHECK-NEXT:   br label %or.merge
+// CHECK-NEXT: 
+// CHECK-NEXT: if.true:                                          ; preds = %or.merge
+// CHECK-NEXT:   br label %if.exit
+// CHECK-NEXT: 
+// CHECK-NEXT: if.exit:                                          ; preds = %if.true, %or.merge
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {}

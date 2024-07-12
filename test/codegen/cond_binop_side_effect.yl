@@ -15,28 +15,28 @@ fn test1(): void {
 }
 // CHECK: define void @test1() {
 // CHECK-NEXT:   %1 = call double @false(double 1.000000e+00)
-// CHECK-NEXT:   %toBool = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %to.bool = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %0
 // CHECK-NEXT:   %2 = call double @true(double 2.000000e+00)
-// CHECK-NEXT:   %toBool1 = fcmp one double %2, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool1, label %and.rhs, label %and.merge
+// CHECK-NEXT:   %to.bool1 = fcmp one double %2, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool1, label %and.rhs, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %and.merge, %0
-// CHECK-NEXT:   %3 = phi i1 [ %toBool3, %and.merge ], [ true, %0 ]
-// CHECK-NEXT:   %toDouble4 = uitofp i1 %3 to double
+// CHECK-NEXT:   %3 = phi i1 [ %to.bool3, %and.merge ], [ true, %0 ]
+// CHECK-NEXT:   %to.double4 = uitofp i1 %3 to double
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %or.rhs
 // CHECK-NEXT:   %4 = call double @false(double 3.000000e+00)
-// CHECK-NEXT:   %toBool2 = fcmp one double %4, 0.000000e+00
+// CHECK-NEXT:   %to.bool2 = fcmp one double %4, 0.000000e+00
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %or.rhs
-// CHECK-NEXT:   %5 = phi i1 [ %toBool2, %and.rhs ], [ false, %or.rhs ]
-// CHECK-NEXT:   %toDouble = uitofp i1 %5 to double
-// CHECK-NEXT:   %toBool3 = fcmp one double %toDouble, 0.000000e+00
+// CHECK-NEXT:   %5 = phi i1 [ %to.bool2, %and.rhs ], [ false, %or.rhs ]
+// CHECK-NEXT:   %to.double = uitofp i1 %5 to double
+// CHECK-NEXT:   %to.bool3 = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: }
 
@@ -45,23 +45,23 @@ fn test2(): void {
 }
 // CHECK: define void @test2() {
 // CHECK-NEXT:   %1 = call double @false(double 4.000000e+00)
-// CHECK-NEXT:   %toBool = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %to.bool = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
 // CHECK-NEXT:   %2 = call double @true(double 6.000000e+00)
-// CHECK-NEXT:   %toBool2 = fcmp one double %2, 0.000000e+00
+// CHECK-NEXT:   %to.bool2 = fcmp one double %2, 0.000000e+00
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %0
-// CHECK-NEXT:   %3 = phi i1 [ %toBool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %0 ]
-// CHECK-NEXT:   %toDouble = uitofp i1 %3 to double
+// CHECK-NEXT:   %3 = phi i1 [ %to.bool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %0 ]
+// CHECK-NEXT:   %to.double = uitofp i1 %3 to double
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %0
 // CHECK-NEXT:   %4 = call double @true(double 5.000000e+00)
-// CHECK-NEXT:   %toBool1 = fcmp one double %4, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool1, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %to.bool1 = fcmp one double %4, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool1, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test3(): void {
@@ -69,23 +69,23 @@ fn test3(): void {
 }
 // CHECK: define void @test3() {
 // CHECK-NEXT:   %1 = call double @false(double 7.000000e+00)
-// CHECK-NEXT:   %toBool = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %and.lhs.true, label %and.merge
+// CHECK-NEXT:   %to.bool = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %and.lhs.true, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %and.lhs.true
 // CHECK-NEXT:   %2 = call double @true(double 9.000000e+00)
-// CHECK-NEXT:   %toBool2 = fcmp one double %2, 0.000000e+00
+// CHECK-NEXT:   %to.bool2 = fcmp one double %2, 0.000000e+00
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %and.lhs.true, %0
-// CHECK-NEXT:   %3 = phi i1 [ %toBool2, %and.rhs ], [ false, %and.lhs.true ], [ false, %0 ]
-// CHECK-NEXT:   %toDouble = uitofp i1 %3 to double
+// CHECK-NEXT:   %3 = phi i1 [ %to.bool2, %and.rhs ], [ false, %and.lhs.true ], [ false, %0 ]
+// CHECK-NEXT:   %to.double = uitofp i1 %3 to double
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %0
 // CHECK-NEXT:   %4 = call double @false(double 8.000000e+00)
-// CHECK-NEXT:   %toBool1 = fcmp one double %4, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool1, label %and.rhs, label %and.merge
+// CHECK-NEXT:   %to.bool1 = fcmp one double %4, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool1, label %and.rhs, label %and.merge
 // CHECK-NEXT: }
 
 fn test4(): void {
@@ -93,23 +93,23 @@ fn test4(): void {
 }
 // CHECK: define void @test4() {
 // CHECK-NEXT:   %1 = call double @true(double 1.000000e+01)
-// CHECK-NEXT:   %toBool = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %to.bool = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
 // CHECK-NEXT:   %2 = call double @true(double 1.200000e+01)
-// CHECK-NEXT:   %toBool2 = fcmp one double %2, 0.000000e+00
+// CHECK-NEXT:   %to.bool2 = fcmp one double %2, 0.000000e+00
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %0
-// CHECK-NEXT:   %3 = phi i1 [ %toBool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %0 ]
-// CHECK-NEXT:   %toDouble = uitofp i1 %3 to double
+// CHECK-NEXT:   %3 = phi i1 [ %to.bool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %0 ]
+// CHECK-NEXT:   %to.double = uitofp i1 %3 to double
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %0
 // CHECK-NEXT:   %4 = call double @true(double 1.100000e+01)
-// CHECK-NEXT:   %toBool1 = fcmp one double %4, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool1, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %to.bool1 = fcmp one double %4, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool1, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test5(): void {
@@ -117,28 +117,28 @@ fn test5(): void {
 }
 // CHECK: define void @test5() {
 // CHECK-NEXT:   %1 = call double @false(double 1.300000e+01)
-// CHECK-NEXT:   %toBool = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %to.bool = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %and.lhs.true, %or.lhs.false
 // CHECK-NEXT:   %2 = call double @true(double 1.600000e+01)
-// CHECK-NEXT:   %toBool3 = fcmp one double %2, 0.000000e+00
+// CHECK-NEXT:   %to.bool3 = fcmp one double %2, 0.000000e+00
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %and.lhs.true, %0
-// CHECK-NEXT:   %3 = phi i1 [ %toBool3, %or.rhs ], [ true, %and.lhs.true ], [ true, %0 ]
-// CHECK-NEXT:   %toDouble = uitofp i1 %3 to double
+// CHECK-NEXT:   %3 = phi i1 [ %to.bool3, %or.rhs ], [ true, %and.lhs.true ], [ true, %0 ]
+// CHECK-NEXT:   %to.double = uitofp i1 %3 to double
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %0
 // CHECK-NEXT:   %4 = call double @true(double 1.400000e+01)
-// CHECK-NEXT:   %toBool1 = fcmp one double %4, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool1, label %and.lhs.true, label %or.rhs
+// CHECK-NEXT:   %to.bool1 = fcmp one double %4, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool1, label %and.lhs.true, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %or.lhs.false
 // CHECK-NEXT:   %5 = call double @false(double 1.500000e+01)
-// CHECK-NEXT:   %toBool2 = fcmp one double %5, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool2, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %to.bool2 = fcmp one double %5, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool2, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn main(): void {

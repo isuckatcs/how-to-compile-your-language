@@ -15,16 +15,16 @@ fn main(): void {
 // CHECK-NEXT:   store double %x, double* %x1, align 8
 // CHECK-NEXT:   %1 = load double, double* %x1, align 8
 // CHECK-NEXT:   %2 = fcmp oeq double %1, 0.000000e+00
-// CHECK-NEXT:   %toDouble = uitofp i1 %2 to double
-// CHECK-NEXT:   %toBool = fcmp one double %toDouble, 0.000000e+00
-// CHECK-NEXT:   br i1 %toBool, label %then, label %merge
+// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: then:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                             ; preds = %0
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: merge:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %merge, %then
+// CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
