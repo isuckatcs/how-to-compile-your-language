@@ -13,28 +13,29 @@ fn main(): void {
     foo(2.0);
 }
 // CHECK: define void @foo(double %x) {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   %i = alloca double, align 8
 // CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %1 = load double, double* %x1, align 8
-// CHECK-NEXT:   store double %1, double* %i, align 8
+// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   store double %0, double* %i, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.cond:                                        ; preds = %while.body, %0
-// CHECK-NEXT:   %2 = load double, double* %i, align 8
-// CHECK-NEXT:   %3 = fcmp ogt double %2, 1.000000e+00
-// CHECK-NEXT:   %to.double = uitofp i1 %3 to double
+// CHECK-NEXT: while.cond:                                       ; preds = %while.body, %entry
+// CHECK-NEXT:   %1 = load double, double* %i, align 8
+// CHECK-NEXT:   %2 = fcmp ogt double %1, 1.000000e+00
+// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %while.body, label %while.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: while.body:                                        ; preds = %while.cond
+// CHECK-NEXT: while.body:                                       ; preds = %while.cond
+// CHECK-NEXT:   %3 = load double, double* %i, align 8
+// CHECK-NEXT:   call void @println(double %3)
 // CHECK-NEXT:   %4 = load double, double* %i, align 8
-// CHECK-NEXT:   call void @println(double %4)
-// CHECK-NEXT:   %5 = load double, double* %i, align 8
-// CHECK-NEXT:   %6 = fsub double %5, 1.000000e+00
-// CHECK-NEXT:   store double %6, double* %i, align 8
+// CHECK-NEXT:   %5 = fsub double %4, 1.000000e+00
+// CHECK-NEXT:   store double %5, double* %i, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.exit:                                        ; preds = %while.cond
+// CHECK-NEXT: while.exit:                                       ; preds = %while.cond
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

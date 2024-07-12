@@ -11,10 +11,11 @@ fn main(): void {
 // CHECK: @0 = private unnamed_addr constant [7 x i8] c"%.15g\0A\00", align 1
 
 // CHECK: define void @println(double %n) {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   %n1 = alloca double, align 8
 // CHECK-NEXT:   store double %n, double* %n1, align 8
-// CHECK-NEXT:   %1 = load double, double* %n1, align 8
-// CHECK-NEXT:   %2 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), double %1)
+// CHECK-NEXT:   %0 = load double, double* %n1, align 8
+// CHECK-NEXT:   %1 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), double %0)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

@@ -6,9 +6,10 @@ fn noInsertPoint(): void {
     return;
 }
 // CHECK: define void @noInsertPoint() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %0
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -18,12 +19,13 @@ fn insertPointEmptyBlock(): void {
     }
 }
 // CHECK: define void @insertPointEmptyBlock() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: if.true:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                             ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
@@ -36,9 +38,10 @@ fn insertPointEmptyBlock2(): void {
     }
 }
 // CHECK: define void @insertPointEmptyBlock2() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %0
+// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %entry
 // CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                        ; preds = %while.cond
@@ -59,13 +62,14 @@ fn insertPointNonEmptyBlock(): void {
     let x: number = 1.0;
 }
 // CHECK: define void @insertPointNonEmptyBlock() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: if.true:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                             ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %entry
 // CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
@@ -81,10 +85,11 @@ fn insertPointNonEmptyBlock2(): void {
     let x: number = 1.0;
 }
 // CHECK: define void @insertPointNonEmptyBlock2() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %0
+// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %entry
 // CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                        ; preds = %while.cond

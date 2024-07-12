@@ -9,20 +9,20 @@ fn foo(x: number): void {
 fn main(): void {
     foo(2.0);
 }
-
 // CHECK: define void @foo(double %x) {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %1 = load double, double* %x1, align 8
-// CHECK-NEXT:   %2 = fcmp oeq double %1, 0.000000e+00
-// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   %1 = fcmp oeq double %0, 0.000000e+00
+// CHECK-NEXT:   %to.double = uitofp i1 %1 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %if.true, label %if.exit
 // CHECK-NEXT: 
-// CHECK-NEXT: if.true:                                             ; preds = %0
+// CHECK-NEXT: if.true:                                          ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %0
+// CHECK-NEXT: if.exit:                                          ; preds = <null operand!>, %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true

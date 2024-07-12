@@ -304,8 +304,7 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
 
-  // FIXME: rename this to entry.
-  auto *entryBB = llvm::BasicBlock::Create(context, "", function);
+  auto *entryBB = llvm::BasicBlock::Create(context, "entry", function);
   builder.SetInsertPoint(entryBB);
 
   // Note: llvm:Instruction has a protected destructor.
@@ -373,7 +372,7 @@ void Codegen::generateMainWrapper() {
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
       llvm::Function::ExternalLinkage, "main", *module);
 
-  auto *entry = llvm::BasicBlock::Create(context, "", main);
+  auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
 
   builder.CreateCall(builtinMain);

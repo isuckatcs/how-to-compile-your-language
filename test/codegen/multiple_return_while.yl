@@ -25,22 +25,21 @@ fn foo(x: number): number {
 
     return 0.0;
 }
-
-// CHECK: while.exit:                                        ; preds = %while.cond
+// CHECK: while.exit:                                       ; preds = %while.cond
 // CHECK-NEXT:   store double 0.000000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.true:                                             ; preds = %while.body
+// CHECK-NEXT: if.true:                                          ; preds = %while.body
 // CHECK-NEXT:   store double 3.000000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %while.body
+// CHECK-NEXT: if.exit:                                          ; preds = <null operand!>, %while.body
 // CHECK-NEXT:   store double 5.000000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = <null operand!>, %while.exit, %if.exit, %if.true
-// CHECK-NEXT:   %8 = load double, double* %retval, align 8
-// CHECK-NEXT:   ret double %8
+// CHECK-NEXT:   %7 = load double, double* %retval, align 8
+// CHECK-NEXT:   ret double %7
 
 fn main(): void {
     println(foo(10.0));

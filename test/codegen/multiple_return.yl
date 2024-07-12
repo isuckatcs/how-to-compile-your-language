@@ -6,10 +6,10 @@ fn main(): void {
     let x: number = 1.0;
     return;
 }
-
 // CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %0
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
