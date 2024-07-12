@@ -1,0 +1,42 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o lazy_init_variable && ./lazy_init_variable | grep -Plzx '1\n2\n'
+fn foo(n: number): void {
+    let x: number;
+
+    if n > 2 {
+        x = 1;
+    } else {
+        x = 2;
+    }
+
+    println(x);
+}
+// CHECK: define void @foo(double %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %n1 = alloca double, align 8
+// CHECK-NEXT:   %x = alloca double, align 8
+// CHECK-NEXT:   store double %n, double* %n1, align 8
+// CHECK-NEXT:   %0 = load double, double* %n1, align 8
+// CHECK-NEXT:   %1 = fcmp ogt double %0, 2.000000e+00
+// CHECK-NEXT:   %to.double = uitofp i1 %1 to double
+// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %if.true, label %if.false
+// CHECK-NEXT: 
+// CHECK-NEXT: if.true:                                          ; preds = %entry
+// CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
+// CHECK-NEXT:   br label %if.exit
+// CHECK-NEXT: 
+// CHECK-NEXT: if.false:                                         ; preds = %entry
+// CHECK-NEXT:   store double 2.000000e+00, double* %x, align 8
+// CHECK-NEXT:   br label %if.exit
+// CHECK-NEXT: 
+// CHECK-NEXT: if.exit:                                          ; preds = %if.false, %if.true
+// CHECK-NEXT:   %2 = load double, double* %x, align 8
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {
+    foo(3);
+    foo(2);
+}
