@@ -24,33 +24,12 @@ Token Lexer::getNextToken() {
     if (c == currentChar)
       return Token{tokenStartLocation, static_cast<TokenKind>(c)};
 
-  if (currentChar == '/') {
-    if (peekNextChar() != '/')
-      return Token{tokenStartLocation, TokenKind::Slash};
-
+  if (currentChar == '/' && peekNextChar() == '/') {
     char c = eatNextChar();
     while (c != '\n' && c != '\0')
       c = eatNextChar();
 
     return getNextToken();
-  }
-
-  if (currentChar == '=') {
-    if (peekNextChar() != '=')
-      return Token{tokenStartLocation, TokenKind::Equal};
-
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::EqualEqual};
-  }
-
-  if (currentChar == '&' && peekNextChar() == '&') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::AmpAmp};
-  }
-
-  if (currentChar == '|' && peekNextChar() == '|') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::PipePipe};
   }
 
   if (isAlpha(currentChar)) {
@@ -63,27 +42,6 @@ Token Lexer::getNextToken() {
       return Token{tokenStartLocation, keywords.at(value), std::move(value)};
 
     return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
-  }
-
-  // [0-9]+ (. [0-9]+)?
-  if (isNum(currentChar)) {
-    std::string value{currentChar};
-
-    while (isNum(peekNextChar()))
-      value += eatNextChar();
-
-    if (peekNextChar() != '.')
-      return Token{tokenStartLocation, TokenKind::Number, value};
-
-    value += eatNextChar();
-
-    if (!isNum(peekNextChar()))
-      return Token{tokenStartLocation, TokenKind::Unk};
-
-    while (isNum(peekNextChar()))
-      value += eatNextChar();
-
-    return Token{tokenStartLocation, TokenKind::Number, value};
   }
 
   return Token{tokenStartLocation, TokenKind::Unk};

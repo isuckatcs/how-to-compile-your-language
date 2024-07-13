@@ -1,6 +1,0 @@
-// RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn main(): void {}
-
-// CHECK: ResolvedFunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:  ResolvedParamDecl: @({{.*}}) n:
-// CHECK-NEXT:  ResolvedBlock
