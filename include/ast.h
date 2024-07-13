@@ -1,42 +1,13 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 
-#include <cassert>
 #include <iostream>
 #include <memory>
 #include <vector>
 
-#include "lexer.h"
 #include "utils.h"
 
 namespace yl {
-namespace {
-std::string_view dumpOp(TokenKind op) {
-  if (op == TokenKind::Plus)
-    return "+";
-  if (op == TokenKind::Minus)
-    return "-";
-  if (op == TokenKind::Asterisk)
-    return "*";
-  if (op == TokenKind::Slash)
-    return "/";
-  if (op == TokenKind::EqualEqual)
-    return "==";
-  if (op == TokenKind::AmpAmp)
-    return "&&";
-  if (op == TokenKind::PipePipe)
-    return "||";
-  if (op == TokenKind::Lt)
-    return "<";
-  if (op == TokenKind::Gt)
-    return ">";
-
-  assert(op == TokenKind::Excl && "unexpected operator");
-
-  return "!";
-}
-} // namespace
-
 struct Type {
   enum class Kind { Void, Number, Custom };
 
@@ -86,44 +57,6 @@ struct Block : public Dumpable {
   }
 };
 
-struct IfStmt : public Stmt {
-  std::unique_ptr<Expr> condition;
-  std::unique_ptr<Block> trueBlock;
-  std::unique_ptr<Block> falseBlock;
-
-  IfStmt(SourceLocation location, std::unique_ptr<Expr> condition,
-         std::unique_ptr<Block> trueBlock,
-         std::unique_ptr<Block> falseBlock = nullptr)
-      : Stmt(location), condition(std::move(condition)),
-        trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "IfStmt\n";
-
-    condition->dump(level + 1);
-    trueBlock->dump(level + 1);
-    if (falseBlock)
-      falseBlock->dump(level + 1);
-  }
-};
-
-struct WhileStmt : public Stmt {
-  std::unique_ptr<Expr> condition;
-  std::unique_ptr<Block> body;
-
-  WhileStmt(SourceLocation location, std::unique_ptr<Expr> condition,
-            std::unique_ptr<Block> body)
-      : Stmt(location), condition(std::move(condition)), body(std::move(body)) {
-  }
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "WhileStmt\n";
-
-    condition->dump(level + 1);
-    body->dump(level + 1);
-  }
-};
-
 struct ReturnStmt : public Stmt {
   std::unique_ptr<Expr> expr;
 
@@ -145,7 +78,7 @@ struct NumberLiteral : public Expr {
       : Expr(location), value(value) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "NumberLiteral: '" + value + "'\n";
+    std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
   }
 };
 
@@ -156,7 +89,7 @@ struct DeclRefExpr : public Expr {
       : Expr(location), identifier(identifier) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "DeclRefExpr: " + identifier + "\n";
+    std::cerr << indent(level) << "DeclRefExpr: " << identifier << '\n';
   }
 };
 
@@ -179,83 +112,14 @@ struct CallExpr : public Expr {
   }
 };
 
-struct GroupingExpr : public Expr {
-  std::unique_ptr<Expr> expr;
-
-  GroupingExpr(SourceLocation location, std::unique_ptr<Expr> expr)
-      : Expr(location), expr(std::move(expr)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "GroupingExpr:\n";
-
-    expr->dump(level + 1);
-  }
-};
-
-struct BinaryOperator : public Expr {
-  std::unique_ptr<Expr> lhs;
-  std::unique_ptr<Expr> rhs;
-  TokenKind op;
-
-  BinaryOperator(SourceLocation location, std::unique_ptr<Expr> lhs,
-                 std::unique_ptr<Expr> rhs, TokenKind op)
-      : Expr(location), lhs(std::move(lhs)), rhs(std::move(rhs)), op(op) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "BinaryOperator: '" << dumpOp(op) << '\''
-              << '\n';
-
-    lhs->dump(level + 1);
-    rhs->dump(level + 1);
-  }
-};
-
-struct UnaryOperator : public Expr {
-  std::unique_ptr<Expr> rhs;
-  TokenKind op;
-
-  UnaryOperator(SourceLocation location, std::unique_ptr<Expr> rhs,
-                TokenKind op)
-      : Expr(location), rhs(std::move(rhs)), op(op) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "UnaryOperator: '" << dumpOp(op) << '\''
-              << '\n';
-
-    rhs->dump(level + 1);
-  }
-};
-
 struct ParamDecl : public Decl {
   Type type;
   ParamDecl(SourceLocation location, std::string identifier, Type type)
       : Decl{location, std::move(identifier)}, type(std::move(type)) {}
 
   void dump(size_t level = 0) const override {
-    std::cerr << indent(level)
-              << "ParamDecl: " + identifier + ":" + type.name + "\n";
-  }
-};
-
-struct VarDecl : public Decl {
-  std::optional<Type> type;
-  std::unique_ptr<Expr> initialzer;
-  bool isMutable;
-
-  VarDecl(SourceLocation location, std::string identifier,
-          std::optional<Type> type, bool isMutable,
-          std::unique_ptr<Expr> initializer = nullptr)
-      : Decl{location, std::move(identifier)}, type(std::move(type)),
-        isMutable(isMutable), initialzer(std::move(initializer)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "VarDecl: " << identifier;
-    if (type)
-      std::cerr << ':' << type->name;
-    std::cerr << '\n';
-
-    if (initialzer)
-      initialzer->dump(level + 1);
+    std::cerr << indent(level) << "ParamDecl: " << identifier << ':'
+              << type.name << '\n';
   }
 };
 
@@ -281,33 +145,6 @@ struct FunctionDecl : public Decl {
   }
 };
 
-struct DeclStmt : public Stmt {
-  std::unique_ptr<VarDecl> varDecl;
-
-  DeclStmt(SourceLocation location, std::unique_ptr<VarDecl> varDecl)
-      : Stmt{location}, varDecl(std::move(varDecl)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "DeclStmt:\n";
-    varDecl->dump(level + 1);
-  }
-};
-
-struct Assignment : public Stmt {
-  std::unique_ptr<DeclRefExpr> variable;
-  std::unique_ptr<Expr> expr;
-
-  Assignment(SourceLocation location, std::unique_ptr<DeclRefExpr> variable,
-             std::unique_ptr<Expr> expr)
-      : Stmt(location), variable(std::move(variable)), expr(std::move(expr)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "Assignment:\n";
-    variable->dump(level + 1);
-    expr->dump(level + 1);
-  }
-};
-
 struct ResolvedStmt : public Dumpable {
   SourceLocation location;
 
@@ -316,8 +153,7 @@ struct ResolvedStmt : public Dumpable {
   virtual ~ResolvedStmt() = default;
 };
 
-struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
-                      public ResolvedStmt {
+struct ResolvedExpr : public ResolvedStmt {
   Type type;
 
   ResolvedExpr(SourceLocation location, Type type)
@@ -352,46 +188,6 @@ struct ResolvedBlock : public Dumpable {
   }
 };
 
-struct ResolvedIfStmt : public ResolvedStmt {
-  std::unique_ptr<ResolvedExpr> condition;
-  std::unique_ptr<ResolvedBlock> trueBlock;
-  std::unique_ptr<ResolvedBlock> falseBlock;
-
-  ResolvedIfStmt(SourceLocation location,
-                 std::unique_ptr<ResolvedExpr> condition,
-                 std::unique_ptr<ResolvedBlock> trueBlock,
-                 std::unique_ptr<ResolvedBlock> falseBlock = nullptr)
-      : ResolvedStmt(location), condition(std::move(condition)),
-        trueBlock(std::move(trueBlock)), falseBlock(std::move(falseBlock)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedIfStmt\n";
-
-    condition->dump(level + 1);
-    trueBlock->dump(level + 1);
-    if (falseBlock)
-      falseBlock->dump(level + 1);
-  }
-};
-
-struct ResolvedWhileStmt : public ResolvedStmt {
-  std::unique_ptr<ResolvedExpr> condition;
-  std::unique_ptr<ResolvedBlock> body;
-
-  ResolvedWhileStmt(SourceLocation location,
-                    std::unique_ptr<ResolvedExpr> condition,
-                    std::unique_ptr<ResolvedBlock> body)
-      : ResolvedStmt(location), condition(std::move(condition)),
-        body(std::move(body)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedWhileStmt\n";
-
-    condition->dump(level + 1);
-    body->dump(level + 1);
-  }
-};
-
 struct ResolvedParamDecl : public ResolvedDecl {
   ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
       : ResolvedDecl{location, std::move(identifier), type} {}
@@ -400,25 +196,6 @@ struct ResolvedParamDecl : public ResolvedDecl {
     std::cerr << indent(level) << "ResolvedParamDecl: @(" << this << ") "
               << identifier << ":"
               << "\n";
-  }
-};
-
-struct ResolvedVarDecl : public ResolvedDecl {
-  std::unique_ptr<ResolvedExpr> initializer;
-  bool isMutable;
-
-  ResolvedVarDecl(SourceLocation location, std::string identifier, Type type,
-                  bool isMutable,
-                  std::unique_ptr<ResolvedExpr> initializer = nullptr)
-      : ResolvedDecl{location, std::move(identifier), type},
-        isMutable(isMutable), initializer(std::move(initializer)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
-              << identifier << ":"
-              << "\n";
-    if (initializer)
-      initializer->dump(level + 1);
   }
 };
 
@@ -452,8 +229,6 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedNumberLiteral: '" << value << "'\n";
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
   }
 };
 
@@ -466,8 +241,6 @@ struct ResolvedDeclRefExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedDeclRefExpr: @(" << decl << ") "
               << decl->identifier << "\n";
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
   }
 };
 
@@ -483,99 +256,9 @@ struct ResolvedCallExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
               << callee->identifier << "\n";
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
 
     for (auto &&arg : arguments)
       arg->dump(level + 1);
-  }
-};
-
-struct ResolvedGroupingExpr : public ResolvedExpr {
-  std::unique_ptr<ResolvedExpr> expr;
-
-  ResolvedGroupingExpr(SourceLocation location,
-                       std::unique_ptr<ResolvedExpr> expr)
-      : ResolvedExpr(location, expr->type), expr(std::move(expr)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedGroupingExpr:\n";
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
-
-    expr->dump(level + 1);
-  }
-};
-
-struct ResolvedBinaryOperator : public ResolvedExpr {
-  std::unique_ptr<ResolvedExpr> lhs;
-  std::unique_ptr<ResolvedExpr> rhs;
-  TokenKind op;
-
-  ResolvedBinaryOperator(SourceLocation location,
-                         std::unique_ptr<ResolvedExpr> lhs,
-                         std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
-      : ResolvedExpr(location, lhs->type), lhs(std::move(lhs)),
-        rhs(std::move(rhs)), op(op) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedBinaryOperator: '" << dumpOp(op)
-              << '\'' << '\n';
-
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
-
-    lhs->dump(level + 1);
-    rhs->dump(level + 1);
-  }
-};
-
-struct ResolvedUnaryOperator : public ResolvedExpr {
-  std::unique_ptr<ResolvedExpr> rhs;
-  TokenKind op;
-
-  ResolvedUnaryOperator(SourceLocation location,
-                        std::unique_ptr<ResolvedExpr> rhs, TokenKind op)
-      : ResolvedExpr(location, rhs->type), rhs(std::move(rhs)), op(op) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedUnaryOperator: '" << dumpOp(op)
-              << '\'' << '\n';
-
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
-
-    rhs->dump(level + 1);
-  }
-};
-
-struct ResolvedDeclStmt : public ResolvedStmt {
-  std::unique_ptr<ResolvedVarDecl> varDecl;
-
-  ResolvedDeclStmt(SourceLocation location,
-                   std::unique_ptr<ResolvedVarDecl> varDecl)
-      : ResolvedStmt{location}, varDecl(std::move(varDecl)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedDeclStmt:\n";
-    varDecl->dump(level + 1);
-  }
-};
-
-struct ResolvedAssignment : public ResolvedStmt {
-  std::unique_ptr<ResolvedDeclRefExpr> variable;
-  std::unique_ptr<ResolvedExpr> expr;
-
-  ResolvedAssignment(SourceLocation location,
-                     std::unique_ptr<ResolvedDeclRefExpr> variable,
-                     std::unique_ptr<ResolvedExpr> expr)
-      : ResolvedStmt(location), variable(std::move(variable)),
-        expr(std::move(expr)) {}
-
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedAssignment:\n";
-    variable->dump(level + 1);
-    expr->dump(level + 1);
   }
 };
 

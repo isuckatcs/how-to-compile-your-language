@@ -1,4 +1,4 @@
-// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+// RUN: compiler %s  2>&1 | filecheck %s
 // CHECK: [[# @LINE + 1 ]]:4: error: expected identifier
 fn {}
 
