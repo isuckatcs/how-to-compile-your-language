@@ -1,4 +1,4 @@
-// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
 fn main(): void {
     3.0 || 2.0;
     1.0;
@@ -12,17 +12,11 @@ fn main(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
@@ -41,17 +35,11 @@ fn and(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
@@ -70,29 +58,17 @@ fn multipleOr(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     | value: 4
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedBinaryOperator: '||'
-// CHECK-NEXT:     | value: 1
 // CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       | value: 4
 // CHECK-NEXT:       ResolvedNumberLiteral: '3'
-// CHECK-NEXT:       | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
@@ -111,29 +87,17 @@ fn multipleAnd(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     | value: 4
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:     | value: 1
 // CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       | value: 4
 // CHECK-NEXT:       ResolvedNumberLiteral: '3'
-// CHECK-NEXT:       | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
@@ -152,29 +116,17 @@ fn andOr(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     | value: 4
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:     | value: 1
 // CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       | value: 4
 // CHECK-NEXT:       ResolvedNumberLiteral: '3'
-// CHECK-NEXT:       | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
@@ -193,29 +145,17 @@ fn orAnd(): void {
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   | value: 4
 // CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   | value: 3
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     | value: 3
 // CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     | value: 4
 // CHECK-NEXT:     ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:     | value: 1
 // CHECK-NEXT:       ResolvedNumberLiteral: '3'
-// CHECK-NEXT:       | value: 3
 // CHECK-NEXT:       ResolvedNumberLiteral: '2'
-// CHECK-NEXT:       | value: 2
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 

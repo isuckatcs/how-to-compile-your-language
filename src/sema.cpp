@@ -270,8 +270,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
       return report(resolvedArg->location, "unexpected type of argument");
 
-    if (std::optional<double> val = cee.evaluate(*resolvedArg))
-      resolvedArg->setConstantValue(val);
+    resolvedArg->setConstantValue(cee.evaluate(*resolvedArg));
 
     ++idx;
     resolvedArguments.emplace_back(std::move(resolvedArg));
@@ -318,6 +317,8 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
       return nullptr;
   }
 
+  condition->setConstantValue(cee.evaluate(*condition));
+
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
                                           std::move(trueBlock),
                                           std::move(resolvedFalseBlock));
@@ -331,6 +332,8 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
     return report(condition->location, "expected number in condition");
 
   varOrReturn(body, resolveBlock(*whileStmt.body));
+
+  condition->setConstantValue(cee.evaluate(*condition));
 
   return std::make_unique<ResolvedWhileStmt>(
       whileStmt.location, std::move(condition), std::move(body));
@@ -366,6 +369,8 @@ Sema::resolveAssignment(const Assignment &assignment) {
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
 
+  resolvedRHS->setConstantValue(cee.evaluate(*resolvedRHS));
+
   return std::make_unique<ResolvedAssignment>(
       assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
 }
@@ -389,6 +394,8 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
 
     if (currentFunction->type.kind != resolvedExpr->type.kind)
       return report(resolvedExpr->location, "unexpected return type");
+
+    resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr));
   }
 
   return std::make_unique<ResolvedReturnStmt>(returnStmt.location,
@@ -397,33 +404,27 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
 
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
-  std::unique_ptr<ResolvedExpr> resolvedExpr = nullptr;
+  if (const auto *number = dynamic_cast<const NumberLiteral *>(&expr))
+    return std::make_unique<ResolvedNumberLiteral>(number->location,
+                                                   std::stod(number->value));
 
-  if (const auto *numberLiteral = dynamic_cast<const NumberLiteral *>(&expr))
-    resolvedExpr = std::make_unique<ResolvedNumberLiteral>(
-        numberLiteral->location, std::stod(numberLiteral->value));
-  else if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
-    resolvedExpr = resolveDeclRefExpr(*declRefExpr);
-  else if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
-    resolvedExpr = resolveCallExpr(*callExpr);
-  else if (const auto *groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
-    resolvedExpr = resolveGroupingExpr(*groupingExpr);
-  else if (const auto *binaryOperator =
-               dynamic_cast<const BinaryOperator *>(&expr))
-    resolvedExpr = resolveBinaryOperator(*binaryOperator);
-  else {
-    const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr);
-    assert(unaryOperator && "unexpected expression");
-    resolvedExpr = resolveUnaryOperator(*unaryOperator);
-  }
+  if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
+    return resolveDeclRefExpr(*declRefExpr);
 
-  if (!resolvedExpr)
-    return nullptr;
+  if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
+    return resolveCallExpr(*callExpr);
 
-  if (std::optional<double> val = cee.evaluate(*resolvedExpr))
-    resolvedExpr->setConstantValue(val);
+  if (const auto *groupingExpr = dynamic_cast<const GroupingExpr *>(&expr))
+    return resolveGroupingExpr(*groupingExpr);
 
-  return resolvedExpr;
+  if (const auto *binaryOperator = dynamic_cast<const BinaryOperator *>(&expr))
+    return resolveBinaryOperator(*binaryOperator);
+
+  if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
+    return resolveUnaryOperator(*unaryOperator);
+
+  assert(false && "unexpected expression");
+  return nullptr;
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
@@ -490,8 +491,12 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
                                         "' has invalid '" +
                                         resolvableType.name + "' type");
 
-  if (resolvedInitializer && resolvedInitializer->type.kind != type->kind)
-    return report(resolvedInitializer->location, "initializer type mismatch");
+  if (resolvedInitializer) {
+    if (resolvedInitializer->type.kind != type->kind)
+      return report(resolvedInitializer->location, "initializer type mismatch");
+
+    resolvedInitializer->setConstantValue(cee.evaluate(*resolvedInitializer));
+  }
 
   return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,
                                            *type, varDecl.isMutable,
