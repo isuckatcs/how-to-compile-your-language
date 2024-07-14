@@ -1,22 +1,10 @@
-// RUN: compiler %s -o expressions && ./expressions | grep -Plzx '1\n-1\n-9\n'
+// RUN: compiler %s -o expressions && ./expressions | grep -Plzx '\-9\n-16\n-15\n'
 fn foo(x: number): number {
-    if x < (0.0 - 5.0) {
-        return (0.0 - 1.0);
-    } else if x > 5.0 {
-        return 1.0;
-    }
-
-    let x: number = 2.0 + 3.0;
-    
-    var y: number = !x;
-    
-    y = 3.0 * !y / (1.5 + 1.5);
-
-    return y - 10.0;
+    return (3.0 * x / (1.5 + 1.5)) - 10.0;
 }
 
 fn main(): void {
-    println(foo(6.0));
-    println(foo(0.0 - 6.0));
-    println(foo(1.0));
+    println(foo(1));
+    println(foo(-6));
+    println(foo(-5));
 }

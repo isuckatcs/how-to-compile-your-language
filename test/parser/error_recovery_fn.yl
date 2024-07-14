@@ -5,7 +5,7 @@ fn error(): {
 }
 
 fn main(): void {
-    let y: number = 1.0 + 2.0;
+    1;
 }
 
 // CHECK: [[# @LINE + 1 ]]:12: error: expected parameter declaration
@@ -14,25 +14,17 @@ fn error2( {
 }
 
 fn error3(): void {
-    let y: number =
+    return
 
 // CHECK: [[# @LINE + 2 ]]:1: error: expected expression
 // CHECK: [[# @LINE + 1 ]]:1: error: expected '}' at the end of a block
 fn pass(): number {
-    let y: number = 1.0 + 2.0;
+    2;
 }
 
 // CHECK: FunctionDecl: main:void
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y:number
-// CHECK-NEXT:         BinaryOperator: '+'
-// CHECK-NEXT:           NumberLiteral: '1.0'
-// CHECK-NEXT:           NumberLiteral: '2.0'
+// CHECK-NEXT:     NumberLiteral: '1'
 // CHECK-NEXT: FunctionDecl: pass:number
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y:number
-// CHECK-NEXT:         BinaryOperator: '+'
-// CHECK-NEXT:           NumberLiteral: '1.0'
-// CHECK-NEXT:           NumberLiteral: '2.0'
+// CHECK-NEXT:     NumberLiteral: '2'

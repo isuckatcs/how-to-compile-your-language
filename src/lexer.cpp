@@ -35,10 +35,7 @@ Token Lexer::getNextToken() {
     return getNextToken();
   }
 
-  if (currentChar == '=') {
-    if (peekNextChar() != '=')
-      return Token{tokenStartLocation, TokenKind::Equal};
-
+  if (currentChar == '=' && peekNextChar() == '=') {
     eatNextChar();
     return Token{tokenStartLocation, TokenKind::EqualEqual};
   }

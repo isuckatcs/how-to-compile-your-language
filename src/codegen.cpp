@@ -25,91 +25,11 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
   if (auto *expr = dynamic_cast<const ResolvedExpr *>(&stmt))
     return generateExpr(*expr);
 
-  if (auto *ifStmt = dynamic_cast<const ResolvedIfStmt *>(&stmt))
-    return generateIfStmt(*ifStmt);
-
-  if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
-    return generateDeclStmt(*declStmt);
-
-  if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(&stmt))
-    return generateAssignment(*assignment);
-
-  if (auto *whileStmt = dynamic_cast<const ResolvedWhileStmt *>(&stmt))
-    return generateWhileStmt(*whileStmt);
-
   if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
     return generateReturnStmt(*returnStmt);
 
   llvm_unreachable("unknown statement");
   return nullptr;
-}
-
-llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
-  llvm::Function *function = getCurrentFunction();
-  auto *trueBB = llvm::BasicBlock::Create(context, "if.true");
-  auto *exitBB = llvm::BasicBlock::Create(context, "if.exit");
-
-  llvm::BasicBlock *elseBB = exitBB;
-  if (stmt.falseBlock)
-    elseBB = llvm::BasicBlock::Create(context, "if.false");
-
-  llvm::Value *cond = generateExpr(*stmt.condition);
-  builder.CreateCondBr(doubleToBool(cond), trueBB, elseBB);
-
-  trueBB->insertInto(function);
-  builder.SetInsertPoint(trueBB);
-  generateBlock(*stmt.trueBlock);
-  builder.CreateBr(exitBB);
-
-  if (stmt.falseBlock) {
-    elseBB->insertInto(function);
-
-    builder.SetInsertPoint(elseBB);
-    generateBlock(*stmt.falseBlock);
-    builder.CreateBr(exitBB);
-  }
-
-  exitBB->insertInto(function);
-  builder.SetInsertPoint(exitBB);
-  return nullptr;
-}
-
-llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
-  llvm::Function *function = getCurrentFunction();
-  auto *header = llvm::BasicBlock::Create(context, "while.cond", function);
-  auto *body = llvm::BasicBlock::Create(context, "while.body", function);
-  auto *exit = llvm::BasicBlock::Create(context, "while.exit", function);
-
-  builder.CreateBr(header);
-
-  builder.SetInsertPoint(header);
-  llvm::Value *cond = generateExpr(*stmt.condition);
-  builder.CreateCondBr(doubleToBool(cond), body, exit);
-
-  builder.SetInsertPoint(body);
-  generateBlock(*stmt.body);
-  builder.CreateBr(header);
-
-  builder.SetInsertPoint(exit);
-  return nullptr;
-}
-
-llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
-  llvm::Function *function = getCurrentFunction();
-  const auto *decl = stmt.varDecl.get();
-
-  llvm::AllocaInst *var = allocateStackVariable(function, decl->identifier);
-
-  if (const auto &init = decl->initializer)
-    builder.CreateStore(generateExpr(*init), var);
-
-  declarations[decl] = var;
-  return nullptr;
-}
-
-llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  return builder.CreateStore(generateExpr(*stmt.expr),
-                             declarations[stmt.variable->decl]);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
@@ -121,11 +41,11 @@ llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
-  if (auto *number = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
-    return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
-
   if (auto val = expr.getConstantValue())
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
+
+  if (auto *number = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
+    return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
 
   if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
     return builder.CreateLoad(builder.getDoubleTy(), declarations[dre->decl]);
@@ -387,8 +307,9 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
     paramTypes.emplace_back(generateType(param->type));
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
-  auto *function = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                                          functionDecl.identifier, *module);
+
+  llvm::Function::Create(type, llvm::Function::ExternalLinkage,
+                         functionDecl.identifier, *module);
 }
 
 std::unique_ptr<llvm::Module> Codegen::generateIR() {

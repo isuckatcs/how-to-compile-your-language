@@ -10,7 +10,6 @@ class ConstantExpressionEvaluator {
   std::optional<double>
   evaluateBinaryOperator(const ResolvedBinaryOperator &binop);
   std::optional<double> evaluateUnaryOperator(const ResolvedUnaryOperator &op);
-  std::optional<double> evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre);
 
 public:
   std::optional<double> evaluate(const ResolvedExpr &expr);
