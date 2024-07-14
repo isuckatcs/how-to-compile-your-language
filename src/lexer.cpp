@@ -24,33 +24,12 @@ Token Lexer::getNextToken() {
     if (c == currentChar)
       return Token{tokenStartLocation, static_cast<TokenKind>(c)};
 
-  if (currentChar == '/') {
-    if (peekNextChar() != '/')
-      return Token{tokenStartLocation, TokenKind::Slash};
-
+  if (currentChar == '/' && peekNextChar() == '/') {
     char c = eatNextChar();
     while (c != '\n' && c != '\0')
       c = eatNextChar();
 
     return getNextToken();
-  }
-
-  if (currentChar == '=') {
-    if (peekNextChar() != '=')
-      return Token{tokenStartLocation, TokenKind::Equal};
-
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::EqualEqual};
-  }
-
-  if (currentChar == '&' && peekNextChar() == '&') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::AmpAmp};
-  }
-
-  if (currentChar == '|' && peekNextChar() == '|') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::PipePipe};
   }
 
   if (isAlpha(currentChar)) {
