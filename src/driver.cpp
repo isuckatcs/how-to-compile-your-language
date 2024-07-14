@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string>
 
-#include "cfg.h"
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
@@ -15,14 +14,13 @@ using namespace yl;
 namespace {
 void displayHelp() {
   std::cout << "Usage:\n"
-            << "  your-compiler [options] <source_file>\n\n"
+            << "  compiler [options] <source_file>\n\n"
             << "Options:\n"
             << "  -h           display this message\n"
             << "  -o <file>    write executable to <file>\n"
             << "  -ast-dump    print the abstract syntax tree\n"
             << "  -res-dump    print the resolved syntax tree\n"
-            << "  -llvm-dump   print the llvm module\n"
-            << "  -cfg-dump    print the control flow graph\n";
+            << "  -llvm-dump   print the llvm module\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
@@ -117,14 +115,6 @@ int main(int argc, const char **argv) {
   if (options.resDump) {
     for (auto &&fn : resolvedTree)
       fn->dump();
-    return 0;
-  }
-
-  if (options.cfgDump) {
-    for (auto &&fn : resolvedTree) {
-      std::cerr << fn->identifier << ':' << '\n';
-      CFGBuilder().build(*fn).dump();
-    }
     return 0;
   }
 

@@ -8,17 +8,12 @@
 #include "utils.h"
 
 namespace yl {
-constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';',
-                                     ',',  '+', '-', '*', '<', '>', '!'};
+constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':',
+                                     ';',  ',', '+', '-', '*'};
 
 enum class TokenKind : char {
   Unk = -128,
   Slash,
-
-  Equal,
-  EqualEqual,
-  AmpAmp,
-  PipePipe,
 
   Identifier,
   Number,
@@ -26,11 +21,6 @@ enum class TokenKind : char {
   KwFn,
   KwNumber,
   KwVoid,
-  KwIf,
-  KwElse,
-  KwLet,
-  KwVar,
-  KwWhile,
   KwReturn,
 
   Eof = singleCharTokens[0],
@@ -43,17 +33,13 @@ enum class TokenKind : char {
   Comma = singleCharTokens[7],
   Plus = singleCharTokens[8],
   Minus = singleCharTokens[9],
-  Asterisk = singleCharTokens[10],
-  Lt = singleCharTokens[11],
-  Gt = singleCharTokens[12],
-  Excl = singleCharTokens[13],
+  Asterisk = singleCharTokens[10]
 };
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},
-    {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
-    {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
-    {"var", TokenKind::KwVar},       {"while", TokenKind::KwWhile},
+    {"void", TokenKind::KwVoid},
+    {"fn", TokenKind::KwFn},
+    {"number", TokenKind::KwNumber},
     {"return", TokenKind::KwReturn}};
 
 struct Token {

@@ -4,11 +4,6 @@ fn foo(): void {}
 fn bar(x: number, y: number): void {}
 
 fn main(): void {
-    let x: number = 1.0;
-
-    // CHECK: [[# @LINE + 1 ]]:6: error: calling non-function symbol
-    x();
-
     // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'y' not found
     y();
 

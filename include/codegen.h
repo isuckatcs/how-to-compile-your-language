@@ -25,10 +25,6 @@ class Codegen {
   llvm::Type *generateType(Type type);
 
   llvm::Value *generateStmt(const ResolvedStmt &stmt);
-  llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
-  llvm::Value *generateWhileStmt(const ResolvedWhileStmt &stmt);
-  llvm::Value *generateDeclStmt(const ResolvedDeclStmt &stmt);
-  llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
   llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
@@ -36,14 +32,6 @@ class Codegen {
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
 
-  void generateConditionalOperator(const ResolvedExpr &op,
-                                   llvm::BasicBlock *trueBlock,
-                                   llvm::BasicBlock *falseBlock);
-
-  llvm::Value *doubleToBool(llvm::Value *v);
-  llvm::Value *boolToDouble(llvm::Value *v);
-
-  llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
                                           const std::string_view identifier);
 
