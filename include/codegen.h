@@ -27,8 +27,6 @@ class Codegen {
   llvm::Value *generateStmt(const ResolvedStmt &stmt);
   llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
   llvm::Value *generateWhileStmt(const ResolvedWhileStmt &stmt);
-  llvm::Value *generateDeclStmt(const ResolvedDeclStmt &stmt);
-  llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
   llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);

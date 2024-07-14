@@ -84,16 +84,6 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
   assert(false && "unexpected unary operator");
 }
 
-std::optional<double> ConstantExpressionEvaluator::evaluateDeclRefExpr(
-    const ResolvedDeclRefExpr &dre) {
-  // We only care about reference to immutable variables with an initializer.
-  const auto *rvd = dynamic_cast<const ResolvedVarDecl *>(dre.decl);
-  if (!rvd || rvd->isMutable || !rvd->initializer)
-    return std::nullopt;
-
-  return evaluate(*rvd->initializer);
-}
-
 std::optional<double>
 ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
   // Don't evaluate the same expression multiple times.
@@ -115,10 +105,6 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
   if (const auto *unaryOperator =
           dynamic_cast<const ResolvedUnaryOperator *>(&expr))
     return evaluateUnaryOperator(*unaryOperator);
-
-  if (const auto *declRefExpr =
-          dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return evaluateDeclRefExpr(*declRefExpr);
 
   return std::nullopt;
 }

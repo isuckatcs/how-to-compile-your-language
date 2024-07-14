@@ -112,35 +112,6 @@ std::unique_ptr<ParamDecl> Parser::parseParamDecl() {
                                      std::move(*type));
 }
 
-// <varDecl>
-//  ::= <identifier> (':' <type>)? ('=' <expr>)?
-std::unique_ptr<VarDecl> Parser::parseVarDecl(bool isLet) {
-  SourceLocation location = nextToken.location;
-
-  assert(nextToken.value && "identifier token without value");
-
-  std::string identifier = *nextToken.value;
-  eatNextToken(); // eat identifier
-
-  std::optional<Type> type;
-  if (nextToken.kind == TokenKind::Colon) {
-    eatNextToken(); // eat ':'
-
-    type = parseType();
-    if (!type)
-      return nullptr;
-  }
-
-  if (nextToken.kind != TokenKind::Equal)
-    return std::make_unique<VarDecl>(location, identifier, type, !isLet);
-  eatNextToken(); // eat '='
-
-  varOrReturn(initializer, parseExpr());
-
-  return std::make_unique<VarDecl>(location, identifier, type, !isLet,
-                                   std::move(initializer));
-}
-
 // <block>
 //  ::= '{' <statement>* '}'
 std::unique_ptr<Block> Parser::parseBlock() {
@@ -227,34 +198,8 @@ std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
                                      std::move(body));
 }
 
-// <assignment>
-//  ::= <declRefExpr> '=' <expr>
-std::unique_ptr<Assignment>
-Parser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
-  eatNextToken(); // eat '='
-
-  varOrReturn(rhs, parseExpr());
-
-  return std::make_unique<Assignment>(lhs->location, std::move(lhs),
-                                      std::move(rhs));
-}
-
-// <declStmt>
-//  ::= ('let'|'var') <varDecl>
-std::unique_ptr<DeclStmt> Parser::parseDeclStmt() {
-  Token tok = nextToken;
-  eatNextToken(); // eat 'let' | 'var'
-
-  if (nextToken.kind != TokenKind::Identifier)
-    return report(nextToken.location, "expected identifier");
-
-  varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
-
-  return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
-}
-
 // <returnStmt>
-//  ::= 'return' <expr> ';'
+//  ::= 'return' <expr>? ';'
 std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'return'
@@ -277,11 +222,9 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
 
 // <statement>
 //  ::= <expr> ';'
-//  |   <returnStmt>
 //  |   <ifStatement>
 //  |   <whileStatement>
-//  |   <assignment> ';'
-//  |   <declStmt> ';'
+//  |   <returnStmt>
 std::unique_ptr<Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();
@@ -292,24 +235,7 @@ std::unique_ptr<Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwReturn)
     return parseReturnStmt();
 
-  std::unique_ptr<Stmt> expr = nullptr;
-  if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)
-    expr = parseDeclStmt();
-  else {
-    varOrReturn(lhs, parsePrefixExpr());
-
-    if (nextToken.kind != TokenKind::Equal)
-      expr = parseExprRHS(std::move(lhs), 0);
-    else if (auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get())) {
-      std::ignore = lhs.release();
-      expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre));
-    } else
-      return report(nextToken.location,
-                    "expected variable on the LHS of an assignment");
-  }
-
-  if (!expr)
-    return nullptr;
+  varOrReturn(expr, parseExpr());
 
   if (nextToken.kind != TokenKind::Semi)
     return report(nextToken.location, "expected ';' at the end of statement");
@@ -403,6 +329,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 
     if (nextToken.kind != TokenKind::Lpar)
       return declRefExpr;
+
     location = nextToken.location;
 
     varOrReturn(argumentList, parseArgumentList());
@@ -544,15 +471,6 @@ Parser::parseSourceFile() {
 
   assert(nextToken.kind == TokenKind::Eof && "expected to see end of file");
 
-  // Only the lexer and the parser has access to the tokens, so to report an
-  // error on the EOF token, we look for main() here.
-  bool hasMainFunction = false;
-  for (auto &&fn : functions)
-    hasMainFunction |= fn->identifier == "main";
-
-  if (!hasMainFunction && !incompleteAST)
-    report(nextToken.location, "main function not found");
-
-  return {std::move(functions), !incompleteAST && hasMainFunction};
+  return {std::move(functions), !incompleteAST};
 }
 } // namespace yl

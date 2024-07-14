@@ -1,8 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s --match-full-lines
 fn binaryLhsKnown(y: number): number {
-    var x: number = 2.1;
-
-    return (0.0 && y) + (1.0 || x);
+    return (0.0 && y) + (1.0 || y);
 }
 // CHECK:       ResolvedBinaryOperator: '+'
 // CHECK-NEXT:       | value: 1
@@ -13,11 +11,9 @@ fn binaryLhsKnown(y: number): number {
 // CHECK-NEXT:         ResolvedGroupingExpr:
 // CHECK-NEXT:           ResolvedBinaryOperator: '||'
 // CHECK-NEXT:             ResolvedNumberLiteral: '1'
-// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) y
 
-fn unaryNonConst(): number {
-    var x: number = 2.1;
-
+fn unaryNonConst(x: number): number {
     return !x;
 }
 // CHECK:    ResolvedReturnStmt
@@ -27,17 +23,9 @@ fn unaryNonConst(): number {
 fn ret(): number {
     return 1.0;
 }
-
-fn call(): void {
-    if !ret() {
-        return;
-    }
-}
-// CHECK:    ResolvedIfStmt
-// CHECK-NEXT:      ResolvedUnaryOperator: '!'
-// CHECK-NEXT:        ResolvedCallExpr: @({{.*}}) ret
-// CHECK-NEXT:      ResolvedBlock
-// CHECK-NEXT:        ResolvedReturnStmt
+// CHECK:    ResolvedReturnStmt
+// CHECK-NEXT:      ResolvedNumberLiteral: '1'
+// CHECK-NEXT:      | value: 1
 
 fn lhsKnownRhsNot(y: number): number {
     return 1.0 && y;

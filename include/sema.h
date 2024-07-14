@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "ast.h"
-#include "cfg.h"
 #include "constexpr.h"
 
 namespace yl {
@@ -42,27 +41,18 @@ class Sema {
   std::unique_ptr<ResolvedIfStmt> resolveIfStmt(const IfStmt &ifStmt);
   std::unique_ptr<ResolvedWhileStmt>
   resolveWhileStmt(const WhileStmt &whileStmt);
-  std::unique_ptr<ResolvedDeclStmt> resolveDeclStmt(const DeclStmt &declStmt);
-  std::unique_ptr<ResolvedAssignment>
-  resolveAssignment(const Assignment &assignment);
   std::unique_ptr<ResolvedReturnStmt>
   resolveReturnStmt(const ReturnStmt &returnStmt);
 
   std::unique_ptr<ResolvedBlock> resolveBlock(const Block &block);
 
   std::unique_ptr<ResolvedParamDecl> resolveParamDecl(const ParamDecl &param);
-  std::unique_ptr<ResolvedVarDecl> resolveVarDecl(const VarDecl &varDecl);
   std::unique_ptr<ResolvedFunctionDecl>
   resolveFunctionDeclaration(const FunctionDecl &function);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
   std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrintln();
-
-  bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
-  bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);
-  bool checkVariableInitialization(const ResolvedFunctionDecl &fn,
-                                   const CFG &cfg);
 
 public:
   explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)
