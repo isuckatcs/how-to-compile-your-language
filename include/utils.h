@@ -6,7 +6,6 @@
   if (!var)                                                                    \
     return nullptr;
 
-#include <optional>
 #include <string>
 
 namespace yl {
@@ -33,16 +32,6 @@ struct SourceLocation {
 std::nullptr_t report(SourceLocation location, std::string_view message,
                       bool isWarning = false);
 
-template <typename Base, typename Ty> class ConstantValueContainer {
-  std::optional<Ty> value = std::nullopt;
-
-  ConstantValueContainer() = default;
-  friend Base;
-
-public:
-  void setConstantValue(std::optional<Ty> val) { value = std::move(val); }
-  std::optional<Ty> getConstantValue() const { return value; }
-};
 } // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H

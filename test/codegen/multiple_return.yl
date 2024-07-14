@@ -1,9 +1,8 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o multiple_return && ./multiple_return
+// RUN: compiler %s 2>&1 | filecheck %s
 fn main(): void {
     return;
 
-    let x: number = 1.0;
+    1;
     return;
 }
 // CHECK: define void @__builtin_main() {
