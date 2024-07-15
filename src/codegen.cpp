@@ -76,6 +76,9 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
 llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
   llvm::Value *rhs = generateExpr(*unop.rhs);
 
+  if (unop.op == TokenKind::Excl)
+    return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
+
   if (unop.op == TokenKind::Minus)
     return builder.CreateFNeg(rhs);
 
@@ -83,12 +86,83 @@ llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
   return nullptr;
 }
 
+void Codegen::generateConditionalOperator(const ResolvedExpr &op,
+                                          llvm::BasicBlock *trueBB,
+                                          llvm::BasicBlock *falseBB) {
+  const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&op);
+
+  if (binop && binop->op == TokenKind::PipePipe) {
+    llvm::BasicBlock *nextBB =
+        llvm::BasicBlock::Create(context, "or.lhs.false", trueBB->getParent());
+    generateConditionalOperator(*binop->lhs, trueBB, nextBB);
+
+    builder.SetInsertPoint(nextBB);
+    generateConditionalOperator(*binop->rhs, trueBB, falseBB);
+    return;
+  }
+
+  if (binop && binop->op == TokenKind::AmpAmp) {
+    llvm::BasicBlock *nextBB =
+        llvm::BasicBlock::Create(context, "and.lhs.true", trueBB->getParent());
+    generateConditionalOperator(*binop->lhs, nextBB, falseBB);
+
+    builder.SetInsertPoint(nextBB);
+    generateConditionalOperator(*binop->rhs, trueBB, falseBB);
+    return;
+  }
+
+  llvm::Value *val = doubleToBool(generateExpr(op));
+  builder.CreateCondBr(val, trueBB, falseBB);
+  return;
+};
+
 llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   TokenKind op = binop.op;
 
+  if (op == TokenKind::AmpAmp || op == TokenKind::PipePipe) {
+    llvm::Function *function = getCurrentFunction();
+    bool isOr = op == TokenKind::PipePipe;
+
+    auto *rhsTag = isOr ? "or.rhs" : "and.rhs";
+    auto *mergeTag = isOr ? "or.merge" : "and.merge";
+
+    auto *rhsBB = llvm::BasicBlock::Create(context, rhsTag, function);
+    auto *mergeBB = llvm::BasicBlock::Create(context, mergeTag, function);
+
+    llvm::BasicBlock *trueBB = isOr ? mergeBB : rhsBB;
+    llvm::BasicBlock *falseBB = isOr ? rhsBB : mergeBB;
+    generateConditionalOperator(*binop.lhs, trueBB, falseBB);
+
+    builder.SetInsertPoint(rhsBB);
+    llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
+    builder.CreateBr(mergeBB);
+
+    rhsBB = builder.GetInsertBlock();
+    builder.SetInsertPoint(mergeBB);
+    llvm::PHINode *phi = builder.CreatePHI(builder.getInt1Ty(), 2);
+
+    for (auto it = pred_begin(mergeBB); it != pred_end(mergeBB); ++it) {
+      if (*it == rhsBB)
+        phi->addIncoming(rhs, rhsBB);
+      else
+        phi->addIncoming(builder.getInt1(isOr), *it);
+    }
+
+    return boolToDouble(phi);
+  }
+
   llvm::Value *lhs = generateExpr(*binop.lhs);
   llvm::Value *rhs = generateExpr(*binop.rhs);
+
+  if (op == TokenKind::Lt)
+    return boolToDouble(builder.CreateFCmpOLT(lhs, rhs));
+
+  if (op == TokenKind::Gt)
+    return boolToDouble(builder.CreateFCmpOGT(lhs, rhs));
+
+  if (op == TokenKind::EqualEqual)
+    return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
 
   if (op == TokenKind::Plus)
     return builder.CreateFAdd(lhs, rhs);
@@ -105,6 +179,19 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   llvm_unreachable("unexpected binary operator");
   return nullptr;
 }
+
+llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
+  return builder.CreateFCmpONE(
+      v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "to.bool");
+}
+
+llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
+  return builder.CreateUIToFP(v, builder.getDoubleTy(), "to.double");
+}
+
+llvm::Function *Codegen::getCurrentFunction() {
+  return builder.GetInsertBlock()->getParent();
+};
 
 llvm::AllocaInst *
 Codegen::allocateStackVariable(llvm::Function *function,

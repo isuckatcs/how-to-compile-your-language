@@ -35,6 +35,21 @@ Token Lexer::getNextToken() {
     return getNextToken();
   }
 
+  if (currentChar == '=' && peekNextChar() == '=') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::EqualEqual};
+  }
+
+  if (currentChar == '&' && peekNextChar() == '&') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::AmpAmp};
+  }
+
+  if (currentChar == '|' && peekNextChar() == '|') {
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::PipePipe};
+  }
+
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 

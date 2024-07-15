@@ -13,11 +13,21 @@ int getTokPrecedence(TokenKind tok) {
   case TokenKind::Plus:
   case TokenKind::Minus:
     return 5;
+  case TokenKind::Lt:
+  case TokenKind::Gt:
+    return 4;
+  case TokenKind::EqualEqual:
+    return 3;
+  case TokenKind::AmpAmp:
+    return 2;
+  case TokenKind::PipePipe:
+    return 1;
   default:
     return -1;
   }
 }
 }; // namespace
+
 // Synchronization points:
 // - start of a function decl
 // - end of the current block
@@ -197,13 +207,13 @@ std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
 }
 
 // <prefixExpression>
-//  ::= '-'* <primaryExpr>
+//  ::= ('!' | '-')* <primaryExpr>
 std::unique_ptr<Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
-  if (tok.kind != TokenKind::Minus)
+  if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus)
     return parsePrimary();
-  eatNextToken(); // eat '-'
+  eatNextToken(); // eat '!' or '-'
 
   varOrReturn(rhs, parsePrefixExpr());
 

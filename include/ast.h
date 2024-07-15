@@ -20,12 +20,23 @@ std::string_view dumpOp(TokenKind op) {
     return "*";
   if (op == TokenKind::Slash)
     return "/";
+  if (op == TokenKind::EqualEqual)
+    return "==";
+  if (op == TokenKind::AmpAmp)
+    return "&&";
+  if (op == TokenKind::PipePipe)
+    return "||";
+  if (op == TokenKind::Lt)
+    return "<";
+  if (op == TokenKind::Gt)
+    return ">";
 
-  assert(false && "unexpected opetator");
+  assert(op == TokenKind::Excl && "unexpected operator");
 
-  return "";
+  return "!";
 }
 } // namespace
+
 struct Type {
   enum class Kind { Void, Number, Custom };
 

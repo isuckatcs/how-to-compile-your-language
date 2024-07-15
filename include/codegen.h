@@ -32,6 +32,14 @@ class Codegen {
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
 
+  void generateConditionalOperator(const ResolvedExpr &op,
+                                   llvm::BasicBlock *trueBlock,
+                                   llvm::BasicBlock *falseBlock);
+
+  llvm::Value *doubleToBool(llvm::Value *v);
+  llvm::Value *boolToDouble(llvm::Value *v);
+
+  llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
                                           const std::string_view identifier);
 
