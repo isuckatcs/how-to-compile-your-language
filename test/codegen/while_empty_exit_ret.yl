@@ -1,0 +1,31 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+fn foo(x: number): void {
+    while x > 1.0 {
+        println(x);
+    }
+}
+
+fn main(): void {
+    foo(2.0);
+}
+// CHECK: define void @foo(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   store double %x, double* %x1, align 8
+// CHECK-NEXT:   br label %while.cond
+// CHECK-NEXT: 
+// CHECK-NEXT: while.cond:                                       ; preds = %while.body, %entry
+// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   %1 = fcmp ogt double %0, 1.000000e+00
+// CHECK-NEXT:   %to.double = uitofp i1 %1 to double
+// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %while.body, label %while.exit
+// CHECK-NEXT: 
+// CHECK-NEXT: while.body:                                       ; preds = %while.cond
+// CHECK-NEXT:   %2 = load double, double* %x1, align 8
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   br label %while.cond
+// CHECK-NEXT: 
+// CHECK-NEXT: while.exit:                                       ; preds = %while.cond
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

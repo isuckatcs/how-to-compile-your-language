@@ -1,0 +1,10 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s
+fn main(): void {}
+// CHECK: main:
+// CHECK-NEXT: [1 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs: 

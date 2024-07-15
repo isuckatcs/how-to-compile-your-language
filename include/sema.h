@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ast.h"
+#include "cfg.h"
 #include "constexpr.h"
 
 namespace yl {
@@ -53,6 +54,9 @@ class Sema {
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
   std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrintln();
+
+  bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
+  bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);
 
 public:
   explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)

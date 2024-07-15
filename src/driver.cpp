@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 
+#include "cfg.h"
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
@@ -20,7 +21,8 @@ void displayHelp() {
             << "  -o <file>    write executable to <file>\n"
             << "  -ast-dump    print the abstract syntax tree\n"
             << "  -res-dump    print the resolved syntax tree\n"
-            << "  -llvm-dump   print the llvm module\n";
+            << "  -llvm-dump   print the llvm module\n"
+            << "  -cfg-dump    print the control flow graph\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
@@ -115,6 +117,14 @@ int main(int argc, const char **argv) {
   if (options.resDump) {
     for (auto &&fn : resolvedTree)
       fn->dump();
+    return 0;
+  }
+
+  if (options.cfgDump) {
+    for (auto &&fn : resolvedTree) {
+      std::cerr << fn->identifier << ':' << '\n';
+      CFGBuilder().build(*fn).dump();
+    }
     return 0;
   }
 

@@ -4,6 +4,58 @@
 #include "utils.h"
 
 namespace yl {
+bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
+  CFG cfg = CFGBuilder().build(fn);
+
+  bool error = false;
+  error |= checkReturnOnAllPaths(fn, cfg);
+
+  return error;
+};
+
+bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
+                                 const CFG &cfg) {
+  if (fn.type.kind == Type::Kind::Void)
+    return false;
+
+  int returnCount = 0;
+  bool exitReached = false;
+
+  std::set<int> visited;
+  std::vector<int> worklist;
+  worklist.emplace_back(cfg.entry);
+
+  while (!worklist.empty()) {
+    int bb = worklist.back();
+    worklist.pop_back();
+
+    if (!visited.emplace(bb).second)
+      continue;
+
+    exitReached |= bb == cfg.exit;
+
+    const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
+
+    if (!stmts.empty() && dynamic_cast<const ResolvedReturnStmt *>(stmts[0])) {
+      ++returnCount;
+      continue;
+    }
+
+    for (auto &&[succ, reachable] : succs)
+      if (reachable)
+        worklist.emplace_back(succ);
+  }
+
+  if (exitReached || returnCount == 0) {
+    report(fn.location,
+           returnCount > 0
+               ? "non-void function doesn't return a value on every path"
+               : "non-void function doesn't return a value");
+  }
+
+  return exitReached || returnCount == 0;
+}
+
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
 
@@ -363,6 +415,7 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
     }
 
     currentFunction->body = std::move(resolvedBody);
+    error |= runFlowSensitiveChecks(*currentFunction);
   }
 
   if (error)
