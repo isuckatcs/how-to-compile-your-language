@@ -132,7 +132,7 @@ int main(int argc, const char **argv) {
     return 1;
 
   Codegen codegen(std::move(resolvedTree), options.source.c_str());
-  std::unique_ptr<llvm::Module> llvmIR = codegen.generateIR();
+  llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
     llvmIR->dump();

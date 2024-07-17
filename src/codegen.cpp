@@ -9,9 +9,9 @@ Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
     std::string_view sourcePath)
     : resolvedTree(std::move(resolvedSourceFile)), builder(context),
-      module(std::make_unique<llvm::Module>("<translation_unit>", context)) {
-  module->setSourceFileName(sourcePath);
-  module->setTargetTriple(llvm::sys::getDefaultTargetTriple());
+      module("<translation_unit>", context) {
+  module.setSourceFileName(sourcePath);
+  module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
 llvm::Type *Codegen::generateType(Type type) {
@@ -147,7 +147,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
-  llvm::Function *callee = module->getFunction(call.callee->identifier);
+  llvm::Function *callee = module.getFunction(call.callee->identifier);
 
   std::vector<llvm::Value *> args;
   for (auto &&arg : call.arguments)
@@ -302,7 +302,7 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
 }
 
 void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
-  auto *function = module->getFunction(functionDecl.identifier);
+  auto *function = module.getFunction(functionDecl.identifier);
 
   auto *entryBB = llvm::BasicBlock::Create(context, "entry", function);
   builder.SetInsertPoint(entryBB);
@@ -355,7 +355,7 @@ void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
   auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
                                        {builder.getInt8PtrTy()}, true);
   auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                                        "printf", *module);
+                                        "printf", module);
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
 
   llvm::Value *param = builder.CreateLoad(
@@ -365,12 +365,12 @@ void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
 }
 
 void Codegen::generateMainWrapper() {
-  auto *builtinMain = module->getFunction("main");
+  auto *builtinMain = module.getFunction("main");
   builtinMain->setName("__builtin_main");
 
   auto *main = llvm::Function::Create(
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
-      llvm::Function::ExternalLinkage, "main", *module);
+      llvm::Function::ExternalLinkage, "main", module);
 
   auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
@@ -388,10 +388,10 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
   auto *function = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                                          functionDecl.identifier, *module);
+                                          functionDecl.identifier, module);
 }
 
-std::unique_ptr<llvm::Module> Codegen::generateIR() {
+llvm::Module *Codegen::generateIR() {
   for (auto &&function : resolvedTree)
     generateFunctionDecl(*function);
 
@@ -400,6 +400,6 @@ std::unique_ptr<llvm::Module> Codegen::generateIR() {
 
   generateMainWrapper();
 
-  return std::move(module);
+  return &module;
 }
 } // namespace yl

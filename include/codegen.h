@@ -20,7 +20,7 @@ class Codegen {
 
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;
-  std::unique_ptr<llvm::Module> module;
+  llvm::Module module;
 
   llvm::Type *generateType(Type type);
 
@@ -55,11 +55,10 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  explicit Codegen(
-      std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
-      std::string_view sourcePath);
+  Codegen(std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
+          std::string_view sourcePath);
 
-  std::unique_ptr<llvm::Module> generateIR();
+  llvm::Module *generateIR();
 };
 } // namespace yl
 
