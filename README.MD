@@ -32,7 +32,7 @@ To run the tests, proceed with these following optional steps.
    - `apt-get install python`
 
 6. Install the python port of LLVM LIT and LLVM FileCheck.
-   - `pip install lit filecheck`
+   - `pip install -r ./test/requirements.txt`
 
 7. Run the `check` target with CMake
    - `cmake --build . --target check`
