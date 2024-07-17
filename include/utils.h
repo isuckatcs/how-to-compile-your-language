@@ -33,11 +33,8 @@ struct SourceLocation {
 std::nullptr_t report(SourceLocation location, std::string_view message,
                       bool isWarning = false);
 
-template <typename Base, typename Ty> class ConstantValueContainer {
+template <typename Ty> class ConstantValueContainer {
   std::optional<Ty> value = std::nullopt;
-
-  ConstantValueContainer() = default;
-  friend Base;
 
 public:
   void setConstantValue(std::optional<Ty> val) { value = std::move(val); }

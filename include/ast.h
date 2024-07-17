@@ -316,7 +316,7 @@ struct ResolvedStmt : public Dumpable {
   virtual ~ResolvedStmt() = default;
 };
 
-struct ResolvedExpr : public ConstantValueContainer<ResolvedExpr, double>,
+struct ResolvedExpr : public ConstantValueContainer<double>,
                       public ResolvedStmt {
   Type type;
 
