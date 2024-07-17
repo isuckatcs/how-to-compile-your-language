@@ -27,7 +27,7 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       run: |
-        pip install lit filecheck
+        pip install -r ${{github.workspace}}/test/requirements.txt
         cmake --build . -t check
 
     - name: Upload coverage reports to Codecov
