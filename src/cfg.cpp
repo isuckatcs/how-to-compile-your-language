@@ -46,7 +46,7 @@ int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
   int trueBlock = insertBlock(*stmt.trueBlock, exit);
   int entry = cfg.insertNewBlock();
 
-  std::optional<double> val = stmt.condition->getConstantValue();
+  std::optional<double> val = cee.evaluate(*stmt.condition, true);
   cfg.insertEdge(entry, trueBlock, val != 0);
   cfg.insertEdge(entry, falseBlock, val.value_or(0) == 0);
 
@@ -61,7 +61,7 @@ int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
   int header = cfg.insertNewBlock();
   cfg.insertEdge(latch, header, true);
 
-  std::optional<double> val = stmt.condition->getConstantValue();
+  std::optional<double> val = cee.evaluate(*stmt.condition, true);
   cfg.insertEdge(header, body, val != 0);
   cfg.insertEdge(header, exit, val.value_or(0) == 0);
 

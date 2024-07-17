@@ -270,7 +270,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
       return report(resolvedArg->location, "unexpected type of argument");
 
-    resolvedArg->setConstantValue(cee.evaluate(*resolvedArg));
+    resolvedArg->setConstantValue(cee.evaluate(*resolvedArg, false));
 
     ++idx;
     resolvedArguments.emplace_back(std::move(resolvedArg));
@@ -317,7 +317,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
       return nullptr;
   }
 
-  condition->setConstantValue(cee.evaluate(*condition));
+  condition->setConstantValue(cee.evaluate(*condition, false));
 
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
                                           std::move(trueBlock),
@@ -333,7 +333,7 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
 
   varOrReturn(body, resolveBlock(*whileStmt.body));
 
-  condition->setConstantValue(cee.evaluate(*condition));
+  condition->setConstantValue(cee.evaluate(*condition, false));
 
   return std::make_unique<ResolvedWhileStmt>(
       whileStmt.location, std::move(condition), std::move(body));
@@ -369,7 +369,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
 
-  resolvedRHS->setConstantValue(cee.evaluate(*resolvedRHS));
+  resolvedRHS->setConstantValue(cee.evaluate(*resolvedRHS, false));
 
   return std::make_unique<ResolvedAssignment>(
       assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
@@ -395,7 +395,7 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
     if (currentFunction->type.kind != resolvedExpr->type.kind)
       return report(resolvedExpr->location, "unexpected return type");
 
-    resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr));
+    resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr, false));
   }
 
   return std::make_unique<ResolvedReturnStmt>(returnStmt.location,
@@ -495,7 +495,8 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
     if (resolvedInitializer->type.kind != type->kind)
       return report(resolvedInitializer->location, "initializer type mismatch");
 
-    resolvedInitializer->setConstantValue(cee.evaluate(*resolvedInitializer));
+    resolvedInitializer->setConstantValue(
+        cee.evaluate(*resolvedInitializer, false));
   }
 
   return std::make_unique<ResolvedVarDecl>(varDecl.location, varDecl.identifier,

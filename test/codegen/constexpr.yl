@@ -1,0 +1,62 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o constexpr && ./constexpr | grep -Plzx '3\n4\n'
+fn sideEffect(x: number): number {
+    println(x);
+    return x;
+}
+
+fn constant(): number {
+    return 1 || sideEffect(2);
+}
+// CHECK: define double @constant() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   store double 1.000000e+00, double* %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT:   %0 = load double, double* %retval, align 8
+// CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+fn constant2(): number {
+    return 0 && sideEffect(2);
+}
+// CHECK: define double @constant2() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   store double 0.000000e+00, double* %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT:   %0 = load double, double* %retval, align 8
+// CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+fn nonConstant(): number {
+    return sideEffect(3) || 1;
+}
+// CHECK: define double @nonConstant() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %0 = call double @sideEffect(double 3.000000e+00)
+// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
+
+fn nonConstant2(): number {
+    return sideEffect(4) && 0;
+}
+// CHECK: define double @nonConstant2() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %0 = call double @sideEffect(double 4.000000e+00)
+// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
+// CHECK-NEXT:   br i1 %to.bool, label %and.rhs, label %and.merge
+
+fn main(): void {
+    constant();
+    constant2();
+
+    nonConstant();
+    nonConstant2();
+}

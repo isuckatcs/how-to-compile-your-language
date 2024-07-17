@@ -144,5 +144,35 @@ fn noReturnNeverRunningLoop(): number {
     while 0.0 {}
 }
 
+fn returnAllPaths(x: number): number {
+    if (x || x || 1) {
+        return 1;
+    } else {
+
+    }
+}
+
+fn returnAllPaths2(x: number): number {
+    if (1 && 1 && 1) {
+        return 1;
+    } else {
+
+    }
+}
+
+fn returnAllPathsElse(x: number): number {
+    if (x && x && 0) {
+    } else {
+        return 1;
+    }
+}
+
+fn returnAllPathsElse2(x: number): number {
+    if (0 || 0 || 0) {
+    } else {
+        return 1;
+    }
+}
+
 fn main(): void {}
 // CHECK-NOT: {{.*}}

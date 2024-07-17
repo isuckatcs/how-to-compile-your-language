@@ -52,19 +52,23 @@ fn lhsUnknownRhsFalse(x: number): number {
 }
 // CHECK:    ResolvedReturnStmt
 // CHECK-NEXT:      ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:      | value: 0
 // CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
 // CHECK-NEXT:        ResolvedNumberLiteral: '0'
 
 fn lhsUnknownRhsTrue(x: number): number {
-    return x && (0.0 - 1.0);
+    return x || 1.0;
 }
-// CHECK: ResolvedReturnStmt
-// CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:     ResolvedGroupingExpr:
-// CHECK-NEXT:       ResolvedBinaryOperator: '-'
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
+// CHECK:    ResolvedReturnStmt
+// CHECK-NEXT:      ResolvedBinaryOperator: '||'
+// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        ResolvedNumberLiteral: '1'
+
+fn lhsUnknownRhsFalseOr(x: number): number {
+    return x || 0.0;
+}
+// CHECK:    ResolvedReturnStmt
+// CHECK-NEXT:      ResolvedBinaryOperator: '||'
+// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        ResolvedNumberLiteral: '0'
 
 fn main(): void {}

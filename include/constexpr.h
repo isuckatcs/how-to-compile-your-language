@@ -8,12 +8,16 @@
 namespace yl {
 class ConstantExpressionEvaluator {
   std::optional<double>
-  evaluateBinaryOperator(const ResolvedBinaryOperator &binop);
-  std::optional<double> evaluateUnaryOperator(const ResolvedUnaryOperator &op);
-  std::optional<double> evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre);
+  evaluateBinaryOperator(const ResolvedBinaryOperator &binop,
+                         bool allowSideEffects);
+  std::optional<double> evaluateUnaryOperator(const ResolvedUnaryOperator &op,
+                                              bool allowSideEffects);
+  std::optional<double> evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
+                                            bool allowSideEffects);
 
 public:
-  std::optional<double> evaluate(const ResolvedExpr &expr);
+  std::optional<double> evaluate(const ResolvedExpr &expr,
+                                 bool allowSideEffects);
 };
 } // namespace yl
 

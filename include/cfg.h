@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ast.h"
+#include "constexpr.h"
 
 namespace yl {
 struct BasicBlock {
@@ -42,6 +43,7 @@ struct CFG : public Dumpable {
 };
 
 class CFGBuilder {
+  ConstantExpressionEvaluator cee;
   CFG cfg;
 
   int insertBlock(const ResolvedBlock &block, int successor);
