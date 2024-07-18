@@ -61,7 +61,7 @@
     ::= <multiplicativeExpression> (('+' | '-') <multiplicativeExpression>)*
 
 <multiplicativeExpression>
-    ::= <prefixExpression> (('*' | '/') <multiplicativeExpression>)*
+    ::= <prefixExpression> (('*' | '/') <prefixExpression>)*
 
 <prefixExpression>
     ::= ('!' | '-')* <primaryExpr>
@@ -104,6 +104,6 @@
 |            | Additive       | +, -    |
 |            | Comparison     | <, >    |
 |            | Equality       | ==      |
-|            | Conjuction     | &&      |
+|            | Conjunction    | &&      |
 | Lowest     | Disjunction    | \|\|    |
 
