@@ -250,6 +250,11 @@ std::unique_ptr<DeclStmt> Parser::parseDeclStmt() {
 
   varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
 
+  if (nextToken.kind != TokenKind::Semi)
+    return report(nextToken.location, "expected ';' after declaration");
+
+  eatNextToken(); // eat ';'
+
   return std::make_unique<DeclStmt>(tok.location, std::move(varDecl));
 }
 
@@ -264,11 +269,11 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
     expr = parseExpr();
     if (!expr)
       return nullptr;
-
-    if (nextToken.kind != TokenKind::Semi)
-      return report(nextToken.location,
-                    "expected ';' at the end of a return statement");
   }
+
+  if (nextToken.kind != TokenKind::Semi)
+    return report(nextToken.location,
+                  "expected ';' at the end of a return statement");
 
   eatNextToken(); // eat ';'
 
@@ -292,30 +297,41 @@ std::unique_ptr<Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwReturn)
     return parseReturnStmt();
 
-  std::unique_ptr<Stmt> expr = nullptr;
   if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)
-    expr = parseDeclStmt();
-  else {
-    varOrReturn(lhs, parsePrefixExpr());
+    return parseDeclStmt();
 
-    if (nextToken.kind != TokenKind::Equal)
-      expr = parseExprRHS(std::move(lhs), 0);
-    else if (auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get())) {
-      std::ignore = lhs.release();
-      expr = parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre));
-    } else
+  return parseAssignmentOrExpr();
+}
+
+std::unique_ptr<Stmt> Parser::parseAssignmentOrExpr() {
+  varOrReturn(lhs, parsePrefixExpr());
+
+  if (nextToken.kind != TokenKind::Equal) {
+    varOrReturn(rhs, parseExprRHS(std::move(lhs), 0));
+
+    if (nextToken.kind != TokenKind::Semi)
       return report(nextToken.location,
-                    "expected variable on the LHS of an assignment");
+                    "expected ';' at the end of expression");
+
+    eatNextToken(); // eat ';'
+    return rhs;
   }
 
-  if (!expr)
-    return nullptr;
+  auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get());
+  if (!dre)
+    return report(lhs->location,
+                  "expected variable on the LHS of an assignment");
+
+  std::ignore = lhs.release();
+
+  varOrReturn(rhs, parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre)));
 
   if (nextToken.kind != TokenKind::Semi)
-    return report(nextToken.location, "expected ';' at the end of statement");
+    return report(nextToken.location, "expected ';' at the end of assignment");
+
   eatNextToken(); // eat ';'
 
-  return expr;
+  return rhs;
 }
 
 std::unique_ptr<Expr> Parser::parseExpr() {

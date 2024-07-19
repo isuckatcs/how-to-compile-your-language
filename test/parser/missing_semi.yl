@@ -1,5 +1,5 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
 fn main(): void {
     1.0
-// CHECK: [[# @LINE + 1 ]]:1: error: expected ';' at the end of statement
+// CHECK: [[# @LINE + 1 ]]:1: error: expected ';' at the end of expression
 }

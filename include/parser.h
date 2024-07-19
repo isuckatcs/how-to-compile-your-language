@@ -37,6 +37,8 @@ class Parser {
   std::unique_ptr<DeclStmt> parseDeclStmt();
   std::unique_ptr<ReturnStmt> parseReturnStmt();
 
+  std::unique_ptr<Stmt> parseAssignmentOrExpr();
+
   std::unique_ptr<Block> parseBlock();
 
   std::unique_ptr<Expr> parseExpr();

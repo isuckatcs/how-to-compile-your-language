@@ -1,6 +1,6 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main(): void {
-    // CHECK: [[# @LINE + 1 ]]:25: error: expected ';' at the end of statement
+    // CHECK: [[# @LINE + 1 ]]:25: error: expected ';' after declaration
     let x: number = 0.0 |;
 
     // CHECK: [[# @LINE + 1 ]]:9: error: expected identifier
