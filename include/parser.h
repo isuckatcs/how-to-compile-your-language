@@ -48,10 +48,10 @@ class Parser {
 
   // helper methods
   using ParameterList = std::vector<std::unique_ptr<ParamDecl>>;
-  std::optional<ParameterList> parseParameterList();
+  std::unique_ptr<ParameterList> parseParameterList();
 
   using ArgumentList = std::vector<std::unique_ptr<Expr>>;
-  std::optional<ArgumentList> parseArgumentList();
+  std::unique_ptr<ArgumentList> parseArgumentList();
 
   std::optional<Type> parseType();
 
