@@ -581,7 +581,7 @@ enum class TokenKind : char {
                     <code>std::optional</code> vector of expressions.
                 </p>
                 <pre><code>// &lt;argumentList>
-//  ::= '(' (&lt;expr> (',' &lt;expr>)*)? ')'
+//  ::= '(' (&lt;expr> (',' &lt;expr>)* ','?)? ')'
 std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
@@ -592,18 +592,19 @@ std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
   ...
 }</code></pre>
                 <p>
-                    If the next token after <code>(</code> is the
-                    <code>)</code>, the argument list is empty, so the method
-                    can safely return an empty vector.
+                    Then the tokens are processed until a <code>)</code> is
+                    encountered, which indicates the end of the argument list.
                 </p>
                 <pre><code>std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
   ...
 
   std::vector&lt;std::unique_ptr&lt;Expr>> argumentList;
 
-  if (nextToken.kind == TokenKind::Rpar) {
-    eatNextToken(); // eat ')'
-    return argumentList;
+  while (true) {
+    if (nextToken.kind == TokenKind::Rpar)
+      break;
+    
+    ...
   }
 
   ...
@@ -650,21 +651,16 @@ std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        A question might arise, why isn't the grammar of the
-                        argument list simplified like
-                        <code>'(' (&lt;expr> ',')* ')'</code>.
-                    </p>
-                    <p>
-                        While this simplification looks tempting at first, it
-                        always results in trailing commas in an argument list
-                        like
-                        <code>foo(1.0, x,);</code>.
+                        A question might arise, why there is an optional
+                        <code>','</code> at the end of the argument list. That
+                        is called a trailing comma and allows developers to
+                        write snippets like <code>foo(1.0, x,);</code>.
                     </p>
                     <p>
                         This feature can come in handy when the argument list
                         spans across multiple lines and a new argument is added
                         later, as the previous line doesn't have to be modified,
-                        so the version control diff is smaller.
+                        the version control diff is smaller.
                     </p>
                     <pre><code>foo(
   0,
@@ -672,11 +668,11 @@ std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
 + 2,
 );</code></pre>
                     <p>
-                        On the other hand if it's used on a single line it might
-                        be confusing to read the call at first, so the noise
-                        from the diff is moved to the source code. At the end of
-                        the day it boils down to personal preferences, but for
-                        now trailing commas are not allowed in the language.
+                        It also makes it easier to reorder elements if needed.
+                        At the end of the day using the trailing comma boils
+                        down to personal preferences, but since they have more
+                        than one pros and no cons, there is no reason not to
+                        support them.
                     </p>
                 </blockquote>
                 <p>
@@ -766,7 +762,7 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
                     <code>parseArgumentList()</code>.
                 </p>
                 <pre><code>// &lt;parameterList>
-//  ::= '(' (&lt;paramDecl> (',' &lt;paramDecl>)*)? ')'
+//  ::= '(' (&lt;paramDecl> (',' &lt;paramDecl>)* ','?)? ')'
 std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
@@ -776,12 +772,10 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
 
   std::vector&lt;std::unique_ptr&lt;ParamDecl>> parameterList;
 
-  if (nextToken.kind == TokenKind::Rpar) {
-    eatNextToken(); // eat ')'
-    return parameterList;
-  }
-
   while (true) {
+    if (nextToken.kind == TokenKind::Rpar)
+      break;
+
     if (nextToken.kind != TokenKind::Identifier) {
       report(nextToken.location, "expected parameter declaration");
       return std::nullopt;

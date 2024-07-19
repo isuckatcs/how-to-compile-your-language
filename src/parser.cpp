@@ -415,7 +415,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 }
 
 // <parameterList>
-//  ::= '(' (<paramDecl> (',' <paramDecl>)*)? ')'
+//  ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 std::optional<Parser::ParameterList> Parser::parseParameterList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
@@ -425,12 +425,10 @@ std::optional<Parser::ParameterList> Parser::parseParameterList() {
 
   std::vector<std::unique_ptr<ParamDecl>> parameterList;
 
-  if (nextToken.kind == TokenKind::Rpar) {
-    eatNextToken(); // eat ')'
-    return parameterList;
-  }
-
   while (true) {
+    if (nextToken.kind == TokenKind::Rpar)
+      break;
+
     if (nextToken.kind != TokenKind::Identifier) {
       report(nextToken.location, "expected parameter declaration");
       return std::nullopt;
@@ -456,7 +454,7 @@ std::optional<Parser::ParameterList> Parser::parseParameterList() {
 }
 
 // <argumentList>
-//  ::= '(' (<expr> (',' <expr>)*)? ')'
+//  ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 std::optional<Parser::ArgumentList> Parser::parseArgumentList() {
   if (nextToken.kind != TokenKind::Lpar) {
     report(nextToken.location, "expected '('");
@@ -466,12 +464,10 @@ std::optional<Parser::ArgumentList> Parser::parseArgumentList() {
 
   std::vector<std::unique_ptr<Expr>> argumentList;
 
-  if (nextToken.kind == TokenKind::Rpar) {
-    eatNextToken(); // eat ')'
-    return argumentList;
-  }
-
   while (true) {
+    if (nextToken.kind == TokenKind::Rpar)
+      break;
+
     auto expr = parseExpr();
     if (!expr)
       return std::nullopt;

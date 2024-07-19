@@ -8,7 +8,7 @@
     ::= 'fn' <identifier> <parameterList> ':' <type> <block>
 
 <parameterList>
-    ::= '(' (<paramDecl> (',' <paramDecl>)*)? ')'
+    ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
     ::= <identifier> ':' <type>
@@ -82,7 +82,7 @@
     ::= <declRefExpr> <argumentList>
 
 <argumentList>
-    ::= '(' (<expr> (',' <expr>)*)? ')'
+    ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <type>
     ::= 'number'
