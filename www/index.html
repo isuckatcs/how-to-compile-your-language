@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+        <title>How to Compile Your Language</title>
+        <link rel="icon" href="./favicon.ico" />
+        <link rel="stylesheet" href="stylesheets/styles.css" />
+        <link rel="stylesheet" href="stylesheets/pygment_trac.css" />
+        <meta name="viewport" content="width=device-width" />
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="wrapper">
+            <header>
+                <ul>
+                    <li>
+                        <a href="index.html">Intro </a>
+                    </li>
+                    <li><a href="lexing.html">Lexing</a></li>
+                    <li><a href="parsing.html">Parsing</a></li>
+                    <li>
+                        <a href="extending-the-parser.html"
+                            >Extending the Language</a
+                        >
+                    </li>
+                    <li><a href="sema.html">Semantic Analysis</a></li>
+                    <li><a href="codegen.html">Generating LLVM IR</a></li>
+                    <li><a href="driver.html">Driver</a></li>
+                    <li>
+                        <a href="operators.html">Operators</a>
+                    </li>
+                    <li>
+                        <a href="constexpr.html">Constant Expression</a>
+                    </li>
+                    <li>
+                        <a href="control-flow.html">Control Flow</a>
+                    </li>
+                    <li>
+                        <a href="variables.html">Variables</a>
+                    </li>
+                </ul>
+            </header>
+            <section>
+                <h1>How to compile your language</h1>
+
+                <p>
+                    This guide is intended to be an introduction to how to
+                    design <i>your language</i> and implement a compiler for it
+                    using a modern approach.
+                </p>
+                <p>
+                    When designing a language it helps if there is an idea what
+                    the language is going to be used for. Is it indented to be
+                    making system programming safer like Rust? Is it targeting
+                    AI developers like Mojo?
+                </p>
+                <p>
+                    In this case the goal of the language is to showcase various
+                    algorithms and techniques that are seen in some of the most
+                    popular language implementations like C++, Kotlin or Rust.
+                </p>
+                <p>
+                    The guide also covers how to create a platform specific
+                    executable with the help of the LLVM compiler
+                    infrastructure, which all of the previously mentioned
+                    languages use for the same purpose. Yes, even Kotlin can be
+                    compiled to a native executable with the introduction of
+                    Kotlin/Native.
+                </p>
+                <h2>What does every language have in common?</h2>
+                <p>
+                    When creating a new language, the first question is how to
+                    get started. There is something that every existing language
+                    and <i>your language</i> must define too, which is the entry
+                    point from which the execution starts.
+                </p>
+                <pre><code>fn main(): void {}</code></pre>
+                <p>
+                    When designing the syntax of the
+                    <code>main()</code> function one of the key goals was to
+                    make it easily recognizable to developers with a background
+                    in any popular language.
+                </p>
+                <p>
+                    In the past 50 years the syntax of a function declaration
+                    was the name of the function followed by the list of
+                    arguments enclosed by <code>(</code> and <code>)</code>. At
+                    first glance it is tempting to introduce some new exotic
+                    syntax like <code>main<> {}</code>, but in many of the
+                    popular languages <code><</code> and <code>></code> mean
+                    something completely different (a generic argument list).
+                    Using the latter syntax for a function definition would
+                    probably cause confusion for developers who try to get
+                    familiar with this new language.
+                </p>
+                <h2>How is this text turned into an executable?</h2>
+                <p>
+                    Indeed, so far the <code>main()</code> function is just a
+                    few words of text stored in a file. A compiler usually
+                    consists of 3 major pieces. A <code>frontend</code>, an
+                    <code>optimizer</code> and a <code>backend</code>.
+                </p>
+                <p>
+                    The <code>frontend</code> contains the actual implementation
+                    of the language, it is responsible for ensuring that the
+                    program written in the specific language doesn't contain any
+                    errors and report every issue it finds to the developer.
+                </p>
+                <p>
+                    Once it validated the program, it turns it into an
+                    <code>intermediate representation (IR)</code>, on which the
+                    <code>optimizer</code> performs a series of transformations
+                    that will result in a more efficient program.
+                </p>
+                <p>
+                    After the program has been optimized, it is passed to the
+                    <code>backend</code>, which will turn it into a series of
+                    instructions, which can be executed by a specific target.
+                    The steps the <code>backend</code> performs can vary based
+                    on the target. Register-based targets like <code>x86</code>,
+                    <code>ARM</code> or <code>RISC-V</code> assembly require
+                    different steps than stack-based targets like
+                    <code>WebAssembly</code> or <code>JVM Bytecode</code>.
+                </p>
+                <h2>Is it possible to learn all these topics?</h2>
+                <p>
+                    Yes, with enough time. However there is no need to learn all
+                    of them to create a successful language. In fact even many
+                    modern popular languages like
+                    <code>Rust</code>, <code>Swift</code>,
+                    <code>Haskell</code> and <code>Kotlin/Native</code> rely on
+                    <code>LLVM</code> for optimization and code generation.
+                </p>
+                <p>
+                    This guide also uses <code>LLVM</code> to create an
+                    executable and focuses on implementing the frontend, which
+                    consists of 3 parts, the <code>lexer</code>, the
+                    <code>parser</code> and the <code>semantic analyzer</code>.
+                </p>
+            </section>
+            <footer>
+                <p>
+                    <small
+                        >Hosted on GitHub Pages &mdash; Theme by
+                        <a href="https://github.com/orderedlist" target="_blank"
+                            >orderedlist</a
+                        ></small
+                    >
+                </p>
+            </footer>
+        </div>
+        <script src="javascripts/scale.fix.js"></script>
+        <script src="javascripts/toc.js"></script>
+    </body>
+</html>

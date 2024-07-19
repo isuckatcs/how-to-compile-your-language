@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+        <title>How to Compile Your Language</title>
+        <link rel="icon" href="./favicon.ico" />
+        <link rel="stylesheet" href="stylesheets/styles.css" />
+        <link rel="stylesheet" href="stylesheets/pygment_trac.css" />
+        <meta name="viewport" content="width=device-width" />
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="wrapper">
+            <header>
+                <ul>
+                    <li>
+                        <a href="index.html">Intro </a>
+                    </li>
+                    <li>
+                        <a href="lexing.html">Lexing</a>
+                        <div id="toc"></div>
+                    </li>
+                    <li><a href="parsing.html">Parsing</a></li>
+                    <li>
+                        <a href="extending-the-parser.html"
+                            >Extending the Language</a
+                        >
+                    </li>
+                    <li><a href="sema.html">Semantic Analysis</a></li>
+                    <li><a href="codegen.html">Generating LLVM IR</a></li>
+                    <li><a href="driver.html">Driver</a></li>
+                    <li>
+                        <a href="operators.html">Operators</a>
+                    </li>
+                    <li>
+                        <a href="constexpr.html">Constant Expression</a>
+                    </li>
+                    <li>
+                        <a href="control-flow.html">Control Flow</a>
+                    </li>
+                    <li>
+                        <a href="variables.html">Variables</a>
+                    </li>
+                </ul>
+            </header>
+            <section>
+                <h1>Tokenization</h1>
+                <p>
+                    The first step of the compilation process is to take the
+                    textual representation of the program and brake it down into
+                    a list of tokens. Like spoken languages have sentences that
+                    are composed of nouns, verbs, adjectives, etc., programming
+                    languages are also composed of a similar set of tokens.
+                </p>
+                <pre><code>┌────┐ ┌──────┐ ┌───┐ ┌───┐ ┌───┐ ┌──────┐ ┌───┐ ┌───┐ ┌─────┐
+│ fn │ │ main │ │ ( │ │ ) │ │ : │ │ void │ │ { │ │ } │ │ EOF │
+└────┘ └──────┘ └───┘ └───┘ └───┘ └──────┘ └───┘ └───┘ └─────┘
+</code></pre>
+                <p>
+                    The above function is named <code>main</code>, but there are
+                    many other names like <code>foo</code> or <code>bar</code>,
+                    that could be used for the same purpose. One thing these
+                    names have in common is that each of them uniquely
+                    identifies the given function, so such pieces of source code
+                    are represented by the <code>Identifier</code> token.
+                </p>
+                <pre><code>enum class TokenKind : char {
+  Identifier
+};</code></pre>
+                <p>
+                    In the language <code>fn</code> and <code>void</code> are
+                    reserved keywords, which means they are only allowed to have
+                    one meaning each. <code>fn</code> can only mean the
+                    beginning of a function definition, while
+                    <code>void</code> can only mean the void type. Programmers
+                    are not allowed to create variables or functions called
+                    <code>fn</code> or <code>void</code>. Each keyword gets it's
+                    own unique token, so that it is easy to differentiate
+                    between them.
+                </p>
+                <pre><code>enum class TokenKind : char {
+  ...
+
+  KwFn,
+  KwVoid,
+};</code></pre>
+                <p>
+                    The textual representations of a keyword is also mapped to
+                    the
+                    <code>TokenKind</code> that represents it.
+                </p>
+                <pre><code>const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
+  {"void", TokenKind::KwVoid}, {"fn", TokenKind::KwFn}};</code></pre>
+                <p>
+                    The rest of the tokens, including <code>EOF</code> are
+                    tokens made of a single character. To make lexing them
+                    easier, each of these tokens is placed into an array and
+                    their respective enumerator values will be the ascii code of
+                    the corresponding character.
+                </p>
+                <pre><code>constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':'};
+                  
+enum class TokenKind : char {
+  ...
+
+  Eof = singleCharTokens[0],
+  Lpar = singleCharTokens[1],
+  Rpar = singleCharTokens[2],
+  Lbrace = singleCharTokens[3],
+  Rbrace = singleCharTokens[4],
+  Colon = singleCharTokens[5],
+};</code></pre>
+                <p>
+                    It might happen that a developer writes something in the
+                    source code that cannot be represented by any of the known
+                    tokens. In such cases an <code>Unk</code> token is returned
+                    that represents every unknown piece of source code.
+                </p>
+                <pre><code>enum class TokenKind : char {
+  Unk = -128,
+  ...
+};</code></pre>
+                <p>
+                    To be able to work with tokens more effectively, besides
+                    their kind, their source location and in some cases their
+                    textual values are also stored. There is no need to store
+                    the textual value of tokens like <code>KwVoid</code> or
+                    <code>KwFn</code>, as they are already known, but for
+                    <code>Identifier</code> the compiler might want to use that
+                    information.
+                </p>
+                <pre><code>struct Token {
+  SourceLocation location;
+  TokenKind kind;
+  std::optional&lt;std::string&gt; value;
+};</code></pre>
+                <p>
+                    The <code>SourceLocation</code> of the token is described by
+                    the path of the source file along with the line and column
+                    index of the token in that file.
+                </p>
+                <pre><code>struct SourceLocation {
+  std::string_view filepath;
+  int line;
+  int col;
+};</code></pre>
+
+                <h2>The Lexer</h2>
+                <p>
+                    The lexer is the part of the compiler that is responsible
+                    for producing the tokens. It iterates over a source file
+                    character by character and does it's best to select the
+                    correct token for each piece of code.
+                </p>
+                <p>
+                    Within the compiler a source file is represented by it's
+                    path and a buffer filled with it's content.
+                </p>
+                <pre><code>struct SourceFile {
+  std::string_view path;
+  std::string buffer;
+};</code></pre>
+                <p>
+                    Within the <code>buffer</code>, the lexer will always point
+                    to the character that is to be processed next, while
+                    maintaining the correct line and column indices as it
+                    traverses the buffer. Because initially none of the
+                    characters in the source files are processed, the lexer
+                    points to the first character of the buffer and starts at
+                    the position of line 1 column 0, or with other words, before
+                    the first character of the first line. The next
+                    <code>Token</code> is returned on demand by the
+                    <code>getNextToken()</code> method.
+                </p>
+
+                <pre><code>class Lexer {
+  const SourceFile *source;
+  size_t idx = 0;
+
+  int line = 1;
+  int column = 0;
+
+  public:
+  explicit Lexer(const SourceFile &source) : source(&source) {}
+  Token getNextToken();
+};</code></pre>
+                <p>
+                    To make the processing of the file more convenient, the
+                    <code>peekNextChar()</code> and
+                    <code>eatNextChar()</code> helper methods are introduced.
+                    The former returns which character is to be processed next,
+                    while the latter returns that character and advances the
+                    lexer to the next character, while maintaining the correct
+                    line and column position in the source file.
+                </p>
+                <pre><code>class Lexer {
+  ...
+
+  char peekNextChar() const { return source->buffer[idx]; }
+  char eatNextChar() {
+    ++column;
+
+    if (source->buffer[idx] == '\n') {
+      ++line;
+      column = 0;
+    }
+
+    return source->buffer[idx++];
+  }
+
+  ...
+};</code></pre>
+                <p>
+                    The following figure showcases how the lexer processes a
+                    file. Notice that the current source location is always 1
+                    step behind the character the lexer points to.
+                </p>
+                <pre><code>'^' marks the next character to be processed next and 
+'v' marks the source location the lexer is standing on
+
+  v {line: 1, column: 0}
+      ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+      │ f │ │ n │ │   │ │ m │ │ a │ │ i │ │ n │ ...
+      └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+        ^
+
+eatNextChar()
+
+  v {line: 1, column: 1}
+┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+│ f │ │ n │ │   │ │ m │ │ a │ │ i │ │ n │ │ ( │ ...
+└───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+        ^
+    
+eatNextChar()
+
+  v {line: 1, column: 2}
+┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+│ n │ │   │ │ m │ │ a │ │ i │ │ n │ │ ( │ │ ) │ ...
+└───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+        ^
+</code></pre>
+                <p>
+                    The logic for creating the tokens lives in the
+                    <code>getNextToken()</code> method. When invoked, it skips
+                    every whitespace before a token and stores the location
+                    where the next token starts.
+                </p>
+                <pre><code>bool isSpace(char c) {
+  return c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t' ||
+         c == '\v';
+}
+
+Token Lexer::getNextToken() {
+  char currentChar = eatNextChar();
+
+  while (isSpace(currentChar))
+    currentChar = eatNextChar();
+
+  SourceLocation tokenStartLocation{source->path, line, column};
+
+  ...
+}</code></pre>
+                <p>
+                    A <code>for</code> loop is used to loop over the single
+                    character tokens array and if the current character matches
+                    one of them, the corresponding token is returned. This is
+                    the benefit of storing these tokens in an array and making
+                    their corresponding <code>TokenKind</code> have the value of
+                    the ascii code of the character. This way the
+                    <code>TokenKind</code> can immediately be returned with a
+                    simple cast.
+                </p>
+                <pre><code>Token Lexer::getNextToken() {
+  ...
+
+  for (auto &&c : singleCharTokens)
+    if (c == currentChar)
+      return Token{tokenStartLocation, static_cast&lt;TokenKind>(c)};
+
+  ...
+}</code></pre>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        In production grade compilers, single character tokens
+                        are handled using hardcoded branches, as that will lead
+                        to the fastest running code in general.
+                    </p>
+                    <pre><code>if (currentChar == '(')
+  return Token{tokenStartLocation, TokenKind::lpar};
+
+if (currentChar == ')')
+  return Token{tokenStartLocation, TokenKind::rpar};
+
+if (currentChar == '{')
+  return Token{tokenStartLocation, TokenKind::lbrace};
+
+if (currentChar == '}')
+  return Token{tokenStartLocation, TokenKind::rbrace};
+
+if (currentChar == ':')
+  return Token{tokenStartLocation, TokenKind::colon};
+
+if (currentChar == '\0')
+  return Token{tokenStartLocation, TokenKind::eof};
+</code></pre>
+                </blockquote>
+                <h2>Handling Comments</h2>
+                <p>
+                    For the compiler comments messages don't carry important
+                    information, so they are skipped by the lexer.
+                </p>
+                <pre><code>// this is a comment</code></pre>
+                <p>
+                    A comment message starts with a <code>'/'</code> followed by
+                    another <code>'/'</code> and lasts until the end of the
+                    line. This is the case when
+                    <code>peekNextChar()</code> comes in handy to look one
+                    character ahead.
+                </p>
+                <p>
+                    If the lexer is at the beginning of a comment, it eats all
+                    the characters until the end of the line or the file and
+                    calls
+                    <code>getNextToken()</code> to return the next token after
+                    the comment.
+                </p>
+                <pre><code>Token TheLexer::getNextToken() {
+  ...
+
+  if (currentChar == '/' && peekNextChar() == '/') {
+    char c = eatNextChar();
+    while (c != '\n' && c != '\0')
+      c = eatNextChar();
+
+    return getNextToken();
+  }
+
+  ...
+}</code></pre>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        While comments are not important for this compiler,
+                        compilers that compile from one language to another
+                        (e.g.: from Java to Kotlin) or formatting tools do need
+                        to know about comments. In such cases the lexer might
+                        return an additional <code>Comment</code> token for
+                        them.
+                    </p>
+                </blockquote>
+                <h2>Identifiers and Keywords</h2>
+                <p>
+                    Identifiers consist of multiple characters int the form of
+                    <code>(a-z|A-Z)(a-z|A-Z|0-9)*</code>. Initially keywords are
+                    also lexed as identifiers but later their corresponding
+                    <code>TokenKind</code> is looked up from the map and the
+                    correct token representing them is returned.
+                </p>
+                <pre><code>bool isAlpha(char c) { return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'; }
+bool isNum(char c) { return '0' <= c && c <= '9'; }
+bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
+
+Token TheLexer::getNextToken() {
+  ...
+
+  if (isAlpha(currentChar)) {
+    std::string value{currentChar};
+
+    while (isAlnum(peekNextChar()))
+      value += eatNextChar();
+
+    if (keywords.count(value))
+      return Token{tokenStartLocation, keywords.at(value), std::move(value)};
+
+    return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    Notice how <code>isSpace</code>, <code>isAlpha</code>, etc.
+                    are all custom functions, when the C++ standard library also
+                    provides <code>std::isspace</code>,
+                    <code>std::isalpha</code>, etc.
+                </p>
+                <p>
+                    These functions are dependant on the current locale, so if
+                    for example
+                    <code>'a'</code> is not considered alphabetic in the current
+                    locale, the lexer will no longer work as expected.
+                </p>
+                <p>
+                    If none of the conditions matched the current character and
+                    the end of the function is reached, the lexer wasn't able to
+                    figure out which token represents the piece of code starting
+                    at the current character, so an
+                    <code>Unk</code> token is returned.
+                </p>
+                <pre><code>Token Lexer::getNextToken() {
+  ...
+
+  return Token{tokenStartLocation, TokenKind::Unk};
+}</code></pre>
+            </section>
+            <footer>
+                <p>
+                    <small
+                        >Hosted on GitHub Pages &mdash; Theme by
+                        <a href="https://github.com/orderedlist" target="_blank"
+                            >orderedlist</a
+                        ></small
+                    >
+                </p>
+            </footer>
+        </div>
+        <script src="javascripts/scale.fix.js"></script>
+        <script src="javascripts/toc.js"></script>
+    </body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+        <title>How to Compile Your Language</title>
+        <link rel="icon" href="./favicon.ico" />
+        <link rel="stylesheet" href="stylesheets/styles.css" />
+        <link rel="stylesheet" href="stylesheets/pygment_trac.css" />
+        <meta name="viewport" content="width=device-width" />
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="wrapper">
+            <header>
+                <ul>
+                    <li>
+                        <a href="index.html">Intro </a>
+                    </li>
+                    <li><a href="lexing.html">Lexing</a></li>
+                    <li>
+                        <a href="parsing.html">Parsing</a>
+                        <div id="toc"></div>
+                    </li>
+                    <li>
+                        <a href="extending-the-parser.html"
+                            >Extending the Language</a
+                        >
+                    </li>
+                    <li><a href="sema.html">Semantic Analysis</a></li>
+                    <li><a href="codegen.html">Generating LLVM IR</a></li>
+                    <li><a href="driver.html">Driver</a></li>
+                    <li>
+                        <a href="operators.html">Operators</a>
+                    </li>
+                    <li>
+                        <a href="constexpr.html">Constant Expression</a>
+                    </li>
+                    <li>
+                        <a href="control-flow.html">Control Flow</a>
+                    </li>
+                    <li>
+                        <a href="variables.html">Variables</a>
+                    </li>
+                </ul>
+            </header>
+            <section>
+                <h1>The Abstract Syntax Tree</h1>
+                <p>
+                    The previous section introduced how the source code is
+                    broken down into a list of tokens which are similar to the
+                    building blocks (nouns, verbs, etc.) of sentences in a
+                    spoken language. The
+                    <code>This section talks about the parser.</code> sentence
+                    is valid in the english language, because the mentioned
+                    building blocks follow each other in a correct order.
+                    Similarly <code>fn main(): void {}</code> is a valid
+                    sentence in <i>your language</i>.
+                </p>
+                <p>
+                    The parser validates if the tokens follow each other in a
+                    valid order and constructs the Abstract Syntax Tree (AST).
+                    The AST is an intermediate representation of the source code
+                    that later helps the compiler reasoning about the meaning of
+                    the code.
+                </p>
+                <p>
+                    So far the language supports only function declarations
+                    without parameters, which can be modeled as a single AST
+                    node. Since later there will be multiple declarations, a
+                    <code>Decl</code> node is introduced first, which will serve
+                    as the base class for all declarations. Each declaration has
+                    a source location and an identifier, so these values are
+                    stored in the base class.
+                </p>
+                <pre><code>struct Decl : public Dumpable {
+  SourceLocation location;
+  std::string identifier;
+
+  Decl(SourceLocation location, std::string identifier)
+      : location(location), identifier(std::move(identifier)) {}
+  virtual ~Decl() = default;
+};</code></pre>
+                <p>
+                    To make visualizing the AST easier, each node is derived
+                    from the <code>Dumpable</code> interface, which has the
+                    ability to "dump" the textual representation of the node.
+                </p>
+                <pre><code>struct Dumpable {
+  [[nodiscard]] std::string indent(size_t level) const {
+    return std::string(level * 2, ' ');
+  }
+
+  virtual ~Dumpable() = default;
+  virtual void dump(size_t level = 0) const = 0;
+};</code></pre>
+                <p>
+                    Currently the only <code>Decl</code> in the language is the
+                    <code>FunctionDecl</code>, which additional to what every
+                    declaration has in common, also has a return type and a
+                    body.
+                </p>
+                <pre><code>struct FunctionDecl : public Decl {
+  Type type;
+  std::unique_ptr&lt;Block> body;
+
+  FunctionDecl(SourceLocation location, std::string identifier, Type type,
+               std::unique_ptr&lt;Block> body)
+      : Decl{location, std::move(identifier)}, type(std::move(type)),
+        body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) << "FunctionDecl: " << identifier << ':'
+              << type.name << '\n';
+
+    body->dump(level + 1);
+  }
+};</code></pre>
+                <p>
+                    The body of the function is represented by a
+                    <code>Block</code> node, which can currently only be empty,
+                    though this will change in the next chapter.
+                </p>
+                <pre><code>struct Block : public Dumpable {
+  SourceLocation location;
+
+  Block(SourceLocation location) : location(location) {}
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) << "Block\n";
+  }
+};</code></pre>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        Lately some compiler engineers started using
+                        <code>std::variant</code> instead of inheritance to
+                        model the AST. In that case the variant acts as a union
+                        of nodes.
+                    </p>
+                    <pre><code>using Decl = std::variant&lt;FunctionDecl, ParamDecl, VarDecl>;</code></pre>
+                    <p>
+                        The complexity of this design arises once the nodes need
+                        to reference each other, which will be unavoidable later
+                        with expressions like <code>1 + 2 * 3</code> and
+                        <code>(1 + 2) * 3</code>.
+                    </p>
+                    <p>
+                        The <code>( ... )</code> is called a grouping expression
+                        and acts as a wrapper around other expressions. With
+                        variant this expression becomes be difficult to model.
+                    </p>
+                    <pre><code>using Expr = std::variant&lt;..., GroupingExpr>;
+
+struct GroupingExpr {
+  Expr innerExpr;
+};</code></pre>
+                    <p>
+                        The snippet above doesn't compile because the compiler
+                        needs to know the size of <code>GroupingExpr</code>. The
+                        size of the node however depends on the size of the
+                        variant, which can contain the node too, so for the
+                        compiler to know the size of the variant, it has to know
+                        the size of the node. The workaround is to use a
+                        pointer.
+                    </p>
+                    <pre><code>using Expr = std::variant&lt;..., GroupingExpr>;
+
+struct GroupingExpr {
+  Expr *innerExpr;
+};</code></pre>
+                    <p>
+                        In this case the question is, who owns the memory for
+                        the <code>innerExpr</code> field. Who allocates is, who
+                        is responsible for freeing it, etc. The workaround for
+                        this problem is to use a <code>std::unique_ptr</code>.
+                    </p>
+                    <pre><code>struct GroupingExpr {
+  std::unique_ptr&lt;Expr> innerExpr;
+};</code></pre>
+                    <p>
+                        Now it's clear that the node is the owner of it's child
+                        node. However to know the current type of the variant,
+                        <code>innerExpr</code> needs to be type checked. The
+                        same type checking however could also be done on the
+                        pointer itself <code>Expr</code> would be a polymorphic
+                        base class. For this reason this compiler keeps things
+                        simple and uses inheritance to model the AST.
+                    </p>
+                </blockquote>
+                <h2>Types</h2>
+                <p>
+                    A type is a set of values with the same properties. The
+                    language only supports the <code>void</code>,
+                    <code>number</code> and <code>custom</code> types, which are
+                    encapsulated by the <code>Type</code> class. This class
+                    contains an enum that represents the kind and the textual
+                    representation of the type.
+                </p>
+                <pre><code>struct Type {
+  enum class Kind { Void, Number, Custom };
+
+  Kind kind;
+  std::string name;
+
+  static Type builtinVoid() { return {Kind::Void, "void"}; }
+  static Type builtinNumber() { return {Kind::Number, "number"}; }
+  static Type custom(const std::string &name) { return {Kind::Custom, name}; }
+
+private:
+  Type(Kind kind, std::string name) : kind(kind), name(std::move(name)){};
+};</code></pre>
+                <p>
+                    Notice how the constructor is made <code>private</code> and
+                    a <code>static</code> member function is provided to
+                    instantiate each type. This is for preventing accidental
+                    instantiation of invalid types.
+                </p>
+                <blockquote>
+                    <h3>Design Note</h3>
+
+                    <p>
+                        Theoretically a function is also a separate type, so in
+                        a more complex language with a more complex type system
+                        that should also be encapsulated somehow. Since your
+                        language can only have 3 types, the type system is kept
+                        simple.
+                    </p>
+                    <p>
+                        In C++, functions can also be passed around using
+                        function pointers and the developers can use lambda
+                        functions too. To be able to model every type precisely
+                        <code>Clang</code> uses a layer-based type system, where
+                        each layer is a different complex type.
+                    </p>
+                    <pre><code>int *x;
+-PointerType 'int *'
+ `-BuiltinType 'int'
+
+int main(int argc, const char **argv)
+FunctionProtoType 'int (int, const char **)'
+|-BuiltinType 'int'
+|-BuiltinType 'int'
+`-PointerType 'const char **'
+  `-PointerType 'const char *'
+    `-QualType 'const char' const
+      `-BuiltinType 'char'
+</code></pre>
+                </blockquote>
+                <h2>The Parser</h2>
+                <p>
+                    The parser iterates over the tokens returned by the lexer
+                    and constructs the AST of the program. As the lexer always
+                    points to the character that is to be processed next, the
+                    parser points to the token that is to be processed next.
+                    Once the parser finished processing this token, it calls the
+                    lexer to return the next one.
+                </p>
+                <pre><code>class Parser {
+  TheLexer *lexer;
+  Token nextToken;
+
+  void eatNextToken() { 
+    nextToken = lexer->getNextToken(); 
+  }
+
+public:
+  explicit TheParser(TheLexer &lexer)
+      : lexer(&lexer), nextToken(lexer.getNextToken()) {}
+};</code></pre>
+                <p>
+                    So far the language only supports function declarations with
+                    empty bodies, which must begin at the top level of the
+                    source file.
+                </p>
+                <p>
+                    The <code>parseSourceFile</code> method checks if the next
+                    token to be processed is <code>KwFn</code> and parses the
+                    <code>FunctionDecl</code> accordingly. The parsed function
+                    declarations are collected and returned once the
+                    <code>Eof</code> token is encountered. Besides the parsed
+                    functions a flag is also returned which shows if an error
+                    happened during parsing.
+                </p>
+                <p>
+                    If the expected token is not a <code>KwFn</code> an error is
+                    reported to the user.
+                </p>
+                <pre><code>class Parser {
+  bool incompleteAST = false;
+  ...
+};
+
+// &lt;sourceFile>
+//     ::= &lt;functionDecl>* EOF
+std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  std::vector&lt;std::unique_ptr&lt;FunctionDecl>> functions;
+
+  while (nextToken.kind != TokenKind::Eof) {
+    if (nextToken.kind != TokenKind::KwFn) {
+      report(nextToken.location,
+             "only function definitions are allowed on the top level");
+      incompleteAST = true;
+      continue;
+    }
+
+    auto fn = parseFunctionDecl();
+    if (!fn) {
+      incompleteAST = true;
+      continue;
+    }
+
+    functions.emplace_back(std::move(fn));
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    The rest of the parser will mostly work with pointers, so
+                    the <code>report</code> utility function is created such
+                    that it always returns a <code>nullptr</code>.
+                </p>
+                <pre><code>std::nullptr_t report(SourceLocation location, std::string_view message,
+                  bool isWarning) {
+const auto &[file, line, col] = location;
+
+assert(!file.empty() && line != 0 && col != 0);
+std::cerr << file << ':' << line << ':' << col << ':'
+        << (isWarning ? " warning: " : " error: ") << message << '\n';
+
+return nullptr;
+}</code></pre>
+                <p>
+                    A source file must contain a <code>main</code> function.
+                    Because the parser is the last stage of the compilation
+                    pipeline that has access to the tokens, ensuring if main
+                    function has been provided happens here. The parser quickly
+                    loops over the parsed functions and checks if it sees
+                    <code>main</code>.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
+
+  assert(nextToken.kind == TokenKind::Eof && "expected to see end of file");
+
+  bool hasMainFunction = false;
+  for (auto &&fn : functions)
+    hasMainFunction |= fn->identifier == "main";
+
+  ...
+}</code></pre>
+                <p>
+                    If <code>main</code> is not found and the AST is not
+                    incomplete an error is reported. In case of an incomplete
+                    AST it might be the <code>main</code> function that caused
+                    the parsing error, so the error is not reported.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
+
+  if (!hasMainFunction && !incompleteAST)
+    report(nextToken.location, "main function not found");
+
+  ...
+}</code></pre>
+                <p>
+                    Upon success, besides returning the parsed functions, a flag
+                    is also returned that indicates that the AST is complete and
+                    <code>main</code> is found too.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+  Parser::parseSourceFile() {
+    ...
+  
+    return {std::move(functions), !incompleteAST && hasMainFunction};
+  }</code></pre>
+                <h2>Error recovery</h2>
+                <p>
+                    Failing to parse a function declaration doesn't mean that
+                    the parsing of the whole file should be stopped. It's known
+                    that a function declaration always begins with the
+                    <code>fn</code> keyword and respectively, if the
+                    <code>fn</code> keyword is seen, it can only mean the
+                    beginning of a function. This information can be used in the
+                    parser to recover from errors.
+                </p>
+                <pre><code>┌────┐ ┌───┐ ┌───┐ ┌────┐ ┌──────┐ ┌───┐ ┌───┐ ┌───┐
+│ fn │ │ : │ │ : │ │ fn │ │ main │ │ ( │ │ ) │ │ : │ ...
+└────┘ └───┘ └───┘ └────┘ └──────┘ └───┘ └───┘ └───┘ 
+         ^           ^
+         |           └ next function begins here
+         └ error: unexpected token 
+</code></pre>
+                <p>
+                    If an error happens, every token can be skipped until the
+                    next <code>KwFn</code> token or <code>EOF</code> is seen.
+                    This process is called the <code>synchronization</code> of
+                    the parser on the <code>KwFn</code> token and in this case
+                    it will be handled by the <code>synchronizeOn</code> method.
+                    When synchronization happens, the AST is flagged as
+                    incomplete.
+                </p>
+                <pre><code>class Parser {
+  ...
+
+  void synchronizeOn(TokenKind kind) {
+    incompleteAST = true;
+
+    while (nextToken.kind != kind && nextToken.kind != TokenKind::Eof)
+      eatNextToken();
+  }
+
+  ...
+};
+
+std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
+
+    if (nextToken.kind != TokenKind::KwFn) {
+      report(nextToken.location,
+             "only function definitions are allowed on the top level");
+      synchronizeOn(TokenKind::KwFn);
+      continue;
+    }
+
+    ...
+
+    if (!fn) {
+      synchronizeOn(TokenKind::KwFn);
+      continue;
+    }
+
+  ...
+}</code></pre>
+                <h2>Parsing Functions</h2>
+                <p>
+                    A function declaration always starts with the
+                    <code>KwFn</code> token, which is followed by the
+                    <code>Identifier</code>, <code>(</code>, <code>)</code>,
+                    <code>:</code> tokens, a <code>Type</code> specifier and a
+                    <code>Block</code> at the end.
+                </p>
+                <p>
+                    To make parsing more convenient, the
+                    <code>varOrReturn()</code> helper macro is introduced. It
+                    checks if the parsing of a piece of code was successful and
+                    creates a variable that stores the result, or returns a
+                    <code>nullptr</code>.
+                </p>
+                <pre><code>#define varOrReturn(var, init)           \
+  auto var = (init);                     \
+  if (!var)                              \
+    return nullptr;</code></pre>
+                <p>
+                    The <code>parseFunctionDecl()</code> method expects the
+                    current token to be <code>KwFn</code> and checks if the rest
+                    of the tokens are in the proper order, then extracts the
+                    name of the function as well as it's type from the
+                    <code>Identifier</code> tokens and parses the
+                    <code>Block</code> at the end. If everything was successful
+                    it returns a <code>FunctionDecl</code>, otherwise it reports
+                    the error and returns a <code>nullptr</code>.
+                </p>
+                <pre><code>// &lt;functionDecl>
+//  ::= 'fn' &lt;identifier> '(' ')' ':' &lt;type> &lt;block>
+std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat fn
+
+  if (nextToken.kind != TokenKind::Identifier)
+    return report(nextToken.location, "expected identifier");
+
+  assert(nextToken.value && "identifier token without value");
+  std::string functionIdentifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  if (nextToken.kind != TokenKind::Lpar)
+    return report(nextToken.location, "expected '('");
+  eatNextToken(); // eat '('
+
+  if (nextToken.kind != TokenKind::Rpar)
+    return report(nextToken.location, "expected ')'");
+  eatNextToken(); // eat ')'
+
+  if (nextToken.kind != TokenKind::Colon)
+    return report(nextToken.location, "expected ':'");
+  eatNextToken(); // eat ':'
+
+  varOrReturn(type, parseType());
+
+  if (nextToken.kind != TokenKind::Lbrace)
+    return report(nextToken.location, "expected function body");
+
+  varOrReturn(block, parseBlock());
+
+  return std::make_unique&lt;FunctionDecl>(location, functionIdentifier, *type,
+                                        std::move(block));
+}</code></pre>
+                <p>
+                    Parsing the type has been extracted into a separate helper
+                    method, so that it can be reused later when the language is
+                    extended. The <code>number</code> type will be handled in a
+                    later chapter as so far there is no token that represents
+                    it.
+                </p>
+                <pre><code>// &lt;type>
+//  ::= 'void'
+//  |   &lt;identifier>
+std::optional&lt;Type> Parser::parseType() {
+  TokenKind kind = nextToken.kind;
+
+  if (kind == TokenKind::KwVoid) {
+    eatNextToken(); // eat 'void'
+    return Type::builtinVoid();
+  }
+
+  if (kind == TokenKind::Identifier) {
+    assert(nextToken.value && "identifier token has no value");
+    auto t = Type::custom(*nextToken.value);
+    eatNextToken(); // eat identifier
+    return t;
+  }
+
+  report(nextToken.location, "expected type specifier");
+  return std::nullopt;
+};</code></pre>
+                <p>
+                    The <code>parseBlock()</code> method is simple at this
+                    point. It checks for the correct token order and returns a
+                    <code>Block</code> upon success or a
+                    <code>nullptr</code> upon error.
+                </p>
+                <pre><code>// &lt;block>
+//  ::= '{' '}'
+std::unique_ptr&lt;Block> Parser::parseBlock() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat '{'
+
+  if (nextToken.kind != TokenKind::Rbrace)
+    return report(nextToken.location, "expected '}' at the end of a block");
+  eatNextToken(); // eat '}'
+
+  return std::make_unique&lt;Block>(location);
+}</code></pre>
+                <h2>Grammar</h2>
+                <p>
+                    Like regular languages, programming languages have a grammar
+                    too, which describes which order of tokens is valid in a
+                    language and which isn't. The parser is an automaton that
+                    recognizes this grammar and only accepts source files, which
+                    are valid according to the grammar.
+                </p>
+                <p>
+                    For example <code>fn main(): void {}</code> is a valid
+                    function declaration, while <code>void main() {}</code> is
+                    not recognized as a function declaration, because the type
+                    annotation is missing.
+                </p>
+                <p>
+                    There are multiple forms of defining the grammar of a
+                    programming language. One of the widely used notations is
+                    the Backus-Naur form or BNF, which could already be seen as
+                    comments above the parser methods.
+                </p>
+                <p>
+                    The BNF defines terminal and non-terminal symbols.
+                    Non-terminal symbols are usually enclosed by &lt; and &gt;
+                    and they can be extended further.
+                </p>
+                <p>
+                    The conventional notation to describe symbols looks like
+                    <code
+                        >&ltnon-terminal> ::= expansion | expansion | expansion </code
+                    >. An expansion can consist of multiple terminal and
+                    non-terminal symbols. To express the number of occurrences
+                    of a symbol, the <code>?</code> symbol is used to denote 0-1
+                    occurrence and the <code>*</code> symbol is used to denote
+                    any number of occurrences. If an element is not followed by
+                    one of these symbols, that means it occurs exactly once.
+                </p>
+                <pre><code>&lt;sourceFile>
+  ::= &lt;digit>*
+  |   &lt;digit>? 'Hello World'
+
+&lt;digit>
+  ::= '0' 
+  |   '1'</code></pre>
+                <p>
+                    The grammar defined by the BNF above can accept the
+                    following derivations.
+                </p>
+                <pre><code>text:                'Hello World'
+sourceFile: &lt;digit>? 'Hello World'
+
+text:          0     'Hello World'
+sourceFile: &lt;digit>? 'Hello World'
+digit:        '0'            
+
+text:          1     0     1
+sourceFile: &lt;digit>*
+digit:        '1' 
+digit:              '0'
+digit:                    '1'
+
+text:          (     )
+sourceFile: no expansions can be applied</code></pre>
+
+                <h2>Language Design</h2>
+                <p>
+                    Understanding how the parser works is crucial to designing
+                    the syntax of the language. It might be tempting to
+                    introduce a certain syntax, but it can easily increase the
+                    difficulty of parsing that language and can even make
+                    expanding a grammar rule dependant on the semantics of the
+                    source code.
+                </p>
+                <p>
+                    As an example take a look at the function declaration syntax
+                    of C++ and why this syntax makes C++ difficult to parse.
+                </p>
+                <p>
+                    <code>int foo(int);</code> declares a function named
+                    <code>foo</code>, which returns an <code>int</code> and
+                    accepts an <code>int</code> as parameter.
+                    <code>int foo(0);</code> is also a valid C++ code, that
+                    declares an <code>int</code> variable and initializes it to
+                    <code>0</code>.
+                </p>
+                <p>
+                    The issue arises when
+                    <code>int foo(x);</code> is encountered by the parser. Since
+                    C++ allows the creation of user-defined types,
+                    <code>x</code> can either be a type, or a value. If
+                    <code>x</code> is a type, the above sequence of tokens is
+                    function declaration, if <code>x</code> is a value, it is a
+                    variable declaration.
+                </p>
+                <pre><code>struct x;
+int foo(x); // declares function
+
+int x = 0;
+int foo(x); // declares variable</code></pre>
+                <p>
+                    As a result, C++ cannot be parsed without also reasoning
+                    about what the source code that has already been parsed
+                    means.
+                </p>
+                <p>
+                    When the same sequence of symbols can have a different
+                    meaning based on what context they appear in, the grammar is
+                    called ambiguous. C++ is known to have multiple ambiguities
+                    in it's grammar, though some are inherited from C.
+                </p>
+                <pre><code>typedef char a;
+a * b; // declares pointer
+
+int a = 0, b = 0;
+a * b; // multiplication</code></pre>
+                <pre><code>typedef char a;
+int b;
+(a) - b; // negate 'b' and cast it to 'a'
+  
+int a = 0, b = 0;
+(a) - b; // subtract 'b' from 'a'</code></pre>
+                <p>
+                    A common source of ambiguity in programming languages is the
+                    generic syntax. Consider the following generic syntax, which
+                    can appear in both C++ and Kotlin
+                    <code>function&lt;type>(argument)</code>. For the parser
+                    this is a sequence of <code>Identifier</code>,
+                    <code>&lt;</code>, <code>Identifier</code>, <code>></code>,
+                    <code>(</code>, <code>Identifier</code> and <code>)</code>.
+                    Should this sequence be parsed as a generic function call or
+                    a series of comparisons?
+                </p>
+                <pre><code>template&lt;typename T>
+void f(T a) {}
+
+int a;
+using t = int;
+f&lt;t>(a); // call to template function
+
+int f, t, a;
+f&lt;t>(a); // comparison
+</code></pre>
+                <p>
+                    The source of the problem is that <code>&lt;</code> can
+                    either mean the start of a generic argument list, or the
+                    less-than operator. Rust resolved this ambiguity by
+                    introducing the turbofish (<code>::<></code>) for generics.
+                    The Rust parser knows that <code>&lt;</code> always means
+                    the less-than operator, because a generic argument list
+                    begins with <code>::</code> followed by the
+                    <code>&lt;</code>.
+                </p>
+                <pre><code>fn f&lt;T>() {}
+
+f::&lt;i32>();
+</code></pre>
+            </section>
+            <footer>
+                <p>
+                    <small
+                        >Hosted on GitHub Pages &mdash; Theme by
+                        <a href="https://github.com/orderedlist" target="_blank"
+                            >orderedlist</a
+                        ></small
+                    >
+                </p>
+            </footer>
+        </div>
+        <script src="javascripts/scale.fix.js"></script>
+        <script src="javascripts/toc.js"></script>
+    </body>
+</html>
