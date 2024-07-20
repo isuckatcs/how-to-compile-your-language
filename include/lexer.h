@@ -1,6 +1,7 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
 
+#include <cassert>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -71,6 +72,9 @@ class Lexer {
 
   char peekNextChar() const { return source->buffer[idx]; }
   char eatNextChar() {
+    assert(idx <= source->buffer.size() &&
+           "indexing past the end of the source buffer");
+
     ++column;
 
     if (source->buffer[idx] == '\n') {
