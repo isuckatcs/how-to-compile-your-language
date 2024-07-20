@@ -12,7 +12,7 @@ bool isTerminator(const ResolvedStmt &stmt) {
 }
 } // namespace
 
-void CFG::dump(size_t) const {
+void CFG::dump() const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
     std::cerr << '[' << i;
     if (i == entry)

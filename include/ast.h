@@ -35,6 +35,8 @@ std::string_view dumpOp(TokenKind op) {
 
   return "!";
 }
+
+std::string indent(size_t level) { return std::string(level * 2, ' '); }
 } // namespace
 
 struct Type {
@@ -51,34 +53,38 @@ private:
   Type(Kind kind, std::string name) : kind(kind), name(std::move(name)){};
 };
 
-struct Decl : public Dumpable {
+struct Decl {
   SourceLocation location;
   std::string identifier;
 
   Decl(SourceLocation location, std::string identifier)
       : location(location), identifier(std::move(identifier)) {}
   virtual ~Decl() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };
 
-struct Stmt : public Dumpable {
+struct Stmt {
   SourceLocation location;
   Stmt(SourceLocation location) : location(location) {}
 
   virtual ~Stmt() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };
 
 struct Expr : public Stmt {
   Expr(SourceLocation location) : Stmt(location) {}
 };
 
-struct Block : public Dumpable {
+struct Block {
   SourceLocation location;
   std::vector<std::unique_ptr<Stmt>> statements;
 
   Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
       : location(location), statements(std::move(statements)) {}
 
-  void dump(size_t level = 0) const override {
+  void dump(size_t level = 0) const {
     std::cerr << indent(level) << "Block\n";
 
     for (auto &&stmt : statements)
@@ -308,12 +314,14 @@ struct Assignment : public Stmt {
   }
 };
 
-struct ResolvedStmt : public Dumpable {
+struct ResolvedStmt {
   SourceLocation location;
 
   ResolvedStmt(SourceLocation location) : location(location) {}
 
   virtual ~ResolvedStmt() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };
 
 struct ResolvedExpr : public ConstantValueContainer<double>,
@@ -326,7 +334,7 @@ struct ResolvedExpr : public ConstantValueContainer<double>,
   virtual ~ResolvedExpr() = default;
 };
 
-struct ResolvedDecl : public Dumpable {
+struct ResolvedDecl {
   SourceLocation location;
   std::string identifier;
   Type type;
@@ -334,9 +342,11 @@ struct ResolvedDecl : public Dumpable {
   ResolvedDecl(SourceLocation location, std::string identifier, Type type)
       : location(location), identifier(std::move(identifier)), type(type) {}
   virtual ~ResolvedDecl() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };
 
-struct ResolvedBlock : public Dumpable {
+struct ResolvedBlock {
   SourceLocation location;
   std::vector<std::unique_ptr<ResolvedStmt>> statements;
 
@@ -344,7 +354,7 @@ struct ResolvedBlock : public Dumpable {
                 std::vector<std::unique_ptr<ResolvedStmt>> statements)
       : location(location), statements(std::move(statements)) {}
 
-  void dump(size_t level = 0) const override {
+  void dump(size_t level = 0) const {
     std::cerr << indent(level) << "ResolvedBlock\n";
 
     for (auto &&stmt : statements)

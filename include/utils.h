@@ -10,14 +10,6 @@
 #include <string>
 
 namespace yl {
-struct Dumpable {
-  [[nodiscard]] std::string indent(size_t level) const {
-    return std::string(level * 2, ' ');
-  }
-
-  virtual ~Dumpable() = default;
-  virtual void dump(size_t level = 0) const = 0;
-};
 
 struct SourceFile {
   std::string_view path;
