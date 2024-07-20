@@ -57,7 +57,8 @@ class Parser {
 
 public:
   explicit Parser(Lexer &lexer)
-      : lexer(&lexer), nextToken(lexer.getNextToken()) {}
+      : lexer(&lexer),
+        nextToken(lexer.getNextToken()) {}
 
   std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool> parseSourceFile();
 };

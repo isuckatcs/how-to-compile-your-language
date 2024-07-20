@@ -8,7 +8,8 @@ namespace yl {
 Codegen::Codegen(
     std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
     std::string_view sourcePath)
-    : resolvedTree(std::move(resolvedSourceFile)), builder(context),
+    : resolvedTree(std::move(resolvedSourceFile)),
+      builder(context),
       module("<translation_unit>", context) {
   module.setSourceFileName(sourcePath);
   module.setTargetTriple(llvm::sys::getDefaultTargetTriple());

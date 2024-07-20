@@ -21,7 +21,10 @@ class Sema {
     Sema *sema;
 
   public:
-    explicit ScopeRAII(Sema *sema) : sema(sema) { sema->scopes.emplace_back(); }
+    explicit ScopeRAII(Sema *sema)
+        : sema(sema) {
+      sema->scopes.emplace_back();
+    }
     ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 

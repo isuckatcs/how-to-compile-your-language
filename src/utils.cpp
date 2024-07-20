@@ -3,8 +3,8 @@
 
 #include "utils.h"
 namespace yl {
-std::nullptr_t report(SourceLocation location, std::string_view message,
-                      bool isWarning) {
+std::nullptr_t
+report(SourceLocation location, std::string_view message, bool isWarning) {
   const auto &[file, line, col] = location;
 
   assert(!file.empty() && line != 0 && col != 0);

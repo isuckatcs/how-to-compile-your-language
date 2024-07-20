@@ -22,7 +22,8 @@ struct SourceLocation {
   int col;
 };
 
-std::nullptr_t report(SourceLocation location, std::string_view message,
+std::nullptr_t report(SourceLocation location,
+                      std::string_view message,
                       bool isWarning = false);
 
 template <typename Ty> class ConstantValueContainer {

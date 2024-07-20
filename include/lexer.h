@@ -82,7 +82,8 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const SourceFile &source) : source(&source) {}
+  explicit Lexer(const SourceFile &source)
+      : source(&source) {}
   Token getNextToken();
 };
 } // namespace yl

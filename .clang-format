@@ -1,1 +1,3 @@
 BasedOnStyle: LLVM
+PackConstructorInitializers: Never
+BinPackParameters: false
