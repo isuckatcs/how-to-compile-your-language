@@ -1,5 +1,7 @@
-#include "cfg.h"
+#include <iostream>
+
 #include "ast.h"
+#include "cfg.h"
 
 namespace yl {
 namespace {
@@ -109,7 +111,7 @@ int CFGBuilder::insertExpr(const ResolvedExpr &expr, int block) {
     return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);
 
   if (const auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
-    return insertExpr(*unop->rhs, block);
+    return insertExpr(*unop->expr, block);
 
   return block;
 }

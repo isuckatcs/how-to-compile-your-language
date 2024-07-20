@@ -202,8 +202,8 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
         resolvedRHS->location,
         "void expression cannot be used as operand to unary operator");
 
-  return std::make_unique<ResolvedUnaryOperator>(
-      unary.location, std::move(resolvedRHS), unary.op);
+  return std::make_unique<ResolvedUnaryOperator>(unary.location, unary.op,
+                                                 std::move(resolvedRHS));
 }
 
 std::unique_ptr<ResolvedBinaryOperator>
@@ -226,7 +226,7 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
          "unexpected type in binop");
 
   return std::make_unique<ResolvedBinaryOperator>(
-      binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
+      binop.location, binop.op, std::move(resolvedLHS), std::move(resolvedRHS));
 }
 
 std::unique_ptr<ResolvedGroupingExpr>
