@@ -223,7 +223,7 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
 
   assert(resolvedLHS->type.kind == resolvedRHS->type.kind &&
          resolvedLHS->type.kind == Type::Kind::Number &&
-         "unexpexted type in binop");
+         "unexpected type in binop");
 
   return std::make_unique<ResolvedBinaryOperator>(
       binop.location, std::move(resolvedLHS), std::move(resolvedRHS), binop.op);
@@ -260,7 +260,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
     return report(call.location, "calling non-function symbol");
 
   if (call.arguments.size() != resolvedFunctionDecl->params.size())
-    return report(call.location, "argument count missmatch in function call");
+    return report(call.location, "argument count mismatch in function call");
 
   std::vector<std::unique_ptr<ResolvedExpr>> resolvedArguments;
   int idx = 0;
@@ -471,14 +471,14 @@ Sema::resolveParamDecl(const ParamDecl &param) {
 }
 
 std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
-  if (!varDecl.type && !varDecl.initialzer)
+  if (!varDecl.type && !varDecl.initializer)
     return report(
         varDecl.location,
         "an uninitialized variable is expected to have a type specifier");
 
   std::unique_ptr<ResolvedExpr> resolvedInitializer = nullptr;
-  if (varDecl.initialzer) {
-    resolvedInitializer = resolveExpr(*varDecl.initialzer);
+  if (varDecl.initializer) {
+    resolvedInitializer = resolveExpr(*varDecl.initializer);
     if (!resolvedInitializer)
       return nullptr;
   }
@@ -543,7 +543,7 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
   ScopeRAII globalScope{this};
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
 
-  // Insert print first to be able to detect possible redeclarations.
+  // Insert print first to be able to detect a possible redeclaration.
   auto println = createBuiltinPrintln();
   insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
 

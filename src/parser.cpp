@@ -330,7 +330,7 @@ std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
 
     if (curOpPrec < precedence)
       return lhs;
-    eatNextToken(); // eat opearator
+    eatNextToken(); // eat operator
 
     varOrReturn(rhs, parsePrefixExpr());
 
