@@ -6,7 +6,9 @@ bool isSpace(char c) {
          c == '\v';
 }
 
-bool isAlpha(char c) { return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'; }
+bool isAlpha(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+}
 bool isNum(char c) { return '0' <= c && c <= '9'; }
 bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 } // namespace

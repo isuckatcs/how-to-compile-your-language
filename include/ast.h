@@ -201,8 +201,8 @@ struct VarDecl : public Decl {
           std::unique_ptr<Expr> initializer = nullptr)
       : Decl{location, std::move(identifier)},
         type(std::move(type)),
-        isMutable(isMutable),
-        initializer(std::move(initializer)) {}
+        initializer(std::move(initializer)),
+        isMutable(isMutable) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -345,8 +345,8 @@ struct ResolvedVarDecl : public ResolvedDecl {
                   bool isMutable,
                   std::unique_ptr<ResolvedExpr> initializer = nullptr)
       : ResolvedDecl{location, std::move(identifier), type},
-        isMutable(isMutable),
-        initializer(std::move(initializer)) {}
+        initializer(std::move(initializer)),
+        isMutable(isMutable) {}
 
   void dump(size_t level = 0) const override;
 };

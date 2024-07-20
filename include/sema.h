@@ -64,8 +64,7 @@ class Sema {
 
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
   bool checkReturnOnAllPaths(const ResolvedFunctionDecl &fn, const CFG &cfg);
-  bool checkVariableInitialization(const ResolvedFunctionDecl &fn,
-                                   const CFG &cfg);
+  bool checkVariableInitialization(const CFG &cfg);
 
 public:
   explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)

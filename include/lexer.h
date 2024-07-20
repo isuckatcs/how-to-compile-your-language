@@ -59,7 +59,7 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
 struct Token {
   SourceLocation location;
   TokenKind kind;
-  std::optional<std::string> value;
+  std::optional<std::string> value = std::nullopt;
 };
 
 class Lexer {

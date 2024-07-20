@@ -44,8 +44,7 @@ class Codegen {
   llvm::Value *boolToDouble(llvm::Value *v);
 
   llvm::Function *getCurrentFunction();
-  llvm::AllocaInst *allocateStackVariable(llvm::Function *function,
-                                          const std::string_view identifier);
+  llvm::AllocaInst *allocateStackVariable(const std::string_view identifier);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);

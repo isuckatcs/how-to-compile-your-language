@@ -95,10 +95,8 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
-  llvm::Function *function = getCurrentFunction();
   const auto *decl = stmt.varDecl.get();
-
-  llvm::AllocaInst *var = allocateStackVariable(function, decl->identifier);
+  llvm::AllocaInst *var = allocateStackVariable(decl->identifier);
 
   if (const auto &init = decl->initializer)
     builder.CreateStore(generateExpr(*init), var);
@@ -274,8 +272,7 @@ llvm::Function *Codegen::getCurrentFunction() {
 };
 
 llvm::AllocaInst *
-Codegen::allocateStackVariable(llvm::Function *function,
-                               const std::string_view identifier) {
+Codegen::allocateStackVariable(const std::string_view identifier) {
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(allocaInsertPoint);
 
@@ -311,7 +308,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 
   bool isVoid = functionDecl.type.kind == Type::Kind::Void;
   if (!isVoid)
-    retVal = allocateStackVariable(function, "retval");
+    retVal = allocateStackVariable("retval");
   retBB = llvm::BasicBlock::Create(context, "return");
 
   int idx = 0;
@@ -319,7 +316,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
-    llvm::Value *var = allocateStackVariable(function, paramDecl->identifier);
+    llvm::Value *var = allocateStackVariable(paramDecl->identifier);
     builder.CreateStore(&arg, var);
 
     declarations[paramDecl] = var;
@@ -384,8 +381,8 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
     paramTypes.emplace_back(generateType(param->type));
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
-  auto *function = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                                          functionDecl.identifier, module);
+  llvm::Function::Create(type, llvm::Function::ExternalLinkage,
+                         functionDecl.identifier, module);
 }
 
 llvm::Module *Codegen::generateIR() {

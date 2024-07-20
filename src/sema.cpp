@@ -12,7 +12,7 @@ bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
 
   bool error = false;
   error |= checkReturnOnAllPaths(fn, cfg);
-  error |= checkVariableInitialization(fn, cfg);
+  error |= checkVariableInitialization(cfg);
 
   return error;
 };
@@ -60,8 +60,7 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
   return exitReached || returnCount == 0;
 }
 
-bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
-                                       const CFG &cfg) {
+bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
   auto joinStates = [](State s1, State s2) {
@@ -582,6 +581,6 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
   if (error)
     return {};
 
-  return std::move(resolvedTree);
+  return resolvedTree;
 }
 } // namespace yl
