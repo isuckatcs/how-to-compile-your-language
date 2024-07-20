@@ -170,7 +170,7 @@ std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
-  SourceLocation loc = SourceLocation{"<builtin>", 0, 0};
+  SourceLocation loc{"<builtin>", 0, 0};
 
   auto param =
       std::make_unique<ResolvedParamDecl>(loc, "n", Type::builtinNumber());
@@ -426,7 +426,7 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {
-  ScopeRAII blockScope{this};
+  ScopeRAII blockScope(this);
   std::vector<std::unique_ptr<ResolvedStmt>> resolvedStatements;
 
   bool error = false;
@@ -504,7 +504,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
 
 std::unique_ptr<ResolvedFunctionDecl>
 Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
-  ScopeRAII paramScope{this};
+  ScopeRAII paramScope(this);
   std::optional<Type> type = resolveType(function.type);
 
   if (!type)
@@ -538,7 +538,7 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
 };
 
 std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
-  ScopeRAII globalScope{this};
+  ScopeRAII globalScope(this);
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
 
   // Insert print first to be able to detect a possible redeclaration.
@@ -562,7 +562,7 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
     return {};
 
   for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    ScopeRAII scope{this};
+    ScopeRAII scope(this);
     currentFunction = resolvedTree[i].get();
 
     for (auto &&param : currentFunction->params)

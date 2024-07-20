@@ -96,7 +96,7 @@ int main(int argc, const char **argv) {
 
   std::stringstream buffer;
   buffer << file.rdbuf();
-  SourceFile sourceFile = {options.source.c_str(), buffer.str()};
+  SourceFile sourceFile{options.source.c_str(), buffer.str()};
 
   Lexer lexer(sourceFile);
   Parser parser(lexer);
