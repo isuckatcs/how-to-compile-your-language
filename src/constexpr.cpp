@@ -1,4 +1,3 @@
-#include <cassert>
 #include <optional>
 
 #include "constexpr.h"
@@ -74,9 +73,10 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     return *lhs < *rhs;
   case TokenKind::Gt:
     return *lhs > *rhs;
-  default:
-    assert(binop.op == TokenKind::EqualEqual && "unexpected binary operator");
+  case TokenKind::EqualEqual:
     return *lhs == *rhs;
+  default:
+    llvm_unreachable("unexpected binary operator");
   }
 }
 
@@ -92,7 +92,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
   if (op.op == TokenKind::Minus)
     return -*rhs;
 
-  assert(false && "unexpected unary operator");
+  llvm_unreachable("unexpected unary operator");
 }
 
 std::optional<double>

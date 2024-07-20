@@ -1,7 +1,5 @@
-#include <cassert>
-
-#include "ast.h"
 #include "cfg.h"
+#include "ast.h"
 
 namespace yl {
 namespace {
@@ -132,10 +130,10 @@ int CFGBuilder::insertStmt(const ResolvedStmt &stmt, int block) {
   if (auto *declStmt = dynamic_cast<const ResolvedDeclStmt *>(&stmt))
     return insertDeclStmt(*declStmt, block);
 
-  auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt);
-  assert(returnStmt && "unexpected statement");
+  if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
+    return insertReturnStmt(*returnStmt, block);
 
-  return insertReturnStmt(*returnStmt, block);
+  llvm_unreachable("unexpected expression");
 }
 
 int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {

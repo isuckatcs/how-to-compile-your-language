@@ -42,7 +42,6 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
     return generateReturnStmt(*returnStmt);
 
   llvm_unreachable("unknown statement");
-  return nullptr;
 }
 
 llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
@@ -144,7 +143,6 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return generateUnaryOperator(*unop);
 
   llvm_unreachable("unknown expression encountered");
-  return nullptr;
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
@@ -167,7 +165,6 @@ llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
     return builder.CreateFNeg(rhs);
 
   llvm_unreachable("unknown unary op");
-  return nullptr;
 }
 
 void Codegen::generateConditionalOperator(const ResolvedExpr &op,
@@ -261,7 +258,6 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
     return builder.CreateFDiv(lhs, rhs);
 
   llvm_unreachable("unexpected binary operator");
-  return nullptr;
 }
 
 llvm::Value *Codegen::doubleToBool(llvm::Value *v) {

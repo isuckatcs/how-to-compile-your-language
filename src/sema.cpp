@@ -296,10 +296,10 @@ std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *whileStmt = dynamic_cast<const WhileStmt *>(&stmt))
     return resolveWhileStmt(*whileStmt);
 
-  auto *returnStmt = dynamic_cast<const ReturnStmt *>(&stmt);
-  assert(returnStmt && "unknown statement");
+  if (auto *returnStmt = dynamic_cast<const ReturnStmt *>(&stmt))
+    return resolveReturnStmt(*returnStmt);
 
-  return resolveReturnStmt(*returnStmt);
+  llvm_unreachable("unexpected statement");
 }
 
 std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
@@ -423,8 +423,7 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
   if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
     return resolveUnaryOperator(*unaryOperator);
 
-  assert(false && "unexpected expression");
-  return nullptr;
+  llvm_unreachable("unexpected expression");
 }
 
 std::unique_ptr<ResolvedBlock> Sema::resolveBlock(const Block &block) {

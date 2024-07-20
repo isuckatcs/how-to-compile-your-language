@@ -1,7 +1,8 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 
-#include <cassert>
+#include <llvm/Support/ErrorHandling.h>
+
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -30,10 +31,10 @@ std::string_view dumpOp(TokenKind op) {
     return "<";
   if (op == TokenKind::Gt)
     return ">";
+  if (op == TokenKind::Excl)
+    return "!";
 
-  assert(op == TokenKind::Excl && "unexpected operator");
-
-  return "!";
+  llvm_unreachable("unexpected operator");
 }
 
 std::string indent(size_t level) { return std::string(level * 2, ' '); }
