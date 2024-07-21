@@ -503,7 +503,7 @@ Parser::parseSourceFile() {
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind != TokenKind::KwFn) {
       report(nextToken.location,
-             "only function definitions are allowed on the top level");
+             "only function declarations are allowed on the top level");
       synchronizeOn(TokenKind::KwFn);
       continue;
     }
