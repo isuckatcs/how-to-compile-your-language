@@ -55,50 +55,51 @@
                     spoken language. The
                     <code>This section talks about the parser.</code> sentence
                     is valid in the english language, because the mentioned
-                    building blocks follow each other in a correct order.
+                    building blocks follow each other in the correct order.
                     Similarly <code>fn main(): void {}</code> is a valid
-                    sentence in <i>your language</i>.
+                    function declaration in <i>your language</i> for the same
+                    reason.
                 </p>
                 <p>
                     The parser validates if the tokens follow each other in a
                     valid order and constructs the Abstract Syntax Tree (AST).
-                    The AST is an intermediate representation of the source code
-                    that later helps the compiler reasoning about the meaning of
-                    the code.
+                    The AST is an intermediate representation that encapsulates
+                    the structure of the source code and later helps the
+                    compiler to reason about what a piece of source code means.
                 </p>
                 <p>
-                    So far the language supports only function declarations
-                    without parameters, which can be modeled as a single AST
-                    node. Since later there will be multiple declarations, a
-                    <code>Decl</code> node is introduced first, which will serve
-                    as the base class for all declarations. Each declaration has
-                    a source location and an identifier, so these values are
+                    So far the language only supports function declarations with
+                    no parameters, which can be modeled as a single AST node. To
+                    make extending the language easier, a
+                    <code>Decl</code> node is introduced first, which serves as
+                    the base class for all declarations. Each declaration has a
+                    source location and an identifier, so these values are
                     stored in the base class.
                 </p>
-                <pre><code>struct Decl : public Dumpable {
+                <pre><code>struct Decl {
   SourceLocation location;
   std::string identifier;
 
   Decl(SourceLocation location, std::string identifier)
-      : location(location), identifier(std::move(identifier)) {}
+      : location(location),
+        identifier(std::move(identifier)) {}
   virtual ~Decl() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };</code></pre>
                 <p>
-                    To make visualizing the AST easier, each node is derived
-                    from the <code>Dumpable</code> interface, which has the
-                    ability to "dump" the textual representation of the node.
+                    To make visualizing the AST easier, each node has a
+                    <code>dump()</code> method, that can be used to print the
+                    textual representation of that node.
                 </p>
-                <pre><code>struct Dumpable {
-  [[nodiscard]] std::string indent(size_t level) const {
-    return std::string(level * 2, ' ');
-  }
+                <pre><code>struct Decl {
+  ...
 
-  virtual ~Dumpable() = default;
   virtual void dump(size_t level = 0) const = 0;
 };</code></pre>
                 <p>
                     Currently the only <code>Decl</code> in the language is the
-                    <code>FunctionDecl</code>, which additional to what every
+                    <code>FunctionDecl</code>, which additionally to what every
                     declaration has in common, also has a return type and a
                     body.
                 </p>
@@ -106,51 +107,76 @@
   Type type;
   std::unique_ptr&lt;Block> body;
 
-  FunctionDecl(SourceLocation location, std::string identifier, Type type,
+  FunctionDecl(SourceLocation location,
+               std::string identifier,
+               Type type,
                std::unique_ptr&lt;Block> body)
-      : Decl{location, std::move(identifier)}, type(std::move(type)),
+      : Decl(location, std::move(identifier)),
+        type(std::move(type)),
         body(std::move(body)) {}
 
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "FunctionDecl: " << identifier << ':'
-              << type.name << '\n';
-
-    body->dump(level + 1);
-  }
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    To make the dumping of the node easier the
+                    <code>indent()</code> helper is introduced, which returns
+                    the indentation of a given level. For the indentation of
+                    each level 2 spaces are used.
+                </p>
+                <pre><code>std::string indent(size_t level) { return std::string(level * 2, ' '); }</code></pre>
+                <p>
+                    The textual representation of a
+                    <code>FunctionDecl</code> includes the name of the node, the
+                    identifier that represents the function, the return type and
+                    the body of the function.
+                </p>
+                <pre><code>void FunctionDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "FunctionDecl: " << identifier << ':'
+            << type.name << '\n';
+
+  body->dump(level + 1);
+}</code></pre>
                 <p>
                     The body of the function is represented by a
                     <code>Block</code> node, which can currently only be empty,
-                    though this will change in the next chapter.
+                    though this changes soon. A <code>Block</code> is a
+                    standalone node without a base class as there are no other
+                    elements in the language, that share the same functionality.
                 </p>
-                <pre><code>struct Block : public Dumpable {
+                <pre><code>struct Block {
   SourceLocation location;
 
-  Block(SourceLocation location) : location(location) {}
+  Block(SourceLocation location)
+      : location(location) {}
 
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "Block\n";
-  }
+  void dump(size_t level = 0) const;
 };</code></pre>
+                <p>
+                    Because a <code>Block</code> doesn't have any child nodes,
+                    it's textual representation only includes the name of the
+                    node.
+                </p>
+                <pre><code>void Block::dump(size_t level) const {
+  std::cerr << indent(level) << "Block\n";
+}</code></pre>
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
                         Lately some compiler engineers started using
                         <code>std::variant</code> instead of inheritance to
-                        model the AST. In that case the variant acts as a union
-                        of nodes.
+                        model the AST, where the variant acts as a union of
+                        nodes.
                     </p>
                     <pre><code>using Decl = std::variant&lt;FunctionDecl, ParamDecl, VarDecl>;</code></pre>
                     <p>
                         The complexity of this design arises once the nodes need
                         to reference each other, which will be unavoidable later
-                        with expressions like <code>1 + 2 * 3</code> and
-                        <code>(1 + 2) * 3</code>.
+                        with expressions like <code>(1 + 2) * 3</code>.
                     </p>
                     <p>
                         The <code>( ... )</code> is called a grouping expression
-                        and acts as a wrapper around other expressions. With
-                        variant this expression becomes be difficult to model.
+                        and acts as a wrapper around other expressions, which is
+                        difficult to model using a variant.
                     </p>
                     <pre><code>using Expr = std::variant&lt;..., GroupingExpr>;
 
@@ -161,10 +187,11 @@ struct GroupingExpr {
                         The snippet above doesn't compile because the compiler
                         needs to know the size of <code>GroupingExpr</code>. The
                         size of the node however depends on the size of the
-                        variant, which can contain the node too, so for the
-                        compiler to know the size of the variant, it has to know
-                        the size of the node. The workaround is to use a
-                        pointer.
+                        <code>std::variant</code>, which contains the
+                        <code>GroupingExpr</code> too, so for the compiler to
+                        know the size of the <code>std::variant</code>, it has
+                        to know the size of the <code>GroupingExpr</code> first.
+                        The workaround is to use a pointer.
                     </p>
                     <pre><code>using Expr = std::variant&lt;..., GroupingExpr>;
 
@@ -173,7 +200,7 @@ struct GroupingExpr {
 };</code></pre>
                     <p>
                         In this case the question is, who owns the memory for
-                        the <code>innerExpr</code> field. Who allocates is, who
+                        the <code>innerExpr</code> field. Who allocates it, who
                         is responsible for freeing it, etc. The workaround for
                         this problem is to use a <code>std::unique_ptr</code>.
                     </p>
@@ -184,10 +211,11 @@ struct GroupingExpr {
                         Now it's clear that the node is the owner of it's child
                         node. However to know the current type of the variant,
                         <code>innerExpr</code> needs to be type checked. The
-                        same type checking however could also be done on the
-                        pointer itself <code>Expr</code> would be a polymorphic
-                        base class. For this reason this compiler keeps things
-                        simple and uses inheritance to model the AST.
+                        same type checking however could also be performed on
+                        the pointer itself if <code>Expr</code> was a
+                        polymorphic base class. To avoid complexities, this
+                        compiler keeps things simple and uses inheritance to
+                        model the AST.
                     </p>
                 </blockquote>
                 <h2>Types</h2>
@@ -195,15 +223,37 @@ struct GroupingExpr {
                     A type is a set of values with the same properties. The
                     language only supports the <code>void</code>,
                     <code>number</code> and <code>custom</code> types, which are
-                    encapsulated by the <code>Type</code> class. This class
-                    contains an enum that represents the kind and the textual
-                    representation of the type.
+                    encapsulated by the <code>Type</code> class. The actual kind
+                    of the type, that an instance of the <code>Type</code> class
+                    holds is represented by the <code>Kind</code> enum.
                 </p>
                 <pre><code>struct Type {
   enum class Kind { Void, Number, Custom };
 
+  ...
+};</code></pre>
+                <p>
+                    An instance of the <code>Type</code> class holds one of
+                    these kinds and the textual representation of the
+                    corresponding type.
+                </p>
+                <pre><code>struct Type {
+  ...
+
   Kind kind;
   std::string name;
+
+  ...
+};</code></pre>
+                <p>
+                    To make the usage of the class safer and prevent accidental
+                    invalid type instantiation, the constructor of the class is
+                    <code>private</code> and a set of <code>static</code> member
+                    functions are provided that instantiate and return the
+                    correct <code>Type</code>.
+                </p>
+                <pre><code>struct Type {
+  ...
 
   static Type builtinVoid() { return {Kind::Void, "void"}; }
   static Type builtinNumber() { return {Kind::Number, "number"}; }
@@ -213,33 +263,39 @@ private:
   Type(Kind kind, std::string name) : kind(kind), name(std::move(name)){};
 };</code></pre>
                 <p>
-                    Notice how the constructor is made <code>private</code> and
-                    a <code>static</code> member function is provided to
-                    instantiate each type. This is for preventing accidental
-                    instantiation of invalid types.
+                    The <code>custom</code> type acts as a placeholder for
+                    user-defined types, but it is not accepted as a valid type
+                    by the compiler for now.
                 </p>
                 <blockquote>
                     <h3>Design Note</h3>
-
                     <p>
                         Theoretically a function is also a separate type, so in
                         a more complex language with a more complex type system
-                        that should also be encapsulated somehow. Since your
-                        language can only have 3 types, the type system is kept
-                        simple.
+                        this should also be encapsulated somehow.
                     </p>
                     <p>
-                        In C++, functions can also be passed around using
-                        function pointers and the developers can use lambda
-                        functions too. To be able to model every type precisely
+                        In C++ functions can also be stored in variables or
+                        passed as parameters, which calls for a dedicated
+                        function type. To be able to model the complexity of C++
+                        types precisely,
                         <code>Clang</code> uses a layer-based type system, where
-                        each layer is a different complex type.
+                        each layer is a different higher level type.
+                    </p>
+                    <p>
+                        An <code>int *</code> is represented using 2 layers, one
+                        for the <code>int</code> and one for the <code>*</code>.
                     </p>
                     <pre><code>int *x;
--PointerType 'int *'
- `-BuiltinType 'int'
 
-int main(int argc, const char **argv)
+-PointerType 'int *'
+ `-BuiltinType 'int'</code></pre>
+                    <p>
+                        A function with a complex parameter on the other hand
+                        can span across multiple layers.
+                    </p>
+                    <pre><code>int main(int argc, const char **argv)
+
 FunctionProtoType 'int (int, const char **)'
 |-BuiltinType 'int'
 |-BuiltinType 'int'
@@ -255,62 +311,127 @@ FunctionProtoType 'int (int, const char **)'
                     and constructs the AST of the program. As the lexer always
                     points to the character that is to be processed next, the
                     parser points to the token that is to be processed next.
-                    Once the parser finished processing this token, it calls the
-                    lexer to return the next one.
+                </p>
+                <p>
+                    The <code>Parser</code> takes the <code>Lexer</code> as a
+                    dependency and immediately invokes it upon instantiation to
+                    get the first token to process.
                 </p>
                 <pre><code>class Parser {
-  TheLexer *lexer;
+  Lexer *lexer;
   Token nextToken;
 
-  void eatNextToken() { 
-    nextToken = lexer->getNextToken(); 
-  }
-
 public:
-  explicit TheParser(TheLexer &lexer)
-      : lexer(&lexer), nextToken(lexer.getNextToken()) {}
+  explicit Parser(Lexer &lexer)
+      : lexer(&lexer),
+        nextToken(lexer.getNextToken()) {}
 };</code></pre>
                 <p>
-                    So far the language only supports function declarations with
-                    empty bodies, which must begin at the top level of the
-                    source file.
+                    Once the parser finished processing the next token, it calls
+                    the <code>eatNextToken()</code> helper, which consumes it
+                    and calls the lexer for the following one.
                 </p>
+                <pre><code>void Parser::eatNextToken() { 
+  nextToken = lexer->getNextToken(); 
+}</code></pre>
                 <p>
-                    The <code>parseSourceFile</code> method checks if the next
-                    token to be processed is <code>KwFn</code> and parses the
-                    <code>FunctionDecl</code> accordingly. The parsed function
-                    declarations are collected and returned once the
-                    <code>Eof</code> token is encountered. Besides the parsed
-                    functions a flag is also returned which shows if an error
-                    happened during parsing.
+                    The following figure visualizes how the parser processes the
+                    tokens and where the <code>nextToken</code> field points to.
                 </p>
-                <p>
-                    If the expected token is not a <code>KwFn</code> an error is
-                    reported to the user.
-                </p>
-                <pre><code>class Parser {
-  bool incompleteAST = false;
-  ...
-};
+                <pre><code>'^' marks the content of the 'nextToken' field
 
-// &lt;sourceFile>
-//     ::= &lt;functionDecl>* EOF
+Parser::Parser()
+┌────┐ ┌──────┐ ┌───┐ ┌───┐ ┌───┐ ┌──────┐ ┌───┐ 
+│ fn │ │ main │ │ ( │ │ ) │ │ : │ │ void │ │ { │ ...
+└────┘ └──────┘ └───┘ └───┘ └───┘ └──────┘ └───┘ 
+  ^
+
+eatNextToken()
+┌──────┐ ┌───┐ ┌───┐ ┌───┐ ┌──────┐ ┌───┐ ┌───┐
+│ main │ │ ( │ │ ) │ │ : │ │ void │ │ { │ │ } │ ...
+└──────┘ └───┘ └───┘ └───┘ └──────┘ └───┘ └───┘
+  ^
+
+eatNextToken()
+┌───┐ ┌───┐ ┌───┐ ┌──────┐ ┌───┐ ┌───┐ ┌─────┐
+│ ( │ │ ) │ │ : │ │ void │ │ { │ │ } │ │ EOF │
+└───┘ └───┘ └───┘ └──────┘ └───┘ └───┘ └─────┘
+  ^</code></pre>
+                <p>
+                    The logic for processing the tokens lives in the
+                    <code>parseSourceFile()</code> method. The core of it is a
+                    loop that iterates until the <code>Eof</code> token is
+                    encountered.
+                </p>
+                <pre><code>// &lt;sourceFile>
+//  ::= &lt;functionDecl>* EOF
 std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
 Parser::parseSourceFile() {
-  std::vector&lt;std::unique_ptr&lt;FunctionDecl>> functions;
+  ...
+
+  while (nextToken.kind != TokenKind::Eof) {
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    Because so far the language only supports function
+                    declarations, which begin with <code>fn</code>, the parser
+                    checks if the next token to be processed is
+                    <code>KwFn</code> and parses the
+                    <code>FunctionDecl</code> accordingly. If the next token is
+                    not what it expects an error is reported to the user.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
 
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind != TokenKind::KwFn) {
       report(nextToken.location,
-             "only function definitions are allowed on the top level");
-      incompleteAST = true;
-      continue;
+             "only function declarations are allowed on the top level");
+      ...
     }
 
     auto fn = parseFunctionDecl();
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    Since the rest of the parser mostly works with pointers, the
+                    <code>report()</code> function always returns a
+                    <code>nullptr</code> to make stopping on errors more
+                    convenient. It also comes with an optional
+                    <code>isWarning</code> flag to denote that the message to
+                    report is not an error.
+                </p>
+                <pre><code>std::nullptr_t report(SourceLocation location, std::string_view message,
+                  bool isWarning = false) {
+const auto &[file, line, col] = location;
+
+std::cerr << file << ':' << line << ':' << col << ':'
+        << (isWarning ? " warning: " : " error: ") << message << '\n';
+
+return nullptr;
+}</code></pre>
+                <p>
+                    The successfully parsed function declarations are then
+                    collected into a
+                    <code>std::vector</code> that also acts as the root of the
+                    AST.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  std::vector&lt;std::unique_ptr&lt;FunctionDecl>> functions;
+
+  while (nextToken.kind != TokenKind::Eof) {
+    ...
+
     if (!fn) {
-      incompleteAST = true;
-      continue;
+      ...
     }
 
     functions.emplace_back(std::move(fn));
@@ -319,66 +440,27 @@ Parser::parseSourceFile() {
   ...
 }</code></pre>
                 <p>
-                    The rest of the parser will mostly work with pointers, so
-                    the <code>report</code> utility function is created such
-                    that it always returns a <code>nullptr</code>.
+                    It might happen that the source code is invalid and the
+                    parser fails to process it completely. In that case the AST
+                    is incomplete, which is marked by the
+                    <code>incompleteAST</code> flag.
                 </p>
-                <pre><code>std::nullptr_t report(SourceLocation location, std::string_view message,
-                  bool isWarning) {
-const auto &[file, line, col] = location;
-
-assert(!file.empty() && line != 0 && col != 0);
-std::cerr << file << ':' << line << ':' << col << ':'
-        << (isWarning ? " warning: " : " error: ") << message << '\n';
-
-return nullptr;
-}</code></pre>
+                <pre><code>class Parser {
+  ...
+  bool incompleteAST = false;
+  ...
+};</code></pre>
                 <p>
-                    A source file must contain a <code>main</code> function.
-                    Because the parser is the last stage of the compilation
-                    pipeline that has access to the tokens, ensuring if main
-                    function has been provided happens here. The parser quickly
-                    loops over the parsed functions and checks if it sees
-                    <code>main</code>.
+                    Once the processing of the tokens has finished, the
+                    successfully parsed functions are returned along with the
+                    indicator of whether the AST is complete or not.
                 </p>
                 <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
 Parser::parseSourceFile() {
   ...
 
-  assert(nextToken.kind == TokenKind::Eof && "expected to see end of file");
-
-  bool hasMainFunction = false;
-  for (auto &&fn : functions)
-    hasMainFunction |= fn->identifier == "main";
-
-  ...
+  return {std::move(functions), !incompleteAST};
 }</code></pre>
-                <p>
-                    If <code>main</code> is not found and the AST is not
-                    incomplete an error is reported. In case of an incomplete
-                    AST it might be the <code>main</code> function that caused
-                    the parsing error, so the error is not reported.
-                </p>
-                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
-Parser::parseSourceFile() {
-  ...
-
-  if (!hasMainFunction && !incompleteAST)
-    report(nextToken.location, "main function not found");
-
-  ...
-}</code></pre>
-                <p>
-                    Upon success, besides returning the parsed functions, a flag
-                    is also returned that indicates that the AST is complete and
-                    <code>main</code> is found too.
-                </p>
-                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
-  Parser::parseSourceFile() {
-    ...
-  
-    return {std::move(functions), !incompleteAST && hasMainFunction};
-  }</code></pre>
                 <h2>Error recovery</h2>
                 <p>
                     Failing to parse a function declaration doesn't mean that
@@ -393,38 +475,36 @@ Parser::parseSourceFile() {
 │ fn │ │ : │ │ : │ │ fn │ │ main │ │ ( │ │ ) │ │ : │ ...
 └────┘ └───┘ └───┘ └────┘ └──────┘ └───┘ └───┘ └───┘ 
          ^           ^
-         |           └ next function begins here
+         |           └ the next function begins here
          └ error: unexpected token 
 </code></pre>
                 <p>
                     If an error happens, every token can be skipped until the
-                    next <code>KwFn</code> token or <code>EOF</code> is seen.
-                    This process is called the <code>synchronization</code> of
-                    the parser on the <code>KwFn</code> token and in this case
-                    it will be handled by the <code>synchronizeOn</code> method.
-                    When synchronization happens, the AST is flagged as
-                    incomplete.
+                    next <code>KwFn</code> token or <code>Eof</code> is seen.
+                    This process is called the synchronization of the parser on
+                    the <code>KwFn</code> token and it is handled by the
+                    <code>synchronizeOn</code> method. When synchronization
+                    happens, the AST is guaranteed to be incomplete, so the
+                    corresponding flag is set too.
                 </p>
-                <pre><code>class Parser {
-  ...
+                <pre><code>void Parser::synchronizeOn(TokenKind kind) {
+  incompleteAST = true;
 
-  void synchronizeOn(TokenKind kind) {
-    incompleteAST = true;
-
-    while (nextToken.kind != kind && nextToken.kind != TokenKind::Eof)
-      eatNextToken();
-  }
-
-  ...
-};
-
-std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+  while (nextToken.kind != kind && nextToken.kind != TokenKind::Eof)
+    eatNextToken();
+}</code></pre>
+                <p>
+                    The parser synchronizes in the
+                    <code>parseSourceFile()</code> method every time it
+                    encounters an unexpected token or it fails to parse a
+                    function declaration.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
 Parser::parseSourceFile() {
   ...
 
     if (nextToken.kind != TokenKind::KwFn) {
-      report(nextToken.location,
-             "only function definitions are allowed on the top level");
+      ...
       synchronizeOn(TokenKind::KwFn);
       continue;
     }
@@ -447,25 +527,34 @@ Parser::parseSourceFile() {
                     <code>Block</code> at the end.
                 </p>
                 <p>
-                    To make parsing more convenient, the
-                    <code>varOrReturn()</code> helper macro is introduced. It
-                    checks if the parsing of a piece of code was successful and
-                    creates a variable that stores the result, or returns a
-                    <code>nullptr</code>.
+                    To make the work in the parser more convenient, the
+                    <code>varOrReturn()</code> and
+                    <code>matchOrReturn()</code> helper macros are introduced.
                 </p>
-                <pre><code>#define varOrReturn(var, init)           \
-  auto var = (init);                     \
-  if (!var)                              \
+                <p>
+                    The former checks if the parsing of a node was successful
+                    and creates a variable that stores the result, or returns a
+                    <code>nullptr</code> on error.
+                </p>
+                <pre><code>#define varOrReturn(var, init)               \
+  auto var = (init);                         \
+  if (!var)                                  \
     return nullptr;</code></pre>
                 <p>
+                    The latter checks if <code>nextToken</code> is of the
+                    expected kind and reports an error otherwise. The
+                    <code>report()</code> helper also returns a
+                    <code>nullptr</code>, so the parsing of the current node
+                    stops too.
+                </p>
+                <pre><code>#define matchOrReturn(tok, msg)              \
+  if (nextToken.kind != tok)                 \
+    return report(nextToken.location, msg);</code></pre>
+                <p>
                     The <code>parseFunctionDecl()</code> method expects the
-                    current token to be <code>KwFn</code> and checks if the rest
-                    of the tokens are in the proper order, then extracts the
-                    name of the function as well as it's type from the
-                    <code>Identifier</code> tokens and parses the
-                    <code>Block</code> at the end. If everything was successful
-                    it returns a <code>FunctionDecl</code>, otherwise it reports
-                    the error and returns a <code>nullptr</code>.
+                    current token to be <code>KwFn</code>, saves it's location
+                    as the beginning of the function and checks if the rest of
+                    the tokens are in the correct order.
                 </p>
                 <pre><code>// &lt;functionDecl>
 //  ::= 'fn' &lt;identifier> '(' ')' ':' &lt;type> &lt;block>
@@ -473,44 +562,94 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat fn
 
-  if (nextToken.kind != TokenKind::Identifier)
-    return report(nextToken.location, "expected identifier");
+  ...
+}</code></pre>
+                <p>
+                    The <code>fn</code> keyword is followed by an identifier.
+                    For the <code>Identifier</code> token, the textual
+                    representation of the identifier is stored in the
+                    <code>value</code> field. This value is saved before the
+                    token is eaten.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  ...
 
-  assert(nextToken.value && "identifier token without value");
+  matchOrReturn(TokenKind::Identifier, "expected identifier");
+
   std::string functionIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  if (nextToken.kind != TokenKind::Lpar)
-    return report(nextToken.location, "expected '('");
+  ...
+}</code></pre>
+                <p>
+                    The next tokens denoting the start and end of the argument
+                    list are single character tokens, which don't require any
+                    special handling.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  ...
+
+  matchOrReturn(TokenKind::Lpar, "expected '('");
   eatNextToken(); // eat '('
 
-  if (nextToken.kind != TokenKind::Rpar)
-    return report(nextToken.location, "expected ')'");
+  matchOrReturn(TokenKind::Rpar, "expected ')'");
   eatNextToken(); // eat ')'
 
-  if (nextToken.kind != TokenKind::Colon)
-    return report(nextToken.location, "expected ':'");
+  ...
+}</code></pre>
+                <p>
+                    The argument list is followed by a <code>:</code> and a type
+                    specifier, which is parsed by a dedicated
+                    <code>parseType()</code> helper.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  ...
+  matchOrReturn(TokenKind::Colon, "expected ':'");
   eatNextToken(); // eat ':'
-
+  
   varOrReturn(type, parseType());
 
-  if (nextToken.kind != TokenKind::Lbrace)
-    return report(nextToken.location, "expected function body");
+  ...
+}</code></pre>
+                <p>
+                    Finally the <code>Block</code> is parsed by the
+                    <code>parseBlock()</code> method. Similarly to the current
+                    method, <code>parseBlock()</code> also expects the first
+                    token to be the start of the block, so that token is checked
+                    before calling the function.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  ...
 
+  matchOrReturn(TokenKind::Lbrace, "expected function body");
   varOrReturn(block, parseBlock());
 
+  ...
+}</code></pre>
+                <p>
+                    If everything was successful, the
+                    <code>FunctionDecl</code> node is returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+  ...
   return std::make_unique&lt;FunctionDecl>(location, functionIdentifier, *type,
                                         std::move(block));
 }</code></pre>
                 <p>
-                    Parsing the type has been extracted into a separate helper
+                    Parsing the type has been extracted into a dedicated helper
                     method, so that it can be reused later when the language is
-                    extended. The <code>number</code> type will be handled in a
-                    later chapter as so far there is no token that represents
-                    it.
+                    extended. The <code>number</code> type is handled in a later
+                    chapter as so far there is no token that represents it.
+                </p>
+                <p>
+                    This method checks if the current token is
+                    <code>KwVoid</code> or <code>Identifier</code> and returns
+                    the corresponding <code>void</code> or
+                    <code>custom</code> types and reports an error otherwise.
                 </p>
                 <pre><code>// &lt;type>
-//  ::= 'void'
+//  ::= 'number'
+//  |   'void'
 //  |   &lt;identifier>
 std::optional&lt;Type> Parser::parseType() {
   TokenKind kind = nextToken.kind;
@@ -521,7 +660,6 @@ std::optional&lt;Type> Parser::parseType() {
   }
 
   if (kind == TokenKind::Identifier) {
-    assert(nextToken.value && "identifier token has no value");
     auto t = Type::custom(*nextToken.value);
     eatNextToken(); // eat identifier
     return t;
@@ -531,7 +669,7 @@ std::optional&lt;Type> Parser::parseType() {
   return std::nullopt;
 };</code></pre>
                 <p>
-                    The <code>parseBlock()</code> method is simple at this
+                    The <code>parseBlock()</code> method is also simple at this
                     point. It checks for the correct token order and returns a
                     <code>Block</code> upon success or a
                     <code>nullptr</code> upon error.
@@ -542,19 +680,71 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '{'
 
-  if (nextToken.kind != TokenKind::Rbrace)
-    return report(nextToken.location, "expected '}' at the end of a block");
+  matchOrReturn(TokenKind::Rbrace, "expected '}' at the end of a block");
   eatNextToken(); // eat '}'
 
   return std::make_unique&lt;Block>(location);
 }</code></pre>
+                <p>
+                    Every source file must contain a
+                    <code>main()</code> function. If no such function is found,
+                    an error should be reported on the <code>Eof</code> token.
+                    Because the parser is the last stage of the compilation
+                    pipeline that has access to the tokens, the error is emitted
+                    at the end of <code>parseSourceFile()</code>.
+                </p>
+                <p>
+                    To implement this, the parser first iterates over the
+                    successfully parsed functions and remembers if any of them
+                    is called main.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
+  while (...) {
+    ...
+  }
+  
+  bool hasMainFunction = false;
+  for (auto &&fn : functions)
+    hasMainFunction |= fn->identifier == "main";
+
+  ...
+}</code></pre>
+                <p>
+                    If <code>main()</code> is not found and the AST is complete
+                    an error is reported. In case of an incomplete AST it might
+                    have been parsing the <code>main()</code> function that
+                    caused the syntax error, so nothing is reported to avoid
+                    false positives.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+Parser::parseSourceFile() {
+  ...
+
+  if (!hasMainFunction && !incompleteAST)
+    report(nextToken.location, "main function not found");
+
+  ...
+}</code></pre>
+                <p>
+                    The returned indicator is also updated such that the AST is
+                    only considered complete if it contains the
+                    <code>main()</code> function too.
+                </p>
+                <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
+  Parser::parseSourceFile() {
+    ...
+  
+    return {..., !incompleteAST && hasMainFunction};
+  }</code></pre>
                 <h2>Grammar</h2>
                 <p>
-                    Like regular languages, programming languages have a grammar
-                    too, which describes which order of tokens is valid in a
-                    language and which isn't. The parser is an automaton that
-                    recognizes this grammar and only accepts source files, which
-                    are valid according to the grammar.
+                    Like spoken languages, programming languages also have a
+                    grammar, which describes which order of tokens is valid in
+                    the language and which isn't. The parser is an automaton
+                    that recognizes this grammar and only accepts source files,
+                    which are valid according to it.
                 </p>
                 <p>
                     For example <code>fn main(): void {}</code> is a valid
@@ -563,10 +753,10 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
                     annotation is missing.
                 </p>
                 <p>
-                    There are multiple forms of defining the grammar of a
-                    programming language. One of the widely used notations is
-                    the Backus-Naur form or BNF, which could already be seen as
-                    comments above the parser methods.
+                    There are multiple formats for defining the grammar of a
+                    programming language, one of which is the Backus-Naur Form
+                    or BNF, which could already be seen as comments above the
+                    parser methods.
                 </p>
                 <p>
                     The BNF defines terminal and non-terminal symbols.
@@ -578,11 +768,12 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
                     <code
                         >&ltnon-terminal> ::= expansion | expansion | expansion </code
                     >. An expansion can consist of multiple terminal and
-                    non-terminal symbols. To express the number of occurrences
-                    of a symbol, the <code>?</code> symbol is used to denote 0-1
-                    occurrence and the <code>*</code> symbol is used to denote
-                    any number of occurrences. If an element is not followed by
-                    one of these symbols, that means it occurs exactly once.
+                    non-terminal symbols as well. To express the number of times
+                    a symbol can occur after each other, <code>?</code> is used
+                    to denote 0-1 occurrence and <code>*</code> is used to
+                    denote any number of occurrences. If an element is not
+                    followed by one of these symbols, that means it occurs
+                    exactly once.
                 </p>
                 <pre><code>&lt;sourceFile>
   ::= &lt;digit>*
@@ -592,33 +783,32 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
   ::= '0' 
   |   '1'</code></pre>
                 <p>
-                    The grammar defined by the BNF above can accept the
-                    following derivations.
+                    A parser that recognizes the grammar defined by the BNF
+                    above can accept the following inputs.
                 </p>
-                <pre><code>text:                'Hello World'
-sourceFile: &lt;digit>? 'Hello World'
+                <pre><code>input:                 'Hello World'
+&lt;sourceFile>: &lt;digit>? 'Hello World'
 
-text:          0     'Hello World'
-sourceFile: &lt;digit>? 'Hello World'
-digit:        '0'            
+input:           0     'Hello World'
+&lt;sourceFile>: &lt;digit>? 'Hello World'
+&lt;digit>:        '0'            
 
-text:          1     0     1
-sourceFile: &lt;digit>*
-digit:        '1' 
-digit:              '0'
-digit:                    '1'
+input:           1     0     1
+&lt;sourceFile>: &lt;digit>*
+&lt;digit>:        '1' 
+&lt;digit>:              '0'
+&lt;digit>:                    '1'
 
-text:          (     )
-sourceFile: no expansions can be applied</code></pre>
+input:           (     )
+&lt;sourceFile>: no expansions can be applied</code></pre>
 
                 <h2>Language Design</h2>
                 <p>
                     Understanding how the parser works is crucial to designing
-                    the syntax of the language. It might be tempting to
-                    introduce a certain syntax, but it can easily increase the
-                    difficulty of parsing that language and can even make
-                    expanding a grammar rule dependant on the semantics of the
-                    source code.
+                    the syntax of a language. It might be tempting to introduce
+                    a certain syntax, but it can easily increase the difficulty
+                    of parsing that language and can even make expanding a
+                    grammar rule dependant on the semantics of the source code.
                 </p>
                 <p>
                     As an example take a look at the function declaration syntax
@@ -637,15 +827,15 @@ sourceFile: no expansions can be applied</code></pre>
                     <code>int foo(x);</code> is encountered by the parser. Since
                     C++ allows the creation of user-defined types,
                     <code>x</code> can either be a type, or a value. If
-                    <code>x</code> is a type, the above sequence of tokens is
+                    <code>x</code> is a type, the above sequence of tokens is a
                     function declaration, if <code>x</code> is a value, it is a
                     variable declaration.
                 </p>
                 <pre><code>struct x;
-int foo(x); // declares function
+int foo(x); // declares a function
 
 int x = 0;
-int foo(x); // declares variable</code></pre>
+int foo(x); // declares a variable</code></pre>
                 <p>
                     As a result, C++ cannot be parsed without also reasoning
                     about what the source code that has already been parsed
@@ -655,13 +845,15 @@ int foo(x); // declares variable</code></pre>
                     When the same sequence of symbols can have a different
                     meaning based on what context they appear in, the grammar is
                     called ambiguous. C++ is known to have multiple ambiguities
-                    in it's grammar, though some are inherited from C.
+                    in it's grammar, though some are inherited from C such as
+                    the pointer syntax.
                 </p>
                 <pre><code>typedef char a;
-a * b; // declares pointer
+a * b; // declares 'b', a pointer to 'a'
 
 int a = 0, b = 0;
-a * b; // multiplication</code></pre>
+a * b; // multiplies 'a' with 'b'</code></pre>
+                <p>A similar inherited ambiguity is the cast syntax.</p>
                 <pre><code>typedef char a;
 int b;
 (a) - b; // negate 'b' and cast it to 'a'
@@ -669,15 +861,15 @@ int b;
 int a = 0, b = 0;
 (a) - b; // subtract 'b' from 'a'</code></pre>
                 <p>
-                    A common source of ambiguity in programming languages is the
-                    generic syntax. Consider the following generic syntax, which
-                    can appear in both C++ and Kotlin
+                    A well-known source of ambiguity in programming languages is
+                    the generic syntax. Consider the following generic function
+                    call, which can appear in both C++ and Kotlin
                     <code>function&lt;type>(argument)</code>. For the parser
                     this is a sequence of <code>Identifier</code>,
                     <code>&lt;</code>, <code>Identifier</code>, <code>></code>,
                     <code>(</code>, <code>Identifier</code> and <code>)</code>.
-                    Should this sequence be parsed as a generic function call or
-                    a series of comparisons?
+                    Is it really a generic function call or a series of
+                    comparisons?
                 </p>
                 <pre><code>template&lt;typename T>
 void f(T a) {}
@@ -693,11 +885,11 @@ f&lt;t>(a); // comparison
                     The source of the problem is that <code>&lt;</code> can
                     either mean the start of a generic argument list, or the
                     less-than operator. Rust resolved this ambiguity by
-                    introducing the turbofish (<code>::<></code>) for generics.
-                    The Rust parser knows that <code>&lt;</code> always means
-                    the less-than operator, because a generic argument list
-                    begins with <code>::</code> followed by the
-                    <code>&lt;</code>.
+                    introducing the turbofish (<code>::<></code>). The Rust
+                    parser knows that <code>&lt;</code> always means the
+                    less-than operator in confusing situations, because a
+                    generic argument list must begin with
+                    <code>::</code> followed by the <code>&lt;</code>.
                 </p>
                 <pre><code>fn f&lt;T>() {}
 
