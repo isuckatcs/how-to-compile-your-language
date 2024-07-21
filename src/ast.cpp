@@ -63,11 +63,11 @@ void ReturnStmt::dump(size_t level) const {
 }
 
 void NumberLiteral::dump(size_t level) const {
-  std::cerr << indent(level) << "NumberLiteral: '" + value + "'\n";
+  std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
 }
 
 void DeclRefExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclRefExpr: " + identifier + '\n';
+  std::cerr << indent(level) << "DeclRefExpr: " << identifier << '\n';
 }
 
 void CallExpr::dump(size_t level) const {
@@ -101,8 +101,8 @@ void UnaryOperator::dump(size_t level) const {
 }
 
 void ParamDecl::dump(size_t level) const {
-  std::cerr << indent(level)
-            << "ParamDecl: " + identifier + ":" + type.name + '\n';
+  std::cerr << indent(level) << "ParamDecl: " << identifier << ':' << type.name
+            << '\n';
 }
 
 void VarDecl::dump(size_t level) const {
@@ -116,8 +116,8 @@ void VarDecl::dump(size_t level) const {
 }
 
 void FunctionDecl::dump(size_t level) const {
-  std::cerr << indent(level)
-            << "FunctionDecl: " + identifier + ":" + type.name + '\n';
+  std::cerr << indent(level) << "FunctionDecl: " << identifier << ':'
+            << type.name << '\n';
 
   for (auto &&param : params)
     param->dump(level + 1);
@@ -161,19 +161,19 @@ void ResolvedWhileStmt::dump(size_t level) const {
 
 void ResolvedParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedParamDecl: @(" << this << ") "
-            << identifier << ":" << '\n';
+            << identifier << ':' << '\n';
 }
 
 void ResolvedVarDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
-            << identifier << ":" << '\n';
+            << identifier << ':' << '\n';
   if (initializer)
     initializer->dump(level + 1);
 }
 
 void ResolvedFunctionDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedFunctionDecl: @(" << this << ") "
-            << identifier + ":" + '\n';
+            << identifier << ':' << '\n';
 
   for (auto &&param : params)
     param->dump(level + 1);
