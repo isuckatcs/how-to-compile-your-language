@@ -351,7 +351,7 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
   if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus)
-    return parsePrimary();
+    return parsePostfixExpr();
   eatNextToken(); // eat '!' or '-'
 
   varOrReturn(rhs, parsePrefixExpr());
@@ -360,10 +360,27 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
                                          tok.kind);
 }
 
+// <postfixExpression>
+//     ::= <primaryExpression> <argumentList>
+
+// <argumentList>
+//     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
+std::unique_ptr<Expr> Parser::parsePostfixExpr() {
+  varOrReturn(expr, parsePrimary());
+
+  if (nextToken.kind != TokenKind::Lpar)
+    return expr;
+
+  SourceLocation location = nextToken.location;
+  varOrReturn(argumentList, parseArgumentList());
+
+  return std::make_unique<CallExpr>(location, std::move(expr),
+                                    std::move(*argumentList));
+}
+
 // <primaryExpr>
 //  ::= <numberLiteral>
 //  |   <declRefExpr>
-//  |   <callExpr>
 //  |   '(' <expr> ')'
 //
 // <numberLiteral>
@@ -372,8 +389,6 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
 // <declRefExpr>
 //  ::= <identifier>
 //
-// <callExpr>
-//  ::= <declRefExpr> <argumentList>
 std::unique_ptr<Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
@@ -390,7 +405,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 
   if (nextToken.kind == TokenKind::Number) {
     auto literal = std::make_unique<NumberLiteral>(location, *nextToken.value);
-    eatNextToken(); // eat NumberLiteral
+    eatNextToken(); // eat number
     return literal;
   }
 
@@ -398,15 +413,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
     auto declRefExpr =
         std::make_unique<DeclRefExpr>(location, *nextToken.value);
     eatNextToken(); // eat identifier
-
-    if (nextToken.kind != TokenKind::Lpar)
-      return declRefExpr;
-    location = nextToken.location;
-
-    varOrReturn(argumentList, parseArgumentList());
-
-    return std::make_unique<CallExpr>(location, std::move(declRefExpr),
-                                      std::move(*argumentList));
+    return declRefExpr;
   }
 
   return report(location, "expected expression");

@@ -4,7 +4,7 @@ fn main(): void {
     if {}
 
     // CHECK: [[# @LINE + 1 ]]:12: error: expected 'if' body
-    if 0.0 ({}
+    if 0.0 #{}
 
     if 0.0 {}
     // CHECK: [[# @LINE + 1 ]]:10: error: expected 'else' body

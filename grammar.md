@@ -64,12 +64,17 @@
     ::= <prefixExpression> (('*' | '/') <prefixExpression>)*
 
 <prefixExpression>
-    ::= ('!' | '-')* <primaryExpr>
+    ::= ('!' | '-')* <postfixExpression>
 
-<primaryExpr>
+<postfixExpression>
+    ::= <primaryExpression> <argumentList>
+
+<argumentList>
+    ::= '(' (<expr> (',' <expr>)* ','?)? ')'
+
+<primaryExpression>
     ::= <numberLiteral>
     |   <declRefExpr>
-    |   <callExpr>
     |   '(' <expr> ')'
 
 <numberLiteral>
@@ -77,12 +82,6 @@
 
 <declRefExpr>
     ::= <identifier>
-
-<callExpr>
-    ::= <declRefExpr> <argumentList>
-
-<argumentList>
-    ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <type>
     ::= 'number'

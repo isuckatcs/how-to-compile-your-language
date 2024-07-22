@@ -44,6 +44,7 @@ class Parser {
   std::unique_ptr<Expr> parseExpr();
   std::unique_ptr<Expr> parseExprRHS(std::unique_ptr<Expr> lhs, int precedence);
   std::unique_ptr<Expr> parsePrefixExpr();
+  std::unique_ptr<Expr> parsePostfixExpr();
   std::unique_ptr<Expr> parsePrimary();
 
   // helper methods

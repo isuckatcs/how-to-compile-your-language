@@ -126,14 +126,14 @@ struct DeclRefExpr : public Expr {
 };
 
 struct CallExpr : public Expr {
-  std::unique_ptr<DeclRefExpr> identifier;
+  std::unique_ptr<Expr> callee;
   std::vector<std::unique_ptr<Expr>> arguments;
 
   CallExpr(SourceLocation location,
-           std::unique_ptr<DeclRefExpr> identifier,
+           std::unique_ptr<Expr> callee,
            std::vector<std::unique_ptr<Expr>> arguments)
       : Expr(location),
-        identifier(std::move(identifier)),
+        callee(std::move(callee)),
         arguments(std::move(arguments)) {}
 
   void dump(size_t level = 0) const override;

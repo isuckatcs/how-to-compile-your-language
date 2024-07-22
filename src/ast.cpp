@@ -73,7 +73,7 @@ void DeclRefExpr::dump(size_t level) const {
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr:\n";
 
-  identifier->dump(level + 1);
+  callee->dump(level + 1);
 
   for (auto &&arg : arguments)
     arg->dump(level + 1);

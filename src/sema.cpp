@@ -250,7 +250,11 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall) {
 }
 
 std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
-  varOrReturn(resolvedCallee, resolveDeclRefExpr(*call.identifier, true));
+  const auto *dre = dynamic_cast<const DeclRefExpr *>(call.callee.get());
+  if (!dre)
+    return report(call.location, "expression cannot be called as a function");
+
+  varOrReturn(resolvedCallee, resolveDeclRefExpr(*dre, true));
 
   const auto *resolvedFunctionDecl =
       dynamic_cast<const ResolvedFunctionDecl *>(resolvedCallee->decl);
