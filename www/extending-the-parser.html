@@ -47,112 +47,141 @@
             <section>
                 <h1>Making the Language Useful</h1>
                 <p>
-                    When a language only allows the definition of functions on
-                    the top-level without a parameter list and anything in their
-                    bodies, there is not much that can be achieved with that
-                    language. To be able to generate code that does something,
-                    let's extend the language with function parameters, a print
-                    function, number literals and return statements.
+                    There is not much to be achieved in a language that only
+                    allows function declarations with no parameters and an empty
+                    body on the top level of the source file. To be able to
+                    create an executable with a series of instructions, the
+                    language is extended with a few other elements such as
+                    function parameters, a builtin print function, number
+                    literals and return statements.
                 </p>
-                <pre><code>fn foo(n: number): number {
+                <pre><code>fn wrapper(n: number): number {
     return n;
 }
 
 fn main(): void {
-    println(foo(12.34));
+    println(wrapper(12.34));
 }</code></pre>
-                <h2>Expressions and statements</h2>
+                <h2>Expressions and Statements</h2>
                 <p>
-                    In a language, a construct that evaluates to some result is
-                    called an expression. For example, <code>1 + 1</code> is an
-                    expression, as it evaluates to <code>2</code>, however
-                    <code>return n</code> is not expression, as it doesn't
-                    evaluate to anything, it only changes the state of the
-                    program, hence it is called a statement. By definition every
-                    expression is also a statement.
+                    In a programming language an element that evaluates to some
+                    value is called an expression. For example,
+                    <code>1 + 1</code> is an expression, as it evaluates to
+                    <code>2</code>, however <code>return n</code> doesn't
+                    evaluate to anything, so it's not an expression. It only
+                    changes the state of the program as it overrides where the
+                    execution should continue, hence it is called a statement.
                 </p>
-                <pre><code>struct Stmt : public Dumpable {
+                <p>
+                    Every statement is derived from the <code>Stmt</code>
+                    node, which stores a
+                    <code>SourceLocation</code> and provides a
+                    <code>dump()</code> method that the derived nodes must
+                    override to print their textual representation.
+                </p>
+                <pre><code>struct Stmt {
   SourceLocation location;
-  Stmt(SourceLocation location) : location(location) {}
+
+  Stmt(SourceLocation location)
+      : location(location) {}
 
   virtual ~Stmt() = default;
-};
 
-struct Expr : public Stmt {
-  Expr(SourceLocation location) : Stmt(location) {}
+  virtual void dump(size_t level = 0) const = 0;
+};</code></pre>
+                <p>
+                    By definition every expression is also a statement. When
+                    <code>1 + 1</code> is evaluated, the result needs to be
+                    stored either in memory or in a register before it can be
+                    processed further, which is also a modification of the
+                    program state. The <code>Expr</code> node acts as the
+                    placeholder node for every expression in the language.
+                </p>
+                <pre><code>struct Expr : public Stmt {
+  Expr(SourceLocation location)
+      : Stmt(location) {}
 };</code></pre>
                 <p>
                     A statement is allowed to span across multiple lines, which
-                    makes it difficult for the parser to find where it actually
-                    ends. To make parsing statements easier, the
-                    <code>;</code> token is used to indicate the end of a
+                    can make it difficult for the parser to figure out where it
+                    actually ends. To make parsing statements easier, a
+                    <code>';'</code> must be placed at the end of each
                     statement.
                 </p>
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        If a language doesn't require <code>;</code> at the end
-                        of a statement, like Python, Scala, etc. it's the
-                        compiler's responsibility to find out where a statement
-                        ends. In some cases however it is a non-trivial problem.
+                        If a language doesn't require a <code>';'</code> at the
+                        end of a statement, like Python, Scala, etc. it's the
+                        responsibility of the parser to figure out where that
+                        statement ends. In some cases however it is not a
+                        trivial problem. Is the following snippet a function
+                        call like <code>foo(bar);</code> or two separate
+                        expressions like <code>foo; (bar)</code>?
                     </p>
                     <pre><code>foo
 (bar)</code></pre>
                     <p>
-                        Is this a function call like <code>foo(bar);</code> or
-                        two separate expressions like <code>foo; (bar)</code>?
-                    </p>
-                    <p>
                         Python treats every <code>'\n'</code> as an end of a
-                        statement except for some cases like inside the body of
-                        an <code>if</code>.
+                        statement except for some cases like an
+                        <code>if</code> statement, that only ends after
+                        <code>stmt3</code> and not right after the
+                        <code>:</code>.
                     </p>
                     <pre><code>if cond:
   stmt1
   stmt2
   stmt3</code></pre>
                     <p>
-                        The <code>if</code> statement doesn't end after the
-                        <code>:</code>, it only ends after <code>stmt3</code>.
-                    </p>
-                    <p>
-                        In Scala, the grammar defines a complex set of rules,
-                        when a <code>'\n'</code> terminates a statement and when
-                        it is ignored.
+                        In Scala on the other hand, the grammar defines a
+                        complex set of rules, when a
+                        <code>'\n'</code> terminates a statement and when it is
+                        ignored. These rules can be found in the lexical syntax
+                        specification of Scala.
                     </p>
                 </blockquote>
                 <p>
-                    Statements are only allowed inside blocks, which changes the
-                    currently known grammar of blocks and makes them accept 0 or
+                    The grammar is updated such that statements are only allowed
+                    inside blocks and every block is allowed to contain 0 or
                     more statements.
                 </p>
                 <pre><code>&lt;block>
   ::= '{' &lt;statement>* '}'
 </code></pre>
                 <p>
-                    The next step is to update the AST of <code>block</code> so
-                    that it can store the list of statements.
+                    The <code>Block</code> node is also updated to store a list
+                    of statements.
                 </p>
-                <pre><code>struct Block : public Dumpable {
-  SourceLocation location;
+                <pre><code>struct Block {
+  ...
   std::vector&lt;std::unique_ptr&lt;Stmt>> statements;
 
-  // the constructor and dump() are omitted
+  Block(..., std::vector&lt;std::unique_ptr&lt;Stmt>> statements)
+      : ...,
+        statements(std::move(statements)) {}
+
   ...
 };</code></pre>
                 <p>
-                    Parsing the list of statements within the block is done
-                    using a <code>while</code> loop. If <code>}</code> is
-                    encountered, the loop stops and the resulting block is
-                    returned.
+                    In the textual representation of a block each of these
+                    statements is listed too.
                 </p>
-                <pre><code>// &lt;block>
-//  ::= '{' &lt;statement>* '}'
-std::unique_ptr&lt;Block> Parser::parseBlock() {
+                <pre><code>void Block::dump(size_t level) const {
+  ...
+
+  for (auto &amp;&amp;stmt : statements)
+    stmt->dump(level + 1);
+}</code></pre>
+                <p>
+                    Parsing the list of statements within the block is done
+                    using a <code>while</code> loop, which iterates until it
+                    sees the <code>}</code> token, which indicates the end of
+                    the block.
+                </p>
+                <pre><code>std::unique_ptr&lt;Block> Parser::parseBlock() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '{'
 
-  std::vector&lt;std::unique_ptr&lt;Stmt>> statements;
   while (true) {
     if (nextToken.kind == TokenKind::Rbrace)
       break;
@@ -160,15 +189,12 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
     ...
   }
 
-  eatNextToken(); // eat '}'
-
-  return std::make_unique&lt;Block>(location, std::move(statements));
+  ...
 }</code></pre>
                 <p>
-                    If the parser encounter <code>Eof</code> or
-                    <code>KwFn</code> the block is most likely not closed by a
-                    <code>}</code>, so an error is reported and a
-                    <code>nullptr</code> is returned.
+                    If the <code>Eof</code> or <code>KwFn</code> tokens are seen
+                    the block is most likely not closed by a <code>}</code>, so
+                    an error is reported and a <code>nullptr</code> is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;Block> Parser::parseBlock() {
   ...
@@ -184,50 +210,59 @@ std::unique_ptr&lt;Block> Parser::parseBlock() {
   ...
 }</code></pre>
                 <p>
-                    If none of the previous cases is true the parser attempts to
-                    parse a <code>Stmt</code>. If the parsing of a statement
-                    fails the parser is left in an invalid state and immediately
-                    stops parsing the <code>Block</code>. Otherwise the
-                    <code>Stmt</code> is inserted into the statement list.
+                    If none of the previous cases matches, the parser attempts
+                    to parse a <code>Stmt</code>. If it fails the parser is left
+                    in an invalid state and immediately stops parsing the
+                    <code>Block</code>. Otherwise the <code>Stmt</code> is
+                    inserted into a statement list.
                 </p>
                 <pre><code>std::unique_ptr&lt;Block> Parser::parseBlock() {
   ...
+
+  std::vector&lt;std::unique_ptr&lt;Stmt>> statements;
   while (true) {
     ...
 
-    std::unique_ptr&lt;Stmt> stmt = parseStmt();
-    if (!stmt)
-      return nullptr;
+    varOrReturn(stmt, parseStmt());
 
     statements.emplace_back(std::move(stmt));
   }
 
   ...
 }</code></pre>
+                <p>
+                    If everything is successful, the <code>}</code> at the end
+                    of the block is consumed and a <code>Block</code> node is
+                    returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;Block> Parser::parseBlock() {
+  ...
+
+  eatNextToken(); // eat '}'
+
+  return std::make_unique&lt;Block>(location, std::move(statements));
+}</code></pre>
                 <h2>Parsing Statements</h2>
                 <p>
-                    At the moment the language only supports two statements,
-                    return statements and expressions. The driver for parsing
-                    them lives inside the <code>parseStmt()</code> method. This
-                    method checks the current token and decided how to proceed.
+                    So far the language only supports two kinds of statements,
+                    the return statement and expressions.
                 </p>
-                <pre><code>// &lt;statement>
-//  ::= &lt;expr> ';'
-//  |   &lt;returnStmt>
-std::unique_ptr&lt;Stmt> Parser::parseStmt() {
-  ...
-}</code></pre>
+                <pre><code>&lt;statement>
+  ::= &lt;returnStmt>
+  |   &lt;expr> ';'
+</code></pre>
                 <p>
-                    A return statement can either be inside a void function or a
-                    non-void function. If it's in the latter, the return keyword
+                    A return statement can either appear inside a void function
+                    or a non-void one. If it's in the latter, the return keyword
                     is also followed by an expression, whose result is returned.
                 </p>
                 <pre><code>&lt;returnStmt>
   ::= 'return' &lt;expr>? ';'</code></pre>
                 <p>
-                    This rule introduces a currently unknown token to the lexer,
-                    <code>;</code> as well as the <code>return</code> keyword,
-                    which have to be handled there first.
+                    These new rules introduce the <code>;</code> token as well
+                    as the <code>return</code> keyword which are currently
+                    unknown to the lexer. To proceed further, the lexer needs to
+                    be extended to handle these tokens.
                 </p>
                 <pre><code>constexpr char singleCharTokens[] = {..., ';'};
 
@@ -244,60 +279,79 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
                 <p>
                     The AST node of the <code>ReturnStmt</code> inherits from
                     the <code>Stmt</code> class, and contains an
-                    <code>Expr</code> node.
+                    <code>Expr</code> child node.
                 </p>
                 <pre><code>struct ReturnStmt : public Stmt {
   std::unique_ptr&lt;Expr> expr;
 
-  // the constructor and dump() are omitted
-  ...
+  ReturnStmt(SourceLocation location, std::unique_ptr&lt;Expr> expr = nullptr)
+      : Stmt(location),
+        expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    The <code>parseReturnStmt</code> function expects the first
-                    token to be <code>KwReturn</code> and checks if the next
-                    token is a <code>;</code>.
+                    The textual representation of this node includes the name of
+                    the statement and it's contained expression if there is one.
                 </p>
-                <pre><code>// &lt;returnStmt>
-//  ::= 'return' &lt;expr>? ';'
-std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {
+                <pre><code>void ReturnStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ReturnStmt\n";
+
+  if (expr)
+    expr->dump(level + 1);
+}</code></pre>
+                <p>
+                    The <code>parseReturnStmt()</code> method expects the first
+                    token to be <code>KwReturn</code> and stores it's location
+                    to mark the beginning of the statement before eating it.
+                </p>
+                <pre><code>std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'return'
 
+  ...
+}</code></pre>
+                <p>
+                    If the token after <code>KwReturn</code> is not a
+                    <code>;</code> it must be the start of an expression. If the
+                    parsing of that expression fails, the return statement is
+                    invalid and the parser errors out.
+                </p>
+                <pre><code>std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {                
+  ...
+
   std::unique_ptr&lt;Expr> expr;
   if (nextToken.kind != TokenKind::Semi) {
-    ...
+    expr = parseExpr();
+    if (!expr)
+      return nullptr;
   }
 
+  ...
+}</code></pre>
+                <p>
+                    Otherwise the upcoming token is expected to be the
+                    <code>;</code> marking the end of the return statement. If
+                    the token matches, everything is successful and the
+                    <code>ReturnStmt</code> node is returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {
+  ...
+
+  matchOrReturn(TokenKind::Semi,
+                "expected ';' at the end of a return statement");
   eatNextToken(); // eat ';'
 
   return std::make_unique&lt;ReturnStmt>(location, std::move(expr));
 }</code></pre>
                 <p>
-                    If the token following <code>KwReturn</code> doesn't end the
-                    statement, it must be the start of an expression. If the
-                    parsing of that expression fails or the expression is not
-                    followed by the <code>;</code> token, the returns statement
-                    is invalid, so the parser errors out.
-                </p>
-                <pre><code>std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {
-  ...
-
-  if (nextToken.kind != TokenKind::Semi) {
-    expr = parseExpr();
-    if (!expr)
-      return nullptr;
-
-    if (nextToken.kind != TokenKind::Semi)
-      return report(nextToken.location,
-                    "expected ';' at the end of a return statement");
-  }
-
-  ...
-}</code></pre>
-                <p>
-                    The <code>parseReturnStmt()</code> method is called from
-                    <code>parseStmt</code>, which ensures that the preconditions
-                    of calling the method are met.
+                    The driver code for parsing statements lives in the
+                    <code>parseStmt()</code> method. This is the method that
+                    checks the next token and decides how the parser should
+                    proceed. If it sees that the next token is
+                    <code>KwReturn</code> it dispatches
+                    <code>parseReturnStmt()</code> to return the corresponding
+                    node.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwReturn)
@@ -305,72 +359,37 @@ std::unique_ptr&lt;ReturnStmt> Parser::parseReturnStmt() {
   ...
 }</code></pre>
                 <h2>Parsing Expressions</h2>
-                <p>
-                    There are 3 different kinds of supported expressions that
-                    the
-                    <code>parseExpr</code> driver needs to handle.
-                </p>
+                <p>At the moment the language has support for 3 expressions.</p>
                 <ol>
                     <li>
-                        <code>NumberLiteral</code> for numbers written in the
-                        source code.
+                        <code>numberLiteral</code> for numeric values written in
+                        the source code.
                     </li>
                     <li>
-                        <code>DeclRefExpr</code> for referring to declarations.
+                        <code>declRefExpr</code> for referencing declarations.
                     </li>
-                    <li><code>CallExpr</code> for calling functions.</li>
+                    <li><code>callExpr</code> for calling functions.</li>
                 </ol>
                 <p>
-                    These expressions also belong to the group of primary
-                    expressions, because these are the ones that every other
-                    expression is composed of.
+                    The <code>numberLiteral</code> and the
+                    <code>declRefExpr</code> are considered primary expressions.
                 </p>
-                <pre><code>1 + foo() * x
-^      ^    ^
-|      |    └ DeclRefExpr
-|      └ CallExpr
+                <pre><code>&lt;primaryExpression>
+  ::= &lt;numberLiteral>
+  |   &lt;declRefExpr></code></pre>
+                <p>
+                    Primary means that these are the expressions that every
+                    other expression is composed of.
+                </p>
+                <pre><code>1 + x
+^   ^
+|   └ DeclRefExpr
 └ NumberLiteral
 </code></pre>
                 <p>
-                    To model the expression hierarchy accurately, these
-                    expressions are parsed in the
-                    <code>parsePrimary()</code> method, which is invoked by
-                    <code>parseExpr()</code>. With the introduction of operators
-                    the <code>parseExpr()</code> method will change.
-                </p>
-                <pre><code>std::unique_ptr&lt;Expr> Parser::parseExpr() { 
-  return parsePrimary(); 
-}
-
-// &lt;primaryExpr>
-//  ::= &lt;numberLiteral>
-//  |   &lt;declRefExpr>
-//  |   &lt;callExpr>
-std::unique_ptr&lt;Expr> Parser::parsePrimary() {
-  ...
-}</code></pre>
-                <p>
-                    <code>parseStmt()</code> is going to call
-                    <code>parseExpr()</code> and check for the closing
-                    <code>;</code> there.
-                </p>
-                <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
-  ...
-  varOrReturn(expr, parseExpr());
-
-  if (nextToken.kind != TokenKind::Semi)
-    return report(nextToken.location, "expected ';' at the end of statement");
-  eatNextToken(); // eat ';'
-
-  return expr;
-}</code></pre>
-                <p>
-                    A <code>NumberLiteral</code> is simply a
-                    <code>Number</code> token, while the
-                    <code>Number</code> token is a list of digits optionally
-                    separated by a <code>'.'</code>. To keep the type system
-                    simple, all numbers are double precision floating point
-                    numbers.
+                    A <code>numberLiteral</code> in the source code is a
+                    <code>number</code>, which is a list of digits optionally
+                    separated by a <code>'.'</code> and another list of digits.
                 </p>
                 <pre><code>&lt;numberLiteral>
   ::= &lt;number>
@@ -378,14 +397,18 @@ std::unique_ptr&lt;Expr> Parser::parsePrimary() {
 &lt;number>
   ::= ('0'..'9')+ ('.' ('0'..'9')+)?</code></pre>
                 <p>
-                    First, the number token has to be introduced to the lexer.
+                    A <code>number</code> in the compiler is represented by a
+                    dedicated <code>Number</code> token.
                 </p>
                 <pre><code>enum class TokenKind : char {
+  ...
   Number,
+  ...
 };</code></pre>
                 <p>
-                    When the lexer encounters a number character it keeps eating
-                    the following characters until each of them is a number.
+                    When the lexer encounters a numeric character it keeps
+                    concatenating the upcoming characters until it sees a
+                    non-numeric one.
                 </p>
                 <pre><code>Token TheLexer::getNextToken() {
   ...
@@ -400,10 +423,10 @@ std::unique_ptr&lt;Expr> Parser::parsePrimary() {
   ...
 }</code></pre>
                 <p>
-                    If the following character is not a <code>'.'</code>, a
-                    <code>Number</code> token is returned with the eaten digits.
-                    Otherwise the lexer proceeds with eating the rest of the
-                    number literal.
+                    If the seen non-numeric character is not a <code>'.'</code>,
+                    a <code>Number</code> token is returned with the eaten
+                    digits as it's value. Otherwise the lexer proceeds with
+                    concatenating the decimal point to the number.
                 </p>
                 <pre><code>Token TheLexer::getNextToken() {
   ...
@@ -422,8 +445,9 @@ std::unique_ptr&lt;Expr> Parser::parsePrimary() {
                 <p>
                     If the character immediately following the
                     <code>'.'</code> is not a number, an <code>Unk</code> token
-                    is returned. Otherwise the rest of the number is eaten and a
-                    <code>Number</code> token is returned.
+                    is returned. Otherwise the fractional part of the number is
+                    consumed and the lexer returns the corresponding
+                    <code>Number</code> token.
                 </p>
                 <pre><code>Token TheLexer::getNextToken() {
   ...
@@ -442,44 +466,73 @@ std::unique_ptr&lt;Expr> Parser::parsePrimary() {
 }</code></pre>
                 <p>
                     In the AST a <code>NumberLiteral</code> is an
-                    <code>Expr</code>, which hold the textual representation of
-                    the number.
+                    <code>Expr</code>, which holds the textual value of the
+                    number.
                 </p>
                 <pre><code>struct NumberLiteral : public Expr {
   std::string value;
 
-  // the constructor and dump() are omitted
-  ...
+  NumberLiteral(SourceLocation location, std::string value)
+      : Expr(location),
+        value(value) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    This node doesn't have it's own parser method, instead it is
-                    parsed directly in <code>parsePrimary()</code>.
+                    The textual representation of the node is the name of the
+                    expression followed by the contained value.
+                </p>
+                <pre><code>void NumberLiteral::dump(size_t level) const {
+  std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+}</code></pre>
+                <p>
+                    To keep the parser simple, this node doesn't have it's own
+                    parser method, instead it is parsed directly in
+                    <code>parsePrimary()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
   if (nextToken.kind == TokenKind::Number) {
     auto literal = std::make_unique&lt;NumberLiteral>(location, *nextToken.value);
-    eatNextToken(); // eat NumberLiteral
+    eatNextToken(); // eat number
     return literal;
   }
   ...
 }</code></pre>
                 <p>
-                    A <code>DeclRefExpr</code> is a simple addition, it only
-                    consists of an <code>Identifier</code> token. It doesn't
-                    require the lexer to be extended, but it needs to be kept in
-                    mind that if a <code>DeclRefExpr</code> is followed by a
-                    <code>'('</code>, it is the start of a
-                    <code>CallExpr</code>.
+                    A <code>declRefExpr</code> is a simple addition as it is
+                    only a wrapper around an <code>identifier</code>. It's rule
+                    doesn't introduce any tokens, the lexer can't already
+                    handle.
+                </p>
+                <pre><code>&lt;declRefExpr>
+  ::= &lt;identifier></code></pre>
+                <p>
+                    The <code>DeclRefExpr</code> node is derived from
+                    <code>Expr</code> and stores the identifier that is being
+                    referenced.
                 </p>
                 <pre><code>struct DeclRefExpr : public Expr {
   std::string identifier;
 
-  // the constructor and dump() are omitted
-  ...
+  DeclRefExpr(SourceLocation location, std::string identifier)
+      : Expr(location),
+        identifier(identifier) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
-                <p>This node is also parsed in <code>parsePrimary()</code>.</p>
+                <p>
+                    The textual representation of the node contains it's name
+                    along with the referenced identifier.
+                </p>
+                <pre><code>void DeclRefExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "DeclRefExpr: " << identifier << '\n';
+}</code></pre>
+                <p>
+                    Because the parser only needs to eat one token, this node is
+                    also parsed in <code>parsePrimary()</code>.
+                </p>
                 <pre><code>std::unique_ptr&lt;Expr> Parser::parsePrimary() {
   ...
 
@@ -487,41 +540,71 @@ std::unique_ptr&lt;Expr> Parser::parsePrimary() {
     auto declRefExpr =
         std::make_unique&lt;DeclRefExpr>(location, *nextToken.value);
     eatNextToken(); // eat identifier
-
-    if (nextToken.kind != TokenKind::Lpar)
-      return declRefExpr;
-    ...
+    return declRefExpr;
   }
+
+  ...
+}</code></pre>
+                <p>
+                    The are no other primary expressions for now, so if
+                    <code>parsePrimary()</code> sees any other token it reports
+                    an error.
+                </p>
+                <pre><code>std::unique_ptr&lt;Expr> Parser::parsePrimary() {
+  ...
 
   return report(location, "expected expression");
 }</code></pre>
                 <p>
-                    A <code>CallExpr</code> is designed such a way, that it
-                    takes a <code>DeclRefExpr</code> to the function, which is
-                    being called. This will allow the semantic analyzer later to
-                    easily error out if the declaration on which the call is
-                    performed is not a function.
+                    The <code>callExpr</code> is categorized as a postfix
+                    expression, because in the source code it is an argument
+                    list standing behind a primary expression.
                 </p>
-                <p>
-                    The arguments to a function call are expressions, so that
-                    variable references and values returned from functions can
-                    also be used as arguments like
-                    <code>foo(0, x, bar());</code>.
-                </p>
-                <p>
-                    The grammar is modified so that the
-                    <code>(</code> and <code>)</code> tokens are the part of the
-                    argument list to make it easier to parse.
-                </p>
-                <pre><code>&lt;callExpr>
-  ::= &lt;declRefExpr> &lt;argumentList>
+                <pre><code>&lt;postfixExpression>
+  ::= &lt;primaryExpression> &lt;argumentList>
 
 &lt;argumentList>
-  ::= '(' (&lt;expr> (',' &lt;expr>)*)? ')'</code></pre>
+  ::= '(' (&lt;expr> (',' &lt;expr>)* ','?)? ')'</code></pre>
                 <p>
-                    The grammar modification also introduces a new single
-                    character token, the
-                    <code>,</code>.
+                    The arguments of a function call are expressions, so
+                    variable references and values returned by other function
+                    calls can also be passed on to a different function like
+                    <code>foo(0, x, bar());</code>.
+                </p>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        A question might arise, why there is an optional
+                        <code>','</code> at the end of the argument list. That
+                        is called a trailing comma and allows developers to
+                        write snippets like <code>foo(1.0, x,);</code>.
+                    </p>
+                    <p>
+                        This feature can come in handy when the argument list
+                        spans across multiple lines and a new argument needs to
+                        be added later. Because the previous line doesn't have
+                        to be modified, the version control diff is smaller.
+                    </p>
+                    <pre><code>foo(
+  0,
+  1,
++ 2,
+);</code></pre>
+                    <p>
+                        It also makes it easier to reorder the arguments or
+                        generate source files with function calls if needed.
+                    </p>
+                    <p>
+                        At the end of the day using the trailing comma is up to
+                        personal preferences, but since they have more than one
+                        pros and no cons, there is no reason not to support
+                        them.
+                    </p>
+                </blockquote>
+                <p>
+                    The <code>argumentList</code> rule also introduces a new
+                    single character token, the <code>,</code> which needs to be
+                    taught to the lexer.
                 </p>
                 <pre><code>constexpr char singleCharTokens[] = {..., ','};
 
@@ -530,75 +613,89 @@ enum class TokenKind : char {
   Comma = singleCharTokens[7],
 };</code></pre>
                 <p>
-                    The AST node of <code>CallExpr</code> stores a
-                    <code>DeclRefExpr</code> to the callee and a vector of
-                    <code>Expr</code>s for the arguments.
+                    The <code>CallExpr</code> node stores the callee and a
+                    vector of expressions for the arguments.
                 </p>
                 <pre><code>struct CallExpr : public Expr {
-  std::unique_ptr&lt;DeclRefExpr> identifier;
+  std::unique_ptr&lt;Expr> callee;
   std::vector&lt;std::unique_ptr&lt;Expr>> arguments;
 
-  // the constructor and dump() are omitted
-  ...
+  CallExpr(SourceLocation location,
+           std::unique_ptr&lt;Expr> callee,
+           std::vector&lt;std::unique_ptr&lt;Expr>> arguments)
+      : Expr(location),
+        callee(std::move(callee)),
+        arguments(std::move(arguments)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    This node is also parsed in
-                    <code>parsePrimary()</code> right after
-                    <code>DeclRefExpr</code>. The source location of the call is
-                    the location of the <code>(</code> token, while the
-                    <code>argumentList</code> is parsed by a separate helper
-                    function.
+                    The textual representation of a
+                    <code>CallExpr</code> includes it's name, the callee and
+                    it's arguments.
                 </p>
-                <pre><code>std::unique_ptr&lt;Expr> Parser::parsePrimary() {
-  ...
+                <pre><code>void CallExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "CallExpr:\n";
 
-  if (nextToken.kind == TokenKind::Identifier) {
-    ...
+  callee->dump(level + 1);
 
-    if (nextToken.kind != TokenKind::Lpar)
-      return declRefExpr;
-    
-    location = nextToken.location;
+  for (auto &&arg : arguments)
+    arg->dump(level + 1);
+}</code></pre>
+                <p>
+                    Being the only postfix expression in the language, this node
+                    is parsed in the
+                    <code>parsePostfixExpr()</code> method, which starts with
+                    parsing a primary expression and returning it if it's not
+                    followed by a <code>(</code>.
+                </p>
+                <pre><code>std::unique_ptr&lt;Expr> Parser::parsePostfixExpr() {
+  varOrReturn(expr, parsePrimary());
 
-    varOrReturn(argumentList, parseArgumentList());
-
-    return std::make_unique&lt;CallExpr>(location, std::move(declRefExpr),
-                                      std::move(*argumentList));
-  }
+  if (nextToken.kind != TokenKind::Lpar)
+    return expr;
 
   ...
 }</code></pre>
                 <p>
-                    The <code>parseArgumentList()</code> helper method is
-                    responsible for handling the argument list, which doesn't
-                    have it's own node.
+                    If the next token is a <code>(</code>, the source location
+                    of the call is the location of that token while the
+                    <code>argumentList</code> is parsed by a separate helper
+                    method and the previously parsed primary acts as the callee.
                 </p>
+                <pre><code>std::unique_ptr&lt;Expr> Parser::parsePostfixExpr() {
+  ...
+
+  SourceLocation location = nextToken.location;
+  varOrReturn(argumentList, parseArgumentList());
+
+  return std::make_unique&lt;CallExpr>(location, std::move(expr),
+                                    std::move(*argumentList));
+}</code></pre>
                 <p>
-                    Unlike the main parser functions which return a node, this
-                    helper doesn't expect the next token to already be the first
-                    one in the rule. Instead it will validate the token itself.
-                    Also instead of returning a pointer to a node, it returns an
-                    <code>std::optional</code> vector of expressions.
+                    The <code>parseArgumentList()</code> helper is responsible
+                    for handling the argument list, which doesn't have it's own
+                    node. Unlike the core parser functions, this helper doesn't
+                    expect the next token to already be the first one in the
+                    rule, instead it validates the token itself. To keep the
+                    interface of the parser uniform, this helper also returns a
+                    <code>std::unique_ptr<></code>.
                 </p>
-                <pre><code>// &lt;argumentList>
-//  ::= '(' (&lt;expr> (',' &lt;expr>)* ','?)? ')'
-std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
-  if (nextToken.kind != TokenKind::Lpar) {
-    report(nextToken.location, "expected '('");
-    return std::nullopt;
-  }
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;Expr>>>
+Parser::parseArgumentList() {
+  matchOrReturn(TokenKind::Lpar, "expected '('");
   eatNextToken(); // eat '('
 
   ...
 }</code></pre>
                 <p>
-                    Then the tokens are processed until a <code>)</code> is
-                    encountered, which indicates the end of the argument list.
+                    After consuming the <code>(</code>, the tokens are processed
+                    until a <code>)</code> is encountered, which indicates the
+                    end of the argument list.
                 </p>
-                <pre><code>std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;Expr>>>
+Parser::parseArgumentList() {
   ...
-
-  std::vector&lt;std::unique_ptr&lt;Expr>> argumentList;
 
   while (true) {
     if (nextToken.kind == TokenKind::Rpar)
@@ -610,20 +707,23 @@ std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
   ...
 }</code></pre>
                 <p>
-                    Then the parser keeps parsing expressions until one of the
-                    is not followed by a <code>,</code>. Since arguments are
-                    separated by commas, if the <code>,</code> is missing after
-                    one of them, it is assumed to be the last expression in the
-                    list.
+                    If the next token is not a <code>)</code>, the parser keeps
+                    gathering the expressions in an argument list until one of
+                    them is not followed by a <code>,</code>. Since arguments
+                    are separated by commas, if the <code>,</code> is missing
+                    after one of them, it is assumed to be the last expression
+                    in the list.
                 </p>
-                <pre><code>std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;Expr>>>
+Parser::parseArgumentList() {
   ...
 
+  std::vector&lt;std::unique_ptr&lt;Expr>> argumentList;
+
   while (true) {
-    auto expr = parseExpr();
-    if (!expr)
-      return std::nullopt;
-  
+    ...
+
+    varOrReturn(expr, parseExpr());
     argumentList.emplace_back(std::move(expr));
 
     if (nextToken.kind != TokenKind::Comma)
@@ -635,81 +735,89 @@ std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
 }</code></pre>
                 <p>
                     Finally the end of the argument list is validated and if
-                    everything is successful, the argument list is returned.
+                    everything is successful, the parsed arguments are returned.
                 </p>
-                <pre><code>std::optional&lt;Parser::ArgumentList> Parser::parseArgumentList() {
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;Expr>>>
+Parser::parseArgumentList() Parser::parseArgumentList() {
   ...
 
-  if (nextToken.kind != TokenKind::Rpar) {
-    report(nextToken.location, "expected ')'");
-    return std::nullopt;
-  }
+  matchOrReturn(TokenKind::Rpar, "expected ')'");
   eatNextToken(); // eat ')'
 
-  return argumentList;
+  return std::make_unique&lt;std::vector&lt;std::unique_ptr&lt;Expr>>>(std::move(argumentList));
 }</code></pre>
-                <blockquote>
-                    <h3>Design Note</h3>
-                    <p>
-                        A question might arise, why there is an optional
-                        <code>','</code> at the end of the argument list. That
-                        is called a trailing comma and allows developers to
-                        write snippets like <code>foo(1.0, x,);</code>.
-                    </p>
-                    <p>
-                        This feature can come in handy when the argument list
-                        spans across multiple lines and a new argument is added
-                        later, as the previous line doesn't have to be modified,
-                        the version control diff is smaller.
-                    </p>
-                    <pre><code>foo(
-  0,
-  1,
-+ 2,
-);</code></pre>
-                    <p>
-                        It also makes it easier to reorder elements if needed.
-                        At the end of the day using the trailing comma boils
-                        down to personal preferences, but since they have more
-                        than one pros and no cons, there is no reason not to
-                        support them.
-                    </p>
-                </blockquote>
                 <p>
-                    The last change to be done is adding parameters to
-                    functions, which can be given a value in a call. A parameter
-                    in the grammar is simply an
-                    <code>Identifier</code> followed by a <code>:</code> and a
-                    <code>Type</code>.
+                    For now in the grammar the <code>expr</code> rule acts as a
+                    wrapper around <code>postfixExpression</code>.
+                </p>
+                <pre><code>&lt;expr>
+  ::= &lt;postfixExpression></code></pre>
+                <p>
+                    The parser attempts to model the grammar accurately, so
+                    <code>parseExpr()</code> also acts as a wrapper around
+                    <code>parsePostfixExpr()</code>.
+                </p>
+                <pre><code>std::unique_ptr&lt;Expr> Parser::parseExpr() { 
+  return parsePostfixExpr(); 
+}</code></pre>
+                <p>
+                    This function is called from <code>parseStmt()</code> which
+                    also ensures that a <code>;</code> is placed at the end of
+                    the expression.
+                </p>
+                <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
+  ...
+  varOrReturn(expr, parseExpr());
+
+  matchOrReturn(TokenKind::Semi, "expected ';' at the end of expression");
+  eatNextToken(); // eat ';'
+
+  return expr;
+}</code></pre>
+                <h2>Adding Function Parameters</h2>
+                <p>
+                    With the added support for <code>CallExpr</code>, functions
+                    should also be extended with parameters. A parameter in the
+                    grammar is simply an <code>identifier</code> followed by a
+                    <code>:</code> and a <code>type</code>.
                 </p>
                 <pre><code>&lt;paramDecl>
   ::= &lt;identifier> ':' &lt;type></code></pre>
                 <p>
-                    The <code>ParamDecl</code> is also derived from the
-                    <code>Decl</code> base class just like
-                    <code>FunctionDecl</code>.
+                    A parameter is represented by a <code>ParamDecl</code> node,
+                    which additionally to the fields in the
+                    <code>Decl</code> base class, also stores the type of the
+                    parameter.
                 </p>
                 <pre><code>struct ParamDecl : public Decl {
   Type type;
 
-  // the constructor and dump() are omitted
-  ...
+  ParamDecl(SourceLocation location, std::string identifier, Type type)
+      : Decl(location, std::move(identifier)),
+        type(std::move(type)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    The textual representation of the node is the name of the
+                    node followed by the identifier and the type of the declared
+                    parameter.
+                </p>
+                <pre><code>void ParamDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ParamDecl: " << identifier << ':' << type.name
+            << '\n';
+}</code></pre>
                 <p>
                     Parsing this declaration is just checking if the three
                     tokens follow each other in the correct order.
                 </p>
-                <pre><code>// &lt;paramDecl>
-//  ::= &lt;identifier> ':' &lt;type>
-std::unique_ptr&lt;ParamDecl> Parser::parseParamDecl() {
+                <pre><code>std::unique_ptr&lt;ParamDecl> Parser::parseParamDecl() {
   SourceLocation location = nextToken.location;
-  assert(nextToken.value && "identifier token without value");
 
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  if (nextToken.kind != TokenKind::Colon)
-    return report(nextToken.location, "expected ':'");
+  matchOrReturn(TokenKind::Colon, "expected ':'");
   eatNextToken(); // eat :
 
   varOrReturn(type, parseType());
@@ -718,57 +826,103 @@ std::unique_ptr&lt;ParamDecl> Parser::parseParamDecl() {
                                      std::move(*type));
 }</code></pre>
                 <p>
-                    The <code>ParamDecl</code>s inside the function declarations
-                    are stored in a vector, which is almost identical to the
-                    previously seen case with arguments in calls both in the
-                    grammar and in terms of parsing. The grammar of
-                    <code>functionDecl</code> is also modified to accommodate
-                    this change.
+                    With the introduction of the <code>Number</code> token, the
+                    <code>number</code> type can also be parsed, which is the
+                    only supported type for function parameters.
                 </p>
-                <pre><code>&lt;functionDecl> 
-    ::= 'fn' &lt;identifier> &lt;parameterList> ':' &lt;type> &lt;block>
-
-&lt;parameterList>
-    ::= '(' (&lt;paramDecl> (',' &lt;paramDecl>)*)? ')'</code></pre>
-
-                <pre><code>struct FunctionDecl : public Decl {
+                <pre><code>std::optional&lt;Type> Parser::parseType() {
   ...
-  std::vector&lt;std::unique_ptr&lt;ParamDecl>> params;
+
+  if (kind == TokenKind::KwNumber) {
+    eatNextToken(); // eat 'number'
+    return Type::builtinNumber();
+  }
 
   ...
 };</code></pre>
                 <p>
-                    The <code>parseFunctionDecl()</code> function is also
-                    modified so that it parses the argument list too.
+                    The grammar of function declaration is updated to
+                    accommodate the parameter declarations. The
+                    <code>'('</code> and <code>')'</code> characters are moved
+                    from the <code>functionDecl</code> to the
+                    <code>parameterList</code> rule. Trailing commas are allowed
+                    at the end of a <code>parameterList</code> too.
                 </p>
-                <pre><code>// &lt;functionDecl>
-//  ::= 'fn' &lt;identifier> &lt;parameterList> ':' &lt;type> &lt;block>
-std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
+                <pre><code>&lt;functionDecl> 
+  ::= 'fn' &lt;identifier> &lt;parameterList> ':' &lt;type> &lt;block>
+
+&lt;parameterList>
+  ::= '(' (&lt;paramDecl> (',' &lt;paramDecl>)* ','?)? ')'</code></pre>
+
+                <p>
+                    In the <code>FunctionDecl</code> node, the parameters are
+                    stored in a <code>std::vector</code>.
+                </p>
+                <pre><code>struct FunctionDecl : public Decl {
+  ...
+  std::vector&lt;std::unique_ptr&lt;ParamDecl>> params;
+  ...
+
+  FunctionDecl(...,
+               std::vector&lt;std::unique_ptr&lt;ParamDecl>> params,
+               ...)
+      : ...,
+        params(std::move(params)),
+        ... {}
+
+  ...
+}</code></pre>
+                <p>
+                    They are also included in the textual representation of the
+                    node before the body.
+                </p>
+                <pre><code>void FunctionDecl::dump(size_t level) const {
+  ...
+
+  for (auto &amp;&amp;param : params)
+    param->dump(level + 1);
+
+  body->dump(level + 1);
+}</code></pre>
+                <p>
+                    Instead of matching <code>(</code> and <code>)</code>, the
+                    <code>parseFunctionDecl()</code> method parses a parameter
+                    list, which is later used in the creation of the
+                    <code>FunctionDecl</code> node.
+                </p>
+                <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
   ...
   eatNextToken(); // eat identifier
 
   varOrReturn(parameterList, parseParameterList());
 
-  if (nextToken.kind != TokenKind::Colon)
+  matchOrReturn(TokenKind::Colon, "expected ':'");
   ...
 
-  return std::make_unique&lt;FunctionDecl>(location, functionIdentifier, *type,
+  return std::make_unique&lt;FunctionDecl>(...,
                                         std::move(*parameterList),
-                                        std::move(block));
+                                        ...);
 }</code></pre>
                 <p>
-                    The code of <code>parseParameterList()</code> is almost
-                    identical to what is inside
-                    <code>parseArgumentList()</code>.
+                    The content of <code>parseParameterList()</code> is almost
+                    identical to <code>parseArgumentList()</code>. First it
+                    ensures that the next token at the time of calling the
+                    method is a <code>(</code>.
                 </p>
-                <pre><code>// &lt;parameterList>
-//  ::= '(' (&lt;paramDecl> (',' &lt;paramDecl>)* ','?)? ')'
-std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
-  if (nextToken.kind != TokenKind::Lpar) {
-    report(nextToken.location, "expected '('");
-    return std::nullopt;
-  }
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;ParamDecl>>>
+Parser::parseParameterList( Parser::parseParameterList() {
+  matchOrReturn(TokenKind::Lpar, "expected '('");
   eatNextToken(); // eat '('
+
+  ...
+}</code></pre>
+                <p>
+                    Then similarly to expressions in argument lists, every
+                    <code>ParamDecl</code> is collected into a list.
+                </p>
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;ParamDecl>>>
+Parser::parseParameterList() {
+  ...
 
   std::vector&lt;std::unique_ptr&lt;ParamDecl>> parameterList;
 
@@ -776,14 +930,9 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
     if (nextToken.kind == TokenKind::Rpar)
       break;
 
-    if (nextToken.kind != TokenKind::Identifier) {
-      report(nextToken.location, "expected parameter declaration");
-      return std::nullopt;
-    }
+    matchOrReturn(TokenKind::Identifier, "expected parameter declaration");
 
-    auto paramDecl = parseParamDecl();
-    if (!paramDecl)
-      return std::nullopt;
+    varOrReturn(paramDecl, parseParamDecl());
     parameterList.emplace_back(std::move(paramDecl));
 
     if (nextToken.kind != TokenKind::Comma)
@@ -791,19 +940,26 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
     eatNextToken(); // eat ','
   }
 
-  if (nextToken.kind != TokenKind::Rpar) {
-    report(nextToken.location, "expected ')'");
-    return std::nullopt;
-  }
+  ...
+}</code></pre>
+                <p>
+                    Finally the closing <code>)</code> is matched and the
+                    parameter list is returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;std::vector&lt;std::unique_ptr&lt;ParamDecl>>>
+Parser::parseParameterList() {
+  ...
+
+  matchOrReturn(TokenKind::Rpar, "expected ')'");
   eatNextToken(); // eat ')'
 
-  return parameterList;
+  return std::make_unique&lt;std::vector&lt;std::unique_ptr&lt;ParamDecl>>>(std::move(parameterList));
 }</code></pre>
                 <h2>Advanced Error Recovery</h2>
                 <p>
                     Now that the language has more elements besides function
-                    declarations, it's worth to dedicate some time to make error
-                    recovery smarter.
+                    declarations, it's worth to dedicate some time to make the
+                    error recovery smarter.
                 </p>
                 <p>
                     With the current modification, there are 4 tokens, that can
@@ -813,28 +969,35 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
                     <li><code>KwFn</code></li>
                     <li><code>}</code></li>
                     <li><code>;</code></li>
-                    <li><code>EOF</code></li>
+                    <li><code>Eof</code></li>
                 </ol>
                 <p>
-                    The automatic synchronization will be handled by the
-                    <code>synchronize()</code> method after each failed
-                    statement inside a <code>Block</code>.
+                    The parser synchronizes on these points after failing to
+                    parse a statement inside a <code>Block</code>. In that case
+                    the token on which the parser is synchronized is
+                    automatically selected by the
+                    <code>synchronize()</code> method.
                 </p>
                 <pre><code>std::unique_ptr&lt;Block> Parser::parseBlock() {
   ...
 
-    std::unique_ptr&lt;Stmt> stmt = parseStmt();
+  while (true) {
+    ...
+
     if (!stmt) {
       synchronize();
       continue;
     }
 
+    ...
+  }
+
   ...
 }</code></pre>
                 <p>
                     The <code>synchronize()</code> method flags the current AST
-                    as incomplete and keeps eating tokens until one of
-                    previously mentioned synchronization points are encountered.
+                    as incomplete and keeps eating tokens until one of the
+                    previously listed synchronization points is encountered.
                 </p>
                 <pre><code>void Parser::synchronize() {
   incompleteAST = true;
@@ -848,8 +1011,8 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
                 <p>
                     If the parser fails inside a <code>Block</code>, the
                     synchronization point is either the end of that block, or
-                    the end of the first direct nested block (introduced in
-                    later chapters). Deeper nested blocks are skipped.
+                    the token after the end of the first direct nested block.
+                    Indirect nested blocks are ignored.
                 </p>
                 <pre><code> fn foo(): void { fail } fn ...
 ┌─────┐ ┌───┐ ┌─────┐ ┌───┐ ┌─────┐
@@ -859,14 +1022,21 @@ std::optional&lt;Parser::ParameterList> Parser::parseParameterList() {
                  |      └ synchronize here
                  └ fail here
 
-fn foo(): void { fail if cond { stmt; } stmt; } ...
+fn foo(): void { if fail { stmt; } stmt; } fn ...
 ┌─────┐ ┌───┐ ┌─────┐ ┌───┐ ┌─────┐ ┌───┐ ┌─────┐ ┌───┐
 │ ... │ │ { │ │ ... │ │ { │ │ ... │ │ } │ │ ... │ │ } │
 └─────┘ └───┘ └─────┘ └───┘ └─────┘ └───┘ └─────┘ └───┘
                  ^                           ^
                  |          synchronize here ┘
                  └ fail here
-</code></pre>
+
+fn foo(): void { if fail { if cond {} } stmt; } fn ...
+┌─────┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌───┐
+│ ... │ │ { │ │ ... │ │ { │ │ } │ │ } │ │ ... │ │ } │
+└─────┘ └───┘ └─────┘ └───┘ └───┘ └───┘ └─────┘ └───┘
+   ^                          ^            ^
+   |                   ignore ┘            |
+   └ fail here            synchronize here ┘</code></pre>
                 <p>
                     To achieve this, the parser keeps track of how many
                     <code>{</code> it has seen so far.
@@ -885,44 +1055,66 @@ fn foo(): void { fail if cond { stmt; } stmt; } ...
   }
 }</code></pre>
                 <p>
-                    Once an <code>}</code> is encountered, if the number of
+                    Once a <code>}</code> is encountered and the number of
                     braces is <code>0</code>, the parser is at the end of the
-                    block, so it's synchronized. If the number of braces is
-                    <code>1</code>, it is the end of the first direct nested
-                    block, so the token is eaten and the parser is at the start
-                    of the next statement. Otherwise the parser is inside a
-                    deeper nested block, so it skips it by decreasing
-                    <code>braces</code> by one.
+                    block, so it's synchronized.
                 </p>
                 <pre><code>void Parser::synchronize() {
   ...
-
-  int braces = 0;
   while (true) {
     ...
     else if (kind == TokenKind::Rbrace) {
       if (braces == 0)
         break;
 
-      if (braces == 1) {
-        eatNextToken(); // eat '}'
-        break;
-      }
-
-      --braces;
+      ...
     }
     ...
   }
 }</code></pre>
                 <p>
-                    If a statement fails, synchronization happens on the next
-                    <code>;</code> unless the token is in a nested block.
+                    If the number of braces is
+                    <code>1</code>, it is the end of the first direct nested
+                    block, so the token is eaten and the parser is at the start
+                    of the next statement.
+                </p>
+                <pre><code>void Parser::synchronize() {
+    ...
+    else if (kind == TokenKind::Rbrace) {
+      ...
+
+      if (braces == 1) {
+        eatNextToken(); // eat '}'
+        break;
+      }
+
+      ...
+    }
+    ...
+}</code></pre>
+                <p>
+                    Otherwise the parser is inside an indirect nested block, so
+                    it skips it by decreasing <code>braces</code> by one.
+                </p>
+                <pre><code>void Parser::synchronize() {
+    ...
+    else if (kind == TokenKind::Rbrace) {
+      ...
+
+      --braces;
+    }
+    ...
+}</code></pre>
+                <p>
+                    If a statement fails, synchronization happens after the next
+                    <code>;</code> unless the <code>;</code> is in a nested
+                    block.
                 </p>
                 <pre><code>┌─────┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌─────┐
 │ ... │ │ { │ │ ... │ │ ; │ │ } │ │ ... │
 └─────┘ └───┘ └─────┘ └───┘ └───┘ └─────┘
-   ^                          ^
-   |                          └ synchronize here
+   ^                                 ^
+   |                synchronize here ┘
    └ fail here
 
 ┌─────┐ ┌───┐ ┌─────┐
@@ -932,6 +1124,10 @@ fn foo(): void { fail if cond { stmt; } stmt; } ...
    |             └ synchronize here
    └ fail here
 </code></pre>
+                <p>
+                    In other words if the next token is <code>;</code> and the
+                    number of <code>{</code> seen is <code>0</code>.
+                </p>
                 <pre><code>void Parser::synchronize() {
   ...
   while (true) {
