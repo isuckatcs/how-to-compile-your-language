@@ -50,11 +50,11 @@
                 <h1>Name Resolution</h1>
                 <p>
                     The last step of the compilation pipeline on the frontend is
-                    reasoning about the meaning the source code. It might happen
-                    that a piece of code is accepted by the parser, but the
-                    compiler still can't figure out what it means.
+                    reasoning about the meaning of the source code. It might
+                    happen that a snippet is accepted by the parser, but it
+                    still has no meaning.
                 </p>
-                <pre><code>fn foo(x: number): void {
+                <pre><code>fn wrong(x: number): void {
   println(y);
 }</code></pre>
                 <p>
@@ -68,26 +68,30 @@
                     The process of figuring out what a name in the source code
                     refers to is called name resolution.
                 </p>
-                <pre><code>fn foo(x: number): void {
-       ^
-       &boxur;&boxdl;
-        &boxv;
-  print(x); // 'x' refers to the parameter 'x'
+                <pre><code>fn printX(x: number): void {
+          ^
+          │
+  println(x); // 'x' refers to the parameter 'x'
 }</code></pre>
                 <p>
-                    The general approach is to record every name introduced by a
-                    declaration while traversing the AST into a so called symbol
-                    table. When a reference to a symbol is encountered, it is
-                    checked if the symbol has been recorded already or not. If
-                    it's not found in the symbol table it's assumed the
-                    developer forgot to introduce it and an error is reported.
+                    The idea is to traverse the AST and record every identifier
+                    introduced by a declaration into a so called symbol table.
+                    The identifiers can also be called symbols, hence the symbol
+                    table name.
                 </p>
-                <pre><code>int x;     // symbol table: [], insert 'x'
-int y;     // symbol table: ['x'], insert 'y'
-x + y + z; // symbol table: ['x', 'y'], error: 'z' not found
-
-int foo(int);    // symbol table: ['x', 'y'], insert 'foo'
-foo(0) + bar(0); // symbol table: ['x', 'y', 'foo'], error: 'bar' not found</code></pre>
+                <p>
+                    When a reference to a symbol is encountered, it is checked
+                    whether it has already been recorded. If the symbol is not
+                    found in the symbol table it's assumed the developer forgot
+                    to declare it and the compiler reports an error.
+                </p>
+                <pre><code>fn function(  // symbols: ['function']
+  x: number,  // symbols: ['function', 'x']
+  y: number   // symbols: ['function', 'x', 'y']
+): void {
+  x + z;
+      ^ error: 'z' is not a known symbol
+}</code></pre>
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
@@ -100,35 +104,46 @@ foo(0) + bar(0); // symbol table: ['x', 'y', 'foo'], error: 'bar' not found</cod
                     </p>
                     <p>
                         Other languages such as Kotlin or JavaScript (and your
-                        language) however allow the to use a symbol before it is
-                        declared. The following snippets are valid Kotlin and
-                        JavaScript codes.
+                        language) however allow the use of a symbol before it is
+                        declared. The following snippet for example is a valid
+                        Kotlin code.
                     </p>
                     <pre><code>fun main() {
     foo()
 }
 
 fun foo() {}</code></pre>
+                    <p>Similarly, this other snippet is valid in JavaScript.</p>
                     <pre><code>foo()
 
 function foo() {}</code></pre>
                     <p>
-                        JavaScript introduces a mechanism called hoisting, when
+                        JavaScript also introduces a mechanism called hoisting,
+                        when
                         <code>function</code> and <code>var</code> declarations
                         are moved to the top of the source file before the
                         source file is executed.
                     </p>
                     <p>
-                        Upon learning about hoisting, a naive approach might be
-                        to reorder the functions during semantic analysis, but
-                        if 2 different function call each other in a cycle,
-                        there is no suitable order.
+                        Still even moving every declaration to the top of the
+                        source file doesn't work in case of 2 functions are
+                        referencing each other in their bodies.
                     </p>
                     <pre><code>function foo() { bar() }
 function bar() { foo() }</code></pre>
                     <p>
-                        To properly tackle this problem in such languages name
-                        resolution must be done in multiple passes.
+                        C and C++ solves this problem with the use of forward
+                        declarations, as in these languages a function can be
+                        declared any number of times, but it is only allowed to
+                        be defined exactly once.
+                    </p>
+                    <pre><code>void foo();
+void bar() { foo(); }
+void foo() { bar(); }</code></pre>
+                    <p>
+                        In languages where forward declarations are not allowed
+                        to properly tackle this problem name resolution must be
+                        done in multiple passes.
                     </p>
                 </blockquote>
                 <h2>Scopes</h2>
@@ -152,8 +167,11 @@ function bar() { foo() }</code></pre>
     print(x) # 'x' is visible</code></pre>
 
                 <p>
-                    Scopes are usually modelled using symbol tables linked after
-                    each other.
+                    Scopes are usually modelled with symbol tables linked after
+                    each other. When a symbol is referenced, the lookup happens
+                    from the inner most scope to the outer most one. This way
+                    it's always the most recent declaration of the symbol that
+                    is found first.
                 </p>
                 <pre><code>int x = 0; // symbol tables: [], insert 'x'
 
@@ -170,10 +188,41 @@ void foo() {
 
   x; // symbol tables: ['x'] -> ['x' <--, 'y'], lookup from the right
 }</code></pre>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        The previously described scope is also called lexical
+                        scope as the visibility of the variables depend on the
+                        place where they are created in source code.
+                    </p>
+                    <p>
+                        For this reason in case of functions symbol tables can
+                        be created and destroyed as the semantic analyzer
+                        traverses them from top to bottom, however other
+                        elements such as classes require their symbol tables to
+                        be bound to the class itself. The reason for this is
+                        inheritance.
+                    </p>
+                    <pre><code>struct Base {
+  int x;
+  void foo();
+};
+
+struct Derived : public Base {};</code></pre>
+                    <p>
+                        Because <code>Derived</code> inherits from
+                        <code>Base</code>, it must have access to the symbols of
+                        <code>Base</code>. If the symbol table of
+                        <code>Base</code> is destroyed when the semantic
+                        analyzer finishes processing the class, the information
+                        is lost.
+                    </p>
+                </blockquote>
                 <h2>Resolved Tree</h2>
                 <p>
-                    After resolution the AST nodes should carry the semantic
-                    information. For example a
+                    After resolution the compiler should have an intermediate
+                    representation that contains information about the meaning
+                    of the source code. For example a
                     <code>DeclRefExpr</code> should no longer store a
                     <code>std::string</code> that represents the identifier of
                     the declaration being referenced, but a pointer to the
@@ -182,102 +231,234 @@ void foo() {
                 <p>
                     One approach to achieve this is to add additional fields to
                     the current AST and fill those in during semantic analysis.
-                    The drawback of this approach is that nodes can be left in
-                    an invalid state by forgetting to set the correct
-                    information. Also the AST becomes heavy with multiple
-                    properties.
+                    The drawback is that nodes can be left in an invalid state
+                    by forgetting to set the correct information. Also the AST
+                    becomes too heavy with multiple properties that are no
+                    longer needed after resolution.
                 </p>
                 <p>
-                    Another approach is to recreate the AST with nodes that only
-                    contain the information needed after resolution. This is the
-                    approach being preferred in this compiler. The only field
-                    kept form the original AST nodes is the type.
+                    Another approach is to build a dedicated representation that
+                    only contains the information needed after resolution. This
+                    is the approach being preferred in this compiler. The
+                    representation created is also a tree structure similarly to
+                    the AST, in fact it could also be called resolved AST or
+                    simply resolved tree.
                 </p>
-                <pre><code>struct ResolvedStmt : public Dumpable {
+                <p>
+                    The <code>ResolvedStmt</code> node is identical to the AST
+                    <code>Stmt</code> as it also acts as the base class for
+                    every resolved statement and stores the location of the node
+                    and a <code>dump()</code> method.
+                </p>
+                <pre><code>struct ResolvedStmt {
   SourceLocation location;
 
-  ResolvedStmt(SourceLocation location) : location(location) {}
+  ResolvedStmt(SourceLocation location)
+      : location(location) {}
 
   virtual ~ResolvedStmt() = default;
-};
 
-struct ResolvedExpr : public ResolvedStmt {
+  virtual void dump(size_t level = 0) const = 0;
+};</code></pre>
+                <p>
+                    The <code>ResolvedExpr</code> node is different as every
+                    resolved expression must also have it's type set.
+                </p>
+                <pre><code>struct ResolvedExpr : public ResolvedStmt {
   Type type;
 
   ResolvedExpr(SourceLocation location, Type type)
-      : ResolvedStmt(location), type(type) {}
-
-  virtual ~ResolvedExpr() = default;
-};
-
-struct ResolvedDecl : public Dumpable {
+      : ResolvedStmt(location),
+        type(type) {}
+};</code></pre>
+                <p>
+                    Similarly to resolved expressions, resolved declarations
+                    must also have their types set compared to their
+                    non-resolved counterparts.
+                </p>
+                <pre><code>struct ResolvedDecl {
   SourceLocation location;
   std::string identifier;
   Type type;
 
   ResolvedDecl(SourceLocation location, std::string identifier, Type type)
-      : location(location), identifier(std::move(identifier)), type(type) {}
+      : location(location),
+        identifier(std::move(identifier)),
+        type(type) {}
   virtual ~ResolvedDecl() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
 };</code></pre>
                 <p>
                     Since numbers are all double precision floating point
-                    numbers, <code>ResolvedNumberLiteral</code> contains a
-                    <code>double</code> to store the actual value.
+                    numbers, <code>ResolvedNumberLiteral</code> stores a
+                    <code>double</code> instead of the textual representation of
+                    it's value.
                 </p>
                 <pre><code>struct ResolvedNumberLiteral : public ResolvedExpr {
   double value;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedNumberLiteral(SourceLocation location, double value)
+      : ResolvedExpr(location, Type::builtinNumber()),
+        value(value) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>It's textual representation also prints this value.</p>
+                <pre><code>void ResolvedNumberLiteral::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedNumberLiteral: '" << value << "'\n";
+}</code></pre>
                 <p>
-                    <code>ResolvedDeclRefExpr</code> and
-                    <code>ResolvedCallExpr</code> store a pointer to
-                    <code>ResolvedDecl</code> and
-                    <code>ResolvedFunctionDecl</code> respectively.
+                    <code>ResolvedDeclRefExpr</code> stores a pointer to the
+                    referenced <code>ResolvedDecl</code> instead of it's
+                    identifier.
                 </p>
                 <pre><code>struct ResolvedDeclRefExpr : public ResolvedExpr {
   const ResolvedDecl *decl;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedDeclRefExpr(SourceLocation location, ResolvedDecl &decl)
+      : ResolvedExpr(location, decl.type),
+        decl(&decl) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    The textual representation of the node also contains the
+                    address of the referenced declaration besides it's
+                    identifier.
+                </p>
+                <pre><code>void ResolvedDeclRefExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedDeclRefExpr: @(" << decl << ") "
+            << decl->identifier << '\n';
+}</code></pre>
+                <p>
+                    The callee of a <code>ResolvedCallExpr</code> is now a
+                    pointer to a <code>ResolvedFunctionDecl</code> instead of an
+                    arbitrary expression.
+                </p>
                 <pre><code>struct ResolvedCallExpr : public ResolvedExpr {
   const ResolvedFunctionDecl *callee;
   std::vector&lt;std::unique_ptr&lt;ResolvedExpr>> arguments;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedCallExpr(SourceLocation location,
+                   const ResolvedFunctionDecl &callee,
+                   std::vector&lt;std::unique_ptr&lt;ResolvedExpr>> arguments)
+      : ResolvedExpr(location, callee.type),
+        callee(&callee),
+        arguments(std::move(arguments)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    The rest of the resolved nodes are identical to their
-                    non-resolved counterparts except for storing pointers to
-                    other resolved nodes.
+                    In the textual representation of the node the address of the
+                    function is printed too.
                 </p>
-                <pre><code>struct ResolvedBlock : public Dumpable {
+                <pre><code>void ResolvedCallExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
+            << callee->identifier << '\n';
+
+  for (auto &amp;&amp;arg : arguments)
+    arg->dump(level + 1);
+}</code></pre>
+                <p>
+                    The <code>ResolvedBlock</code> node doesn't contain any
+                    different information from it's non-resolved counterpart.
+                </p>
+                <pre><code>struct ResolvedBlock {
   SourceLocation location;
   std::vector&lt;std::unique_ptr&lt;ResolvedStmt>> statements;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedBlock(SourceLocation location,
+                std::vector&lt;std::unique_ptr&lt;ResolvedStmt>> statements)
+      : location(location),
+        statements(std::move(statements)) {}
+
+  void dump(size_t level = 0) const;
 };</code></pre>
+                <p>It's textual representation is also identical.</p>
+                <pre><code>void ResolvedBlock::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedBlock\n";
+
+  for (auto &amp;&amp;stmt : statements)
+    stmt->dump(level + 1);
+}</code></pre>
+                <p>
+                    With moving more information to it's base class,
+                    <code>ResolvedParamDecl</code> no longer contains any unique
+                    fields.
+                </p>
                 <pre><code>struct ResolvedParamDecl : public ResolvedDecl {
-  // the constructor and dump() are omitted
-  ...
+  ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
+      : ResolvedDecl{location, std::move(identifier), type} {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    The textual representation of the node also contains it's
+                    address.
+                </p>
+                <pre><code>void ResolvedParamDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedParamDecl: @(" << this << ") "
+            << identifier << ':' << '\n';
+}</code></pre>
+                <p>
+                    <code>ResolvedFunctionDecl</code> only stores a parameter
+                    list and the body of the function. The rest of the fields
+                    are stored in the <code>ResolvedDecl</code> base class.
+                </p>
                 <pre><code>struct ResolvedFunctionDecl : public ResolvedDecl {
   std::vector&lt;std::unique_ptr&lt;ResolvedParamDecl>> params;
   std::unique_ptr&lt;ResolvedBlock> body;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedFunctionDecl(SourceLocation location,
+                       std::string identifier,
+                       Type type,
+                       std::vector&lt;std::unique_ptr&lt;ResolvedParamDecl>> params,
+                       std::unique_ptr&lt;ResolvedBlock> body)
+      : ResolvedDecl(location, std::move(identifier), type),
+        params(std::move(params)),
+        body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    The textual representation of the node contains it's name,
+                    address, identifier, parameters and body.
+                </p>
+                <pre><code>void ResolvedFunctionDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedFunctionDecl: @(" << this << ") "
+            << identifier << ':' << '\n';
+
+  for (auto &amp;&amp;param : params)
+    param->dump(level + 1);
+
+  body->dump(level + 1);
+}</code></pre>
+                <p>
+                    Identical to it's non-resolved counterpart
+                    <code>ResolvedReturnStmt</code> stores only the optional
+                    expression whose value is returned.
+                </p>
                 <pre><code>struct ResolvedReturnStmt : public ResolvedStmt {
   std::unique_ptr&lt;ResolvedExpr> expr;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedReturnStmt(SourceLocation location,
+                     std::unique_ptr&lt;ResolvedExpr> expr = nullptr)
+      : ResolvedStmt(location),
+        expr(std::move(expr)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    It's textual representation is also almost identical to it's
+                    non-resolved counterpart.
+                </p>
+                <pre><code>void ResolvedReturnStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedReturnStmt\n";
+
+  if (expr)
+    expr->dump(level + 1);
+}</code></pre>
                 <h2>Sema</h2>
                 <p>
                     The semantic analysis logic is encapsulated by the
@@ -298,80 +479,149 @@ public:
                     <code>ResolvedDecl*</code>, while the chain of scopes is
                     represented by a vector of scopes.
                 </p>
-                <p>
-                    To make working with scopes more convenient, a helper object
-                    and two helper methods are introduced. The
-                    <code>ScopeRAII</code> object makes the handling of scopes
-                    natural by creating a new scope in it's constructor and
-                    destroying it in it's destructor.
-                </p>
                 <pre><code>class Sema {
   ...
   std::vector&lt;std::vector&lt;ResolvedDecl *>> scopes;
-
+  ...
+};</code></pre>
+                <p>
+                    To make working with scopes more convenient, a helper object
+                    is introduced. The
+                    <code>ScopeRAII</code> makes managing the scopes natural by
+                    creating a new scope in it's constructor and destroying it
+                    in it's destructor.
+                </p>
+                <pre><code>class Sema {
+  ...
   class ScopeRAII {
     Sema *sema;
 
   public:
-    explicit ScopeRAII(Sema *sema) : sema(sema) { sema->Scopes.emplace_back(); }
-    ~ScopeRAII() { sema->Scopes.pop_back(); }
+    explicit ScopeRAII(Sema *sema)
+        : sema(sema) {
+      sema->scopes.emplace_back();
+    }
+    ~ScopeRAII() { sema->scopes.pop_back(); }
   };
   ...
 };</code></pre>
                 <p>
                     The <code>lookupDecl()</code> method looks up a symbol based
-                    on it's id and returns the <code>ResolvedDecl</code> and the
-                    index of the scope the declaration was found in. The index
-                    helps to determine whether an id collision is a
-                    redeclaration or a shadowing. With a more complex type
+                    on it's identifier and returns the
+                    <code>ResolvedDecl</code> and the index of the scope the
+                    declaration was found in.
+                </p>
+                <p>
+                    The index helps to determine whether an identifier collision
+                    is a redeclaration or a shadowing. With a more complex type
                     systems, it's also necessary to use the type of the symbol
                     for the lookup, as a user defined type might have the same
                     name as a local variable.
                 </p>
+                <p>
+                    To lookup a symbol, first the symbol tables are iterated in
+                    a reverse order while keeping track of the scope index, so
+                    the inner-most table is checked first.
+                </p>
                 <pre><code>std::pair&lt;ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
   int scopeIdx = 0;
-  for (auto it = Scopes.rbegin(); it != Scopes.rend(); ++it) {
-    for (auto &&decl : *it) {
+  for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+    ...
+
+    ++scopeIdx;
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    For every scope the declarations inside that scope are
+                    iterated and if the identifier of any declaration matches
+                    the searched identifier, the declaration and the index of
+                    the scope is returned.
+                </p>
+                <pre><code>std::pair&lt;ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
+  ...
+  for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+    for (auto &amp;&amp;decl : *it) {
       if (decl->identifier != id)
         continue;
 
       return {decl, scopeIdx};
     }
 
-    ++scopeIdx;
+    ...
   }
+
+  ...
+}</code></pre>
+                <p>
+                    If none of the scopes contain the declaration a
+                    <code>nullptr</code> is returned along with
+                    <code>-1</code> as the index of the containing scope.
+                </p>
+                <pre><code>std::pair&lt;ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
+  ...
 
   return {nullptr, -1};
 }</code></pre>
                 <p>
                     The <code>insertDeclToCurrentScope()</code> method attempts
-                    to insert the declaration into the current scope and error
-                    out on a redeclaration, but not on shadowing.
+                    to insert the declaration into the inner most scope. To
+                    handle redeclarations, it first checks if a declaration with
+                    the same identifier is already inserted into the current
+                    scope chain.
                 </p>
                 <pre><code>bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
+
+  ...
+}</code></pre>
+                <p>
+                    If the declaration is found in the inner-most scope and
+                    error is reported for redeclaring the same symbol. The
+                    method also returns <code>false</code> in this case to
+                    indicate the failure.
+                </p>
+                <pre><code>bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
+  ...
 
   if (foundDecl && scopeIdx == 0) {
     report(decl.location, "redeclaration of '" + decl.identifier + '\'');
     return false;
   }
 
+  ...
+}</code></pre>
+                <p>
+                    If the declaration is not found or it shadows another
+                    declaration in an outer scope, it is inserted into to the
+                    inner-most one and <code>true</code> is returned to indicate
+                    success.
+                </p>
+                <pre><code>bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
+  ...
+
   scopes.back().emplace_back(&decl);
   return true;
 }</code></pre>
                 <p>
                     The source file is resolved in two passes. Because the order
-                    of the function declarations doesn't matter, first the
-                    functions and their parameters are resolved without their
-                    bodies. This will insert all of the valid function symbols
-                    into the global symbol table.
+                    of the function declarations doesn't matter, first they are
+                    resolved without their bodies. This way all of the valid
+                    function symbols are inserted into the top level scope or
+                    global scope as it's other name.
                 </p>
                 <p>
-                    Before the function are resolved however, the builtin
-                    <code>println</code> function is created and inserted into
-                    the global scope. Creating this function first allows the
-                    semantic analyzer to error out if the user redeclared
-                    <code>println</code>.
+                    Before the functions are resolved however, the builtin
+                    <code>println</code> function needs to be created and
+                    inserted into the global scope. Creating this function first
+                    allows the semantic analyzer to easily report an error if
+                    the <code>println</code> is redeclared in the source code.
+                </p>
+                <p>
+                    The <code>resolveAST()</code> method creates the global
+                    scope, the root of the resolved tree and inserts the builtin
+                    function into the global scope.
                 </p>
                 <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
   ScopeRAII globalScope{this};
@@ -384,10 +634,10 @@ public:
                 <p>
                     The <code>println</code> function is created at the
                     <code>&lt;builtin>:0:0</code> location, with one parameter,
-                    <code>n</code> of number type.
+                    <code>n: number</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
-  SourceLocation loc = SourceLocation{"&lt;builtin>", 0, 0};
+  SourceLocation loc{"&lt;builtin>", 0, 0};
 
   auto param =
       std::make_unique&lt;ResolvedParamDecl>(loc, "n", Type::builtinNumber());
@@ -398,8 +648,9 @@ public:
   ...
 };</code></pre>
                 <p>
-                    The body of the function is empty, while it's return type is
-                    <code>void</code>.
+                    The return type of the function is <code>void</code> and
+                    it's body is empty. This function node in the resolved tree
+                    only acts as a placeholder.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
   ...
@@ -411,16 +662,33 @@ public:
       loc, "println", Type::builtinVoid(), std::move(params), std::move(block));
 };</code></pre>
                 <p>
+                    After the builtin <code>println</code> function is inserted
+                    into the resolved tree, the functions in the AST are
+                    resolved one by one.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
+  ...
+
+  for (auto &amp;&amp;fn : ast) {
+    auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
                     If an error happens during the resolution of one of the
                     functions, or a function with the same name is declared
-                    multiple times, an empty resolved tree is returned.
+                    multiple times, the error is recorded but the semantic
+                    analyzer keeps checking the other functions. This way
+                    independent errors are stacked together.
                 </p>
                 <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
   ...
 
   bool error = false;
-  for (auto &&fn : ast) {
-    auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
+  for (auto &amp;&amp;fn : ast) {
+    ...
 
     if (!resolvedFunctionDecl ||
         !insertDeclToCurrentScope(*resolvedFunctionDecl)) {
@@ -428,8 +696,32 @@ public:
       continue;
     }
 
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    If a function is successfully resolved, it is inserted into
+                    the resolved tree.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
+  ...
+
+  for (auto &amp;&amp;fn : ast) {
+    ...
+
     resolvedTree.emplace_back(std::move(resolvedFunctionDecl));
   }
+
+  ...
+}</code></pre>
+                <p>
+                    If any error happened during this pass, an empty resolved
+                    tree is returned.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
+  ...
 
   if (error)
     return {};
@@ -437,26 +729,42 @@ public:
   ...
 }</code></pre>
                 <p>
-                    In the second pass, a new scope is created for each function
-                    and the parameters are inserted into that scope, so they are
-                    visible to any <code>DeclRefExpr</code> that references
-                    them. The current function is also stored inside
-                    <code>Sema</code> because return statement analysis will
-                    need it later.
+                    In the second pass the body of every function in the
+                    resolved tree is resolved. The first function in the tree is
+                    the builtin
+                    <code>println</code>, which can be skipped.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile() {
+  ...
+  for (size_t i = 1; i < resolvedTree.size(); ++i) {
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    The current function is also recorded inside the
+                    <code>Sema</code> class because to reason about return
+                    statements the analyzer needs to know which function the
+                    statement is in.
                 </p>
                 <pre><code>class Sema {
   ...
   ResolvedFunctionDecl *currentFunction;
   ...
-};
-
-std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile() {
+};</code></pre>
+                <p>
+                    Next the current function is set and a new scope is created
+                    for it's parameters, so they are visible to any
+                    <code>DeclRefExpr</code> that references them in the body.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile() {
   ...
   for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    ScopeRAII scope{this};
     currentFunction = resolvedTree[i].get();
-
-    for (auto &&param : currentFunction->params)
+    
+    ScopeRAII scope{this};
+    for (auto &amp;&amp;param : currentFunction->params)
       insertDeclToCurrentScope(*param);
 
     ...
@@ -469,8 +777,7 @@ std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile
                     Then the body is resolved. This is the only place where a
                     resolved node is modified after it's creation, as it's body
                     has to be replaced with the resolved body. If any of the
-                    bodies cannot be resolved, the error is stored and an empty
-                    resolved tree is returned.
+                    bodies cannot be resolved, the error is recorded.
                 </p>
                 <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile() {
   ...
@@ -486,16 +793,27 @@ std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile
     currentFunction->body = std::move(resolvedBody);
   }
 
+  ...
+}
+</code></pre>
+                <p>
+                    If an error happened during the resolution of any of the
+                    blocks and empty resolved tree is returned, otherwise the
+                    resolved tree containing the resolved functions is returned.
+                </p>
+                <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveSourceFile() {
+  ...
+
   if (error)
     return {};
 
-  return std::move(resolvedTree);
+  return resolvedTree;
 }
 </code></pre>
                 <p>
                     With a simple type system like this one, resolving the types
-                    is straightforward. The type is only considered resolved if
-                    it is <code>void</code> or <code>number</code>.
+                    is straightforward. The type is automatically considered
+                    resolved if it is <code>void</code> or <code>number</code>.
                 </p>
                 <pre><code>std::optional&lt;Type> Sema::resolveType(Type parsedType) {
   if (parsedType.kind == Type::Kind::Custom)
@@ -544,7 +862,7 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
                     created for the parameters so that their name collision can
                     be detected easily. If a parameter cannot be resolved, or is
                     the redeclaration of a previous parameter the resolution of
-                    the function fails and a <code>nullptr</code> is reported.
+                    the function fails and a <code>nullptr</code> is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedFunctionDecl>
 Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
@@ -553,7 +871,7 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
   ScopeRAII paramScope{this};
   std::vector&lt;std::unique_ptr&lt;ResolvedParamDecl>> resolvedParams;
 
-  for (auto &&param : function.params) {
+  for (auto &amp;&amp;param : function.params) {
     auto resolvedParam = resolveParamDecl(*param);
 
     if (!resolvedParam || !insertDeclToCurrentScope(*resolvedParam))
@@ -578,9 +896,9 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
       nullptr);
 };</code></pre>
                 <p>
-                    For <code>ParamDecl</code> only it's type needs to be
-                    resolved and checked if it's not <code>void</code> as such
-                    parameters are not allowed.
+                    For a <code>ParamDecl</code> only it's type needs to be
+                    resolved. If the resolution fails or the type is
+                    <code>void</code> an error is reported.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedParamDecl>
 Sema::resolveParamDecl(const ParamDecl &param) {
@@ -596,10 +914,10 @@ Sema::resolveParamDecl(const ParamDecl &param) {
 }</code></pre>
                 <p>
                     Resolving a block is equivalent to resolving all the
-                    statements inside the block. For each block a new scope is
+                    statements within that block. For each block a new scope is
                     created and if an error happens during the resolution of one
                     statement, the semantic analyzes keeps resolving the
-                    remaining statements. This allows the compile to report
+                    remaining statements. This allows the compiler to report
                     multiple error messages together at the cost of some
                     introduced false positives.
                 </p>
@@ -610,7 +928,7 @@ Sema::resolveParamDecl(const ParamDecl &param) {
   ...
 
   ScopeRAII blockScope{this};
-  for (auto &&stmt : block.statements) {
+  for (auto &amp;&amp;stmt : block.statements) {
     auto resolvedStmt = resolveStmt(*stmt);
 
     error |= !resolvedStatements.emplace_back(std::move(resolvedStmt));
@@ -638,7 +956,7 @@ Sema::resolveParamDecl(const ParamDecl &param) {
   int reportUnreachableCount = 0;
 
   ...
-  for (auto &&stmt : block.statements) {
+  for (auto &amp;&amp;stmt : block.statements) {
     ...
 
     if (reportUnreachableCount == 1) {
@@ -671,7 +989,7 @@ label:
                 <h2>Resolving Statements</h2>
                 <p>
                     The <code>resolveStmt()</code> method drives the resolution
-                    of the various statements. It checks the what the current
+                    of the various statements. It checks what the current
                     <code>Stmt</code> is, and dispatches the corresponding
                     resolver method.
                 </p>
@@ -682,23 +1000,20 @@ label:
   if (auto *returnStmt = dynamic_cast&lt;const ReturnStmt *>(&stmt));
     return resolveReturnStmt(*returnStmt);
   
-  assert(false && "unknown statement");
-  return nullptr;
+  llvm_unreachable("unexpected statement");
 }</code></pre>
                 <p>
                     For a <code>ReturnStmt</code> it needs to be checked whether
                     it's in the correct form. Void functions are not allowed to
                     return values, while non-void functions are expected to
-                    return a value of the return type. To be able to reason
-                    about the return statement properly <code>Sema</code> tracks
-                    the function that's being analyzed in the
-                    <code>currentFunction</code> field, set previously in
+                    return a value of the return type of the function. To be
+                    able to reason about the return statement properly
+                    <code>Sema</code> tracks the function that's being analyzed
+                    in the <code>currentFunction</code> field, set previously in
                     <code>resolveAST()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedReturnStmt>
 Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
-  assert(currentFunction && "return stmt outside a function");
-
   if (currentFunction->type.kind == Type::Kind::Void && returnStmt.expr)
     return report(returnStmt.location,
                   "unexpected return value in void function");
@@ -734,23 +1049,27 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
 }</code></pre>
                 <h2>Resolving Expressions</h2>
                 <p>
-                    As in case of <code>Stmt</code>, a function called
-                    <code>resolveExpr()</code> is called to drive the
-                    resolution.
+                    For expression resolution <code>resolveExpr()</code> acts as
+                    the driver. It checks what the current expression is and
+                    decides how the semantic analyzer should proceed.
+                </p>
+                <p>
+                    As it is responsible for handling every expression, the end
+                    of the function is unreachable, which is marked with the
+                    <code>llvm_unreachable()</code> helper.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
   ...
-  assert(false && "unexpected expression");
-  return nullptr;
+
+  llvm_unreachable("unexpected expression");
 }</code></pre>
                 <p>
                     A <code>NumberLiteral</code> is resolved by it's value being
                     converted into a <code>double</code>. The grammar ensures
-                    that it's always in a valid form, so the conversion should
-                    succeed.
+                    that it's value is always a correct double literal, so the
+                    conversion always succeeds.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
-
   if (const auto *number = dynamic_cast&lt;const NumberLiteral *>(&expr))
     return std::make_unique&lt;ResolvedNumberLiteral>(number->location,
                                                    std::stod(number->value));
@@ -758,10 +1077,8 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
   ...
 }</code></pre>
                 <p>
-                    In case of a <code>DeclRefExpr</code>, the semantic analyzer
-                    looks up the <code>Decl</code> it refers to and stores the
-                    pointer to it in the node. If the referenced
-                    <code>Decl</code> is not found, an error is reported.
+                    Resolving a <code>DeclRefExpr</code> is a more complex
+                    process, so it gets a dedicated method that handles it.
                 </p>
 
                 <pre><code>std::unique_ptr&lt;ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
@@ -773,30 +1090,78 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
   ...
 }</code></pre>
                 <p>
-                    The <code>resolveDeclRefExpr()</code> function also takes a
-                    flag, indicating if it's the LHS of a function call. If it
-                    isn't and the looked up <code>Decl</code> is a function
-                    declaration, an error is reported to the user about
-                    forgetting to call the function.
+                    First <code>resolveDeclRefExpr()</code> looks up the
+                    referenced symbol. If the symbol is not found, it wasn't
+                    declared in the source code, so an error is reported.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedDeclRefExpr>
-Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall = false) {
+Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, ...) {
   ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
   if (!decl)
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
-  if (!inCall && dynamic_cast&lt;ResolvedFunctionDecl *>(decl))
+  ...
+}</code></pre>
+                <p>
+                    The method also takes a flag with a default value set to
+                    <code>false</code> indicating if it's the callee of a
+                    function call.
+                </p>
+                <pre><code>class Sema {
+  ...
+  std::unique_ptr&lt;ResolvedDeclRefExpr>
+  resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee = false);
+  ...
+};</code></pre>
+                <p>
+                    This flag allows the semantic analyzer to catch the case
+                    when a function declaration is referenced outside a call
+                    expression. In that case the programmer might have forgotten
+                    to call it and this error can be reported.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedDeclRefExpr>
+Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
+  ...
+
+  if (!isCallee && dynamic_cast&lt;ResolvedFunctionDecl *>(decl))
     return report(declRefExpr.location,
                   "expected to call function '" + declRefExpr.identifier + "'");
+
+  ...
+}</code></pre>
+                <p>
+                    If no problem is found, the
+                    <code>ResolvedDeclRefExpr</code> is returned storing a
+                    pointer to the resolved declaration.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedDeclRefExpr>
+Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
+  ...
 
   return std::make_unique&lt;ResolvedDeclRefExpr>(declRefExpr.location, *decl);
 }</code></pre>
                 <p>
-                    For a <code>CallExpr</code>, first the callee is looked up
-                    and checked if it's indeed a function.
+                    For a <code>CallExpr</code> first it is checked that the
+                    callee is indeed a reference to a declaration and it's not
+                    an arbitrary expression being called.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
+  const auto *dre = dynamic_cast&lt;const DeclRefExpr *>(call.callee.get());
+  if (!dre)
+    return report(call.location, "expression cannot be called as a function");
+
+  ...
+}</code></pre>
+                <p>
+                    If the callee is a reference to a declaration, it is
+                    resolved first, so that a possible calling of an unknown
+                    symbol is caught and then it is checked if this resolved
+                    reference is for a function declaration.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
+  ...
+
   varOrReturn(resolvedCallee, resolveDeclRefExpr(*call.identifier, true));
 
   const auto *resolvedFunctionDecl =
@@ -810,8 +1175,8 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall = false) {
                 <p>
                     Then it's checked if the number of arguments in the call is
                     equivalent to the number of parameters the called function
-                    has. If the number of the arguments match, each argument is
-                    resolved and it's checked if each has the correct type.
+                    has. If the argument count doesn't match, the semantic
+                    analyzer errors out.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   ...
@@ -819,9 +1184,20 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall = false) {
   if (call.arguments.size() != resolvedFunctionDecl->params.size())
     return report(call.location, "argument count mismatch in function call");
 
+  ...
+}</code></pre>
+                <p>
+                    When the argument count matches, each of the arguments is
+                    resolved and it's type is compared against the type of the
+                    corresponding parameter in the called function. If one of
+                    the arguments has a mismatching type, an error is reported.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
+  ...
+
   std::vector&lt;std::unique_ptr&lt;ResolvedExpr>> resolvedArguments;
   int idx = 0;
-  for (auto &&arg : call.arguments) {
+  for (auto &amp;&amp;arg : call.arguments) {
     varOrReturn(resolvedArg, resolveExpr(*arg));
 
     if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
@@ -830,6 +1206,15 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall = false) {
     ++idx;
     resolvedArguments.emplace_back(std::move(resolvedArg));
   }
+
+  ...
+}</code></pre>
+                <p>
+                    If both the callee and the arguments are resolved
+                    successfully, a <code>ResolvedCallExpr</code> is returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
+  ...
 
   return std::make_unique&lt;ResolvedCallExpr>(
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
