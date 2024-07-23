@@ -236,13 +236,13 @@ Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
 }
 
 std::unique_ptr<ResolvedDeclRefExpr>
-Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall) {
+Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
   ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
   if (!decl)
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
-  if (!inCall && dynamic_cast<ResolvedFunctionDecl *>(decl))
+  if (!isCallee && dynamic_cast<ResolvedFunctionDecl *>(decl))
     return report(declRefExpr.location,
                   "expected to call function '" + declRefExpr.identifier + "'");
 

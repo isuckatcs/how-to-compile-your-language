@@ -37,7 +37,7 @@ class Sema {
   std::unique_ptr<ResolvedGroupingExpr>
   resolveGroupingExpr(const GroupingExpr &grouping);
   std::unique_ptr<ResolvedDeclRefExpr>
-  resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool inCall = false);
+  resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee = false);
   std::unique_ptr<ResolvedCallExpr> resolveCallExpr(const CallExpr &call);
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr);
 
