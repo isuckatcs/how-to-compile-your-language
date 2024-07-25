@@ -6,9 +6,9 @@
 
 namespace yl {
 Codegen::Codegen(
-    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
+    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree,
     std::string_view sourcePath)
-    : resolvedTree(std::move(resolvedSourceFile)),
+    : resolvedTree(std::move(resolvedTree)),
       builder(context),
       module("<translation_unit>", context) {
   module.setSourceFileName(sourcePath);
@@ -140,7 +140,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
     return generateUnaryOperator(*unop);
 
-  llvm_unreachable("unknown expression encountered");
+  llvm_unreachable("unexpected expression");
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {

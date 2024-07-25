@@ -54,7 +54,7 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  Codegen(std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedSourceFile,
+  Codegen(std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree,
           std::string_view sourcePath);
 
   llvm::Module *generateIR();
