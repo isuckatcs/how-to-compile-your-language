@@ -49,122 +49,185 @@
             <section>
                 <h1>Static Single Assignment Form</h1>
                 <p>
-                    SSA is form of intermediate representation, where every
-                    variable is assigned exactly once. LLVM IR is also a static
-                    single assignment form, so before using LLVM for code
-                    generation it's important to have an understanding of how
-                    SSA works.
+                    LLVM IR is an implementation of the static single assignment
+                    form, an intermediate representation where each variable is
+                    assigned exactly once.
                 </p>
                 <p>
-                    In SSA complex expression are broken down into a series of
-                    assignments to variables.
+                    In SSA complex expressions are broken down into a series of
+                    assignments to variables. Consider
+                    <code>z = x + y;</code> for example. <code>$0-$2</code> mean
+                    temporary variables.
                 </p>
-                <pre><code>┌──────────────┐
-│ $0 = x       │  
-│ $1 = y       │
-│ $2 = -$1     │  z = x + -y;
-│ $3 = $0 + $2 │   
-│ z = $2       │   
-└──────────────┘</code></pre>
+                <pre><code>$0 = x      
+$1 = y      
+$2 = $0 + $1
+z = $2</code></pre>
                 <p>
-                    This allows the form to maintain the invariant that each
-                    variable is assigned exactly once.
+                    More than one assignment to the same variable is forbidden.
+                    One way to model snippets such as
+                    <code>x = 0; x = 1;</code> is to only assign the value of
+                    the last assignment to <code>x</code>.
                 </p>
-                <pre><code>┌─────────┐
-│ $0 = 0  │
-│ $1 = $0 │  x = 0;
-│ $2 = 1  │  x = 1;
-│ x = $2  │  
-└─────────┘</code></pre>
+                <pre><code>$0 = 0
+$1 = $0
+$2 = 1
+x = $2</code></pre>
                 <p>
-                    From this representation it is immediately visible that
-                    <code>$1</code>, the result of <code>x = 0;</code> is unused
-                    so the compiler can remove it from the output executable.
+                    From this representation it is visible that
+                    <code>$1</code>, the result of <code>x = 0;</code> is not
+                    used on the right hands side of any other assignments, which
+                    tells the compiler that <code>$1</code> and all the other
+                    assignments needed to compute <code>$1</code> can be
+                    optimized away from the generated code.
                 </p>
                 <p>
-                    There is also a special case, when a certain variable is
-                    assigned a different value from different branches. In such
-                    cases a special <code>phi</code> element is inserted.
+                    There is also a special case, when a variable has a
+                    different value depending on which path of execution is
+                    taken.
                 </p>
-                <pre><code>┌────────┐   ┌────────┐
+                <pre><code>if condition {
+  x = 0;
+} else {
+  x = 1;
+}
+
+y = x;
+</code></pre>
+                <p>
+                    At the point of <code>y = x;</code> the value of
+                    <code>x</code> is <code>0</code> if the condition is true
+                    and <code>1</code> if it is false. To express this in SSA, a
+                    special <code>phi</code> function is inserted.
+                </p>
+                <pre><code>     ┌───────────┐
+     │ condition │
+     └───────────┘
+    ┌──────┴──────┐
+┌────────┐   ┌────────┐
 │ $0 = 0 │   │ $1 = 1 │
-└────────┘   └────────┘  if condition {
-    │             │        x = 0;
-    │             │      } else {
-    V             V        x = 1;
-  ┌─────────────────┐    }
-  │ x = phi($0, $1) │    
-  └─────────────────┘</code></pre>
+└────────┘   └────────┘
+    └──────┬──────┘    
+  ┌─────────────────┐
+  │ x = phi($0, $1) │
+  │ y = x           │
+  └─────────────────┘
+</code></pre>
                 <p>
-                    The <code>x = phi($0, $1)</code> means that the value of
+                    <code>x = phi($0, $1)</code> means that the value of
                     <code>x</code> is either <code>$0</code> or
                     <code>$1</code> depending on which branch is executed.
+                </p>
+                <p>
+                    A <code>phi</code> function can have any number of values,
+                    if there are 3 branches with a different assignment in each,
+                    the resulting function might look like
+                    <code>x = phi($0, $1, $2)</code>.
                 </p>
                 <h2>Codegen</h2>
                 <p>
                     The <code>Codegen</code> class encapsulates the logic for
-                    generation LLVM IR using the
-                    <code>llvm::IRBuilder</code> API. It takes the resolved tree
-                    and instantiates an <code>llvm::LLVMContext</code>, which
-                    owns information that is needed by certain LLVM APIs
-                    including the IR builder, an <code>llvm::Module</code> that
-                    holds the generated IR and an
-                    <code>llvm::IRBuilder</code> that generates the instructions
-                    and inserts them into the module.
+                    generating LLVM IR using the LLVM
+                    <code>IRBuilder</code> API. First an
+                    <code>LLVMContext</code> is created, which owns and manages
+                    the data needed by the <code>IRBuilder</code> and various
+                    other LLVM APIs.
+                </p>
+                <p>
+                    The generated IR is stored inside a
+                    <code>Module</code>, while the instructions are inserted
+                    into the module by the <code>IRBuilder</code> itself.
+                </p>
+                <pre><code>class Codegen {
+  llvm::LLVMContext context;
+  llvm::IRBuilder<> builder;
+  llvm::Module module;
+};</code></pre>
+                <p>
+                    The <code>Codegen</code> class also stores the resolved tree
+                    and takes the path of the source file in it's constructor.
                 </p>
                 <pre><code>class Codegen {
   std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedTree;
 
-  llvm::LLVMContext context;
-  llvm::IRBuilder<> builder;
-  llvm::Module module;
+  ...
 
 public:
-  Codegen(std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedSourceFile,
+  Codegen(std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedTree,
           std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };</code></pre>
                 <p>
-                    The module is named <code>"&lt;translation_unit>"</code> and
-                    the source file name and the target triple are set upon
-                    instantiation. The triple of the host platform can be
-                    retrieved using
-                    <code>llvm::sys::getDefaultTargetTriple()</code>.
+                    The stored <code>Module</code> must be given a name upon
+                    instantiation, so it's going to be called
+                    <code>"&lt;translation_unit>"</code>. The path of the source
+                    file is also inserted into the <code>Module</code> as an
+                    additional information.
                 </p>
-                <p>
-                    The triple contains information about the target machine
-                    such as the CPU architecture and the operating system. It is
-                    used by the LLVM backends to determine how to generate the
-                    native executable.
-                </p>
-                <pre><code>Codegen::Codegen(...): ...,
+                <pre><code>Codegen::Codegen(
+    std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedTree,
+    std::string_view sourcePath)
+    : resolvedTree(std::move(resolvedTree)),
+      builder(context),
       module("&lt;translation_unit>", context) {
   module.setSourceFileName(sourcePath);
-  module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
-}
-</code></pre>
+  ...
+}</code></pre>
                 <p>
-                    <code>generateIR()</code> first generates the IR for the
-                    function declarations, and when all the declarations are
-                    known in the module, it generates the function bodies. Once
-                    the generation is done, the module containing the IR is
-                    returned to the caller.
+                    To help the LLVM backend determine how to generate the
+                    native executable, it is recommended to set the target
+                    triple of the module. This triple contains the information
+                    about the target machine such as it's CPU architecture and
+                    operating system.
+                </p>
+                <p>
+                    Since the goal is to generate an executable native to the
+                    machine the compiler runs on, the target triple is set to
+                    the triple of the current platform, which can be retrieved
+                    with the
+                    <code>llvm::sys::getDefaultTargetTriple()</code> helper.
+                </p>
+                <pre><code>Codegen::Codegen(...) ... {
+  ...
+  module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
+}</code></pre>
+                <p>
+                    The generation of the IR, similarly to the resolution
+                    happens in two passes. First the function declarations are
+                    generated without their bodies, so when the bodies are
+                    generated in the next pass the module already knows about
+                    all of the functions, which makes them easier to call.
                 </p>
                 <pre><code>llvm::Module *Codegen::generateIR() {
-  for (auto &&function : resolvedTree)
+  for (auto &amp;&amp;function : resolvedTree)
     generateFunctionDecl(*function);
 
-  for (auto &&function : resolvedTree)
+  for (auto &amp;&amp;function : resolvedTree)
     generateFunctionBody(*function);
+
+  ...
+}</code></pre>
+                <p>
+                    When both passes finish, a pointer to the module is returned
+                    to the caller. Note that the owner of the
+                    <code>Module</code> cannot be changed, as the module also
+                    depends on the <code>LLVMContext</code> for information, so
+                    the context and the module must be kept together.
+                </p>
+                <pre><code>llvm::Module *Codegen::generateIR() {
+  ...
 
   return &amp;module;
 }</code></pre>
                 <p>
-                    To be able to generate correct IR, the types of the language
-                    have to be converted to types recognized by LLVM.
-                    <code>llvm::IRBuilder</code> provides various builtin types
-                    including <code>double</code> and <code>void</code>.
+                    To be able to generate accurate IR, the types of the
+                    language need to be converted to types recognized by LLVM.
+                    The
+                    <code>IRBuilder</code> interface provides various builtin
+                    types including <code>double</code>, which can be used for
+                    the <code>Number</code> type and <code>void</code>, which
+                    can be used for the corresponding type of the language.
                 </p>
                 <pre><code>llvm::Type *Codegen::generateType(Type type) {
   if (type.kind == Type::Kind::Number)
@@ -173,25 +236,31 @@ public:
   return builder.getVoidTy();
 }</code></pre>
                 <p>
-                    To generate a function, LLVM must know it's signature for
-                    which it needs to be provided with the function's return
-                    type, the types of the parameters the function takes and if
-                    the function is variadic (takes an unknown amount of
-                    arguments) or not.
+                    To generate a function, LLVM must know it's type first. A
+                    function's type is composed of it's return type and the list
+                    of types the function takes as parameters.
                 </p>
                 <pre><code>void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
   auto *retType = generateType(functionDecl.type);
 
   std::vector&lt;llvm::Type *> paramTypes;
-  for (auto &&param : functionDecl.params)
+  for (auto &amp;&amp;param : functionDecl.params)
     paramTypes.emplace_back(generateType(param->type));
 
   ...
 }</code></pre>
                 <p>
-                    With the return type and the type of the arguments known, an
-                    <code>llvm::FunctionType</code> can be retrieved, which will
-                    describe the type of the function to LLVM.
+                    With the return type and the type of the parameters known, a
+                    <code>FunctionType</code> can be retrieved, which is later
+                    used to create the actual function. The last parameter
+                    passed to <code>FunctionType::get()</code> is a flag that
+                    indicates if the function is variadic or not.
+                </p>
+                <p>
+                    A variadic function is a kind of function that takes an
+                    unknown amount of parameter, but since such functions are
+                    not supported by the language, this flag is always set to
+                    <code>false</code>.
                 </p>
                 <pre><code>void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
   ...
@@ -199,11 +268,18 @@ public:
   ...
 }</code></pre>
                 <p>
-                    Finally the declaration of the function can be generated,
-                    which will be inserted into the current module. The
-                    functions are stored inside the module and can be retrieved
-                    anytime using
-                    <code>Module.getFunction(&lt;identifier>)</code>.
+                    Besides the type of the function, LLVM also needs to know
+                    it's linkage. Functions that are visible outside the module
+                    have external linkage, while functions visible only inside
+                    the module have internal linkage. Since this compiler only
+                    works with one module the linkage of a function has no
+                    visible effect. For simplicity however, every function is
+                    created with external linkage.
+                </p>
+                <p>
+                    With the type, the linkage and it's identifier known, the
+                    function can be created inside the module. Since the module
+                    stores the function, it can be retrieved on demand any time.
                 </p>
                 <pre><code>void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
   ...
@@ -211,15 +287,29 @@ public:
                          functionDecl.identifier, module);
 }</code></pre>
                 <p>
-                    In LLVM IR the instructions are placed inside basic blocks.
-                    The first basic block of a function will be called
-                    <code>entry</code>. After creating the
-                    <code>entry</code> block, it's set as the insertion point of
-                    the builder, which means that every instruction the builder
-                    generates will be placed inside this block.
+                    In <code>generateFunctionBody()</code> first the function is
+                    retrieved from the module.
                 </p>
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
+
+  ...
+}</code></pre>
+                <p>
+                    In LLVM IR a set of instructions that execute together is
+                    placed inside a basic block. The basic block representing
+                    the body of the function is called
+                    <code>entry</code>.
+                </p>
+                <p>
+                    After creating the
+                    <code>entry</code> block of the function, it's set as the
+                    insertion point of the builder, which means that every
+                    instruction the builder generates is now placed inside this
+                    block.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
 
   auto *entryBB = llvm::BasicBlock::Create(context, "entry", function);
   builder.SetInsertPoint(entryBB);
@@ -227,63 +317,49 @@ public:
   ...
 }</code></pre>
                 <p>
-                    With return statements it's possible to return from the
-                    function before it's end is reached as well as return
-                    arbitrary values. To handle returning arbitrary values, a
-                    variable is allocated on the stack, and the return
-                    statements will modify this variable and then jump into a
-                    dedicated return block.
+                    Parameter declarations are not known by the module unlike
+                    the functions they belong to. To be able to reference them
+                    throughout the IR generation, their declarations are mapped
+                    to their values in the IR.
                 </p>
-                <pre><code>class Codegen {
-  ...
-  llvm::Value *retVal = nullptr;
-  llvm::BasicBlock *retBB = nullptr;
-  ...
-};
-void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
-  ...
 
-  bool isVoid = functionDecl.type.kind == Type::Kind::Void;
-  if (!isVoid)
-    retVal = allocateStackVariable(function, "retval");
-  retBB = llvm::BasicBlock::Create(context, "return");
-
-  ...
-}</code></pre>
-                <p>
-                    The arguments of the function are immutable by default, but
-                    later mutable variables will be introduced, which are
-                    allocated on the stack. To avoid refactoring and make the
-                    handling of <code>ResolvedDeclRefExpr</code> simpler, the
-                    arguments of the function are also placed on the stack.
-                </p>
-                <p>
-                    Unlike functions, parameters are not retrievable from the
-                    module by their identifier, so to make referencing them
-                    easier, each of the is stored in a map, that maps their
-                    <code>Decl</code> to their <code>llvm::Value *</code>.
-                </p>
                 <pre><code>class Codegen {
   ...
   std::map&lt;const ResolvedDecl *, llvm::Value *> declarations;
   ...
-};
-
-void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+};</code></pre>
+                <p>For each of the parameters, it's name is set first.</p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   ...
 
   int idx = 0;
-  for (auto &&arg : function->args()) {
+  for (auto &amp;&amp;arg : function->args()) {
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
+
+    ...
+    ++idx;
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    Then a variable on the stack is allocated for the parameter
+                    and it's value is stored inside this variable. The
+                    <code>ResolvedDecl</code> is also mapped to this variable on
+                    the stack.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
+  for (auto &amp;&amp;arg : function->args()) {
+    ...
 
     llvm::Value *var = allocateStackVariable(function, paramDecl->identifier);
     builder.CreateStore(&arg, var);
 
     declarations[paramDecl] = var;
-    ++idx;
+    ...
   }
-
   ...
 }</code></pre>
                 <p>
@@ -293,47 +369,53 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   ...
   generateBlock(*functionDecl.body);
-  ...
-}</code></pre>
-                <p>
-                    If there are multiple return statements, control jumps from
-                    the current block to the return block and the return block
-                    is inserted into the function. Then based on the return type
-                    either void, or the current return value is returned.
-                </p>
-                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
-  ...
-
-  if (retBB->hasNPredecessorsOrMore(1)) {
-    builder.CreateBr(retBB);
-    retBB->insertInto(function);
-    builder.SetInsertPoint(retBB);
-  }
-
-  if (isVoid) {
-    builder.CreateRetVoid();
-    return;
-  }
-
-  builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
 }</code></pre>
                 <h2>Allocating Stack Variables</h2>
                 <p>
-                    Allocating variables on the stack is done by the
-                    <code>allocateStackVariable</code> function. The variables
-                    are inserted to the beginning of the
-                    <code>entry</code> block, so they are visible to every
-                    instruction inside the block. To achieve this, first a
-                    placeholder is inserted to the block, before which the
-                    variables can be inserted.
+                    Allocating variables on the stack happens inside
+                    <code>allocateStackVariable()</code>. The variables are
+                    inserted to the beginning of the <code>entry</code> block,
+                    so they are visible to every instruction inside that block.
+                </p>
+                <p>
+                    By default the <code>IRBuilder</code> can only insert
+                    instructions before another instruction or at the end of the
+                    block.
+                </p>
+                <p>
+                    The problem with inserting at the end of block is that the
+                    variables always appear after they are used, which is an
+                    error. A different approach might be to always insert before
+                    the first instruction, but in that case it's always the
+                    latest variable appearing first, so the order is reversed.
+                </p>
+                <p>
+                    The idea is to insert a placeholder instruction to the
+                    beginning of the <code>entry</code> block and always insert
+                    the stack variables before this placeholder.
                 </p>
                 <pre><code>class Codegen {
   ...
   llvm::Instruction *allocaInsertPoint;
   ...
-};
-
-void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+};</code></pre>
+                <p>
+                    This way the latest variable is inserted before the
+                    placeholder and directly after the previous variable.
+                </p>
+                <pre><code>                                        entry:        
+                    entry:                %var1
+entry:                %var1               %var2
+  %placeholder        %placeholder        %placeholder
+</code></pre>
+                <p>
+                    The placeholder is inserted in
+                    <code>generateFunctionBody()</code> right after setting the
+                    insertion point to the entry block. Any instruction without
+                    side effects is sufficient, but to stick to what is seen in
+                    clang, the bit casting of an undefined value is inserted.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   ...
   builder.SetInsertPoint(entryBB);
 
@@ -342,16 +424,23 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
                                             "alloca.placeholder", entryBB);
 
   ...
+}</code></pre>
+                <p>
+                    Since this placeholder is no longer needed once the
+                    generation of the function body is done, it is removed at
+                    the end of the function.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
 
   allocaInsertPoint->eraseFromParent();
   allocaInsertPoint = nullptr;
-
-  if (isVoid) {
-  ...
 }</code></pre>
                 <p>
-                    Then the function can create a temporary builder to insert
-                    the alloca instructions.
+                    With the placeholder in place,
+                    <code>allocateStackVariable()</code> can create a new
+                    builder, set it's insertion point to the placeholder and
+                    allocate the space for the given variable.
                 </p>
                 <pre><code>llvm::AllocaInst *
 Codegen::allocateStackVariable(llvm::Function *function,
@@ -369,7 +458,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                     statement are unreachable anyway.
                 </p>
                 <pre><code>void Codegen::generateBlock(const ResolvedBlock &block) {
-  for (auto &&stmt : block.statements) {
+  for (auto &amp;&amp;stmt : block.statements) {
     generateStmt(*stmt);
 
     if (dynamic_cast&lt;const ResolvedReturnStmt *>(stmt.get())) {
@@ -379,8 +468,10 @@ Codegen::allocateStackVariable(llvm::Function *function,
   }
 }</code></pre>
                 <p>
-                    The same pattern is followed in codegen that can be seen in
-                    sema.
+                    The same pattern is followed in <code>Codegen</code> that
+                    can be seen in <code>Sema</code>. The
+                    <code>generateStmt()</code> method acts as the driver for
+                    statement generation.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
   if (auto *expr = dynamic_cast&lt;const ResolvedExpr *>(&stmt))
@@ -390,104 +481,230 @@ Codegen::allocateStackVariable(llvm::Function *function,
     return generateReturnStmt(*returnStmt);
 
   llvm_unreachable("unknown statement");
-  return nullptr;
 }</code></pre>
                 <p>
-                    If the return statement returns a value, the value is stored
-                    into the dedicated return variable. After that a jump is
-                    inserted to the return block.
+                    With return statements the execution of the function can
+                    come to an end at an arbitrary point inside the body. If the
+                    function is non-void, it can also return an arbitrary value.
+                </p>
+                <p>
+                    The common pattern to handle this, is to create a dedicated
+                    return variable on the stack and a dedicated return basic
+                    block.
+                </p>
+                <pre><code>class Codegen {
+  ...
+  llvm::Value *retVal = nullptr;
+  llvm::BasicBlock *retBB = nullptr;
+  ...
+};</code></pre>
+                <p>
+                    Both of these helpers are created in
+                    <code>generateFunctionBody()</code> before the arguments are
+                    allocated, so that the return variable is the first on the
+                    stack. If the function doesn't return a value, there is no
+                    need to allocate this variable.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
+
+  bool isVoid = functionDecl.type.kind == Type::Kind::Void;
+  if (!isVoid)
+    retVal = allocateStackVariable(function, "retval");
+  retBB = llvm::BasicBlock::Create(context, "return");
+
+  int idx = 0;
+  ...
+}</code></pre>
+                <p>
+                    If there is at least one explicit return statement, the
+                    return block needs to be inserted into the function.
+                    Otherwise nothing jumps to this block and the
+                    <code>ret</code> instructions can be inserted at the end of
+                    the current block.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
+
+  if (retBB->hasNPredecessorsOrMore(1)) {
+    builder.CreateBr(retBB);
+    retBB->insertInto(function);
+    builder.SetInsertPoint(retBB);
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    If the function is <code>void</code>, the corresponding
+                    instruction is inserted. Otherwise the function returns the
+                    value stored in the dedicated return variable.
+                </p>
+                <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
+  ...
+
+  if (isVoid) {
+    builder.CreateRetVoid();
+    return;
+  }
+
+  builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
+}</code></pre>
+                <p>
+                    When the return statement is visited and it returns a value,
+                    the value is stored in the dedicated return variable.
+                    Finally a jump to the return block is inserted.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
   if (stmt.expr)
     builder.CreateStore(generateExpr(*stmt.expr), retVal);
 
-  assert(retBB && "function with return stmt doesn't have a return block");
   return builder.CreateBr(retBB);
 }</code></pre>
-                <h2>Generate Expressions</h2>
+                <h2>Generating Expressions</h2>
                 <p>
-                    An expression returns a value, which is represented by an
-                    <code>llvm::Value*</code>. Otherwise expressions don't
-                    require any special handling, generating them is fairly
-                    straightforward.
+                    The generation of expressions is driven by
+                    <code>generateExpr()</code>. Since the method is expected to
+                    handle every expression, it's end is unreachable.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
+  ...
+
+  llvm_unreachable("unexpected expression");
+}</code></pre>
+                <p>
+                    From a <code>NumberLiteral</code> a constant floating point
+                    value is generated with the corresponding value.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto *number = dynamic_cast&lt;const ResolvedNumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
 
+  ...
+}</code></pre>
+                <p>
+                    A <code>DeclRefExpr</code> loads the value of the
+                    corresponding declaration from memory.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
+  ...
+
   if (auto *dre = dynamic_cast&lt;const ResolvedDeclRefExpr *>(&expr))
     return builder.CreateLoad(builder.getDoubleTy(), declarations[dre->decl]);
+
+ ...
+}</code></pre>
+                <p>
+                    Generating IR for a <code>CallExpr</code> takes a little bit
+                    more code, so it gets it's own generator method.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
+  ...
 
   if (auto *call = dynamic_cast&lt;const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
 
-  llvm_unreachable("unknown expression encountered");
-  return nullptr;
-}
-
-llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
+ ...
+}</code></pre>
+                <p>First the callee is looked up from the module.</p>
+                <pre><code>llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   llvm::Function *callee = module->getFunction(call.callee->identifier);
 
+  ...
+}</code></pre>
+                <p>
+                    Then the arguments are generated and collected into a list.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
+  ...
+
   std::vector&lt;llvm::Value *> args;
-  for (auto &&arg : call.arguments)
+  for (auto &amp;&amp;arg : call.arguments)
     args.emplace_back(generateExpr(*arg));
+
+  ...
+}</code></pre>
+                <p>
+                    Finally the looked up function is called with the generated
+                    arguments.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
+  ...
 
   return builder.CreateCall(callee, args);
 }</code></pre>
                 <h2>Printing Values</h2>
                 <p>
-                    To be able to print values, the builtin
-                    <code>println</code> function will call the
-                    <code>printf</code> function in <code>libc</code>.
+                    To print values, the builtin
+                    <code>println()</code> function calls the
+                    <code>printf()</code> function from <code>libc</code>.
+                </p>
+                <p>
+                    <code>printf()</code> takes a format string as it's first
+                    argument followed by an unknown amount of arguments.
                 </p>
                 <pre><code>int printf(const char* format, ...);</code></pre>
                 <p>
-                    To be able to call it, it first must be declared in the IR.
-                    Since <code>printf</code> is a variadic function, the last
-                    parameter of <code>FunctionType::get</code> is
-                    <code>true</code>. Also a <code>char *</code> is a pointer
-                    to an 8 bit integer value, so in LLVM IR it corresponds to
-                    the <code>Int8Ptr</code> type.
+                    Before the function can be called from the module, it must
+                    be declared. The return type of the function is
+                    <code>Int32</code>, while
+                    <code>const char *</code> translates to
+                    <code>Int8Ptr</code> because a <code>char</code> is an 8 bit
+                    integer value and constness doesn't matter in LLVM IR. Also
+                    because <code>printf()</code> taken an unknown amount of
+                    arguments, it's a variadic function, which must be kept in
+                    mind when getting the function type.
                 </p>
                 <pre><code>void Codegen::generateBuiltinPrintBody() {
   auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
                                        {builder.getInt8PtrTy()}, true);
+  ...
+}</code></pre>
+                <p>
+                    With the type known, the function can be created too.
+                    Because <code>printf()</code> lives inside libc, it must be
+                    created with external linkage for the linker to find it.
+                </p>
+                <pre><code>void Codegen::generateBuiltinPrintBody() {
+  ...
   auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
                                         "printf", *module);
   ...
 }</code></pre>
                 <p>
-                    To generate the call, <code>IRBuilder</code> must be
-                    provided with the pointer to the function being called and
-                    the arguments. The first argument is string literal to the
-                    format string and the second is the parameter of
-                    <code>print</code>.
+                    The function is called with the
+                    <code>"%.15g\n"</code> format string, which means that the
+                    value is either converted to a decimal notation if possible,
+                    or gets printed in a floating point notation with a 15 digit
+                    precision followed by a new line at the end.
                 </p>
                 <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
   ...
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
-
+  ...
+}</code></pre>
+                <p>
+                    The first and only variadic argument passed to
+                    <code>printf()</code> is the first argument of the builtin
+                    <code>println()</code> function.
+                </p>
+                <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
+  ...
   llvm::Value *param = builder.CreateLoad(
       builder.getDoubleTy(), declarations[println.params[0].get()]);
 
+  ...
+}</code></pre>
+                <p>
+                    Finally the call to <code>printf()</code> with the generated
+                    arguments is inserted.
+                </p>
+                <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &amp;println) {
+  ...
   builder.CreateCall(printf, {format, param});
 }</code></pre>
                 <p>
-                    The resulting LLVM IR after
-                    <code>generateFunctionBody</code> returns can be seen below.
-                </p>
-                <pre><code>@0 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
-
-define void @print(double %n) {
-  %1 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %n)
-  ret void
-}
-
-declare i32 @printf(i8* %0, ...)
-</code></pre>
-                <p>
-                    This function is invoked from
-                    <code>generateFunctionBody</code>.
+                    This body of <code>println()</code> is generated when the
+                    function is seen in <code>generateFunctionBody()</code>.
                 </p>
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   ...
@@ -502,55 +719,64 @@ declare i32 @printf(i8* %0, ...)
                 <h2>The Main Function</h2>
                 <p>
                     The last thing that needs special handling is the
-                    <code>main</code> function. Right now it's a
-                    <code>void</code> function inside the IR, but that will
-                    cause troubles when LLVM attempts to turn the IR into an
-                    executable.
-                </p>
-                <pre><code>define void @main() {
-  ret void
-}</code></pre>
-                <p>
-                    LLVM will attempt to link the generated platform specific
-                    code against the C runtime library, which expects
-                    <code>main</code> to return an <code>int</code>, so the
-                    linker will fail.
+                    <code>main()</code> function. Right now it's a
+                    <code>void</code> function but the clang driver attempts to
+                    link the generated platform specific code against the C
+                    runtime library, which expects <code>main()</code> to return
+                    an <code>int</code>, so the linking fails.
                 </p>
                 <p>
-                    To overcome this problem, the <code>main</code> function is
-                    renamed to <code>__builtin_main</code> and there is a
-                    different <code>main</code> generated that calls
-                    <code>__builtin_main</code> and returns <code>0</code>.
+                    To overcome the problem, the current
+                    <code>main()</code> function is renamed to
+                    <code>__builtin_main()</code> and a new
+                    <code>main()</code> wrapper is generated that calls
+                    <code>__builtin_main()</code> and returns <code>0</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;llvm::Module> Codegen::generateIR() {
   ...
 
   generateMainWrapper();
 
-  return std::move(module);
+  return &amp;module;
 }</code></pre>
+                <p>
+                    First the <code>main()</code> function is looked up from the
+                    module and gets renamed to <code>__builtin_main()</code>.
+                </p>
                 <pre><code>void Codegen::generateMainWrapper() {
   auto *builtinMain = module->getFunction("main");
   builtinMain->setName("__builtin_main");
 
+  ...
+}</code></pre>
+                <p>
+                    A new <code>main()</code> function is created with it's
+                    expected <code>int main()</code> signature and external
+                    linkage.
+                </p>
+                <pre><code>void Codegen::generateMainWrapper() {
+  ...
+
   auto *main = llvm::Function::Create(
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
       llvm::Function::ExternalLinkage, "main", *module);
+
+  ...
+}</code></pre>
+                <p>
+                    Finally, a basic block is created for the body of the
+                    function and the call to <code>__builtin_main()</code> is
+                    inserted followed by a return statement, that returns
+                    <code>0</code>.
+                </p>
+                <pre><code>void Codegen::generateMainWrapper() {
+  ...
 
   auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
 
   builder.CreateCall(builtinMain);
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
-}</code></pre>
-                <p>The resulting IR can be seen below.</p>
-                <pre><code>define void @__builtin_main() {
-  ret void
-}
-
-define i32 @main() {
-  call void @__builtin_main()
-  ret i32 0
 }</code></pre>
             </section>
             <footer>
