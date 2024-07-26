@@ -1,7 +1,7 @@
 // RUN: compiler -h 2>&1 | filecheck %s --strict-whitespace
 
 // CHECK: Usage:
-// CHECK-NEXT:   your-compiler [options] <source_file>
+// CHECK-NEXT:   compiler [options] <source_file>
 // CHECK-NEXT: 
 // CHECK-NEXT: Options:
 // CHECK-NEXT:   -h           display this message

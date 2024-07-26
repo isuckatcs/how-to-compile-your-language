@@ -15,7 +15,7 @@ using namespace yl;
 namespace {
 void displayHelp() {
   std::cout << "Usage:\n"
-            << "  your-compiler [options] <source_file>\n\n"
+            << "  compiler [options] <source_file>\n\n"
             << "Options:\n"
             << "  -h           display this message\n"
             << "  -o <file>    write executable to <file>\n"
