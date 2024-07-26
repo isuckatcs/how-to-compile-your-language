@@ -167,14 +167,14 @@ struct BinaryOperator : public Expr {
 };
 
 struct UnaryOperator : public Expr {
-  std::unique_ptr<Expr> rhs;
+  std::unique_ptr<Expr> operand;
   TokenKind op;
 
   UnaryOperator(SourceLocation location,
-                std::unique_ptr<Expr> rhs,
+                std::unique_ptr<Expr> operand,
                 TokenKind op)
       : Expr(location),
-        rhs(std::move(rhs)),
+        operand(std::move(operand)),
         op(op) {}
 
   void dump(size_t level = 0) const override;
@@ -431,14 +431,14 @@ struct ResolvedBinaryOperator : public ResolvedExpr {
 
 struct ResolvedUnaryOperator : public ResolvedExpr {
   TokenKind op;
-  std::unique_ptr<ResolvedExpr> expr;
+  std::unique_ptr<ResolvedExpr> operand;
 
   ResolvedUnaryOperator(SourceLocation location,
                         TokenKind op,
-                        std::unique_ptr<ResolvedExpr> rhs)
-      : ResolvedExpr(location, rhs->type),
+                        std::unique_ptr<ResolvedExpr> operand)
+      : ResolvedExpr(location, operand->type),
         op(op),
-        expr(std::move(rhs)) {}
+        operand(std::move(operand)) {}
 
   void dump(size_t level = 0) const override;
 };

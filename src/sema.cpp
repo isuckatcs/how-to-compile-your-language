@@ -194,7 +194,7 @@ std::optional<Type> Sema::resolveType(Type parsedType) {
 
 std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
-  varOrReturn(resolvedRHS, resolveExpr(*unary.rhs));
+  varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
 
   if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(

@@ -154,7 +154,7 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
-  llvm::Value *rhs = generateExpr(*unop.expr);
+  llvm::Value *rhs = generateExpr(*unop.operand);
 
   if (unop.op == TokenKind::Excl)
     return boolToDouble(builder.CreateNot(doubleToBool(rhs)));

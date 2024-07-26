@@ -111,7 +111,7 @@ int CFGBuilder::insertExpr(const ResolvedExpr &expr, int block) {
     return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);
 
   if (const auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
-    return insertExpr(*unop->expr, block);
+    return insertExpr(*unop->operand, block);
 
   return block;
 }

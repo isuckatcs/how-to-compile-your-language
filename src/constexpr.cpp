@@ -82,7 +82,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
 
 std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
     const ResolvedUnaryOperator &op, bool allowSideEffects) {
-  std::optional<double> rhs = evaluate(*op.expr, allowSideEffects);
+  std::optional<double> rhs = evaluate(*op.operand, allowSideEffects);
   if (!rhs)
     return std::nullopt;
 

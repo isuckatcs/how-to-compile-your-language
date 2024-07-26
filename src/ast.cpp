@@ -97,7 +97,7 @@ void UnaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "UnaryOperator: '" << getOpStr(op) << '\''
             << '\n';
 
-  rhs->dump(level + 1);
+  operand->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {
@@ -230,7 +230,7 @@ void ResolvedUnaryOperator::dump(size_t level) const {
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 
-  expr->dump(level + 1);
+  operand->dump(level + 1);
 }
 
 void ResolvedDeclStmt::dump(size_t level) const {
