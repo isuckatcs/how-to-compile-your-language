@@ -81,16 +81,16 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
 }
 
 std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
-    const ResolvedUnaryOperator &op, bool allowSideEffects) {
-  std::optional<double> rhs = evaluate(*op.operand, allowSideEffects);
-  if (!rhs)
+    const ResolvedUnaryOperator &unop, bool allowSideEffects) {
+  std::optional<double> operand = evaluate(*unop.operand, allowSideEffects);
+  if (!operand)
     return std::nullopt;
 
-  if (op.op == TokenKind::Excl)
-    return !*toBool(rhs);
+  if (unop.op == TokenKind::Excl)
+    return !*toBool(operand);
 
-  if (op.op == TokenKind::Minus)
-    return -*rhs;
+  if (unop.op == TokenKind::Minus)
+    return -*operand;
 
   llvm_unreachable("unexpected unary operator");
 }
