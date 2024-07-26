@@ -30,7 +30,7 @@ fn branch(x: number): void {
     }
 
     return;
-    // CHECK: [[# @LINE + 1 ]]:5: warning: unreachable statement
+    // CHECK: [[# @LINE + 1 ]]:9: warning: unreachable statement
     3.0 + 5.0;
 }
 

@@ -325,8 +325,8 @@ std::unique_ptr<Expr> Parser::parseExpr() {
 std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
                                            int precedence) {
   while (true) {
-    TokenKind op = nextToken.kind;
-    int curOpPrec = getTokPrecedence(op);
+    Token op = nextToken;
+    int curOpPrec = getTokPrecedence(op.kind);
 
     if (curOpPrec < precedence)
       return lhs;
@@ -340,8 +340,8 @@ std::unique_ptr<Expr> Parser::parseExprRHS(std::unique_ptr<Expr> lhs,
         return nullptr;
     }
 
-    lhs = std::make_unique<BinaryOperator>(lhs->location, std::move(lhs),
-                                           std::move(rhs), op);
+    lhs = std::make_unique<BinaryOperator>(op.location, std::move(lhs),
+                                           std::move(rhs), op.kind);
   }
 }
 
