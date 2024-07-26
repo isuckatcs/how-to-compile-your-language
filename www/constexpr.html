@@ -45,7 +45,7 @@
                 </ul>
             </header>
             <section>
-                <h1>Constant Expression Evaluation</h1>
+                <h1>Compile Time Known Values</h1>
                 <p>
                     The result of some expressions can be evaluated during
                     compilation. This allows the compiler to reason better about
@@ -63,9 +63,10 @@
                 <h2>A Tree-walk Interpreter</h2>
                 <p>
                     There are multiple solutions for constant expression
-                    evaluation, but the most common is a tree-walk interpreter.
-                    It is built on the observation that the post order
-                    evaluation of the AST yields the result of the expression.
+                    evaluation, but one of the most widespread is the tree-walk
+                    interpreter. It is built on the observation that the post
+                    order evaluation of the AST yields the result of the
+                    expression.
                 </p>
                 <pre><code>     ┌───┐                 
   ┌──│ + │──┐              Post-order traversal:
@@ -78,14 +79,19 @@
      └───┘      └───┘</code></pre>
                 <p>
                     As a result, this interpreter traverses the AST nodes in
-                    post order and evaluates what it sees. It is invoked on
-                    resolved expressions on demand. Since valid expressions can
-                    only return numbers, the interpreter returns an
-                    <code>std::optional&lt;double></code>, which holds the value
-                    if it managed to evaluate the expression. For the evaluation
-                    of some operators it matters if side effects are allowed or
-                    not, so the interpreter also provides an option that allows
-                    them.
+                    post order and evaluates what it sees.
+                </p>
+                <p>
+                    Inside the compiler it can be invoked on resolved
+                    expressions on demand. Since valid expressions can only
+                    evaluate to numbers, the interpreter returns an
+                    <code>std::optional&lt;double></code>, which holds the
+                    result if it managed to evaluate the expression.
+                </p>
+                <p>
+                    For the evaluation of some operators it matters if side
+                    effects are allowed or not, so the interpreter also provides
+                    an option to change how side effects are treated.
                 </p>
                 <pre><code>class ConstantExpressionEvaluator {
 public:
@@ -123,8 +129,9 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    For unary operators each operator needs to be handled
-                    separately, so it's handled in a dedicated method.
+                    For unary operators, every different operator needs to be
+                    handled separately, so a dedicated method is created for
+                    that purpose.
                 </p>
 
                 <pre><code>std::optional&lt;double>
@@ -139,27 +146,27 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    First RHS is evaluated, and if it is a known value, either
-                    it's numeric or logical value is negated depending on the
-                    operator.
+                    First the operand is evaluated, and if it is a known value,
+                    either it's numeric or logical value is negated depending on
+                    the operator.
                 </p>
                 <pre><code>std::optional&lt;double> ConstantExpressionEvaluator::evaluateUnaryOperator(
-    const ResolvedUnaryOperator &op, bool allowSideEffects) {
-  std::optional&lt;double> rhs = evaluate(*op.rhs, allowSideEffects);
-  if (!rhs)
+    const ResolvedUnaryOperator &unop, bool allowSideEffects) {
+  std::optional&lt;double> operand = evaluate(*unop.operand, allowSideEffects);
+  if (!operand)
     return std::nullopt;
 
-  if (op.op == TokenKind::Excl)
-    return !*toBool(rhs);
+  if (unop.op == TokenKind::Excl)
+    return !*toBool(operand);
 
-  if (op.op == TokenKind::Minus)
-    return -*rhs;
+  if (unop.op == TokenKind::Minus)
+    return -*operand;
 
-  assert(false && "unexpected unary operator");
+  llvm_unreachable("unexpected unary operator");
 }</code></pre>
                 <p>
-                    The <code>toBool</code> helper converts a numeric value to a
-                    logical value. If the value is <code>0</code>, it is
+                    The <code>toBool()</code> helper converts a numeric value to
+                    a logical value. If the value is <code>0</code>, it is
                     considered <code>false</code>, otherwise the value is
                     considered <code>true</code>.
                 </p>
@@ -172,7 +179,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
                 <h2>Handling Side Effects</h2>
                 <p>
                     For each binary operator the LHS is evaluated first, but
-                    lazily evaluated operators like <code>&&</code> and
+                    lazily evaluated operators like <code>&amp;&amp;</code> and
                     <code>||</code> need special handling before the RHS can be
                     evaluated too.
                 </p>
@@ -201,7 +208,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
     const ResolvedBinaryOperator &binop, bool allowSideEffects) {
   std::optional&lt;double> lhs = evaluate(*binop.lhs);
 
-  if (!lhs && !allowSideEffects)
+  if (!lhs &amp;&amp; !allowSideEffects)
     return std::nullopt;
 
   if (binop.op == TokenKind::PipePipe) {
@@ -235,9 +242,10 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    If both the LHS and the RHS known, but none of them is
-                    <code>true</code> the result is <code>false</code>. In every
-                    other cases the result cannot be calculated in compile time.
+                    If both the LHS and the RHS are known, but none of them is
+                    <code>true</code>, the result is <code>false</code>. In
+                    every other case the result cannot be calculated in compile
+                    time.
                 </p>
                 <pre><code>std::optional&lt;double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     const ResolvedBinaryOperator &binop, bool allowSideEffects) {
@@ -246,7 +254,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   if (binop.op == TokenKind::PipePipe) {
     ...
 
-    if (lhs && rhs)
+    if (lhs &amp;&amp; rhs)
       return 0.0;
 
     return std::nullopt;
@@ -255,12 +263,13 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    The <code>&&</code> operator is handled the same way, except
-                    with the opposite logical values. If LHS or RHS is known to
-                    be <code>false</code>, the result is <code>false</code>, if
-                    both of them are known to be <code>true</code>, the result
-                    is <code>true</code> and the result is unknown in every
-                    other case.
+                    The <code>&amp;&amp;</code> operator is handled the same
+                    way, except with the opposite logical values. If the LHS or
+                    RHS is known to be <code>false</code> when side effects
+                    don't matter, the result is <code>false</code>. If both of
+                    them are known to be <code>true</code>, the result is
+                    <code>true</code> and the result is unknown in every other
+                    case.
                 </p>
                 <pre><code>std::optional&lt;double> ConstantExpressionEvaluator::evaluateBinaryOperator(
     const ResolvedBinaryOperator &binop) {
@@ -274,7 +283,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
     if (toBool(rhs) == false)
       return 0.0;
 
-    if (lhs && rhs)
+    if (lhs &amp;&amp; rhs)
       return 1.0;
 
     return std::nullopt;
@@ -314,22 +323,20 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   case TokenKind::EqualEqual:
     return *lhs == *rhs;
   default:
-    assert(false && "unexpected binary operator");
-    return std::nullopt;
+    llvm_unreachable("unexpected binary operator");
   }
 }</code></pre>
                 <h2>Storing the Result</h2>
                 <p>
                     The <code>ResolvedExpr</code> node is equipped with the
-                    capability to store it's compile time known value, so that
-                    it can be reused later for further reasoning about the
-                    semantic and more efficient code generation without
-                    recalculation.
+                    capability of storing it's compile time known value, so that
+                    it can be reused later without recalculation for further
+                    reasoning about the semantic of the source file and more
+                    efficient code generation.
                 </p>
                 <p>
                     Instead of directly storing the value in the node, a
-                    <code>ConstantValueContainer</code> utility is created,
-                    which becomes a base class of <code>ResolvedExpr</code>.
+                    <code>ConstantValueContainer</code> utility is created.
                 </p>
                 <pre><code>template &lt;typename Ty> class ConstantValueContainer {
   std::optional&lt;Ty> value = std::nullopt;
@@ -337,29 +344,30 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
 public:
   void setConstantValue(std::optional&lt;Ty> val) { value = std::move(val); }
   std::optional&lt;Ty> getConstantValue() const { return value; }
-};
-
-struct ResolvedExpr : public ConstantValueContainer&lt;double>,
+};</code></pre>
+                <p>
+                    This utility then becomes the base class of the
+                    <code>ResolvedExpr</code> node.
+                </p>
+                <pre><code>struct ResolvedExpr : public ConstantValueContainer&lt;double>,
                       public ResolvedStmt {
   ...
 };
 </code></pre>
+
                 <p>
                     To be able to visualize the calculated value of an
                     expression, the
-                    <code>dump()</code> methods need to be updated too.
+                    <code>dump()</code> method of every resolved expression
+                    needs to be extended.
                 </p>
-                <pre><code>struct ResolvedNumberLiteral : public ResolvedExpr {
+                <pre><code>void ResolvedNumberLiteral::dump(size_t level) const {
   ...
+  if (auto val = getConstantValue())
+    std::cerr << indent(level) << "| value: " << *val << '\n';
+}
 
-  void dump(size_t level = 0) const override {
-    std::cerr << indent(level) << "ResolvedNumberLiteral: '" << value << "'\n";
-    if (auto val = getConstantValue())
-      std::cerr << indent(level) << "| value: " << *val << '\n';
-  }
-};
-
-// The rest of the dump() methods are omitted.
+// The rest of the dump() method extensions are omitted.
 ...</code></pre>
                 <p>
                     With the ability to store the result, the
@@ -375,9 +383,9 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
   ...
 }</code></pre>
                 <p>
-                    The same optimization can be used during code generation
-                    too, so that instead of a series of instructions, only a
-                    constant value is generated.
+                    The same optimization can also be used during code
+                    generation, so that instead of a series of instructions,
+                    only a constant value is generated.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto val = expr.getConstantValue())
@@ -387,9 +395,8 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
 }</code></pre>
                 <h2>Calling the Interpreter</h2>
                 <p>
-                    The constant expression evaluator is instantiated once
-                    inside <code>Sema</code> and called on demand in a set of
-                    cases.
+                    The constant expression evaluator is instantiated with
+                    <code>Sema</code> and called on demand in a set of cases.
                 </p>
                 <pre><code>class Sema {
   ConstantExpressionEvaluator cee;
@@ -399,12 +406,12 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
                     One of such cases is calculating the value of an argument
                     passed to a function. Since the expression is expected to be
                     replaced with a constant value, the
-                    <code>allowSideEffects</code> parameter is set to
+                    <code>allowSideEffects</code> option is set to be
                     <code>false</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   ...
-  for (auto &&arg : call.arguments) {
+  for (auto &amp;&amp;arg : call.arguments) {
     ...
       return report(resolvedArg->location, "unexpected type of argument");
 
