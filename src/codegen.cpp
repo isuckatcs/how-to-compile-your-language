@@ -168,11 +168,12 @@ llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
 void Codegen::generateConditionalOperator(const ResolvedExpr &op,
                                           llvm::BasicBlock *trueBB,
                                           llvm::BasicBlock *falseBB) {
+  llvm::Function *function = getCurrentFunction();
   const auto *binop = dynamic_cast<const ResolvedBinaryOperator *>(&op);
 
   if (binop && binop->op == TokenKind::PipePipe) {
     llvm::BasicBlock *nextBB =
-        llvm::BasicBlock::Create(context, "or.lhs.false", trueBB->getParent());
+        llvm::BasicBlock::Create(context, "or.lhs.false", function);
     generateConditionalOperator(*binop->lhs, trueBB, nextBB);
 
     builder.SetInsertPoint(nextBB);
@@ -182,7 +183,7 @@ void Codegen::generateConditionalOperator(const ResolvedExpr &op,
 
   if (binop && binop->op == TokenKind::AmpAmp) {
     llvm::BasicBlock *nextBB =
-        llvm::BasicBlock::Create(context, "and.lhs.true", trueBB->getParent());
+        llvm::BasicBlock::Create(context, "and.lhs.true", function);
     generateConditionalOperator(*binop->lhs, nextBB, falseBB);
 
     builder.SetInsertPoint(nextBB);
@@ -192,7 +193,6 @@ void Codegen::generateConditionalOperator(const ResolvedExpr &op,
 
   llvm::Value *val = doubleToBool(generateExpr(op));
   builder.CreateCondBr(val, trueBB, falseBB);
-  return;
 };
 
 llvm::Value *
