@@ -51,25 +51,25 @@
                 <p>
                     The driver is an often forgotten part of the compiler,
                     unknown to many developers. This is the component that
-                    prepares the environment in which the compiler will run.
+                    prepares the environment in which the compiler runs.
                     Validating the input files, providing the compiler with the
                     required settings for compilation, connecting the different
-                    parts of the compiler and cleaning up artifacts such as
-                    temporary files needed during the compilation are all the
+                    parts of the pipeline and cleaning up artifacts such as
+                    temporary files needed during compilation are all the
                     responsibilities of the driver.
                 </p>
                 <p>
                     Many developers believe that when they compile a source file
-                    with a well-known compiler like <code>Clang</code>, they
+                    with a well-known compiler such as <code>Clang</code>, they
                     invoke the compiler, but in reality they invoke the driver,
-                    which will invoke the compiler for them at a later point.
+                    which invokes the compiler for them at a later point.
                 </p>
                 <pre><code>$ clang++ main.cpp</code></pre>
                 <p>
-                    The above command invokes the <code>clang</code> driver and
-                    not the compiler. To see the actual invocations that will be
-                    performed the <code>-###</code> (dry-run) option can be
-                    passed to the driver.
+                    The above command invokes the <code>Clang</code> driver and
+                    not the compiler. To see the actual invocations that are
+                    performed the <code>-###</code> option can be passed to the
+                    driver.
                 </p>
                 <pre><code>$ clang++ -### main.cpp
 ... clang version 14.0.0 ...
@@ -112,6 +112,11 @@
                     line arguments, so to handle them, the arguments need to be
                     parsed first.
                 </p>
+                <p>
+                    The parsed arguments are stored inside the
+                    <code>CompilerOptions</code> record, to make passing them
+                    around easier.
+                </p>
                 <pre><code>struct CompilerOptions {
   std::filesystem::path source;
   std::filesystem::path output;
@@ -119,13 +124,14 @@
   bool astDump = false;
   bool resDump = false;
   bool llvmDump = false;
-  bool cfgDump = false;
 };</code></pre>
                 <p>
-                    Arguments beginning with a
-                    <code>-</code> symbol are assumed to be options. The first
-                    argument without a <code>-</code> symbol is assumed to be
-                    the source file. Every other argument is unknown.
+                    The <code>parseArguments()</code> function iterates through
+                    the command line arguments and populates an instance of
+                    <code>CompilerOptions</code>. By convention
+                    <code>argv[0]</code> is the command that is used to invoke
+                    the program, so the argument parser only has to check the
+                    arguments starting with <code>argv[1]</code>.
                 </p>
                 <pre><code>CompilerOptions parseArguments(int argc, const char **argv) {
   CompilerOptions options;
@@ -134,12 +140,49 @@
   while (idx < argc) {
     std::string_view arg = argv[idx];
 
+    ...
+
+    ++idx;
+  }
+
+  return options;
+}</code></pre>
+                <p>
+                    The first argument without a leading <code>-</code> symbol
+                    is assumed to be the source file. If the source file is
+                    already parsed when such argument is encountered, an error
+                    is reported.
+                </p>
+                <pre><code>CompilerOptions parseArguments(int argc, const char **argv) {
+  ...
+
+  while (idx < argc) {
+    ...
+
     if (arg[0] != '-') {
       if (!options.source.empty())
         error("unexpected argument '" + std::string(arg) + '\'');
 
       options.source = arg;
-    } else {
+    } 
+
+    ...
+  }
+
+  ...
+}</code></pre>
+                <p>
+                    Arguments beginning with a
+                    <code>-</code> symbol are assumed to be options, while every
+                    other argument is unknown.
+                </p>
+                <pre><code>CompilerOptions parseArguments(int argc, const char **argv) {
+  ...
+
+  while (idx < argc) {
+    ...
+
+    else {
       if (arg == "-h")
         options.displayHelp = true;
       else if (arg == "-o")
@@ -156,19 +199,29 @@
         error("unexpected option '" + std::string(arg) + '\'');
     }
 
-    ++idx;
+    ...
   }
 
-  return options;
+  ...
 }</code></pre>
                 <p>
-                    By convention <code>argv[0]</code> is the command that is
-                    used to invoke the program, so the argument parser only has
-                    to check the arguments starting with <code>argv[1]</code>.
+                    The only special option is <code>-o</code> because it is
+                    expected to be followed by another argument that specifies
+                    the name of the output executable. It might happen however
+                    that the user forgot to pass this argument after the option.
                 </p>
                 <p>
-                    If any error is encountered within the driver, it displays
-                    the message and exits immediately.
+                    To avoid a crash, the argument parser checks if there is one
+                    more argument after the option, and if it doesn't find one,
+                    the name of the output executable is set to the default
+                    empty string. Otherwise the following argument is treated as
+                    the output name.
+                </p>
+                <pre><code>else if (arg == "-o")
+  options.output = ++idx >= argc ? "" : argv[idx];</code></pre>
+                <p>
+                    If any error is encountered within the driver, it displays a
+                    message and exits immediately.
                 </p>
                 <pre><code>[[noreturn]] void error(std::string_view msg) {
   std::cerr << "error: " << msg << '\n';
@@ -178,12 +231,9 @@
                 <p>
                     After successfully parsing the options, they have to be
                     validated. If the user asked for the help message, it is
-                    displayed and the driver exits. If a source file was not
-                    specified, or it cannot be opened, the driver exits with an
-                    error. Since this language is <i>your language</i>, the
-                    source files are expected to have the
-                    <code>.yl</code> extension.
+                    displayed and the driver exits.
                 </p>
+
                 <pre><code>int main(int argc, const char **argv) {
   CompilerOptions options = parseArguments(argc, argv);
 
@@ -191,6 +241,17 @@
     displayHelp();
     return 0;
   }
+
+  ...
+}</code></pre>
+                <p>
+                    If a source file was not specified, or it cannot be opened,
+                    the driver exits with an error. Since this language is
+                    <i>your language</i>, the source files are expected to have
+                    the <code>.yl</code> extension.
+                </p>
+                <pre><code>int main(int argc, const char **argv) {
+  ...
 
   if (options.source.empty())
     error("no source file specified");
@@ -222,8 +283,8 @@
                 <p>
                     The parser returns the AST and an indicator, whether the AST
                     is complete or not. If the <code>-ast-dump</code> option was
-                    specified, the AST is printed otherwise, if the AST is
-                    incomplete, compilation cannot be continued.
+                    specified, the AST is printed, otherwise if the AST is
+                    incomplete, the compilation cannot be continued.
                 </p>
                 <pre><code>int main(int argc, const char **argv) {
   ...
@@ -243,7 +304,8 @@
                     If the AST is valid, <code>Sema</code> can be instantiated
                     and the AST can be resolved. If the
                     <code>-res-dump</code> flag was specified, the resolved tree
-                    is printed, otherwise if resolution fails, the driver exits.
+                    is printed, otherwise if the resolution fails, the driver
+                    exits.
                 </p>
                 <pre><code>int main(int argc, const char **argv) {
   ...
@@ -279,8 +341,8 @@
                 <p>
                     To be able to generate the executable, first the module has
                     to be stored in a temporary file. The name of this temporary
-                    will be the hash of the file path. By convention an LLVM IR
-                    file has the <code>.ll</code> extension.
+                    is the hash of the file path. By convention an LLVM IR file
+                    has the <code>.ll</code> extension.
                 </p>
                 <pre><code>int main(int argc, const char **argv) {
   ...
@@ -298,8 +360,8 @@
                     temporary file name instead of a shorter name like
                     <code>tmp.ll</code> is that if for example a build system
                     wants to compile multiple source files in the same folder at
-                    the same time, these temporary files would overwrite each
-                    other.
+                    the same time, these <code>tmp.ll</code> files would
+                    overwrite each other.
                 </p>
                 <p>
                     Theoretically these files could overwrite each other too if
@@ -308,10 +370,8 @@
                     temporaries still stays the same.
                 </p>
                 <p>
-                    After code generation, the generated LLVM IR is passed to
-                    <code>Clang</code> to turn it into an native executable.
-                    Finally the temporary IR file is cleaned up and the driver
-                    exits with the exit code of <code>Clang</code>.
+                    After writing the IR to a file, it gets passed to
+                    <code>Clang</code> to turn it into a native executable.
                 </p>
                 <pre><code>int main(int argc, const char **argv) {
   ...
@@ -321,6 +381,14 @@
     command << " -o " << options.output;
 
   int ret = std::system(command.str().c_str());
+  ...
+}</code></pre>
+                <p>
+                    Finally the temporary IR file is cleaned up and the driver
+                    exits with the exit code of <code>Clang</code>.
+                </p>
+                <pre><code>int main(int argc, const char **argv) {
+  ...
   std::filesystem::remove(llvmIRPath);
 
   return ret;
