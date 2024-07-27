@@ -56,7 +56,7 @@
                 <h2>Conditions</h2>
                 <p>
                     Conditions are implemented in the form of
-                    <code>if</code> statements. This statement starts with the
+                    <code>if</code> statements. These statements start with the
                     <code>if</code> keyword, which is followed by an expression
                     and a block. This series of tokens can optionally be
                     followed by an <code>else</code> keyword and another
@@ -80,9 +80,10 @@
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        A common problem with conditions is the dangling else.
-                        It can happen if the block is not mandatory after the
-                        condition.
+                        A well-known problem with conditions is the dangling
+                        else problem. It happens when the block is not mandatory
+                        after the condition and multiple nested conditions are
+                        followed by one else branch.
                     </p>
                     <pre><code>if (1)
     if (2)
@@ -90,9 +91,14 @@
     else
       return 1;</code></pre>
                     <p>
-                        It raises the question which <code>if</code> the
-                        <code>else</code> branch belongs to. By making the block
-                        mandatory, this question becomes simple to answer.
+                        Does the <code>else</code> branch belong to the first
+                        condition or the second one? The parser needs to know
+                        this to construct the correct AST.
+                    </p>
+
+                    <p>
+                        By making the block mandatory, this question becomes
+                        simple to answer.
                     </p>
                     <pre><code>  if (1) {
     if (2) { ... }
@@ -104,12 +110,13 @@
                         condition was necessary for the parser to know where the
                         condition ends if it's not followed by a block. With
                         making the block mandatory these symbols are no longer
-                        needed.
+                        needed as the parser knows the conditions ends before
+                        the <code>{</code> token.
                     </p>
                 </blockquote>
                 <p>
-                    To start extending the language with conditions, first the
-                    <code>if</code> and <code>else</code> keywords need to be
+                    To start extending the language with conditions, the
+                    <code>if</code> and <code>else</code> keywords must be
                     introduced to the lexer.
                 </p>
                 <pre><code>enum class TokenKind : char {
@@ -125,26 +132,48 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 </code></pre>
                 <p>
                     In the AST the <code>if</code> statement has a condition and
-                    a block for it's true and it's false branch respectively. It
-                    can be observed that in the <code>else if</code> case, the
-                    else branch is not a block, but a statement.
+                    a block for it's true and false branches respectively even
+                    though in the <code>else if</code> case, the else branch is
+                    not a block, but a statement.
                 </p>
                 <p>
                     The <code>else if</code> case is actually a syntactic sugar
-                    for <code>else { if ... }</code> and is parsed such way only
-                    to keep the AST simple.
+                    for <code>else { if ... }</code> and to keep the grammar and
+                    the AST simple, it is also parsed that way.
                 </p>
                 <pre><code>struct IfStmt : public Stmt {
   std::unique_ptr&lt;Expr> condition;
   std::unique_ptr&lt;Block> trueBlock;
   std::unique_ptr&lt;Block> falseBlock;
 
-  // the constructor and dump() are omitted
-  ...
+  IfStmt(SourceLocation location,
+         std::unique_ptr&lt;Expr> condition,
+         std::unique_ptr&lt;Block> trueBlock,
+         std::unique_ptr&lt;Block> falseBlock = nullptr)
+      : Stmt(location),
+        condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)),
+        falseBlock(std::move(falseBlock)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    In the parser the condition has it's own parser method,
-                    which is called from <code>parseStmt()</code>.
+                    The textual representation of the node includes the
+                    condition, the true block and the false block if it's
+                    present.
+                </p>
+                <pre><code>void IfStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "IfStmt\n";
+
+  condition->dump(level + 1);
+  trueBlock->dump(level + 1);
+  if (falseBlock)
+    falseBlock->dump(level + 1);
+}
+</code></pre>
+                <p>
+                    In the parser the <code>IfStmt</code> gets it's own parser
+                    method, which is called from <code>parseStmt()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
@@ -153,13 +182,11 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    The method expects the first token to be the
+                    The method expects the next token to be
                     <code>KwIf</code>, which it eats and then proceeds with
-                    parsing the condition the condition.
+                    parsing the condition of the statement.
                 </p>
-                <pre><code>// &lt;ifStatement>
-//  ::= 'if' &lt;expr> &lt;block> ('else' (&lt;ifStatement> | &lt;block>))?
-std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
+                <pre><code>std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'if'
 
@@ -168,29 +195,29 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
 }</code></pre>
                 <p>
-                    If the next token is not the beginning of a block, an error
-                    is reported otherwise the true branch is parsed. If the
-                    block is not followed by an <code>else</code>, the statement
-                    only has a true branch and an AST node can be returned.
+                    If the next token is not the beginning of a block an error
+                    is reported, otherwise the true block is parsed. If the
+                    block is not followed by an <code>else</code> keyword the
+                    statement only has a true block and an AST node can be
+                    returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
 
-  if (nextToken.kind != TokenKind::Lbrace)
-    return report(nextToken.location, "expected 'if' body");
+  matchOrReturn(TokenKind::Lbrace, "expected 'if' body");
 
-  varOrReturn(trueBranch, parseBlock());
+  varOrReturn(trueBlock, parseBlock());
 
   if (nextToken.kind != TokenKind::KwElse)
     return std::make_unique&lt;IfStmt>(location, std::move(condition),
-                                    std::move(trueBranch));
+                                    std::move(trueBlock));
   ...
 }</code></pre>
                 <p>
                     If there is an <code>else</code> branch, the
-                    <code>KwElse</code> token is eaten. If the else branch is a
-                    regular else branch and not an <code>else if</code>, the
-                    block is parsed and the AST node is returned.
+                    <code>KwElse</code> token is eaten. If this branch is not an
+                    <code>else if</code>, the block is parsed and the AST node
+                    is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
@@ -200,9 +227,7 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   if (nextToken.kind == TokenKind::KwIf) {
     ...
   } else {
-    if (nextToken.kind != TokenKind::Lbrace)
-      return report(nextToken.location, "expected 'else' body");
-
+    matchOrReturn(TokenKind::Lbrace, "expected 'else' body");
     falseBlock = parseBlock();
   }
 
@@ -210,7 +235,7 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
     return nullptr;
 
   return std::make_unique&lt;IfStmt>(location, std::move(condition),
-                                  std::move(trueBranch), std::move(falseBlock));
+                                  std::move(trueBlock), std::move(falseBlock));
 }</code></pre>
                 <p>
                     If the branch is an <code>else if</code>, the other if
@@ -239,11 +264,31 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   std::unique_ptr&lt;ResolvedBlock> trueBlock;
   std::unique_ptr&lt;ResolvedBlock> falseBlock;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedIfStmt(SourceLocation location,
+                 std::unique_ptr&lt;ResolvedExpr> condition,
+                 std::unique_ptr&lt;ResolvedBlock> trueBlock,
+                 std::unique_ptr&lt;ResolvedBlock> falseBlock = nullptr)
+      : ResolvedStmt(location),
+        condition(std::move(condition)),
+        trueBlock(std::move(trueBlock)),
+        falseBlock(std::move(falseBlock)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    The resolution the the statement is driven by
+                    The similarity persists even in the textual representation
+                    of the node.
+                </p>
+                <pre><code>void ResolvedIfStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedIfStmt\n";
+
+  condition->dump(level + 1);
+  trueBlock->dump(level + 1);
+  if (falseBlock)
+    falseBlock->dump(level + 1);
+}</code></pre>
+                <p>
+                    The resolution of the statement is driven by
                     <code>resolveStmt()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
@@ -255,8 +300,8 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
 }</code></pre>
                 <p>
-                    First the condition is resolved followed by the resolution
-                    of the true block. The condition must be a number.
+                    First the condition is resolved and checked if it's a
+                    number.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   varOrReturn(condition, resolveExpr(*ifStmt.condition));
@@ -264,18 +309,16 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   if (condition->type.kind != Type::Kind::Number)
     return report(condition->location, "expected number in condition");
 
-  varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
-
   ...
 }</code></pre>
                 <p>
-                    If there is a false block, it is resolved too. Once
-                    everything is resolved, it's checked if the value of the
-                    condition is a compiler time constant and the value is set
-                    accordingly.
+                    Then the semantic analyzer proceeds with resolving the true
+                    block and if present, the false block too.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   ...
+
+  varOrReturn(resolvedTrueBlock, resolveBlock(*ifStmt.trueBlock));
 
   std::unique_ptr&lt;ResolvedBlock> resolvedFalseBlock;
   if (ifStmt.falseBlock) {
@@ -283,11 +326,20 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
     if (!resolvedFalseBlock)
       return nullptr;
   }
+  ...
+}</code></pre>
+                <p>
+                    Once everything is resolved, it's checked if the value of
+                    the condition is a compile time constant and the value is
+                    set accordingly.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
+  ...
 
   condition->setConstantValue(cee.evaluate(*condition, false));
 
   return std::make_unique&lt;ResolvedIfStmt>(ifStmt.location, std::move(condition),
-                                          std::move(trueBlock),
+                                          std::move(resolvedTrueBlock),
                                           std::move(resolvedFalseBlock));
 }</code></pre>
                 <p>
@@ -303,8 +355,8 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
 }</code></pre>
                 <p>
-                    The idea for representing <code>if</code> in LLVM IR is to
-                    create a new basic block for all of it's branches, and
+                    The idea for representing an <code>IfStmt</code> in LLVM IR
+                    is to create a new basic block for all of it's branches, and
                     another one for the rest of the code after the statement.
                 </p>
                 <pre><code>
@@ -348,10 +400,11 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
                 <p>
                     First a new basic block is created for the true, false and
                     exit blocks. Unless there is an explicit false block, the
-                    false block is set to the exit block as mentioned.
+                    false block is set to be the exit block as mentioned.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   llvm::Function *function = getCurrentFunction();
+
   auto *trueBB = llvm::BasicBlock::Create(context, "if.true");
   auto *exitBB = llvm::BasicBlock::Create(context, "if.exit");
 
@@ -362,15 +415,26 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
   ...
 }</code></pre>
                 <p>
-                    Then the condition is generated followed by the two blocks.
-                    Finally the blocks are inserted into the function and the
-                    insertion point is set to the exit block.
+                    Then the condition is generated and a jump to either the
+                    true or the false block based on it's value is inserted.
+                    Because this instruction expects the condition to be a
+                    logical value, it is converted to bool first.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   ...
 
   llvm::Value *cond = generateExpr(*stmt.condition);
   builder.CreateCondBr(doubleToBool(cond), trueBB, elseBB);
+
+  ...
+}</code></pre>
+                <p>
+                    After generating the condition, the true and the false
+                    blocks are created and the required break instructions are
+                    inserted.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
+  ...
 
   trueBB->insertInto(function);
   builder.SetInsertPoint(trueBB);
@@ -384,18 +448,28 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
     builder.CreateBr(exitBB);
   }
 
+  ...
+}</code></pre>
+                <p>
+                    Finally the blocks are inserted into the function and the
+                    insertion point is set to the exit block.
+                </p>
+                <pre><code>llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
+  ...
+
   exitBB->insertInto(function);
   builder.SetInsertPoint(exitBB);
   return nullptr;
 }</code></pre>
                 <h2>Loops</h2>
                 <p>
-                    Loops come in handy if the same statement has to be repeated
-                    multiple times. Without them the developer would be required
-                    to write the same statement on multiple lines after each
-                    other, unless the number of times the statement needs to be
-                    run is unknown. In that case the problem becomes difficult
-                    to solve without a dedicated element in the language. In
+                    Loops come in handy when the same statement needs to be
+                    repeated multiple times. Without them the developer would be
+                    required to write the same statement on multiple lines after
+                    each other, unless the number of times the statement needs
+                    to be run is unknown. In that case the problem becomes
+                    difficult to solve without a dedicated element in the
+                    language. In
                     <i>your language</i> this dedicated element is the
                     <code>while</code> loop.
                 </p>
@@ -414,16 +488,32 @@ std::unique_ptr&lt;IfStmt> Parser::parseIfStmt() {
 const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
     ..., {"while", TokenKind::KwWhile}};</code></pre>
                 <p>
-                    The AST node of <code>while</code> stores the condition and
-                    a block.
+                    The AST node of the <code>while</code> statement stores an
+                    <code>Expr</code> for it's condition and a block.
                 </p>
                 <pre><code>struct WhileStmt : public Stmt {
   std::unique_ptr&lt;Expr> condition;
   std::unique_ptr&lt;Block> body;
 
-  // the constructor and dump() are omitted
-  ...
+  WhileStmt(SourceLocation location,
+            std::unique_ptr&lt;Expr> condition,
+            std::unique_ptr&lt;Block> body)
+      : Stmt(location),
+        condition(std::move(condition)),
+        body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
+                <p>
+                    The textual representation of the node also includes these
+                    fields.
+                </p>
+                <pre><code>void WhileStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "WhileStmt\n";
+
+  condition->dump(level + 1);
+  body->dump(level + 1);
+}</code></pre>
                 <p>
                     As in case of every other statement, the parsing is driven
                     by <code>parseStmt()</code>.
@@ -438,8 +528,9 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     The <code>parseWhileStmt()</code> method is small and
-                    simple. It parses the condition and the body if exists. If
-                    everything is successful, the AST node is returned.
+                    simple. It only parses the condition and the body. If
+                    everything is successful, the corresponding AST node is
+                    returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;WhileStmt> Parser::parseWhileStmt() {
   SourceLocation location = nextToken.location;
@@ -447,27 +538,44 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 
   varOrReturn(cond, parseExpr());
 
-  if (nextToken.kind != TokenKind::Lbrace)
-    return report(nextToken.location, "expected 'while' body");
-
+  matchOrReturn(TokenKind::Lbrace, "expected 'while' body");
   varOrReturn(body, parseBlock());
 
   return std::make_unique&lt;WhileStmt>(location, std::move(cond),
                                      std::move(body));
 }</code></pre>
                 <p>
-                    Similar to the <code>if</code> statement, the resolved node
-                    of <code>while</code> is identical to it's non-resolved
+                    Similarly to <code>if</code> statements, the resolved node
+                    of <code>WhileStmt</code> is identical to it's non-resolved
                     counterpart.
                 </p>
                 <pre><code>struct ResolvedWhileStmt : public ResolvedStmt {
   std::unique_ptr&lt;ResolvedExpr> condition;
   std::unique_ptr&lt;ResolvedBlock> body;
 
-  // the constructor and dump() are omitted
-  ...
+  ResolvedWhileStmt(SourceLocation location,
+                    std::unique_ptr&lt;ResolvedExpr> condition,
+                    std::unique_ptr&lt;ResolvedBlock> body)
+      : ResolvedStmt(location),
+        condition(std::move(condition)),
+        body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
 };</code></pre>
-                <p>The resolution is driven by <code>resolveStmt()</code>.</p>
+                <p>
+                    Their textual representations are also the same except for
+                    the name of the node.
+                </p>
+                <pre><code>void ResolvedWhileStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedWhileStmt\n";
+
+  condition->dump(level + 1);
+  body->dump(level + 1);
+}</code></pre>
+                <p>
+                    The resolution of the statement is driven by
+                    <code>resolveStmt()</code>.
+                </p>
                 <pre><code>std::unique_ptr&lt;ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   ...
 
@@ -477,10 +585,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    First the condition is resolved, then the body. The
-                    condition must be a number, which is also evaluated as a
-                    compile time expression. If everything is successful, the
-                    corresponding resolved node is returned.
+                    First the condition is resolved and checked to be a number.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedWhileStmt>
 Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
@@ -489,7 +594,24 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   if (condition->type.kind != Type::Kind::Number)
     return report(condition->location, "expected number in condition");
 
+  ...
+}</code></pre>
+                <p>Then the resolution is continued with resolving the body.</p>
+                <pre><code>std::unique_ptr&lt;ResolvedWhileStmt>
+Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
+  ...
+
   varOrReturn(body, resolveBlock(*whileStmt.body));
+
+  ...
+}</code></pre>
+                <p>
+                    Finally the condition is evaluated as a compile time
+                    constant and the corresponding resolved node is returned.
+                </p>
+                <pre><code>std::unique_ptr&lt;ResolvedWhileStmt>
+Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
+  ...
 
   condition->setConstantValue(cee.evaluate(*condition, false));
 
@@ -506,12 +628,12 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   ...
 }</code></pre>
                 <p>
-                    A <code>while</code> loop in LLVM IR is similar to a
-                    condition. The condition is placed into a separate basic
-                    block, as it has to be evaluated after every iteration. One
-                    more block is created for the body of the loop, which always
-                    jumps back to the condition and one block is created for the
-                    rest of the code that runs after the loop.
+                    A <code>while</code> loop in LLVM IR consists of multiple
+                    basic blocks. The condition is placed into it's own block,
+                    as it has to be evaluated before every iteration. One more
+                    block is created for the body of the loop, which always
+                    jumps back to the condition and another one is created for
+                    the rest of the code that runs after the loop.
                 </p>
                 <pre><code>               ┌───────────────────────┐
                │ ...                   │
@@ -525,19 +647,20 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
 │   br i1 %cond, label %while.body, label %while.exit │
 └─────────────────────────────────────────────────────┘
     |                ^                   |             
-    V                |                   V              
+    V                |                   V             
 ┌────────────────────────┐   ┌────────────────────────┐
 │ while.body:            │   │ while.exit:            │
 │   br label %while.cond │   │   ...                  │
 └────────────────────────┘   └────────────────────────┘</code></pre>
                 <p>
-                    First the blocks for the condition, cody and the rest of the
+                    First the blocks for the condition, body and the rest of the
                     code are created. By convention the block with the condition
                     is called the header of the loop. A jump to the header is
                     also inserted into the current block.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   llvm::Function *function = getCurrentFunction();
+
   auto *header = llvm::BasicBlock::Create(context, "while.cond", function);
   auto *body = llvm::BasicBlock::Create(context, "while.body", function);
   auto *exit = llvm::BasicBlock::Create(context, "while.exit", function);
@@ -547,8 +670,10 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   ...
 }</code></pre>
                 <p>
-                    Next the condition is generated into the header and the jump
-                    instruction to either the body or the exit is inserted.
+                    Next the condition is generated into the header followed by
+                    the insertion of a conditional jump to either the body or
+                    the exit block. The conditional jump expects a logical
+                    value, so the condition is first converted to bool.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   ...
@@ -561,9 +686,9 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
 }</code></pre>
                 <p>
                     Finally, the body of the loop is generated into the
-                    corresponding block followed by the insertion a jump back to
-                    header. Upon finishing the generation of the body, the
-                    insert point is set to the exit block.
+                    corresponding block followed by the insertion of a jump back
+                    to header. Upon finishing the generation of the body, the
+                    insertion point is set to the exit block.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   ...
@@ -581,9 +706,9 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
                     paths the program might traverse during it's execution. It
                     is a required data structure for many optimization and
                     analysis techniques. It is also essential for any kind of
-                    flow sensitive reasoning about the program. It can be used
-                    to make code generation easier, or to perform the symbolic
-                    execution on the program.
+                    flow sensitive reasoning about the program and can be used
+                    to make code generation easier, or to simulate the execution
+                    of the program without actually compiling and running it.
                 </p>
                 <p>
                     How the CFG is constructed varies on what it is going to be
@@ -600,10 +725,11 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
                     <p>
                         In Clang the CFG was created for the Clang Static
                         Analyzer to be able to perform symbolic execution. As a
-                        result the Clang CFG is the list of the statements in
+                        result the Clang CFG is the list of the statements of
                         the program in the order they are executed. This way the
-                        Clang Static Analyzer can traverse statements from top
-                        to bottom and simulate executing them.
+                        Clang Static Analyzer can traverse the statements from
+                        top to bottom and simulate their execution as if the
+                        program was running.
                     </p>
                     <pre><code>                 [B1]
                     1: 0
@@ -618,18 +744,20 @@ x = 1;              6: 1
                     Succs (1): B0</code></pre>
                     <p>
                         Notice that <code>[B1.3]</code> and
-                        <code>[B1.7]</code> are the same statements. The former
-                        is reading the value of <code>x</code> and at the latter
-                        <code>x</code> is about to be assigned a value, but this
-                        information is not known while traversing the CFG and it
-                        can be an issue if the CFG is used for data flow
-                        analysis or code generation. During code generation
-                        <code>[B1.3]</code> needs to be a load instruction,
-                        while <code>[B1.7]</code> needs to be a store.
+                        <code>[B1.7]</code> are the same kind of statements. The
+                        former is reading the value of <code>x</code> while at
+                        the latter <code>x</code> is about to be assigned a
+                        value, but this information is not known while
+                        traversing the CFG and it can be an issue if the CFG is
+                        used for data flow analysis or code generation. During
+                        code generation <code>[B1.3]</code> needs to be a load
+                        instruction, while <code>[B1.7]</code> needs to be a
+                        store.
                     </p>
                     <p>
-                        The Kotlin CFG on the other hand was designed for data
-                        flow analysis, so it is an SSA form.
+                        The Kotlin CFG on the other hand is used for data flow
+                        analysis, so it is an implementation of the already
+                        introduced SSA form.
                     </p>
                     <pre><code>                 $1 = 0
                  x = $1
@@ -646,11 +774,12 @@ x = 1            y = $2
                     </p>
                 </blockquote>
                 <p>
-                    The CFG consists of basic blocks. Each basic block consists
-                    of a set of statements that execute together as well as a
-                    list of predecessors from which the program can enter this
-                    block and a set of successors to which the program can
-                    continue from it.
+                    The CFG consists of the basic blocks of the program and the
+                    edges between them. Each basic block consists of a set of
+                    statements that execute together as well as a list of
+                    predecessors from which the program can enter this block and
+                    a set of successors to which the program can continue from
+                    it.
                 </p>
                 <pre><code>struct BasicBlock {
   std::set&lt;std::pair&lt;int, bool>> predecessors;
@@ -660,7 +789,7 @@ x = 1            y = $2
                 <p>
                     In the <code>predecessors</code> and
                     <code>successors</code> sets, the <code>int</code> refers to
-                    the index of the block, while the
+                    the number of the block, while the
                     <code>bool</code> indicates whether that block is reachable
                     or not.
                 </p>
@@ -669,20 +798,20 @@ x = 1            y = $2
                     which block is the entry of the function and which is the
                     exit.
                 </p>
-                <pre><code>struct CFG : public Dumpable {
+                <pre><code>struct CFG {
   std::vector&lt;BasicBlock> basicBlocks;
   int entry = -1;
   int exit = -1;
 
   ...
 };</code></pre>
-                <p>Three operations are supported on the CFG</p>
+                <p>Three operations are supported on the CFG.</p>
                 <ol>
                     <li>Inserting a new block.</li>
                     <li>Inserting a statement into a block.</li>
                     <li>Inserting an edge between blocks.</li>
                 </ol>
-                <pre><code>struct CFG : public Dumpable {
+                <pre><code>struct CFG {
   ...
   int insertNewBlock() {
     basicBlocks.emplace_back();
@@ -706,7 +835,7 @@ x = 1            y = $2
   ...
 };</code></pre>
                 <p>
-                    The logic for constructing a CFG is found in the
+                    The logic for constructing a CFG is encapsulated by the
                     <code>CFGBuilder</code> class. It takes a function and
                     builds the CFG for that function.
                 </p>
@@ -719,9 +848,9 @@ public:
                 <p>
                     The construction of the CFG happens from the end of the
                     function to the beginning of the function. The
-                    <code>build</code> method first creates the exit block, then
-                    inserts the body of the function and finally inserts the
-                    entry block.
+                    <code>build()</code> method first creates the exit block,
+                    then inserts the body of the function and finally inserts
+                    the entry block.
                 </p>
                 <p>
                     Return statements automatically jump to the exit block, so
@@ -743,13 +872,16 @@ public:
 };</code></pre>
                 <p>
                     The <code>insertBlock()</code> method first creates a new
-                    CFG block for the given block if the block is not empty and
-                    then it traverses the statements of that block in a reverse
-                    order and inserts them into the current CFG block. To be
-                    able to create the <code>BasicBlock</code>, it takes the
-                    successor block as a parameter. The returned
-                    <code>BasicBlock</code> is the current one at the start of
-                    the block.
+                    CFG block for the given <code>ResolvedBlock</code> if it is
+                    not empty, and then traverses it's statements in a reverse
+                    order while inserting them into the actual CFG block.
+                </p>
+                <p>
+                    To be able to create the new <code>BasicBlock</code>, the
+                    method takes the number of the successor block as parameter.
+                    The return value is the number of the
+                    <code>BasicBlock</code> from which the CFG construction
+                    should continue after the final statement has been inserted.
                 </p>
                 <pre><code>int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {
   const auto &stmts = block.statements;
@@ -765,6 +897,10 @@ public:
 
   return succ;
 }</code></pre>
+                <p>
+                    The following figure showcases how the CFG of a function
+                    with no control flow elements is built.
+                </p>
                 <pre><code>fn cfgConstruction(): void {
     stmt1;
     stmt2;
@@ -820,10 +956,10 @@ public:
   if (auto *expr = dynamic_cast&lt;const ResolvedExpr *>(&stmt))
     return insertExpr(*expr, block);
 
-  auto *returnStmt = dynamic_cast&lt;const ResolvedReturnStmt *>(&stmt);
-  assert(returnStmt && "unexpected statement");
+  if (auto *returnStmt = dynamic_cast&lt;const ResolvedReturnStmt *>(&stmt))
+    return insertReturnStmt(*returnStmt, block);
 
-  return insertReturnStmt(*returnStmt, block);
+  llvm_unreachable("unexpected expression");
 }</code></pre>
                 <p>
                     When a return statement is inserted, the builder stops
@@ -841,11 +977,17 @@ public:
 
   return block;
 }</code></pre>
+                <p>
+                    Below can be seen the visualization of how a return
+                    statement affects the construction of the current basic
+                    block.
+                </p>
                 <pre><code>fn cfgConstruction(): number {
     stmt1;
     return 0;
     stmt2;
 }
+
 1.) insert stmt2
 ┌─────────┐
 │  stmt2; │
@@ -902,14 +1044,14 @@ public:
     return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);
 
   if (const auto *unop = dynamic_cast&lt;const ResolvedUnaryOperator *>(&expr))
-    return insertExpr(*unop->rhs, block);
+    return insertExpr(*unop->operand, block);
 
   return block;
 }
 </code></pre>
                 <p>
-                    For conditional binary operators, this insertion tactics
-                    leads to a not completely accurate CFG.
+                    Note that for conditional binary operators, this insertion
+                    tactics leads to a little inaccurate CFG.
                 </p>
                 <pre><code>stmt1;
 1 || 2;
@@ -946,14 +1088,16 @@ stmt2;
 └─────────┘</code></pre>
                 <p>
                     Since this compiler wouldn't take advantage of such
-                    accuracy, the CFG and it's construction is kept as simple as
+                    accuracy, and constructing such detailed CFG is not a
+                    trivial task, this not completely accurate version is used.
+                    This way the CFG and it's construction is kept as simple as
                     possible.
                 </p>
                 <p>
                     In case of an <code>IfStmt</code> the inserter method takes
-                    the successor block as parameter. If there is a false block,
+                    the exit block as it's parameter. If there is a false block,
                     it is inserted first, otherwise the exit block is considered
-                    the false block.
+                    to be the false block.
                 </p>
                 <pre><code>int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
   int falseBlock = exit;
@@ -977,14 +1121,14 @@ stmt2;
                 <p>
                     The tree walk interpreter is invoked to determine if the
                     condition is always true or not. Since in this case even
-                    statements like <code>sideEffects() || true</code> should be
+                    statements like <code>sideEffect() || true</code> should be
                     returned as <code>true</code>, the interpreter is invoked
                     with the <code>allowSideEffects</code> option turned on.
                 </p>
                 <p>
                     The true block is reachable only if the condition is not
-                    false, while the false block is reachable only if the
-                    condition is not true.
+                    <code>0</code>, while the false block is reachable only if
+                    the condition is <code>0</code> or unknown.
                 </p>
                 <pre><code>int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
   ...
@@ -1005,6 +1149,11 @@ stmt2;
   cfg.insertStmt(&stmt, entry);
   return insertExpr(*stmt.condition, entry);
 }</code></pre>
+                <p>
+                    Below can be seen the visualization of how the body of a
+                    function with an
+                    <code>IfStmt</code> is inserted into the CFG.
+                </p>
                 <pre><code>fn cfgConstruction(): number {
     stmt1;
 
@@ -1052,20 +1201,26 @@ stmt2;
 └─────────┘          └─────────┘          └─────────┘
 
 3.) insert stmt1
-  ┌─────────┐
-  │  stmt1; │
-  │   cond; │
-  │     if; │─┐
-  └─────────┘ │
-       │      │
-      ...</code></pre>
+┌─────────┐
+│  stmt1; │
+│   cond; │
+│     if; │─┐
+└─────────┘ │
+     │      │
+    ...</code></pre>
                 <p>
                     The last statement to handle is the <code>WhileStmt</code>.
-                    For the loop one additional helper node is inserted, by
-                    terminology called the <code>latch</code>. This is the node
-                    that loops back to the condition with only the body of the
-                    loop as it's predecessor. Then the header is inserted along
-                    with an edge between the latch and the header.
+                    Similarly to the previous method,
+                    <code>insertWhileStmt()</code> also takes the exit block as
+                    it's parameter.
+                </p>
+                <p>
+                    For this loop one additional helper block is inserted, which
+                    by terminology is called the <code>latch</code>. This is the
+                    block after the body that loops back to the condition. After
+                    the latch, the body of the loop is inserted with the latch
+                    as it's successor. Finally the header is inserted along with
+                    an edge between the latch and itself.
                 </p>
                 <pre><code>int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
   int latch = cfg.insertNewBlock();
@@ -1080,6 +1235,11 @@ stmt2;
                     For the condition it's checked if it's value is known in
                     compile time and the reachability of the edges are set
                     accordingly.
+                </p>
+                <p>
+                    The body of the loop is only reachable from the header if
+                    the condition is not <code>0</code>, while the exit block is
+                    only reachable if the value is <code>0</code> or unknown.
                 </p>
                 <pre><code>int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
   ...
@@ -1104,8 +1264,8 @@ stmt2;
 }</code></pre>
                 <p>
                     Because the header houses the condition, if there is any
-                    other statement before the header, a new block needs to be
-                    created before the header that houses thT statement.
+                    other statement before it, a new block needs to be created
+                    before the header that houses that statement.
                 </p>
                 <pre><code>int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {
   ...
@@ -1118,6 +1278,11 @@ stmt2;
 
   ...
 }</code></pre>
+                <p>
+                    The following figure shows step by step how the body of a
+                    function with a
+                    <code>while</code> loop is inserted into the CFG.
+                </p>
                 <pre><code>fn cfgConstruction(): number {
     stmt1;
 
@@ -1129,14 +1294,14 @@ stmt2;
 }
 
 1.) insert stmt3
-┌─────────┐
-│  stmt3; │
-└─────────┘
-     │     
-     V     
-┌─────────┐
-│ fn.exit │
-└─────────┘
+  ┌─────────┐
+  │  stmt3; │
+  └─────────┘
+       │     
+       V     
+  ┌─────────┐
+  │ fn.exit │
+  └─────────┘
 
 2.) insertWhileStmt()
                                           ┌─────────┐
@@ -1145,22 +1310,22 @@ stmt2;
                                         │ └─────────┘ │
                                         │      │      │
                                         │      V      │
-                            ┌─────────┐ │ ┌─────────┐ │
-                            │  stmt2; │ │ │  stmt2; │ │
-                            └─────────┘ │ └─────────┘ │
-                                 │      │      │      │
-                                 V      │      V      │
-              ┌─────────┐   ┌─────────┐ │ ┌─────────┐ │
-              │  latch  │   │  latch  │ │ │  latch  │─┘
-              └─────────┘   └─────────┘ │ └─────────┘
-┌─────────┐   ┌─────────┐   ┌─────────┐ │ ┌─────────┐
-│  stmt3; │   │  stmt3; │   │  stmt3; │ └>│  stmt3; │
-└─────────┘   └─────────┘   └─────────┘   └─────────┘
-     │             │             │             │     
-     V             V             V             V     
-┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-│ fn.exit │   │ fn.exit │   │ fn.exit │   │ fn.exit │
-└─────────┘   └─────────┘   └─────────┘   └─────────┘
+                      ┌─────────┐       │ ┌─────────┐ │
+                      │  stmt2; │       │ │  stmt2; │ │
+                      └─────────┘       │ └─────────┘ │
+                           │            │      │      │
+                           V            │      V      │
+  ┌─────────┐         ┌─────────┐       │ ┌─────────┐ │
+  │  latch  │         │  latch  │       │ │  latch  │─┘
+  └─────────┘         └─────────┘       │ └─────────┘
+  ┌─────────┐         ┌─────────┐       │ ┌─────────┐
+  │  stmt3; │         │  stmt3; │       └>│  stmt3; │
+  └─────────┘         └─────────┘         └─────────┘
+       │                   │                   │     
+       V                   V                   V     
+  ┌─────────┐         ┌─────────┐         ┌─────────┐
+  │ fn.exit │         │ fn.exit │         │ fn.exit │
+  └─────────┘         └─────────┘         └─────────┘
 
 3.) insert stmt1
   ┌─────────┐
@@ -1175,13 +1340,16 @@ stmt2;
 │      │      │
       ...</code></pre>
                 <p>
-                    One additional case to handle is that if a block is about to
-                    be created but the current statement that is going to be
-                    inserted into the new block is a statement that terminates a
-                    block, like <code>ReturnStmt</code>,
-                    <code>WhileStmt</code> and <code>IfStmt</code>, the block
-                    shouldn't be created. A terminating statement creates a new
-                    block on it's own and the created block would stay empty.
+                    One additional case to handle is when a block is about to be
+                    created but the statement that is going to be inserted into
+                    the new block is a statement that terminates the block, like
+                    <code>ReturnStmt</code>, <code>WhileStmt</code> and
+                    <code>IfStmt</code>.
+                </p>
+                <p>
+                    In those cases the block shouldn't be created. A terminating
+                    statement creates a new block on it's own and the created
+                    block would stay empty.
                 </p>
                 <pre><code>int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {
   ...
@@ -1198,48 +1366,53 @@ stmt2;
          dynamic_cast&lt;const ResolvedWhileStmt *>(&stmt) ||
          dynamic_cast&lt;const ResolvedReturnStmt *>(&stmt);
 }</code></pre>
+                <p>
+                    The following visualization explains this edge case by
+                    showing what happens when two return statements follow each
+                    other.
+                </p>
                 <pre><code>incorrect graph:
-                        ┌─────────┐
-                        │ return; │
-                        └─────────┘       
-                             |
-                             V
-            ┌─────────┐ ┌─────────┐
-            │         │ │         │
-            └─────────┘ └─────────┘
-                 |           |
-                 V           V
-┌─────────┐ ┌─────────┐ ┌─────────┐
-│ return; │ │ return; │ │ return; │
-└─────────┘ └─────────┘ └─────────┘
+                                          ┌─────────┐
+                                          │ return; │
+                                          └─────────┘       
+                                               |
+                                               V
+                     ┌─────────┐          ┌─────────┐
+                     │         │          │         │
+                     └─────────┘          └─────────┘
+                          |                    |
+                          V                    V
+┌─────────┐          ┌─────────┐          ┌─────────┐
+│ return; │          │ return; │          │ return; │
+└─────────┘          └─────────┘          └─────────┘
 
 correct graph:
-            ┌─────────┐
-            │ return; │
-            └─────────┘
-                 |     
-                 V     
-┌─────────┐ ┌─────────┐
-│ return; │ │ return; │
-└─────────┘ └─────────┘</code></pre>
+                     ┌─────────┐
+                     │ return; │
+                     └─────────┘
+                          |     
+                          V     
+┌─────────┐          ┌─────────┐
+│ return; │          │ return; │
+└─────────┘          └─────────┘</code></pre>
                 <p>
                     The users of the compiler are provided with the option to
                     visualize the generated control flow graph, but first the
                     <code>dump()</code> method of the CFG needs to be defined.
                 </p>
                 <p>
-                    Because the entry block is inserted last, the block are
+                    Because the entry block is inserted last, the blocks are
                     printed in a reverse order, so that the CFG dump starts with
                     the entry block.
                 </p>
-                <pre><code>void CFG::dump(size_t) const {
+                <pre><code>void CFG::dump() const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
     ...
   }
 }</code></pre>
                 <p>
-                    First the identifier of the block is printed and whether
-                    it's the entry or the exit block.
+                    First the number of the block is printed with a tag
+                    indicating if it's the entry or the exit block.
                 </p>
                 <pre><code>void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
@@ -1254,8 +1427,8 @@ correct graph:
   }
 }</code></pre>
                 <p>
-                    After the id of the block, the predecessors and successors
-                    are printed.
+                    After the number of the block, it's predecessors and
+                    successors are printed along with their reachability.
                 </p>
                 <pre><code>void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
@@ -1276,7 +1449,7 @@ correct graph:
 }</code></pre>
                 <p>
                     Finally, because the statements have also been inserted from
-                    backward, they are also printed in a reverse order.
+                    backwards, they are printed in a reverse order too.
                 </p>
                 <pre><code>void CFG::dump(size_t) const {
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
@@ -1298,8 +1471,8 @@ correct graph:
             << "  -cfg-dump    print the control flow graph\n";
 }</code></pre>
                 <p>
-                    A corresponding option is added to the
-                    <code>CompilerOptions</code> structure.
+                    The corresponding option is added to the
+                    <code>CompilerOptions</code> structure too.
                 </p>
                 <pre><code>struct CompilerOptions {
   ...
@@ -1342,8 +1515,8 @@ correct graph:
                 <h2>Flow-Sensitive Analysis</h2>
                 <p>
                     The first flow sensitive analysis performed during semantic
-                    analysis will be to ensure that a function returns a value
-                    on every execution path.
+                    analysis is for checking if a function returns a value on
+                    every execution path.
                 </p>
                 <pre><code>std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> Sema::resolveAST() {
   ...
@@ -1358,10 +1531,10 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    The <code>runFlowSensitiveChecks()</code> first builds the
-                    CFG of the function and hands it over to the
-                    <code>checkReturnOnAllPaths()</code>, which performs the
-                    actual analysis.
+                    The <code>runFlowSensitiveChecks()</code> helper first
+                    builds the CFG of the function and hands it over to the
+                    <code>checkReturnOnAllPaths()</code> method, which contains
+                    the analysis logic.
                 </p>
                 <pre><code>bool Sema::runFlowSensitiveChecks(const ResolvedFunctionDecl &fn) {
   CFG cfg = CFGBuilder().build(fn);
@@ -1373,7 +1546,7 @@ correct graph:
 };</code></pre>
                 <p>
                     If the given function doesn't return a value, there is
-                    nothing to check, so the function can return immediately.
+                    nothing to check, so the method can return immediately.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
@@ -1384,15 +1557,35 @@ correct graph:
 }</code></pre>
                 <p>
                     The core of the function is a DFS traversal of the reachable
-                    CFG blocks.
+                    CFG blocks. Because basic blocks can loop back to each other
+                    in case of a <code>WhileStmt</code>, a set is created to
+                    keep track of the already visited blocks.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
   ...
-
   std::set&lt;int> visited;
+  ...
+}</code></pre>
+                <p>
+                    Then the worklist is created and the entry block is inserted
+                    into it.
+                </p>
+                <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
+                                 const CFG &cfg) {
+  ...
   std::vector&lt;int> worklist;
   worklist.emplace_back(cfg.entry);
+  ...
+}</code></pre>
+                <p>
+                    While the worklist is not empty, it's last block is popped
+                    and if it hasn't been visited already, all of it's reachable
+                    successors are added to the end of the worklist.
+                </p>
+                <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
+                                 const CFG &cfg) {
+  ...
 
   while (!worklist.empty()) {
     int bb = worklist.back();
@@ -1413,10 +1606,10 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    To create more accurate error messages the number of seen
-                    return statements is tracked. Because of the way the CFG was
-                    constructed, if a block contains a return statement, it must
-                    be the first one in the statement list of the block.
+                    Because of the way the CFG is constructed, a return
+                    statement must be the first statement in the statement list
+                    of a block. To create more accurate error messages, the
+                    number of seen return statements is tracked.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
@@ -1438,11 +1631,12 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    If the block ends with a return statement, the successors of
-                    that block are not visited. As a result it's enough to keep
-                    track of whether the exit block is reached during the
-                    traversal. If any path to the exit block is not blocked by a
-                    return statement, a value is not returned on that path.
+                    If the block ends with a return statement, it's successors
+                    are not visited. As a result it's enough to keep track of
+                    whether the exit block is reached during the traversal. If
+                    any path to the exit block is not blocked by a return
+                    statement, a value is not returned on that path of
+                    execution.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
@@ -1459,12 +1653,14 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    After the traversal if the exit block is reached, or there
-                    are no return statements an error is reported. If there is
-                    no return statement, the function doesn't return a value at
-                    all, if there is at least one return statement, the function
-                    only returns on some branches. Wether an error is reported
-                    is also returned to the caller.
+                    After the traversal, if the exit block is reachable, or
+                    there are no return statements at all, an error is reported.
+                </p>
+                <p>
+                    If there are no return statements the function might be
+                    stuck in an infinite loop and doesn't return a value at all.
+                    If there is at least one return statement, the function only
+                    returns a value on some branches but not all of them.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
                                  const CFG &cfg) {
@@ -1476,6 +1672,16 @@ correct graph:
                ? "non-void function doesn't return a value on every path"
                : "non-void function doesn't return a value");
   }
+
+  ...
+}</code></pre>
+                <p>
+                    An indicator is also returned to the caller that shows if
+                    the check found any errors.
+                </p>
+                <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
+                                 const CFG &cfg) {
+  ...
 
   return exitReached || returnCount == 0;
 }</code></pre>
