@@ -225,12 +225,12 @@ std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
 //  ::= <declRefExpr> '=' <expr>
 std::unique_ptr<Assignment>
 Parser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
+  SourceLocation location = nextToken.location;
   eatNextToken(); // eat '='
 
   varOrReturn(rhs, parseExpr());
 
-  return std::make_unique<Assignment>(lhs->location, std::move(lhs),
-                                      std::move(rhs));
+  return std::make_unique<Assignment>(location, std::move(lhs), std::move(rhs));
 }
 
 // <declStmt>
@@ -295,12 +295,12 @@ std::unique_ptr<Stmt> Parser::parseAssignmentOrExpr() {
   varOrReturn(lhs, parsePrefixExpr());
 
   if (nextToken.kind != TokenKind::Equal) {
-    varOrReturn(rhs, parseExprRHS(std::move(lhs), 0));
+    varOrReturn(expr, parseExprRHS(std::move(lhs), 0));
 
     matchOrReturn(TokenKind::Semi, "expected ';' at the end of expression");
     eatNextToken(); // eat ';'
 
-    return rhs;
+    return expr;
   }
 
   auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get());
@@ -310,12 +310,13 @@ std::unique_ptr<Stmt> Parser::parseAssignmentOrExpr() {
 
   std::ignore = lhs.release();
 
-  varOrReturn(rhs, parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre)));
+  varOrReturn(assignment,
+              parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre)));
 
   matchOrReturn(TokenKind::Semi, "expected ';' at the end of assignment");
   eatNextToken(); // eat ';'
 
-  return rhs;
+  return assignment;
 }
 
 std::unique_ptr<Expr> Parser::parseExpr() {

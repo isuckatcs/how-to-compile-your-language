@@ -15,14 +15,14 @@ fn modifyImmutable(): void {
     let x: number = 1.0;
     
     if 1.0 {
-        // CHECK: [[# @LINE + 1 ]]:9: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
         x = 1.0;
     } else {
-        // CHECK: [[# @LINE + 1 ]]:9: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
         x = 2.0;
     }
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: 'x' cannot be mutated
+    // CHECK: [[# @LINE + 1 ]]:7: error: 'x' cannot be mutated
     x = 3.0;
 }
 
@@ -75,10 +75,10 @@ fn loop(): void {
     var y: number;
     
     while 1.0 {
-        // CHECK: [[# @LINE + 1 ]]:9: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
         x = 1.0;
 
-        // CHECK-NOT: [[# @LINE + 1 ]]:9: error
+        // CHECK-NOT: [[# @LINE + 1 ]]:11: error
         y = 1.0;
     }
 
