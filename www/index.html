@@ -47,20 +47,21 @@
                 <h1>How to compile your language</h1>
 
                 <p>
-                    This guide is intended to be an introduction to how to
-                    design <i>your language</i> and implement a compiler for it
-                    using a modern approach.
+                    This guide is intended to be a practical introduction to how
+                    to design <i>your language</i> and implement a modern
+                    compiler for it.
                 </p>
                 <p>
                     When designing a language it helps if there is an idea what
                     the language is going to be used for. Is it indented to be
-                    making system programming safer like Rust? Is it targeting
+                    making systems programming safer like Rust? Is it targeting
                     AI developers like Mojo?
                 </p>
                 <p>
                     In this case the goal of the language is to showcase various
-                    algorithms and techniques that are seen in some of the most
-                    popular language implementations like C++, Kotlin or Rust.
+                    algorithms and techniques that are used in the
+                    implementation of some of the most popular languages like
+                    C++, Kotlin or Rust.
                 </p>
                 <p>
                     The guide also covers how to create a platform specific
@@ -80,21 +81,21 @@
                 <pre><code>fn main(): void {}</code></pre>
                 <p>
                     When designing the syntax of the
-                    <code>main()</code> function one of the key goals was to
-                    make it easily recognizable to developers with a background
-                    in any popular language.
+                    <code>main()</code> function one key goal was to make it
+                    easily recognizable to developers with a background in an
+                    already popular language.
                 </p>
                 <p>
                     In the past 50 years the syntax of a function declaration
                     was the name of the function followed by the list of
                     arguments enclosed by <code>(</code> and <code>)</code>. At
                     first glance it is tempting to introduce some new exotic
-                    syntax like <code>main<> {}</code>, but in many of the
-                    popular languages <code><</code> and <code>></code> mean
-                    something completely different (a generic argument list).
-                    Using the latter syntax for a function definition would
-                    probably cause confusion for developers who try to get
-                    familiar with this new language.
+                    syntax like <code>main<> {}</code>, but in many popular
+                    languages <code><></code> might mean something completely
+                    different, in this case a generic argument list. Using such
+                    syntax for a function definition would probably cause
+                    confusion for developers who try to get familiar with this
+                    new language, which is something to keep in mind.
                 </p>
                 <h2>How is this text turned into an executable?</h2>
                 <p>
@@ -107,17 +108,17 @@
                     The <code>frontend</code> contains the actual implementation
                     of the language, it is responsible for ensuring that the
                     program written in the specific language doesn't contain any
-                    errors and report every issue it finds to the developer.
+                    errors, and reporting every issue it finds to the developer.
                 </p>
                 <p>
-                    Once it validated the program, it turns it into an
-                    <code>intermediate representation (IR)</code>, on which the
+                    After validating the program, it turns it into an
+                    <code>intermediate representation (IR)</code> on which the
                     <code>optimizer</code> performs a series of transformations
                     that will result in a more efficient program.
                 </p>
                 <p>
                     After the program has been optimized, it is passed to the
-                    <code>backend</code>, which will turn it into a series of
+                    <code>backend</code>, which turns it into a series of
                     instructions, which can be executed by a specific target.
                     The steps the <code>backend</code> performs can vary based
                     on the target. Register-based targets like <code>x86</code>,
@@ -128,10 +129,10 @@
                 <h2>Is it possible to learn all these topics?</h2>
                 <p>
                     Yes, with enough time. However there is no need to learn all
-                    of them to create a successful language. In fact even many
-                    modern popular languages like
+                    of them to create a successful language. In fact even a lot
+                    of modern popular languages like <code>C++</code>,
                     <code>Rust</code>, <code>Swift</code>,
-                    <code>Haskell</code> and <code>Kotlin/Native</code> rely on
+                    <code>Haskell</code> or <code>Kotlin/Native</code> rely on
                     <code>LLVM</code> for optimization and code generation.
                 </p>
                 <p>
