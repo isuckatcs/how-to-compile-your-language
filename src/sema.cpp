@@ -63,6 +63,8 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
 bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
+  using Lattice = std::map<const ResolvedVarDecl *, State>;
+
   auto joinStates = [](State s1, State s2) {
     if (s1 == s2)
       return s1;
@@ -75,8 +77,6 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 
     return State::Top;
   };
-
-  using Lattice = std::map<const ResolvedVarDecl *, State>;
 
   std::vector<Lattice> curLattices(cfg.basicBlocks.size());
   std::vector<std::pair<SourceLocation, std::string>> pendingErrors;
@@ -97,34 +97,37 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
       for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
         const ResolvedStmt *stmt = *it;
 
-        if (const auto *declStmt =
-                dynamic_cast<const ResolvedDeclStmt *>(stmt)) {
-          tmp[declStmt->varDecl.get()] = declStmt->varDecl->initializer
-                                             ? State::Assigned
-                                             : State::Unassigned;
-        } else if (const auto *assignment =
-                       dynamic_cast<const ResolvedAssignment *>(stmt)) {
-          const auto *varDecl =
+        if (auto *decl = dynamic_cast<const ResolvedDeclStmt *>(stmt)) {
+          tmp[decl->varDecl.get()] =
+              decl->varDecl->initializer ? State::Assigned : State::Unassigned;
+          continue;
+        }
+
+        if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(stmt)) {
+          const auto *var =
               dynamic_cast<const ResolvedVarDecl *>(assignment->variable->decl);
 
-          assert(varDecl &&
+          assert(var &&
                  "assignment to non-variables should have been caught by sema");
 
-          if (!varDecl->isMutable && tmp[varDecl] != State::Unassigned)
-            pendingErrors.emplace_back(assignment->location,
-                                       '\'' + varDecl->identifier +
-                                           "' cannot be mutated");
+          if (!var->isMutable && tmp[var] != State::Unassigned) {
+            std::string msg = '\'' + var->identifier + "' cannot be mutated";
+            pendingErrors.emplace_back(assignment->location, std::move(msg));
+          }
 
-          tmp[varDecl] = State::Assigned;
-        } else if (const auto *declRefExpr =
-                       dynamic_cast<const ResolvedDeclRefExpr *>(stmt)) {
-          const auto *varDecl =
-              dynamic_cast<const ResolvedVarDecl *>(declRefExpr->decl);
+          tmp[var] = State::Assigned;
+          continue;
+        }
 
-          if (varDecl && tmp[varDecl] != State::Assigned)
-            pendingErrors.emplace_back(declRefExpr->location,
-                                       '\'' + varDecl->identifier +
-                                           "' is not initialized");
+        if (const auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(stmt)) {
+          const auto *var = dynamic_cast<const ResolvedVarDecl *>(dre->decl);
+
+          if (var && tmp[var] != State::Assigned) {
+            std::string msg = '\'' + var->identifier + "' is not initialized";
+            pendingErrors.emplace_back(dre->location, std::move(msg));
+          }
+
+          continue;
         }
       }
 
