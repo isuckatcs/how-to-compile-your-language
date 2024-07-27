@@ -46,6 +46,7 @@ llvm::Value *Codegen::generateStmt(const ResolvedStmt &stmt) {
 
 llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   llvm::Function *function = getCurrentFunction();
+
   auto *trueBB = llvm::BasicBlock::Create(context, "if.true");
   auto *exitBB = llvm::BasicBlock::Create(context, "if.exit");
 
@@ -76,6 +77,7 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
 
 llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   llvm::Function *function = getCurrentFunction();
+
   auto *header = llvm::BasicBlock::Create(context, "while.cond", function);
   auto *body = llvm::BasicBlock::Create(context, "while.body", function);
   auto *exit = llvm::BasicBlock::Create(context, "while.exit", function);
