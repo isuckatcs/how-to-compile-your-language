@@ -234,7 +234,7 @@ Parser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
 }
 
 // <declStmt>
-//  ::= ('let'|'var') <varDecl>
+//  ::= ('let'|'var') <varDecl>  ';'
 std::unique_ptr<DeclStmt> Parser::parseDeclStmt() {
   Token tok = nextToken;
   eatNextToken(); // eat 'let' | 'var'
@@ -273,8 +273,8 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
 //  |   <returnStmt>
 //  |   <ifStatement>
 //  |   <whileStatement>
-//  |   <assignment> ';'
-//  |   <declStmt> ';'
+//  |   <assignment>
+//  |   <declStmt>
 std::unique_ptr<Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
     return parseIfStmt();

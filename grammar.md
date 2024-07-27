@@ -24,8 +24,8 @@
     |   <ifStatement>
     |   <whileStatement>
     |   <returnStmt>
-    |   <assignment> ';'
-    |   <declStmt> ';'
+    |   <assignment>
+    |   <declStmt>
 
 <whileStatement>
     ::= 'while' <expr> <block>
@@ -34,10 +34,10 @@
     ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
 
 <declStmt>
-    ::= ('let' | 'var') <varDecl>
+    ::= ('let' | 'var') <varDecl> ';'
 
 <assignment>
-    ::= <declRefExpr> '=' <expr>
+    ::= <declRefExpr> '=' <expr> ';'
 
 <returnStmt>
     ::= 'return' <expr>? ';'
