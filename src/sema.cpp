@@ -311,7 +311,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   if (condition->type.kind != Type::Kind::Number)
     return report(condition->location, "expected number in condition");
 
-  varOrReturn(trueBlock, resolveBlock(*ifStmt.trueBlock));
+  varOrReturn(resolvedTrueBlock, resolveBlock(*ifStmt.trueBlock));
 
   std::unique_ptr<ResolvedBlock> resolvedFalseBlock;
   if (ifStmt.falseBlock) {
@@ -323,7 +323,7 @@ std::unique_ptr<ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
   condition->setConstantValue(cee.evaluate(*condition, false));
 
   return std::make_unique<ResolvedIfStmt>(ifStmt.location, std::move(condition),
-                                          std::move(trueBlock),
+                                          std::move(resolvedTrueBlock),
                                           std::move(resolvedFalseBlock));
 }
 
