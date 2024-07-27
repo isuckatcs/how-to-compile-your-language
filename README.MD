@@ -8,7 +8,7 @@
 
 ![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
-A simple programming language that displays modern compiler techniques for education purposes.
+A simple programming language implementation that displays modern compiler techniques for education purposes. The written guide that explains the source code in detail can be accessed [here](https://isuckatcs.github.io/how-to-compile-your-language/).
 
 ## Getting Started
 
@@ -32,7 +32,7 @@ To run the tests, proceed with these following optional steps.
 5. Install Python 3.10 or newer
    - `apt-get install python`
 
-6. Install the python port of LLVM LIT and LLVM FileCheck.
+6. Install the required dependencies
    - `pip install -r ./test/requirements.txt`
 
 7. Run the `check` target with CMake
