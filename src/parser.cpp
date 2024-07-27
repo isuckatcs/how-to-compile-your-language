@@ -177,11 +177,12 @@ std::unique_ptr<IfStmt> Parser::parseIfStmt() {
   varOrReturn(condition, parseExpr());
 
   matchOrReturn(TokenKind::Lbrace, "expected 'if' body");
-  varOrReturn(trueBranch, parseBlock());
+
+  varOrReturn(trueBlock, parseBlock());
 
   if (nextToken.kind != TokenKind::KwElse)
     return std::make_unique<IfStmt>(location, std::move(condition),
-                                    std::move(trueBranch));
+                                    std::move(trueBlock));
   eatNextToken(); // eat 'else'
 
   std::unique_ptr<Block> falseBlock;
@@ -202,7 +203,7 @@ std::unique_ptr<IfStmt> Parser::parseIfStmt() {
     return nullptr;
 
   return std::make_unique<IfStmt>(location, std::move(condition),
-                                  std::move(trueBranch), std::move(falseBlock));
+                                  std::move(trueBlock), std::move(falseBlock));
 }
 
 // <whileStatement>
