@@ -8,7 +8,9 @@
 
 ![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
-A simple programming language implementation that displays modern compiler techniques for education purposes. The written guide that explains the source code in detail can be accessed [here](https://isuckatcs.github.io/how-to-compile-your-language/).
+A simple programming language implementation with an educational guide that displays modern compiler techniques. 
+
+[isuckatcs.github.io/how-to-compile-your-language](https://isuckatcs.github.io/how-to-compile-your-language/)
 
 ## Getting Started
 
