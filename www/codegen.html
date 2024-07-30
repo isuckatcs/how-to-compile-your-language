@@ -74,7 +74,7 @@ $1 = $0
 $2 = 1
 x = $2</code></pre>
                 <p>
-                    From this representation it is visible that
+                    From this representation, it is visible that
                     <code>$1</code>, the result of <code>x = 0;</code> is not
                     used on the right hands side of any other assignments, which
                     tells the compiler that <code>$1</code> and all the other
@@ -82,9 +82,8 @@ x = $2</code></pre>
                     optimized away from the generated code.
                 </p>
                 <p>
-                    There is also a special case, when a variable has a
-                    different value depending on which path of execution is
-                    taken.
+                    There is also a special case when a variable has a different
+                    value depending on which execution path is taken.
                 </p>
                 <pre><code>if condition {
   x = 0;
@@ -128,7 +127,7 @@ y = x;
                 <p>
                     The <code>Codegen</code> class encapsulates the logic for
                     generating LLVM IR using the LLVM
-                    <code>IRBuilder</code> API. First an
+                    <code>IRBuilder</code> API. First, an
                     <code>LLVMContext</code> is created, which owns and manages
                     the data needed by the <code>IRBuilder</code> and various
                     other LLVM APIs.
@@ -145,7 +144,7 @@ y = x;
 };</code></pre>
                 <p>
                     The <code>Codegen</code> class also stores the resolved tree
-                    and takes the path of the source file in it's constructor.
+                    and takes the path of the source file in its constructor.
                 </p>
                 <pre><code>class Codegen {
   std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedTree;
@@ -162,8 +161,8 @@ public:
                     The stored <code>Module</code> must be given a name upon
                     instantiation, so it's going to be called
                     <code>"&lt;translation_unit>"</code>. The path of the source
-                    file is also inserted into the <code>Module</code> as an
-                    additional information.
+                    file is also inserted into the <code>Module</code> as a
+                    piece of additional information.
                 </p>
                 <pre><code>Codegen::Codegen(
     std::vector&lt;std::unique_ptr&lt;ResolvedFunctionDecl>> resolvedTree,
@@ -177,8 +176,8 @@ public:
                 <p>
                     To help the LLVM backend determine how to generate the
                     native executable, it is recommended to set the target
-                    triple of the module. This triple contains the information
-                    about the target machine such as it's CPU architecture and
+                    triple of the module. This triple contains information about
+                    the target machine such as its CPU architecture and
                     operating system.
                 </p>
                 <p>
@@ -194,7 +193,7 @@ public:
 }</code></pre>
                 <p>
                     The generation of the IR, similarly to the resolution
-                    happens in two passes. First the function declarations are
+                    happens in two passes. First, the function declarations are
                     generated without their bodies, so when the bodies are
                     generated in the next pass the module already knows about
                     all of the functions, which makes them easier to call.
@@ -236,8 +235,8 @@ public:
   return builder.getVoidTy();
 }</code></pre>
                 <p>
-                    To generate a function, LLVM must know it's type first. A
-                    function's type is composed of it's return type and the list
+                    To generate a function, LLVM must know its type first. A
+                    function's type is composed of its return type and the list
                     of types the function takes as parameters.
                 </p>
                 <pre><code>void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
@@ -258,7 +257,7 @@ public:
                 </p>
                 <p>
                     A variadic function is a kind of function that takes an
-                    unknown amount of parameter, but since such functions are
+                    unknown amount of parameters, but since such functions are
                     not supported by the language, this flag is always set to
                     <code>false</code>.
                 </p>
@@ -269,17 +268,18 @@ public:
 }</code></pre>
                 <p>
                     Besides the type of the function, LLVM also needs to know
-                    it's linkage. Functions that are visible outside the module
+                    its linkage. Functions that are visible outside the module
                     have external linkage, while functions visible only inside
                     the module have internal linkage. Since this compiler only
                     works with one module the linkage of a function has no
-                    visible effect. For simplicity however, every function is
+                    visible effect. For simplicity, however, every function is
                     created with external linkage.
                 </p>
                 <p>
-                    With the type, the linkage and it's identifier known, the
+                    With the type, the linkage and its identifier known, the
                     function can be created inside the module. Since the module
-                    stores the function, it can be retrieved on demand any time.
+                    stores the function, it can be retrieved on demand at any
+                    time.
                 </p>
                 <pre><code>void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
   ...
@@ -287,8 +287,8 @@ public:
                          functionDecl.identifier, module);
 }</code></pre>
                 <p>
-                    In <code>generateFunctionBody()</code> first the function is
-                    retrieved from the module.
+                    In <code>generateFunctionBody()</code> first, the function
+                    is retrieved from the module.
                 </p>
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   auto *function = module->getFunction(functionDecl.identifier);
@@ -317,7 +317,7 @@ public:
   ...
 }</code></pre>
                 <p>
-                    Parameter declarations are not known by the module unlike
+                    Parameter declarations are not known by the module, unlike
                     the functions they belong to. To be able to reference them
                     throughout the IR generation, their declarations are mapped
                     to their values in the IR.
@@ -328,7 +328,7 @@ public:
   std::map&lt;const ResolvedDecl *, llvm::Value *> declarations;
   ...
 };</code></pre>
-                <p>For each of the parameters, it's name is set first.</p>
+                <p>For each of the parameters, its name is set first.</p>
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   ...
 
@@ -345,7 +345,7 @@ public:
 }</code></pre>
                 <p>
                     Then a variable on the stack is allocated for the parameter
-                    and it's value is stored inside this variable. The
+                    and its value is stored inside this variable. The
                     <code>ResolvedDecl</code> is also mapped to this variable on
                     the stack.
                 </p>
@@ -374,23 +374,23 @@ public:
                 <p>
                     Allocating variables on the stack happens inside
                     <code>allocateStackVariable()</code>. The variables are
-                    inserted to the beginning of the <code>entry</code> block,
+                    inserted at the beginning of the <code>entry</code> block,
                     so they are visible to every instruction inside that block.
                 </p>
                 <p>
-                    By default the <code>IRBuilder</code> can only insert
+                    By default, the <code>IRBuilder</code> can only insert
                     instructions before another instruction or at the end of the
                     block.
                 </p>
                 <p>
-                    The problem with inserting at the end of block is that the
-                    variables always appear after they are used, which is an
+                    The problem with inserting at the end of the block is that
+                    the variables always appear after they are used, which is an
                     error. A different approach might be to always insert before
-                    the first instruction, but in that case it's always the
+                    the first instruction, but in that case, it's always the
                     latest variable appearing first, so the order is reversed.
                 </p>
                 <p>
-                    The idea is to insert a placeholder instruction to the
+                    The idea is to insert a placeholder instruction at the
                     beginning of the <code>entry</code> block and always insert
                     the stack variables before this placeholder.
                 </p>
@@ -439,7 +439,7 @@ entry:                %var1               %var2
                 <p>
                     With the placeholder in place,
                     <code>allocateStackVariable()</code> can create a new
-                    builder, set it's insertion point to the placeholder and
+                    builder, set its insertion point to the placeholder and
                     allocate the space for the given variable.
                 </p>
                 <pre><code>llvm::AllocaInst *
@@ -468,7 +468,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
   }
 }</code></pre>
                 <p>
-                    The same pattern is followed in <code>Codegen</code> that
+                    The same pattern is followed in <code>Codegen</code> which
                     can be seen in <code>Sema</code>. The
                     <code>generateStmt()</code> method acts as the driver for
                     statement generation.
@@ -488,7 +488,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                     function is non-void, it can also return an arbitrary value.
                 </p>
                 <p>
-                    The common pattern to handle this, is to create a dedicated
+                    The common pattern to handle this is to create a dedicated
                     return variable on the stack and a dedicated return basic
                     block.
                 </p>
@@ -501,7 +501,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                 <p>
                     Both of these helpers are created in
                     <code>generateFunctionBody()</code> before the arguments are
-                    allocated, so that the return variable is the first on the
+                    allocated so that the return variable is the first on the
                     stack. If the function doesn't return a value, there is no
                     need to allocate this variable.
                 </p>
@@ -519,7 +519,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                 <p>
                     If there is at least one explicit return statement, the
                     return block needs to be inserted into the function.
-                    Otherwise nothing jumps to this block and the
+                    Otherwise, nothing jumps to this block and the
                     <code>ret</code> instructions can be inserted at the end of
                     the current block.
                 </p>
@@ -536,7 +536,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
 }</code></pre>
                 <p>
                     If the function is <code>void</code>, the corresponding
-                    instruction is inserted. Otherwise the function returns the
+                    instruction is inserted. Otherwise, the function returns the
                     value stored in the dedicated return variable.
                 </p>
                 <pre><code>void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
@@ -552,7 +552,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                 <p>
                     When the return statement is visited and it returns a value,
                     the value is stored in the dedicated return variable.
-                    Finally a jump to the return block is inserted.
+                    Finally, a jump to the return block is inserted.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
   if (stmt.expr)
@@ -564,7 +564,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                 <p>
                     The generation of expressions is driven by
                     <code>generateExpr()</code>. Since the method is expected to
-                    handle every expression, it's end is unreachable.
+                    handle every expression, its end is unreachable.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   ...
@@ -595,7 +595,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
 }</code></pre>
                 <p>
                     Generating IR for a <code>CallExpr</code> takes a little bit
-                    more code, so it gets it's own generator method.
+                    more code, so it gets its dedicated generator method.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   ...
@@ -605,7 +605,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
 
  ...
 }</code></pre>
-                <p>First the callee is looked up from the module.</p>
+                <p>First, the callee is looked up from the module.</p>
                 <pre><code>llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   llvm::Function *callee = module->getFunction(call.callee->identifier);
 
@@ -624,7 +624,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
   ...
 }</code></pre>
                 <p>
-                    Finally the looked up function is called with the generated
+                    Finally, the looked-up function is called with the generated
                     arguments.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
@@ -634,12 +634,12 @@ Codegen::allocateStackVariable(llvm::Function *function,
 }</code></pre>
                 <h2>Printing Values</h2>
                 <p>
-                    To print values, the builtin
+                    To print values, the built-in
                     <code>println()</code> function calls the
                     <code>printf()</code> function from <code>libc</code>.
                 </p>
                 <p>
-                    <code>printf()</code> takes a format string as it's first
+                    <code>printf()</code> takes a format string as its first
                     argument followed by an unknown amount of arguments.
                 </p>
                 <pre><code>int printf(const char* format, ...);</code></pre>
@@ -648,9 +648,9 @@ Codegen::allocateStackVariable(llvm::Function *function,
                     be declared. The return type of the function is
                     <code>Int32</code>, while
                     <code>const char *</code> translates to
-                    <code>Int8Ptr</code> because a <code>char</code> is an 8 bit
+                    <code>Int8Ptr</code> because a <code>char</code> is an 8-bit
                     integer value and constness doesn't matter in LLVM IR. Also
-                    because <code>printf()</code> taken an unknown amount of
+                    because <code>printf()</code> takes an unknown amount of
                     arguments, it's a variadic function, which must be kept in
                     mind when getting the function type.
                 </p>
@@ -673,8 +673,8 @@ Codegen::allocateStackVariable(llvm::Function *function,
                 <p>
                     The function is called with the
                     <code>"%.15g\n"</code> format string, which means that the
-                    value is either converted to a decimal notation if possible,
-                    or gets printed in a floating point notation with a 15 digit
+                    value is either converted to a decimal notation if possible
+                    or gets printed in a floating point notation with a 15-digit
                     precision followed by a new line at the end.
                 </p>
                 <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
@@ -684,7 +684,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
 }</code></pre>
                 <p>
                     The first and only variadic argument passed to
-                    <code>printf()</code> is the first argument of the builtin
+                    <code>printf()</code> is the first argument of the built-in
                     <code>println()</code> function.
                 </p>
                 <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
@@ -695,8 +695,8 @@ Codegen::allocateStackVariable(llvm::Function *function,
   ...
 }</code></pre>
                 <p>
-                    Finally the call to <code>printf()</code> with the generated
-                    arguments is inserted.
+                    Finally, the call to <code>printf()</code> with the
+                    generated arguments is inserted.
                 </p>
                 <pre><code>void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &amp;println) {
   ...
@@ -721,7 +721,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
                     The last thing that needs special handling is the
                     <code>main()</code> function. Right now it's a
                     <code>void</code> function but the clang driver attempts to
-                    link the generated platform specific code against the C
+                    link the generated platform-specific code against the C
                     runtime library, which expects <code>main()</code> to return
                     an <code>int</code>, so the linking fails.
                 </p>
@@ -740,8 +740,9 @@ Codegen::allocateStackVariable(llvm::Function *function,
   return &amp;module;
 }</code></pre>
                 <p>
-                    First the <code>main()</code> function is looked up from the
-                    module and gets renamed to <code>__builtin_main()</code>.
+                    First, the <code>main()</code> function is looked up from
+                    the module and gets renamed to
+                    <code>__builtin_main()</code>.
                 </p>
                 <pre><code>void Codegen::generateMainWrapper() {
   auto *builtinMain = module->getFunction("main");
@@ -750,7 +751,7 @@ Codegen::allocateStackVariable(llvm::Function *function,
   ...
 }</code></pre>
                 <p>
-                    A new <code>main()</code> function is created with it's
+                    A new <code>main()</code> function is created with its
                     expected <code>int main()</code> signature and external
                     linkage.
                 </p>
