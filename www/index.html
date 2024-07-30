@@ -49,8 +49,7 @@
                 <p>
                     This guide is intended to be a practical introduction to how
                     to design <i>your language</i> and implement a modern
-                    compiler for it. The source code of the compiler is
-                    available on
+                    compiler for it. The compiler's source code is available on
                     <a
                         href="https://github.com/isuckatcs/how-to-compile-your-language"
                         target="_blank"
@@ -58,19 +57,19 @@
                     >.
                 </p>
                 <p>
-                    When designing a language it helps if there is an idea what
-                    the language is going to be used for. Is it indented to be
+                    When designing a language it helps if there is an idea of
+                    what the language will be used for. Is it intended to be
                     making systems programming safer like Rust? Is it targeting
                     AI developers like Mojo?
                 </p>
                 <p>
-                    In this case the goal of the language is to showcase various
-                    algorithms and techniques that are used in the
+                    In this case, the goal of the language is to showcase
+                    various algorithms and techniques that are used in the
                     implementation of some of the most popular languages like
-                    C++, Kotlin or Rust.
+                    C++, Kotlin, or Rust.
                 </p>
                 <p>
-                    The guide also covers how to create a platform specific
+                    The guide also covers how to create a platform-specific
                     executable with the help of the LLVM compiler
                     infrastructure, which all of the previously mentioned
                     languages use for the same purpose. Yes, even Kotlin can be
@@ -82,10 +81,10 @@
                     When creating a new language, the first question is how to
                     get started. There is something that every existing language
                     and <i>your language</i> must define too, which is the entry
-                    point from which the execution starts.
+                    point from which the execution begins.
                 </p>
                 <p>
-                    In scripting languages like JavaScript the execution of the
+                    In scripting languages like JavaScript, the execution of the
                     code usually starts from the first line of the source file,
                     while most programming languages including
                     <i>your language</i> treat the <code>main()</code> function
@@ -99,16 +98,16 @@
                     already popular language.
                 </p>
                 <p>
-                    In the past 50 years the syntax of a function declaration
+                    In the past 50 years, the syntax of a function declaration
                     was the name of the function followed by the list of
                     arguments enclosed by <code>(</code> and <code>)</code>. At
-                    first glance it is tempting to introduce some new exotic
+                    first glance, it is tempting to introduce some new exotic
                     syntax like <code>main<> {}</code>, but in many popular
                     languages <code><></code> might mean something completely
-                    different, in this case a generic argument list. Using such
-                    syntax for a function definition would probably cause
-                    confusion for developers who try to get familiar with this
-                    new language, which is something to keep in mind.
+                    different, in this case, a generic argument list. Using such
+                    syntax for a function definition would probably confuse
+                    developers who are trying to get familiar with this new
+                    language, which is something to keep in mind.
                 </p>
                 <h2>How Is This Text Turned into an Executable?</h2>
                 <p>
@@ -121,7 +120,7 @@
                     The <code>frontend</code> contains the actual implementation
                     of the language, it is responsible for ensuring that the
                     program written in the specific language doesn't contain any
-                    errors, and reporting every issue it finds to the developer.
+                    errors and reporting every issue it finds to the developer.
                 </p>
                 <p>
                     After validating the program, it turns it into an
@@ -141,9 +140,9 @@
                 </p>
                 <h2>Is It Possible to Learn All These Topics?</h2>
                 <p>
-                    Yes, with enough time. However there is no need to learn all
-                    of them to create a successful language. In fact even a lot
-                    of modern popular languages like <code>C++</code>,
+                    Yes, with enough time. However, there is no need to learn
+                    all of them to create a successful language. In fact, even a
+                    lot of modern popular languages like <code>C++</code>,
                     <code>Rust</code>, <code>Swift</code>,
                     <code>Haskell</code> or <code>Kotlin/Native</code> rely on
                     <code>LLVM</code> for optimization and code generation.

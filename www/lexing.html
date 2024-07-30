@@ -50,7 +50,7 @@
                 <h1>Tokenization</h1>
                 <p>
                     The first step of the compilation process is to take the
-                    textual representation of the program and brake it down into
+                    textual representation of the program and break it down into
                     a list of tokens. Like spoken languages have sentences that
                     are composed of nouns, verbs, adjectives, etc., programming
                     languages similarly are composed of a set of tokens.
@@ -64,8 +64,8 @@
                     be named anything else like <code>foo</code> or
                     <code>bar</code>. One thing these names have in common is
                     that each of them uniquely identifies the given function, so
-                    the token that represent such piece of source code is called
-                    the <code>Identifier</code> token.
+                    the token that represents such a piece of source code is
+                    called the <code>Identifier</code> token.
                 </p>
                 <pre><code>enum class TokenKind : char {
   Identifier
@@ -79,8 +79,8 @@
                     functions called <code>fn</code> or <code>void</code>.
                 </p>
                 <p>
-                    Each keyword gets it's own unique token, so that it's easy
-                    to differentiate between them.
+                    Each keyword gets its unique token so that it's easy to
+                    differentiate between them.
                 </p>
                 <pre><code>enum class TokenKind : char {
   ...
@@ -99,7 +99,7 @@
                     The rest of the tokens, including <code>EOF</code> are
                     tokens composed of a single character. To make creating them
                     easier, each of these tokens is placed into an array and
-                    their respective enumerator values are the ascii code of
+                    their respective enumerator values are the ASCII code of
                     their corresponding character.
                 </p>
                 <pre><code>constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':'};
@@ -115,10 +115,10 @@ enum class TokenKind : char {
   Colon = singleCharTokens[5],
 };</code></pre>
                 <p>
-                    It might happen that a developer writes something in the
-                    source code that cannot be represented by any of the known
-                    tokens. In such cases an <code>Unk</code> token is used,
-                    that represents every unknown piece of source code.
+                    A developer might write something in the source code that
+                    cannot be represented by any of the known tokens. In such
+                    cases an <code>Unk</code> token is used, that represents
+                    every unknown piece of source code.
                 </p>
                 <pre><code>enum class TokenKind : char {
   Unk = -128,
@@ -153,12 +153,12 @@ enum class TokenKind : char {
                 <p>
                     The lexer is the part of the compiler that is responsible
                     for producing the tokens. It iterates over a source file
-                    character by character and does it's best to select the
+                    character by character and does its best to select the
                     correct token for each piece of code.
                 </p>
                 <p>
-                    Within the compiler a source file is represented by it's
-                    path and a buffer filled with it's content.
+                    Within the compiler, a source file is represented by its
+                    path and a buffer filled with its content.
                 </p>
                 <pre><code>struct SourceFile {
   std::string_view path;
@@ -171,7 +171,7 @@ enum class TokenKind : char {
                     traverses the buffer. Because initially none of the
                     characters in the source file is processed, the lexer points
                     to the first character of the buffer and starts at the
-                    position of line 1 column 0, or with other words, before the
+                    position of line 1 column 0, or in other words, before the
                     first character of the first line. The next
                     <code>Token</code> is returned on demand by the
                     <code>getNextToken()</code> method.
@@ -194,7 +194,7 @@ enum class TokenKind : char {
                     <code>eatNextChar()</code> helper methods are introduced.
                     The former returns which character is to be processed next,
                     while the latter returns that character and advances the
-                    lexer to the next character, while updating the correct line
+                    lexer to the next character while updating the correct line
                     and column position in the source file.
                 </p>
                 <pre><code>class Lexer {
@@ -267,14 +267,14 @@ Token Lexer::getNextToken() {
   ...
 }</code></pre>
                 <p>
-                    A <code>for</code> loop is used to iterate over the single
-                    character tokens array and if the current character matches
-                    one of them, the corresponding token is returned. This is
-                    the benefit of storing the characters in an array and making
-                    their corresponding <code>TokenKind</code> have the value of
-                    the ascii code of the character the token represents. This
-                    way the <code>TokenKind</code> can immediately be returned
-                    with a simple cast.
+                    A <code>for</code> loop is used to iterate over the
+                    single-character tokens array and if the current character
+                    matches one of them, the corresponding token is returned.
+                    This is the benefit of storing the characters in an array
+                    and making their corresponding <code>TokenKind</code> have
+                    the value of the ASCII code of the character the token
+                    represents. This way the <code>TokenKind</code> can
+                    immediately be returned with a simple cast.
                 </p>
                 <pre><code>Token Lexer::getNextToken() {
   ...
@@ -288,7 +288,7 @@ Token Lexer::getNextToken() {
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        In production grade compilers single character tokens
+                        In production-grade compilers, single-character tokens
                         are usually handled using hardcoded branches, as that
                         will lead to the fastest running code in general.
                     </p>
@@ -310,7 +310,7 @@ if (currentChar == ':')
 if (currentChar == '\0')
   return Token{tokenStartLocation, TokenKind::eof};</code></pre>
                     <p>
-                        In this compiler the goal is to use a representation
+                        In this compiler, the goal is to use a representation
                         that takes as little boilerplate code to implement and
                         extend as possible.
                     </p>
@@ -352,7 +352,7 @@ if (currentChar == '\0')
                         While comments are not important for this compiler,
                         other compilers that convert one language to another
                         (e.g.: Java to Kotlin) or formatting tools do need to
-                        know about them. In such cases the lexer might return a
+                        know about them. In such cases, the lexer might return a
                         dedicated <code>Comment</code> token with the contents
                         of the comment.
                     </p>
@@ -360,8 +360,8 @@ if (currentChar == '\0')
                 <h2>Identifiers and Keywords</h2>
                 <p>
                     Identifiers consist of multiple characters in the form of
-                    <code>(a-z|A-Z)(a-z|A-Z|0-9)*</code>. Initially keywords are
-                    also lexed as identifiers but later their corresponding
+                    <code>(a-z|A-Z)(a-z|A-Z|0-9)*</code>. Initially, keywords
+                    are also lexed as identifiers but later their corresponding
                     <code>TokenKind</code> is looked up from the map and the
                     correct token representing them is returned.
                 </p>
@@ -390,12 +390,12 @@ Token TheLexer::getNextToken() {
 }</code></pre>
                 <p>
                     Notice how <code>isSpace</code>, <code>isAlpha</code>, etc.
-                    are all custom functions, when the C++ standard library also
+                    are all custom functions when the C++ standard library also
                     provides <code>std::isspace</code>,
                     <code>std::isalpha</code>, etc.
                 </p>
                 <p>
-                    These functions are dependant on the current locale, so if
+                    These functions are dependent on the current locale, so if
                     for example
                     <code>'a'</code> is not considered alphabetic in the current
                     locale, the lexer will no longer work as expected.
@@ -403,8 +403,8 @@ Token TheLexer::getNextToken() {
                 <p>
                     If none of the above conditions matches the current
                     character and the end of the function is reached, the lexer
-                    wasn't able to figure out which token represents the piece
-                    of code starting at the current character, so an
+                    can't figure out which token represents the piece of code
+                    starting at the current character, so an
                     <code>Unk</code> token is returned.
                 </p>
                 <pre><code>Token Lexer::getNextToken() {

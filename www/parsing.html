@@ -54,7 +54,7 @@
                     building blocks (nouns, verbs, etc.) of sentences in a
                     spoken language. The
                     <code>This section talks about the parser.</code> sentence
-                    is valid in the english language, because the mentioned
+                    is valid in the English language because the mentioned
                     building blocks follow each other in the correct order.
                     Similarly <code>fn main(): void {}</code> is a valid
                     function declaration in <i>your language</i> for the same
@@ -98,8 +98,8 @@
   virtual void dump(size_t level = 0) const = 0;
 };</code></pre>
                 <p>
-                    Currently the only <code>Decl</code> in the language is the
-                    <code>FunctionDecl</code>, which additionally to what every
+                    Currently, the only <code>Decl</code> in the language is the
+                    <code>FunctionDecl</code>, which in addition to what every
                     declaration has in common, also has a return type and a
                     body.
                 </p>
@@ -121,7 +121,7 @@
                     To make the dumping of the node easier the
                     <code>indent()</code> helper is introduced, which returns
                     the indentation of a given level. For the indentation of
-                    each level 2 spaces are used.
+                    each level, 2 spaces are used.
                 </p>
                 <pre><code>std::string indent(size_t level) { return std::string(level * 2, ' '); }</code></pre>
                 <p>
@@ -153,7 +153,7 @@
 };</code></pre>
                 <p>
                     Because a <code>Block</code> doesn't have any child nodes,
-                    it's textual representation only includes the name of the
+                    its textual representation only includes the name of the
                     node.
                 </p>
                 <pre><code>void Block::dump(size_t level) const {
@@ -162,7 +162,7 @@
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        Lately some compiler engineers started using
+                        Lately, some compiler engineers started using
                         <code>std::variant</code> instead of inheritance to
                         model the AST, where the variant acts as a union of
                         nodes.
@@ -199,8 +199,8 @@ struct GroupingExpr {
   Expr *innerExpr;
 };</code></pre>
                     <p>
-                        In this case the question is, who owns the memory for
-                        the <code>innerExpr</code> field. Who allocates it, who
+                        In this case, the question is, who owns the memory for
+                        the <code>innerExpr</code> field? Who allocates it, who
                         is responsible for freeing it, etc. The workaround for
                         this problem is to use a <code>std::unique_ptr</code>.
                     </p>
@@ -208,9 +208,9 @@ struct GroupingExpr {
   std::unique_ptr&lt;Expr> innerExpr;
 };</code></pre>
                     <p>
-                        Now it's clear that the node is the owner of it's child
-                        node. However to know the current type of the variant,
-                        <code>innerExpr</code> needs to be type checked. The
+                        Now it's clear that the node is the owner of its child
+                        node. However, to know the current type of the variant,
+                        <code>innerExpr</code> needs to be type-checked. The
                         same type checking however could also be performed on
                         the pointer itself if <code>Expr</code> was a
                         polymorphic base class. To avoid complexities, this
@@ -270,8 +270,8 @@ private:
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        Theoretically a function is also a separate type, so in
-                        a more complex language with a more complex type system
+                        Theoretically, a function is also a separate type, so in
+                        a more complex language with a more complex type system,
                         this should also be encapsulated somehow.
                     </p>
                     <p>
@@ -280,7 +280,7 @@ private:
                         function type. To be able to model the complexity of C++
                         types precisely,
                         <code>Clang</code> uses a layer-based type system, where
-                        each layer is a different higher level type.
+                        each layer is a different higher-level type.
                     </p>
                     <p>
                         An <code>int *</code> is represented using 2 layers, one
@@ -327,7 +327,7 @@ public:
         nextToken(lexer.getNextToken()) {}
 };</code></pre>
                 <p>
-                    Once the parser finished processing the next token, it calls
+                    Once the parser finishes processing the next token, it calls
                     the <code>eatNextToken()</code> helper, which consumes it
                     and calls the lexer for the following one.
                 </p>
@@ -440,9 +440,9 @@ Parser::parseSourceFile() {
   ...
 }</code></pre>
                 <p>
-                    It might happen that the source code is invalid and the
-                    parser fails to process it completely. In that case the AST
-                    is incomplete, which is marked by the
+                    The source code might be invalid and the parser fails to
+                    process it completely. In that case, the AST is incomplete,
+                    which is marked by the
                     <code>incompleteAST</code> flag.
                 </p>
                 <pre><code>class Parser {
@@ -552,9 +552,9 @@ Parser::parseSourceFile() {
     return report(nextToken.location, msg);</code></pre>
                 <p>
                     The <code>parseFunctionDecl()</code> method expects the
-                    current token to be <code>KwFn</code>, saves it's location
-                    as the beginning of the function and checks if the rest of
-                    the tokens are in the correct order.
+                    current token to be <code>KwFn</code>, saves its location as
+                    the beginning of the function and checks if the rest of the
+                    tokens are in the correct order.
                 </p>
                 <pre><code>// &lt;functionDecl>
 //  ::= 'fn' &lt;identifier> '(' ')' ':' &lt;type> &lt;block>
@@ -583,7 +583,7 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
 }</code></pre>
                 <p>
                     The next tokens denoting the start and end of the argument
-                    list are single character tokens, which don't require any
+                    list are single-character tokens, which don't require any
                     special handling.
                 </p>
                 <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
@@ -612,7 +612,7 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
   ...
 }</code></pre>
                 <p>
-                    Finally the <code>Block</code> is parsed by the
+                    Finally, the <code>Block</code> is parsed by the
                     <code>parseBlock()</code> method. Similarly to the current
                     method, <code>parseBlock()</code> also expects the first
                     token to be the start of the block, so that token is checked
@@ -627,7 +627,7 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
   ...
 }</code></pre>
                 <p>
-                    If everything was successful, the
+                    If everything is successful, the
                     <code>FunctionDecl</code> node is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
@@ -637,9 +637,9 @@ std::unique_ptr&lt;FunctionDecl> Parser::parseFunctionDecl() {
 }</code></pre>
                 <p>
                     Parsing the type has been extracted into a dedicated helper
-                    method, so that it can be reused later when the language is
+                    method so that it can be reused later when the language is
                     extended. The <code>number</code> type is handled in a later
-                    chapter as so far there is no token that represents it.
+                    chapter as so far no token can represent it.
                 </p>
                 <p>
                     This method checks if the current token is
@@ -713,10 +713,10 @@ Parser::parseSourceFile() {
 }</code></pre>
                 <p>
                     If <code>main()</code> is not found and the AST is complete
-                    an error is reported. In case of an incomplete AST it might
-                    have been parsing the <code>main()</code> function that
-                    caused the syntax error, so nothing is reported to avoid
-                    false positives.
+                    an error is reported. In the case of an incomplete AST it
+                    might have been parsing the <code>main()</code> function
+                    that caused the syntax error, so nothing is reported to
+                    avoid false positives.
                 </p>
                 <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;FunctionDecl>>, bool>
 Parser::parseSourceFile() {
@@ -808,7 +808,7 @@ input:           (     )
                     the syntax of a language. It might be tempting to introduce
                     a certain syntax, but it can easily increase the difficulty
                     of parsing that language and can even make expanding a
-                    grammar rule dependant on the semantics of the source code.
+                    grammar rule dependent on the semantics of the source code.
                 </p>
                 <p>
                     As an example take a look at the function declaration syntax
@@ -817,7 +817,7 @@ input:           (     )
                 <p>
                     <code>int foo(int);</code> declares a function named
                     <code>foo</code>, which returns an <code>int</code> and
-                    accepts an <code>int</code> as parameter.
+                    accepts an <code>int</code> as a parameter.
                     <code>int foo(0);</code> is also a valid C++ code, that
                     declares an <code>int</code> variable and initializes it to
                     <code>0</code>.
@@ -826,7 +826,7 @@ input:           (     )
                     The issue arises when
                     <code>int foo(x);</code> is encountered by the parser. Since
                     C++ allows the creation of user-defined types,
-                    <code>x</code> can either be a type, or a value. If
+                    <code>x</code> can either be a type or a value. If
                     <code>x</code> is a type, the above sequence of tokens is a
                     function declaration, if <code>x</code> is a value, it is a
                     variable declaration.
@@ -845,8 +845,8 @@ int foo(x); // declares a variable</code></pre>
                     When the same sequence of symbols can have a different
                     meaning based on what context they appear in, the grammar is
                     called ambiguous. C++ is known to have multiple ambiguities
-                    in it's grammar, though some are inherited from C such as
-                    the pointer syntax.
+                    in its grammar, though some are inherited from C such as the
+                    pointer syntax.
                 </p>
                 <pre><code>typedef char a;
 a * b; // declares 'b', a pointer to 'a'
@@ -864,7 +864,7 @@ int a = 0, b = 0;
                     A well-known source of ambiguity in programming languages is
                     the generic syntax. Consider the following generic function
                     call, which can appear in both C++ and Kotlin
-                    <code>function&lt;type>(argument)</code>. For the parser
+                    <code>function&lt;type>(argument)</code>. For the parser,
                     this is a sequence of <code>Identifier</code>,
                     <code>&lt;</code>, <code>Identifier</code>, <code>></code>,
                     <code>(</code>, <code>Identifier</code> and <code>)</code>.
@@ -883,13 +883,13 @@ f&lt;t>(a); // comparison
 </code></pre>
                 <p>
                     The source of the problem is that <code>&lt;</code> can
-                    either mean the start of a generic argument list, or the
+                    either mean the start of a generic argument list or the
                     less-than operator. Rust resolved this ambiguity by
                     introducing the turbofish (<code>::<></code>). The Rust
                     parser knows that <code>&lt;</code> always means the
-                    less-than operator in confusing situations, because a
-                    generic argument list must begin with
-                    <code>::</code> followed by the <code>&lt;</code>.
+                    less-than operator in confusing situations because a generic
+                    argument list must begin with <code>::</code> followed by
+                    the <code>&lt;</code>.
                 </p>
                 <pre><code>fn f&lt;T>() {}
 
