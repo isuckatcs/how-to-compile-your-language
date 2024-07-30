@@ -55,17 +55,17 @@
     return 2 + 3 * 4;
 }</code></pre>
                 <p>
-                    In the above function it can be calculated that the returned
-                    value is <code>14</code> during compilation, so instead of
-                    emitting the addition and the multiplication to the IR, it
-                    is enough to emit only a single constant.
+                    In the above function, it can be calculated that the
+                    returned value is <code>14</code> during compilation, so
+                    instead of emitting the addition and the multiplication to
+                    the IR, it is enough to emit only a single constant.
                 </p>
                 <h2>A Tree-walk Interpreter</h2>
                 <p>
                     There are multiple solutions for constant expression
                     evaluation, but one of the most widespread is the tree-walk
-                    interpreter. It is built on the observation that the post
-                    order evaluation of the AST yields the result of the
+                    interpreter. It is built on the observation that the
+                    post-order evaluation of the AST yields the result of the
                     expression.
                 </p>
                 <pre><code>     ┌───┐                 
@@ -82,14 +82,14 @@
                     post order and evaluates what it sees.
                 </p>
                 <p>
-                    Inside the compiler it can be invoked on resolved
+                    Inside the compiler, it can be invoked on resolved
                     expressions on demand. Since valid expressions can only
                     evaluate to numbers, the interpreter returns an
                     <code>std::optional&lt;double></code>, which holds the
                     result if it managed to evaluate the expression.
                 </p>
                 <p>
-                    For the evaluation of some operators it matters if side
+                    For the evaluation of some operators, it matters if side
                     effects are allowed or not, so the interpreter also provides
                     an option to change how side effects are treated.
                 </p>
@@ -100,7 +100,7 @@ public:
 };</code></pre>
                 <p>
                     The simplest expression to evaluate is the number literal,
-                    which simply evaluates to it's already known value.
+                    which simply evaluates to its already known value.
                 </p>
                 <pre><code>std::optional&lt;double>
 ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
@@ -146,8 +146,8 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    First the operand is evaluated, and if it is a known value,
-                    either it's numeric or logical value is negated depending on
+                    First, the operand is evaluated, and if it is a known value,
+                    either its numeric or logical value is negated depending on
                     the operator.
                 </p>
                 <pre><code>std::optional&lt;double> ConstantExpressionEvaluator::evaluateUnaryOperator(
@@ -188,13 +188,13 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
                     <code>return sideEffect() || 1;</code> even though it's
                     known at compile time that the condition is always true,
                     replacing the statement with <code>return 1;</code> would
-                    completely eliminate the side effect.
+                    eliminate the side effect.
                 </p>
                 <p>
                     In other cases such as
                     <code>if sideEffect() || 1 { ... }</code> the compiler might
-                    wants to reason about whether the condition is always true
-                    or not. In these cases the side effect doesn't matter as the
+                    want to reason about whether the condition is always true or
+                    not. In these cases, the side effect doesn't matter as the
                     condition is not going to be replaced with a different
                     expression.
                 </p>
@@ -244,7 +244,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
                 <p>
                     If both the LHS and the RHS are known, but none of them is
                     <code>true</code>, the result is <code>false</code>. In
-                    every other case the result cannot be calculated in compile
+                    every other case, the result cannot be calculated in compile
                     time.
                 </p>
                 <pre><code>std::optional&lt;double> ConstantExpressionEvaluator::evaluateBinaryOperator(
@@ -292,7 +292,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
   ...
 }</code></pre>
                 <p>
-                    For the rest of the binary operators if both of their sides
+                    For the rest of the binary operators, if both of their sides
                     are known in compile time, the respective operation is
                     performed on their values.
                 </p>
@@ -329,9 +329,9 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
                 <h2>Storing the Result</h2>
                 <p>
                     The <code>ResolvedExpr</code> node is equipped with the
-                    capability of storing it's compile time known value, so that
+                    capability of storing its compile-time known value so that
                     it can be reused later without recalculation for further
-                    reasoning about the semantic of the source file and more
+                    reasoning about the semantics of the source file and more
                     efficient code generation.
                 </p>
                 <p>
@@ -372,7 +372,7 @@ public:
                 <p>
                     With the ability to store the result, the
                     <code>evaluate()</code> method can be made more efficient by
-                    checking whether the given expression already has it's value
+                    checking whether the given expression already has its value
                     calculated and returning that value immediately.
                 </p>
                 <pre><code>std::optional&lt;double>
@@ -384,8 +384,8 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
 }</code></pre>
                 <p>
                     The same optimization can also be used during code
-                    generation, so that instead of a series of instructions,
-                    only a constant value is generated.
+                    generation so that instead of a series of instructions, only
+                    a constant value is generated.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
   if (auto val = expr.getConstantValue())
@@ -403,10 +403,10 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr) {
   ...
 };</code></pre>
                 <p>
-                    One of such cases is calculating the value of an argument
-                    passed to a function. Since the expression is expected to be
+                    One such case is calculating the value of an argument passed
+                    to a function. Since the expression is expected to be
                     replaced with a constant value, the
-                    <code>allowSideEffects</code> option is set to be
+                    <code>allowSideEffects</code> option is set be
                     <code>false</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {

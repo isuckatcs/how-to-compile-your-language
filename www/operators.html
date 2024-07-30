@@ -61,8 +61,8 @@
                 <p>
                     Operators are expressed in the grammar such that a new
                     non-terminal is introduced for every precedence level and
-                    each of these non-terminals expand to the next precedence
-                    level one in an increasing order from lowest to highest.
+                    each of these non-terminals expands to the next precedence
+                    level in an increasing order from lowest to highest.
                 </p>
                 <pre><code>    Precedence    |       Type       |     Symbols
 ───────────────────────────────────────────────────────
@@ -117,17 +117,17 @@
                 <p>
                     Other languages, like Haskell support user-defined operators
                     with custom precedence level and associativity. In a
-                    recursive descent parser implementing such feature is
+                    recursive descent parser implementing such a feature is
                     tricky, as it requires adding new functions during runtime
                     and modifying which functions are being called next.
                 </p>
                 <p>
-                    Operator precedence parsing is an algorithm that is able to
-                    address both of the above drawbacks. Also this parsing
-                    technique can easily be combined with recursive descent.
+                    Operator precedence parsing is an algorithm that can address
+                    both of the above drawbacks. Also, this parsing technique
+                    can easily be combined with recursive descent.
                 </p>
                 <p>
-                    Before implementing this parser however, the lexer needs to
+                    Before implementing this parser, however, the lexer needs to
                     be extended with the new operators.
                 </p>
                 <pre><code>constexpr char singleCharTokens[] = {..., '+', '-', '*'};
@@ -186,13 +186,13 @@ enum class TokenKind : char {
                     <p>
                         A more elegant representation for operators is creating
                         a dedicated enum of the possible kinds instead of
-                        reusing the tokens, but for now the compiler is kept as
+                        reusing the tokens, but for now, the compiler is kept as
                         simple as possible.
                     </p>
                 </blockquote>
                 <p>
                     The textual representation of
-                    <code>BinaryOperator</code> contains it's operands and the
+                    <code>BinaryOperator</code> contains its operands and the
                     stored operator.
                 </p>
                 <pre><code>void BinaryOperator::dump(size_t level) const {
@@ -223,15 +223,15 @@ enum class TokenKind : char {
                 <p>
                     The idea is to parse the LHS of an operator first and then
                     parse each of the following operators together with their
-                    RHS. In case of
-                    <code>2 + 3 * 4</code> it means parsing <code>2</code>, then
-                    <code>+ 3</code> and finally <code>* 4</code>.
+                    RHS. In the case of
+                    <code>2 + 3 * 4</code>, it means parsing <code>2</code>,
+                    then <code>+ 3</code> and finally <code>* 4</code>.
                 </p>
                 <p>
-                    When an operator and it's RHS are parsed, it needs to be
-                    decided whether that RHS is really the RHS of that operator,
+                    When an operator and its RHS are parsed, it needs to be
+                    decided whether that RHS is really the RHS of that operator
                     or the LHS of the upcoming one. This is done by checking
-                    wether the precedence of the upcoming operator is higher
+                    whether the precedence of the upcoming operator is higher
                     than the precedence of the current one.
                 </p>
                 <p>
@@ -258,7 +258,7 @@ Expression: 2 + 3 * 4
   ^
 
 2.) invoke the parser with LHS being 2 and parse the 
-    next OP and it's RHS
+    next OP and its RHS
 
   OP:   (precedence: 0) LHS: 2 RHS:  
   2 + 3 * 4 ;
@@ -300,7 +300,7 @@ Expression: 2 + 3 * 4
             ^ return BinOp('+', 2, BinOp('*', 3, 4))
 </code></pre>
                 <p>
-                    To implement this logic, first a helper is defined that
+                    To implement this logic, first, a helper is defined that
                     returns the token precedence.
                 </p>
                 <pre><code>int getTokPrecedence(TokenKind tok) {
@@ -324,7 +324,7 @@ Expression: 2 + 3 * 4
                     <p>
                         If a language however supports user-defined operators,
                         the precedence table needs to be modified during the
-                        parsing of the file. In such cases an
+                        parsing of the file. In such cases, an
                         <code>std::unordered_map</code> or similar data
                         structure might be used.
                     </p>
@@ -334,7 +334,7 @@ Expression: 2 + 3 * 4
                     the operator precedence parser. It first parses the initial
                     primary expression and then parses the RHS for it. The
                     <code>parseExprRHS()</code> houses the core logic of the
-                    operator precedence parser and as a result it needs to know
+                    operator precedence parser and as a result, it needs to know
                     about the precedence of the current operator. Since
                     initially there is no operator, it's given <code>0</code> as
                     the precedence.
@@ -366,7 +366,7 @@ Expression: 2 + 3 * 4
                     precedence of the upcoming operator is checked. If the
                     precedence of the upcoming operator is higher, the current
                     primary expression is the LHS of that operator, so it' RHS
-                    is parsed recursively. Otherwise create a
+                    is parsed recursively. Otherwise, create a
                     <code>BinaryOperator</code> node and make it the current
                     LHS.
                 </p>
@@ -393,8 +393,8 @@ Expression: 2 + 3 * 4
                     with <code>curOpPrec + 1</code>. The <code>+ 1</code> there
                     controls the associativity of the current operator, with it
                     present, the operator is left associative, without it it's
-                    right associative. So far all of the supported operators are
-                    left associative.
+                    right-associative. So far all of the supported operators are
+                    left-associative.
                 </p>
                 <pre><code>Expression: 2 + 3 * 4 + 5
 
@@ -466,7 +466,7 @@ Expression: 2 + 3 * 4
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        A language can support both left and right associative
+                        A language can support both left and right-associative
                         operators at the same time. C++ is one example, where
                         the arithmetic operators are left associative, while
                         assignments are right associative.
@@ -478,9 +478,9 @@ Expression: 2 + 3 * 4
                         With operator precedence parsing it's simple to switch
                         the associativity even in the middle of parsing an
                         expression. It only needs to be ensured that in the
-                        recursive call the precedence is not incremented and the
-                        recursive call is made even if the next operator has the
-                        same precedence level as the current one.
+                        recursive call, the precedence is not incremented and
+                        the recursive call is made even if the next operator has
+                        the same precedence level as the current one.
                     </p>
                     <pre><code>while (true) {
   ...
@@ -500,15 +500,15 @@ Expression: 2 + 3 * 4
                 </blockquote>
                 <h2>Adding Unary Operators</h2>
                 <p>
-                    Unary operators can have a prefix or postfix form. Currently
-                    only the prefix unary negation is supported.
+                    Unary operators can have a prefix or postfix form.
+                    Currently, only the prefix unary negation is supported.
                 </p>
 
                 <pre><code>&lt;prefixExpression>
   ::= '-'* &lt;postfixExpression></code></pre>
                 <p>
                     The AST node of a unary operator is similar to a binary one
-                    in that it's operand is stored and the token kind is used to
+                    in that its operand is stored and the token kind is used to
                     represent the operator.
                 </p>
                 <pre><code>struct UnaryOperator : public Expr {
@@ -526,7 +526,7 @@ Expression: 2 + 3 * 4
 };</code></pre>
                 <p>
                     The textual representation of the node also contains both
-                    the operator and it's operand.
+                    the operator and its operand.
                 </p>
                 <pre><code>void UnaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "UnaryOperator: '" << getOpStr(op) << '\''
@@ -535,7 +535,7 @@ Expression: 2 + 3 * 4
   operand->dump(level + 1);
 }</code></pre>
                 <p>
-                    Prefix operators have a higher precedence than any of the
+                    Prefix operators have higher precedence than any of the
                     binary operators and are parsed in their dedicated method.
                 </p>
                 <pre><code>std::unique_ptr&lt;Expr> Parser::parsePrefixExpr() {
@@ -551,7 +551,7 @@ Expression: 2 + 3 * 4
                                          tok.kind);
 }</code></pre>
                 <p>
-                    With this addition <code>parseExpr()</code> is modified to
+                    With this addition, <code>parseExpr()</code> is modified to
                     call <code>parsePrefixExpr()</code> instead of
                     <code>parsePrimary()</code> when parsing the supposed LHS.
                 </p>
@@ -561,7 +561,7 @@ Expression: 2 + 3 * 4
 }</code></pre>
                 <p>
                     <code>parseExprRHS()</code> is also updated to parse a
-                    prefix expression, when it expects an RHS.
+                    prefix expression when it expects an RHS.
                 </p>
                 <pre><code>std::unique_ptr&lt;Expr> Parser::parseExprRHS(std::unique_ptr&lt;Expr> lhs,
                                            int precedence) {
@@ -576,7 +576,7 @@ Expression: 2 + 3 * 4
                 <h2>Processing Operators</h2>
                 <p>
                     The resolved node of a <code>BinaryOperator</code> is
-                    identical to it's non-resolved counterpart.
+                    identical to its non-resolved counterpart.
                 </p>
                 <pre><code>struct ResolvedBinaryOperator : public ResolvedExpr {
   TokenKind op;
@@ -594,7 +594,7 @@ Expression: 2 + 3 * 4
 
   void dump(size_t level = 0) const override;
 };</code></pre>
-                <p>It's textual representation is also the same.</p>
+                <p>Its textual representation is also the same.</p>
                 <pre><code>void ResolvedBinaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedBinaryOperator: '" << getOpStr(op)
             << '\'' << '\n';
@@ -603,8 +603,8 @@ Expression: 2 + 3 * 4
   rhs->dump(level + 1);
 }</code></pre>
                 <p>
-                    Similarly a <code>ResolvedUnaryOperator</code> also stores
-                    it's operand and kind like it's AST node.
+                    Similarly, a <code>ResolvedUnaryOperator</code> also stores
+                    its operand and kind, like its AST node.
                 </p>
                 <pre><code>struct ResolvedUnaryOperator : public ResolvedExpr {
   TokenKind op;
@@ -620,8 +620,8 @@ Expression: 2 + 3 * 4
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    It's textual representation also includes both of these
-                    field.
+                    Its textual representation also includes both of these
+                    fields.
                 </p>
                 <pre><code>void ResolvedUnaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedUnaryOperator: '" << getOpStr(op)
@@ -648,10 +648,10 @@ Expression: 2 + 3 * 4
   ...
 }</code></pre>
                 <p>
-                    For the unary operator it's operand is resolved first. If
+                    For the unary operator, its operand is resolved first. If
                     the resolution succeeds and the type of the operand is not
                     <code>void</code> the corresponding resolved node is
-                    returned. Otherwise an error is reported.
+                    returned. Otherwise, an error is reported.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
@@ -660,16 +660,16 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(
         resolvedRHS->location,
-        "void expression cannot be used as operand to unary operator");
+        "void expression cannot be used as an operand to unary operator");
 
   return std::make_unique&lt;ResolvedUnaryOperator>(unary.location, unary.op,
                                                  std::move(resolvedRHS));
 }</code></pre>
                 <p>
-                    For binary operators both the LHS and the RHS is resolved.
+                    For binary operators, both the LHS and the RHS are resolved.
                     If either of them is of <code>void</code> type an error is
-                    reported. Otherwise it should be checked that the two
-                    operands have the same type, but in this case when neither
+                    reported. Otherwise, it should be checked that the two
+                    operands have the same type, but in this case, when neither
                     of the operands is <code>void</code> this is guaranteed by
                     the type system.
                 </p>
@@ -709,7 +709,7 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
                     operators simple and convenient.
                 </p>
                 <p>
-                    For unary operators the value of their sub expression is
+                    For unary operators, the value of their sub-expression is
                     generated first and the corresponding operation is performed
                     on the value.
                 </p>
@@ -752,7 +752,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                 <h2>Grouping Expression</h2>
                 <p>
                     Grouping expression is the last primary expression supported
-                    by the language. In the grammar it is a wrapper around an
+                    by the language. In the grammar, it is a wrapper around an
                     arbitrary expression.
                 </p>
                 <pre><code>&lt;primaryExpression>
@@ -772,7 +772,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    It's textual representation is the name of the node and it's
+                    Its textual representation is the name of the node and its
                     enclosed expression.
                 </p>
                 <pre><code>void GroupingExpr::dump(size_t level) const {
@@ -802,7 +802,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 }</code></pre>
                 <p>
                     The resolved node of the expression is also a wrapper around
-                    a <code>ResolvedExpr</code>, similarly to the non-resolved
+                    a <code>ResolvedExpr</code>, similar to the non-resolved
                     one.
                 </p>
                 <pre><code>struct ResolvedGroupingExpr : public ResolvedExpr {
@@ -817,7 +817,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 };</code></pre>
                 <p>
                     The textual representation of the resolved node is also
-                    identical to it's non-resolved counterpart.
+                    identical to its non-resolved counterpart.
                 </p>
                 <pre><code>void ResolvedGroupingExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedGroupingExpr:\n";
@@ -838,7 +838,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   ...
 }</code></pre>
                 <p>
-                    To resolve a <code>GroupingExpr</code>, only it's wrapped
+                    To resolve a <code>GroupingExpr</code>, only its wrapped
                     expression needs to be resolved.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedGroupingExpr>
@@ -883,8 +883,8 @@ enum class TokenKind : char {
   Excl = singleCharTokens[13],
 };</code></pre>
                 <p>
-                    The single character tokens are lexed automatically, but for
-                    the two character ones the characters must be matched
+                    The single-character tokens are lexed automatically, but for
+                    the two-character ones, the characters must be matched
                     manually.
                 </p>
                 <pre><code>Token Lexer::getNextToken() {
@@ -940,9 +940,10 @@ enum class TokenKind : char {
   ...
 }</code></pre>
                 <p>
-                    The semantic analyzer is not affected by the change, however
-                    the code generator needs to be taught what instructions it
-                    should generate for each of the new operators.
+                    The semantic analyzer is not affected by the change,
+                    however, the code generator needs to be taught what
+                    instructions it should generate for each of the new
+                    operators.
                 </p>
                 <p>
                     Because these operators are supposed to return logical
@@ -954,7 +955,7 @@ enum class TokenKind : char {
                 </p>
                 <p>
                     LLVM IR however has a dedicated 1-bit integer value, which
-                    most of the conditional instructions take as parameter. To
+                    most of the conditional instructions take as a parameter. To
                     be able to work with these instructions, two helper methods
                     are introduced to convert between numeric and logical
                     values.
@@ -976,8 +977,8 @@ enum class TokenKind : char {
   return builder.CreateUIToFP(v, builder.getDoubleTy(), "to.double");
 }</code></pre>
                 <p>
-                    The <code>!</code> operator negates the logical value of
-                    it's operand, so the operand is converted to bool before the
+                    The <code>!</code> operator negates the logical value of its
+                    operand, so the operand is converted to bool before the
                     negation is performed. Once the value is negated, it is
                     promoted back to a numeric value, because the language can
                     only work with numbers.
@@ -1016,7 +1017,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     All of the previously seen comparison functions end with
                     three characters starting with <code>O</code>. This
                     <code>O</code> means that an ordered comparison is
-                    performed. For example <code>OLT</code> means Ordered Less
+                    performed. For example, <code>OLT</code> means Ordered Less
                     Than.
                 </p>
                 <p>
@@ -1028,7 +1029,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     returns false if either of the values is <code>NaN</code>.
                 </p>
                 <p>
-                    One last change to do is making these operators appear
+                    One last change to make is making these operators appear
                     correctly in the AST and resolved tree dumps, so the
                     <code>getOpStr()</code> function is extended to handle them.
                 </p>
@@ -1067,7 +1068,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     operand doesn't have to be evaluated.
                 </p>
                 <p>
-                    This is important to keep in mind, since the operands can
+                    This is important to keep in mind since the operands can
                     have side effects too. In the following program for example
                     nothing should be printed to the standard output.
                 </p>
@@ -1129,7 +1130,7 @@ or.merge:     |                         |
 </code></pre>
                 <p>
                     So far implementing this seems simple, but it turns into a
-                    not so trivial problem once multiple operators are chained
+                    not-so-trivial problem once multiple operators are chained
                     together. Consider the following example and how it's block
                     structure should look like.
                 </p>
@@ -1150,8 +1151,8 @@ or.merge:     |                         |
   └──────│  merge  │──────┘
          └─────────┘</code></pre>
                 <p>
-                    Before deciding how to generate something like this, it
-                    worths taking a quick look at some examples and where each
+                    Before deciding how to generate something like this, it is
+                    worth taking a quick look at some examples and where each
                     operand should lead.
                 </p>
                 <pre><code>x || y
@@ -1217,10 +1218,10 @@ or.merge:     |                         |
                     treated differently for <code>||</code> and <code>&&</code>.
                 </p>
                 <p>
-                    In case of <code>||</code>, this block is visited if the
+                    In the case of <code>||</code>, this block is visited if the
                     left operand is false, so it's called
                     <code>or.lhs.false</code> and for <code>&&</code> the block
-                    is visited if the LHS evaluates to true, so it's name is
+                    is visited if the LHS evaluates to true, so its name is
                     <code>and.lhs.true</code>. Each of these blocks is then
                     inserted into the current function.
                 </p>
@@ -1342,8 +1343,8 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     If the current operator is an <code>||</code>, the true
                     block is the merge block, while the false block is the RHS
                     block. Remember, when the left operand is true, the right
-                    one is not evaluated. In case of <code>&&</code>, the order
-                    is the opposite.
+                    one is not evaluated. In the case of <code>&&</code>, the
+                    order is the opposite.
                 </p>
                 <pre><code>llvm::Value *
 Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
@@ -1407,7 +1408,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 }</code></pre>
                 <p>
                     From <code>rhsBB</code> the incoming value of the result is
-                    <code>rhs</code>, while from every other block it's true in
+                    <code>rhs</code>, while from every other block, it's true in
                     case of <code>||</code> and false for <code>&&</code>.
                 </p>
                 <pre><code>llvm::Value *
@@ -1431,7 +1432,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 }</code></pre>
                 <p>
                     For a better understanding consider
-                    <code>r = x || y || z;</code> and it's simplified LLVM IR
+                    <code>r = x || y || z;</code> and its simplified LLVM IR
                     representation.
                 </p>
                 <pre><code>┌────────────────┐
@@ -1466,7 +1467,7 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     When <code>bz</code> is reached, <code>$x</code> and
                     <code>$y</code> are guaranteed to be false. Since the
                     results are <code>||</code>-d together and
-                    <code>false || false || z == z</code>, the end result only
+                    <code>false || false || z == z</code>, the result only
                     depends on the value of <code>$z</code>.
                 </p>
                 <p>

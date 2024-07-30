@@ -47,11 +47,11 @@
             <section>
                 <h1>Control Flow</h1>
                 <p>
-                    A programming language is not really a language without
-                    statements that have an effect on the control flow. Arguably
-                    there is already a <code>return</code> statement, which can
-                    immediately transfer the control back to the caller, but the
-                    language still misses conditions and loops.
+                    A programming language is not a language without statements
+                    that affect the control flow. Arguably there is already a
+                    <code>return</code> statement, which can immediately
+                    transfer the control back to the caller, but the language
+                    still misses conditions and loops.
                 </p>
                 <h2>Conditions</h2>
                 <p>
@@ -83,7 +83,7 @@
                         A well-known problem with conditions is the dangling
                         else problem. It happens when the block is not mandatory
                         after the condition and multiple nested conditions are
-                        followed by one else branch.
+                        followed by one <code>else</code> branch.
                     </p>
                     <pre><code>if (1)
     if (2)
@@ -106,12 +106,12 @@
     return 1;
   }</code></pre>
                     <p>
-                        Also notice that the <code>( ... )</code> around the
+                        Also, notice that the <code>( ... )</code> around the
                         condition was necessary for the parser to know where the
                         condition ends if it's not followed by a block. With
                         making the block mandatory these symbols are no longer
-                        needed as the parser knows the conditions ends before
-                        the <code>{</code> token.
+                        needed as the parser knows the condition ends before the
+                        <code>{</code> token.
                     </p>
                 </blockquote>
                 <p>
@@ -132,7 +132,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 </code></pre>
                 <p>
                     In the AST the <code>if</code> statement has a condition and
-                    a block for it's true and false branches respectively even
+                    a block for its true and false branches respectively even
                     though in the <code>else if</code> case, the else branch is
                     not a block, but a statement.
                 </p>
@@ -172,8 +172,9 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }
 </code></pre>
                 <p>
-                    In the parser the <code>IfStmt</code> gets it's own parser
-                    method, which is called from <code>parseStmt()</code>.
+                    In the parser, the <code>IfStmt</code> gets its dedicated
+                    parser method, which is called from
+                    <code>parseStmt()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwIf)
@@ -257,7 +258,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     The resolved node of the <code>if</code> statement is
-                    identical to it's non-resolved counterpart.
+                    identical to its non-resolved counterpart.
                 </p>
                 <pre><code>struct ResolvedIfStmt : public ResolvedStmt {
   std::unique_ptr&lt;ResolvedExpr> condition;
@@ -300,7 +301,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    First the condition is resolved and checked if it's a
+                    First, the condition is resolved and checked if it's a
                     number.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
@@ -330,7 +331,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     Once everything is resolved, it's checked if the value of
-                    the condition is a compile time constant and the value is
+                    the condition is a compile-time constant and the value is
                     set accordingly.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedIfStmt> Sema::resolveIfStmt(const IfStmt &ifStmt) {
@@ -356,7 +357,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     The idea for representing an <code>IfStmt</code> in LLVM IR
-                    is to create a new basic block for all of it's branches, and
+                    is to create a new basic block for all of its branches, and
                     another one for the rest of the code after the statement.
                 </p>
                 <pre><code>
@@ -378,7 +379,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   </code></pre>
                 <p>
                     When there is no <code>else</code> block in the source code,
-                    the exit block is treated as the else block.
+                    the exit block is treated as the <code>else</code> block.
                 </p>
                 <pre><code>
     ┌─────────────────────────────────────────────┐
@@ -398,7 +399,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
     └─────────────────────┘
   </code></pre>
                 <p>
-                    First a new basic block is created for the true, false and
+                    First, a new basic block is created for the true, false and
                     exit blocks. Unless there is an explicit false block, the
                     false block is set to be the exit block as mentioned.
                 </p>
@@ -416,7 +417,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     Then the condition is generated and a jump to either the
-                    true or the false block based on it's value is inserted.
+                    true or the false block based on its value is inserted.
                     Because this instruction expects the condition to be a
                     logical value, it is converted to bool first.
                 </p>
@@ -451,7 +452,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    Finally the blocks are inserted into the function and the
+                    Finally, the blocks are inserted into the function and the
                     insertion point is set to the exit block.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
@@ -464,13 +465,13 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
                 <h2>Loops</h2>
                 <p>
                     Loops come in handy when the same statement needs to be
-                    repeated multiple times. Without them the developer would be
-                    required to write the same statement on multiple lines after
-                    each other, unless the number of times the statement needs
-                    to be run is unknown. In that case the problem becomes
-                    difficult to solve without a dedicated element in the
-                    language. In
-                    <i>your language</i> this dedicated element is the
+                    repeated multiple times. Without them, the developer would
+                    be required to write the same statement on multiple lines
+                    after each other, unless the number of times the statement
+                    needs to be run is unknown. In that case, the problem
+                    becomes difficult to solve without a dedicated element in
+                    the language. In
+                    <i>your language</i>, this dedicated element is the
                     <code>while</code> loop.
                 </p>
                 <pre><code>&lt;whileStatement>
@@ -489,7 +490,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
     ..., {"while", TokenKind::KwWhile}};</code></pre>
                 <p>
                     The AST node of the <code>while</code> statement stores an
-                    <code>Expr</code> for it's condition and a block.
+                    <code>Expr</code> for its condition and a block.
                 </p>
                 <pre><code>struct WhileStmt : public Stmt {
   std::unique_ptr&lt;Expr> condition;
@@ -515,8 +516,8 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   body->dump(level + 1);
 }</code></pre>
                 <p>
-                    As in case of every other statement, the parsing is driven
-                    by <code>parseStmt()</code>.
+                    As in the case of every other statement, the parsing is
+                    driven by <code>parseStmt()</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
   ...
@@ -546,7 +547,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     Similarly to <code>if</code> statements, the resolved node
-                    of <code>WhileStmt</code> is identical to it's non-resolved
+                    of <code>WhileStmt</code> is identical to its non-resolved
                     counterpart.
                 </p>
                 <pre><code>struct ResolvedWhileStmt : public ResolvedStmt {
@@ -585,7 +586,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    First the condition is resolved and checked to be a number.
+                    First, the condition is resolved and checked to be a number.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedWhileStmt>
 Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
@@ -606,7 +607,7 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   ...
 }</code></pre>
                 <p>
-                    Finally the condition is evaluated as a compile time
+                    Finally, the condition is evaluated as a compile-time
                     constant and the corresponding resolved node is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedWhileStmt>
@@ -629,9 +630,9 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
 }</code></pre>
                 <p>
                     A <code>while</code> loop in LLVM IR consists of multiple
-                    basic blocks. The condition is placed into it's own block,
-                    as it has to be evaluated before every iteration. One more
-                    block is created for the body of the loop, which always
+                    basic blocks. The condition is placed into its separate
+                    block, as it has to be evaluated before every iteration. One
+                    more block is created for the body of the loop, which always
                     jumps back to the condition and another one is created for
                     the rest of the code that runs after the loop.
                 </p>
@@ -653,10 +654,10 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
 │   br label %while.cond │   │   ...                  │
 └────────────────────────┘   └────────────────────────┘</code></pre>
                 <p>
-                    First the blocks for the condition, body and the rest of the
-                    code are created. By convention the block with the condition
-                    is called the header of the loop. A jump to the header is
-                    also inserted into the current block.
+                    First, the blocks for the condition, body and the rest of
+                    the code are created. By convention, the block with the
+                    condition is called the header of the loop. A jump to the
+                    header is also inserted into the current block.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   llvm::Function *function = getCurrentFunction();
@@ -670,7 +671,7 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
   ...
 }</code></pre>
                 <p>
-                    Next the condition is generated into the header followed by
+                    Next, the condition is generated into the header followed by
                     the insertion of a conditional jump to either the body or
                     the exit block. The conditional jump expects a logical
                     value, so the condition is first converted to bool.
@@ -687,8 +688,8 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
                 <p>
                     Finally, the body of the loop is generated into the
                     corresponding block followed by the insertion of a jump back
-                    to header. Upon finishing the generation of the body, the
-                    insertion point is set to the exit block.
+                    to the header. Upon finishing the generation of the body,
+                    the insertion point is set to the exit block.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
   ...
@@ -703,29 +704,29 @@ Sema::resolveWhileStmt(const WhileStmt &whileStmt) {
                 <h2>The Control Flow Graph</h2>
                 <p>
                     The control flow graph is a graph representation of all
-                    paths the program might traverse during it's execution. It
-                    is a required data structure for many optimization and
-                    analysis techniques. It is also essential for any kind of
-                    flow sensitive reasoning about the program and can be used
-                    to make code generation easier, or to simulate the execution
+                    paths the program might traverse during its execution. It is
+                    a required data structure for many optimization and analysis
+                    techniques. It is also essential for any kind of
+                    flow-sensitive reasoning about the program and can be used
+                    to make code generation easier or to simulate the execution
                     of the program without actually compiling and running it.
                 </p>
                 <p>
                     How the CFG is constructed varies on what it is going to be
-                    used for. This compiler uses it for performing a simple flow
-                    sensitive analysis and data-flow analysis later, so the
+                    used for. This compiler uses it for performing a simple
+                    flow-sensitive analysis and data-flow analysis later, so the
                     minimalistic CFG is constructed with these goals in mind.
                 </p>
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        Different production ready compilers construct different
+                        Different production-ready compilers construct different
                         control flow graphs and use them for different purposes.
                     </p>
                     <p>
                         In Clang the CFG was created for the Clang Static
                         Analyzer to be able to perform symbolic execution. As a
-                        result the Clang CFG is the list of the statements of
+                        result, the Clang CFG is the list of the statements of
                         the program in the order they are executed. This way the
                         Clang Static Analyzer can traverse the statements from
                         top to bottom and simulate their execution as if the
@@ -770,7 +771,7 @@ x = 1            y = $2
                     <p>
                         Here it can be clearly seen that when <code>x</code> is
                         on the LHS, it's an assignment and when it's on the RHS,
-                        it's reading it's value.
+                        it's reading its value.
                     </p>
                 </blockquote>
                 <p>
@@ -856,7 +857,7 @@ public:
                     Return statements automatically jump to the exit block, so
                     by inserting the exit block first, the edge between the
                     block ending with a return statement and the exit block can
-                    immediately be inserted. From a top to bottom construction
+                    immediately be inserted. From a top-to-bottom construction,
                     these blocks would need to be collected first and the edges
                     can only be inserted once the builder finished processing
                     the function.
@@ -873,13 +874,13 @@ public:
                 <p>
                     The <code>insertBlock()</code> method first creates a new
                     CFG block for the given <code>ResolvedBlock</code> if it is
-                    not empty, and then traverses it's statements in a reverse
+                    not empty, and then traverses its statements in reverse
                     order while inserting them into the actual CFG block.
                 </p>
                 <p>
                     To be able to create the new <code>BasicBlock</code>, the
-                    method takes the number of the successor block as parameter.
-                    The return value is the number of the
+                    method takes the number of the successor block as a
+                    parameter. The return value is the number of the
                     <code>BasicBlock</code> from which the CFG construction
                     should continue after the final statement has been inserted.
                 </p>
@@ -1024,9 +1025,9 @@ public:
   └─────────┘
 </code></pre>
                 <p>
-                    In case of expressions, first the expression is inserted,
-                    then it's child expressions in a reverse order of their
-                    evaluation.
+                    In the case of expressions, first, the expression is
+                    inserted, then its child expressions in reverse order of
+                    their evaluation.
                 </p>
                 <pre><code>int CFGBuilder::insertExpr(const ResolvedExpr &expr, int block) {
   cfg.insertStmt(&expr, block);
@@ -1051,7 +1052,7 @@ public:
 </code></pre>
                 <p>
                     Note that for conditional binary operators, this insertion
-                    tactics leads to a little inaccurate CFG.
+                    tactic leads to a little inaccurate CFG.
                 </p>
                 <pre><code>stmt1;
 1 || 2;
@@ -1090,14 +1091,14 @@ stmt2;
                     Since this compiler wouldn't take advantage of such
                     accuracy, and constructing such detailed CFG is not a
                     trivial task, this not completely accurate version is used.
-                    This way the CFG and it's construction is kept as simple as
+                    This way the CFG and its construction are kept as simple as
                     possible.
                 </p>
                 <p>
-                    In case of an <code>IfStmt</code> the inserter method takes
-                    the exit block as it's parameter. If there is a false block,
-                    it is inserted first, otherwise the exit block is considered
-                    to be the false block.
+                    In the case of an <code>IfStmt</code> the inserter method
+                    takes the exit block as its parameter. If there is a false
+                    block, it is inserted first, otherwise, the exit block is
+                    considered to be the false block.
                 </p>
                 <pre><code>int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
   int falseBlock = exit;
@@ -1140,7 +1141,7 @@ stmt2;
   ...
 }</code></pre>
                 <p>
-                    Finally the statement itself is inserted into the entry
+                    Finally, the statement itself is inserted into the entry
                     block followed by the insertion of the condition.
                 </p>
                 <pre><code>int CFGBuilder::insertIfStmt(const ResolvedIfStmt &stmt, int exit) {
@@ -1212,15 +1213,15 @@ stmt2;
                     The last statement to handle is the <code>WhileStmt</code>.
                     Similarly to the previous method,
                     <code>insertWhileStmt()</code> also takes the exit block as
-                    it's parameter.
+                    its parameter.
                 </p>
                 <p>
-                    For this loop one additional helper block is inserted, which
-                    by terminology is called the <code>latch</code>. This is the
-                    block after the body that loops back to the condition. After
-                    the latch, the body of the loop is inserted with the latch
-                    as it's successor. Finally the header is inserted along with
-                    an edge between the latch and itself.
+                    For this loop, one additional helper block is inserted,
+                    which by terminology is called the <code>latch</code>. This
+                    is the block after the body that loops back to the
+                    condition. After the latch, the body of the loop is inserted
+                    with the latch as its successor. Finally, the header is
+                    inserted along with an edge between the latch and itself.
                 </p>
                 <pre><code>int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
   int latch = cfg.insertNewBlock();
@@ -1232,8 +1233,8 @@ stmt2;
   ...
 }</code></pre>
                 <p>
-                    For the condition it's checked if it's value is known in
-                    compile time and the reachability of the edges are set
+                    For the condition, it's checked if its value is known in
+                    compile time and the reachability of the edges is set
                     accordingly.
                 </p>
                 <p>
@@ -1251,7 +1252,7 @@ stmt2;
   ...
 }</code></pre>
                 <p>
-                    Finally the statement and the condition are inserted into
+                    Finally, the statement and the condition are inserted into
                     the header node and the header is returned.
                 </p>
                 <pre><code>int CFGBuilder::insertWhileStmt(const ResolvedWhileStmt &stmt, int exit) {
@@ -1279,7 +1280,7 @@ stmt2;
   ...
 }</code></pre>
                 <p>
-                    The following figure shows step by step how the body of a
+                    The following figure shows step-by-step how the body of a
                     function with a
                     <code>while</code> loop is inserted into the CFG.
                 </p>
@@ -1347,9 +1348,9 @@ stmt2;
                     <code>IfStmt</code>.
                 </p>
                 <p>
-                    In those cases the block shouldn't be created. A terminating
-                    statement creates a new block on it's own and the created
-                    block would stay empty.
+                    In those cases, the block shouldn't be created. A
+                    terminating statement creates a new block on its own and the
+                    created block would stay empty.
                 </p>
                 <pre><code>int CFGBuilder::insertBlock(const ResolvedBlock &block, int succ) {
   ...
@@ -1411,7 +1412,7 @@ correct graph:
   }
 }</code></pre>
                 <p>
-                    First the number of the block is printed with a tag
+                    First, the number of the block is printed with a tag
                     indicating if it's the entry or the exit block.
                 </p>
                 <pre><code>void CFG::dump(size_t) const {
@@ -1427,7 +1428,7 @@ correct graph:
   }
 }</code></pre>
                 <p>
-                    After the number of the block, it's predecessors and
+                    After the number of the block, its predecessors and
                     successors are printed along with their reachability.
                 </p>
                 <pre><code>void CFG::dump(size_t) const {
@@ -1514,7 +1515,7 @@ correct graph:
 }</code></pre>
                 <h2>Flow-Sensitive Analysis</h2>
                 <p>
-                    The first flow sensitive analysis performed during semantic
+                    The first flow-sensitive analysis performed during semantic
                     analysis is for checking if a function returns a value on
                     every execution path.
                 </p>
@@ -1558,7 +1559,7 @@ correct graph:
                 <p>
                     The core of the function is a DFS traversal of the reachable
                     CFG blocks. Because basic blocks can loop back to each other
-                    in case of a <code>WhileStmt</code>, a set is created to
+                    in the case of a <code>WhileStmt</code>, a set is created to
                     keep track of the already visited blocks.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
@@ -1579,8 +1580,8 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    While the worklist is not empty, it's last block is popped
-                    and if it hasn't been visited already, all of it's reachable
+                    While the worklist is not empty, its last block is popped
+                    and if it hasn't been visited already, all of its reachable
                     successors are added to the end of the worklist.
                 </p>
                 <pre><code>bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
@@ -1631,8 +1632,8 @@ correct graph:
   ...
 }</code></pre>
                 <p>
-                    If the block ends with a return statement, it's successors
-                    are not visited. As a result it's enough to keep track of
+                    If the block ends with a return statement, its successors
+                    are not visited. As a result, it's enough to keep track of
                     whether the exit block is reached during the traversal. If
                     any path to the exit block is not blocked by a return
                     statement, a value is not returned on that path of

@@ -47,7 +47,7 @@
             <section>
                 <h1>Variables</h1>
                 <p>
-                    User defined variables allow the programmer to store and
+                    User-defined variables allow the programmer to store and
                     manipulate values in memory. They are also essential for
                     some other constructs to work properly. Right now the
                     language doesn't have any way to modify a value, so for
@@ -77,7 +77,7 @@
                     <h3>Design Note</h3>
                     <p>
                         Reasoning about immutable values is only possible if
-                        there really is no way to mutate them. For example in
+                        there really is no way to mutate them. For example, in
                         C++ it is possible to have <code>const</code> variables,
                         which means that the value of the variable cannot be
                         changed, but the language also provides
@@ -92,7 +92,7 @@ const int *ptr = &amp;x;
 assert(ptr == &x &amp;&amp; *ptr == 2);</code></pre>
                     <p>
                         Even though the result of the above snippet is undefined
-                        behavior, the compiler cannot assume that the value
+                        behaviour, the compiler cannot assume that the value
                         never changes, as it's simply not true.
                     </p>
                 </blockquote>
@@ -111,15 +111,15 @@ var mutable ...;</code></pre>
                 <pre><code>&lt;declStmt>
   ::= ('let' | 'var') &lt;varDecl> ';'</code></pre>
                 <p>
-                    In a variable declaration the identifier is followed by a
+                    In a variable declaration, the identifier is followed by a
                     type annotation and an optional initializer. If an
-                    initializer is given however, the type annotation is not
+                    initializer is given, however, the type annotation is not
                     necessary, because the compiler can figure out the type from
                     the initializer.
                 </p>
                 <pre><code>let x: number; // type annotation necessary
 var y = 1;     // type inferred from the initializer</code></pre>
-                <p>In the grammar this is described by the following rule.</p>
+                <p>In the grammar, this is described by the following rule.</p>
                 <pre><code>&lt;varDecl>
   ::= &lt;identifier> (':' &lt;type>)? ('=' &lt;expr>)?</code></pre>
                 <p>
@@ -141,11 +141,11 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 </code></pre>
                 <p>
                     The <code>=</code> token changes the logic of
-                    <code>getNextToken()</code> too, because so far it can only
+                    <code>getNextToken()</code> too because so far it can only
                     lex <code>==</code>. It is modified such that if the current
                     character is <code>'='</code>, it peeks the next one and if
                     that is not an <code>'='</code> the lexer returns the
-                    <code>=</code> token, otherwise it returns <code>==</code>.
+                    <code>=</code> token, otherwise, it returns <code>==</code>.
                 </p>
                 <pre><code>Token Lexer::getNextToken() {
   ...
@@ -161,7 +161,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    The AST of a variable declaration encapsulates it's
+                    The AST of a variable declaration encapsulates its
                     identifier, the optional type annotation and initializer and
                     whether the variable is mutable or not.
                 </p>
@@ -183,7 +183,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    The textual representation of the node contains it's
+                    The textual representation of the node contains its
                     identifier and the type annotation along with the
                     initializer if any of them are present.
                 </p>
@@ -210,7 +210,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    It's textual representation also contains the wrapped
+                    Its textual representation also contains the wrapped
                     <code>VarDecl</code> only.
                 </p>
                 <pre><code>void DeclStmt::dump(size_t level) const {
@@ -230,7 +230,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    First the current token is stored, because it is needed to
+                    First, the current token is stored, because it is needed to
                     figure out if the declared variable is mutable or not.
                 </p>
                 <pre><code>std::unique_ptr&lt;DeclStmt> Parser::parseDeclStmt() {
@@ -267,7 +267,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   return std::make_unique&lt;DeclStmt>(tok.location, std::move(varDecl));
 }</code></pre>
                 <p>
-                    The <code>parseVarDecl()</code> method takes a flag as
+                    The <code>parseVarDecl()</code> method takes a flag as a
                     parameter that shows if the variable is inside a
                     <code>let</code> statement. Parsing the variable declaration
                     is a bit more complex since both the type annotation and the
@@ -304,9 +304,9 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
                 <p>
                     Once the type is handled, the parser checks if there is an
                     <code>=</code> token, which indicates an initializer. If it
-                    doesn't find such token, it returns the AST node, otherwise
-                    it parses the initializer and returns a node including that
-                    too.
+                    doesn't find such a token, it returns the AST node,
+                    otherwise, it parses the initializer and returns a node
+                    including that too.
                 </p>
                 <pre><code>std::unique_ptr&lt;VarDecl> Parser::parseVarDecl(bool isLet) {
   ...
@@ -326,7 +326,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
                 </p>
                 <p>
                     The <code>ResolvedVarDecl</code> node no longer stores an
-                    optional type, as it must have it's type set by the semantic
+                    optional type, as it must have its type set by the semantic
                     analyzer.
                 </p>
                 <pre><code>struct ResolvedVarDecl : public ResolvedDecl {
@@ -345,9 +345,9 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    Since it's a declaration, it's textual representation
-                    contains it's address as well as it's identifier and
-                    optional initializer.
+                    Since it's a declaration, its textual representation
+                    contains its address as well as its identifier and optional
+                    initializer.
                 </p>
                 <pre><code>void ResolvedVarDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
@@ -357,7 +357,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
 }</code></pre>
                 <p>
                     The resolved node of a <code>DeclStmt</code> is also just a
-                    wrapper around a <code>VarDecl</code> as it's AST node.
+                    wrapper around a <code>VarDecl</code> as its AST node.
                 </p>
                 <pre><code>struct ResolvedDeclStmt : public ResolvedStmt {
   std::unique_ptr&lt;ResolvedVarDecl> varDecl;
@@ -387,7 +387,7 @@ const std::unordered_map&lt;std::string_view, TokenKind> keywords = {
   ...
 }</code></pre>
                 <p>
-                    First the <code>VarDecl</code> is resolved, and if the
+                    First, the <code>VarDecl</code> is resolved, and if the
                     resolution is successful, the variable is inserted into the
                     current scope.
                 </p>
@@ -432,7 +432,7 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 }</code></pre>
                 <p>
                     The type that needs to be resolved is either the type of the
-                    variable, or if it's not specified, the type of the
+                    variable or if it's not specified, the type of the
                     initializer.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
@@ -476,7 +476,7 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
   ...
 }</code></pre>
                 <p>
-                    If everything was successful, the resolved node is returned.
+                    If everything is successful, the resolved node is returned.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
   ...
@@ -488,8 +488,8 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
                 <p>
                     With the introduction of variables, the components
                     responsible for code analysis can also be extended. In the
-                    tree walk interpreter it now makes sense to handle
-                    <code>DeclRefExpr</code> too. Prior to the introduction of
+                    tree walk interpreter, it now makes sense to handle
+                    <code>DeclRefExpr</code> too. Before the introduction of
                     variables, this expression could only point to parameters
                     and functions, but none of those can be evaluated in compile
                     time.
@@ -507,7 +507,7 @@ ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
 }</code></pre>
                 <p>
                     If a variable is immutable and initialized upon declaration,
-                    it's value is set by the initializer and doesn't change over
+                    its value is set by the initializer and doesn't change over
                     time. Because of this, the value of the variable is known in
                     compile time.
                 </p>
@@ -534,9 +534,9 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
   ...
 }</code></pre>
                 <p>
-                    Because the CFG is constructed in a reverse order, from
-                    bottom to top, first the <code>DeclStmt</code> is inserted,
-                    then the initializer if there's one.
+                    Because the CFG is constructed in reverse order, from bottom
+                    to top, first the <code>DeclStmt</code> is inserted, then
+                    the initializer if there's one.
                 </p>
                 <pre><code>int CFGBuilder::insertDeclStmt(const ResolvedDeclStmt &stmt, int block) {
   cfg.insertStmt(&stmt, block);
@@ -562,7 +562,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
                     When a variable is declared, first some space on the stack
                     has to be allocated for it. If it's initialized, the value
                     of the initializer is stored in the variable's stack space.
-                    Finally the stack space of the variable is mapped to it's
+                    Finally, the stack space of the variable is mapped to its
                     declaration.
                 </p>
                 <pre><code>llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
@@ -579,7 +579,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
 }</code></pre>
                 <h2>Assignment</h2>
                 <p>
-                    Now variables can be created an initialized, but their
+                    Now variables can be created and initialized, but their
                     values cannot be changed even if they are mutable. To
                     address this issue, the language must support assignments
                     too.
@@ -597,7 +597,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
                         In more complex languages the LHS of an assignment can
                         be an arbitrary expression as even
                         <code>a.b().c.d = 1;</code> can mean a valid assignment.
-                        In this case it's the responsibility of the semantic
+                        In this case, it's the responsibility of the semantic
                         analyzer to ensure that the LHS is indeed a variable
                         that can be assigned a new value.
                     </p>
@@ -609,8 +609,8 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
                 </p>
                 <p>
                     The <code>Assignment</code> node encapsulated the
-                    <code>DeclRefExpr</code> on the left hand side and the
-                    arbitrary expression on the right hand side.
+                    <code>DeclRefExpr</code> on the left-hand side and the
+                    arbitrary expression on the right-hand side.
                 </p>
                 <pre><code>struct Assignment : public Stmt {
   std::unique_ptr&lt;DeclRefExpr> variable;
@@ -639,10 +639,9 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
                     Since both an expression and an assignment can start with a
                     <code>DeclRefExpr</code> on the LHS, a dedicated
                     <code>parseAssignmentOrExpr()</code> method is introduced
-                    that helps the parses determining which of the two
-                    statements to parse. It is called in
-                    <code>parseStmt()</code>, when the next token doesn't match
-                    any of the conditions.
+                    that helps the parser determine which of the two statements
+                    to parse. It is called in <code>parseStmt()</code> when the
+                    next token doesn't match any of the conditions.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseStmt() {
   ...
@@ -673,7 +672,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
 }</code></pre>
                 <p>
                     If the next token is <code>=</code>, the parsed expression
-                    must be LHS of an assignment, so it is checked to be a
+                    must be the LHS of an assignment, so it is checked to be a
                     <code>DeclRefExpr</code>.
                 </p>
                 <pre><code>std::unique_ptr&lt;Stmt> Parser::parseAssignmentOrExpr() {
@@ -687,7 +686,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
   ...
 }</code></pre>
                 <p>
-                    If the expression is successfully casted to a
+                    If the expression is successfully cast to a
                     <code>DeclRefExpr</code>, it's treated as the LHS of an
                     assignment and handed over to
                     <code>parseAssignmentRHS()</code>.
@@ -713,7 +712,7 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
                     <p>
                         The initial casting of the raw pointer ensures that the
                         pointed object is of the correct type. If the cast
-                        fails, the <code>std::unique_ptr</code> still keeps it's
+                        fails, the <code>std::unique_ptr</code> still keeps its
                         ownership over the pointed object.
                     </p>
                     <pre><code>auto *dre = dynamic_cast&lt;DeclRefExpr *>(lhs.get());</code></pre>
@@ -761,7 +760,7 @@ std::unique_ptr&lt;DeclRefExpr> ptr(dre);</code></pre>
                 <p>
                     The <code>parseAssignmentRHS()</code> method is similar to
                     <code>parseExpressionRHS()</code> in that it also takes the
-                    LHS as parameter. It then proceeds by eating the
+                    LHS as a parameter. It then proceeds by eating the
                     <code>=</code> token, parsing the arbitrary expression on
                     the RHS and returning the assignment node.
                 </p>
@@ -792,8 +791,8 @@ Parser::parseAssignmentRHS(std::unique_ptr&lt;DeclRefExpr> lhs) {
   void dump(size_t level = 0) const override;
 };</code></pre>
                 <p>
-                    It's textual representation is identical to it's
-                    non-resolved counterpart.
+                    Its textual representation is identical to its non-resolved
+                    counterpart.
                 </p>
                 <pre><code>void ResolvedAssignment::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedAssignment:\n";
@@ -812,7 +811,7 @@ Parser::parseAssignmentRHS(std::unique_ptr&lt;DeclRefExpr> lhs) {
 
   ...
 }</code></pre>
-                <p>First the LHS and the RHS of the node is resolved.</p>
+                <p>First, the LHS and the RHS of the node is resolved.</p>
                 <pre><code>std::unique_ptr&lt;ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
   varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
@@ -823,10 +822,10 @@ Sema::resolveAssignment(const Assignment &assignment) {
                 <p>
                     It's known that the referenced declaration on the LHS cannot
                     be <code>void</code>, as only function declarations are
-                    allowed to have a <code>void</code> type, however if the LHS
-                    is a reference to a function declaration, it couldn't have
-                    been resolved. Also function parameters are immutable, so
-                    assigning a value to any of them is an error.
+                    allowed to have a <code>void</code> type, however, if the
+                    LHS is a reference to a function declaration, it couldn't
+                    have been resolved. Also, function parameters are immutable,
+                    so assigning a value to any of them is an error.
                 </p>
                 <pre><code>std::unique_ptr&lt;ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
@@ -841,7 +840,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
                 <p>
                     If the LHS is not a parameter, it must be a variable. If the
                     type of the variable doesn't match the type of the assigned
-                    value, an error is reported. Otherwise the RHS is tried to
+                    value, an error is reported. Otherwise, the RHS is tried to
                     be evaluated as a constant expression and the resolved node
                     is returned.
                 </p>
@@ -874,7 +873,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
 }</code></pre>
                 <p>
                     Only the <code>Assignment</code> itself and the assigned
-                    expression is inserted into the CFG to avoid ambiguities.
+                    expression are inserted into the CFG to avoid ambiguities.
                 </p>
                 <pre><code>int CFGBuilder::insertAssignment(const ResolvedAssignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
@@ -890,9 +889,9 @@ Sema::resolveAssignment(const Assignment &assignment) {
 ResolvedDeclRefExpr: x
 ResolvedAssignment: ...</code></pre>
                     <p>
-                        By traversing the CFG both the LHS and the RHS looks the
-                        same. This means that in an arbitrary situation there is
-                        no way to know whether a
+                        By traversing the CFG both the LHS and the RHS look the
+                        same. This means that in an arbitrary situation, there
+                        is no way to know whether a
                         <code>ResolvedDeclRefExpr</code> is reading the value or
                         writing it without checking the next statement. This is
                         also an issue in the Clang CFG, where both sides of an
@@ -940,9 +939,9 @@ ResolvedAssignment: ...</code></pre>
     ...
 }</code></pre>
                 <p>
-                    This feature can however quickly lead to error prone code if
+                    This feature can however quickly lead to error-prone code if
                     the compiler doesn't perform proper analysis to prevent it.
-                    For example the value might not be initialized before it is
+                    For example, the value might not be initialized before it is
                     used.
                 </p>
                 <pre><code>fn calculateAddress(base: number, offset: number, useLegacyMode: number): number {
@@ -976,9 +975,9 @@ ResolvedAssignment: ...</code></pre>
                 <p>
                     Intuitively if a variable is not initialized, the first time
                     it appears on the left side of an assignment, it gets
-                    initialized, the second time it gets mutated. Detecting the
-                    first and second assignment however is not a trivial task as
-                    every path of execution needs to be considered.
+                    initialized, and the second time it gets mutated. Detecting
+                    the first and second assignments, however, is not a trivial
+                    task as every path of execution needs to be considered.
                 </p>
                 <pre><code>fn noMutation(): void {
     let lazy: number;
@@ -1005,7 +1004,7 @@ ResolvedAssignment: ...</code></pre>
                 <p>
                     Performing the analysis with regular AST traversal would
                     prove to be difficult, as there are a lot of variables to
-                    keep in mind, like if the loop iterates more than once, or
+                    keep in mind, like if the loop iterates more than once or
                     branches of nested conditions. There is however a technique
                     called data flow analysis, which can easily reason about
                     this problem.
@@ -1017,21 +1016,21 @@ ResolvedAssignment: ...</code></pre>
                     program without actually executing it.
                 </p>
                 <p>
-                    It's core is the traversal of the control flow graph of a
-                    function until the result of the analysis changes. In a more
-                    formal way, data flow analysis is a fixpoint iteration over
+                    Its core is the traversal of the control flow graph of a
+                    function until the result of the analysis changes. More
+                    formally, data flow analysis is a fixpoint iteration over
                     the CFG of a function.
                 </p>
                 <p>
                     The most important data structure in data flow analysis is
                     the <code>Lattice</code>. A lattice is an ordered data
                     structure, that stores the information about the program in
-                    each basic block. In case of lazy initialization it is
-                    modelled as a mapping of a declaration to it's assignment
+                    each basic block. In the case of lazy initialization, it is
+                    modelled as a mapping of a declaration to its assignment
                     state.
                 </p>
                 <p>
-                    At a certain point of the program a variable is either
+                    At a certain point in the program, a variable is either
                     <code>Assigned</code>, <code>Unassigned</code>, both of
                     them, or neither of them. A variable can be both assigned
                     and unassigned after an if statement, where only the true
@@ -1052,13 +1051,13 @@ ResolvedAssignment: ...</code></pre>
                     Notice how the first value in <code>State</code> is
                     <code>Bottom</code>. If a state is not found in the map, one
                     will automatically be default constructed. The default
-                    constructor of an enum yields it's first value, so
+                    constructor of an enum yields its first value, so
                     <code>Bottom</code> is returned.
                 </p>
                 <p>
-                    At a certain point during the analysis multiple lattices
-                    need to be combined (joined) with each other. In such cases
-                    the states are combined the following way.
+                    At a certain point during the analysis, multiple lattices
+                    need to be combined (joined) with each other. In such cases,
+                    the states are combined in the following way.
                 </p>
                 <ul>
                     <li>
@@ -1084,7 +1083,7 @@ ResolvedAssignment: ...</code></pre>
                 </ul>
                 <p>
                     As a result, after performing multiple joins over time, the
-                    result either stays the same, or reaches the
+                    result either stays the same or reaches the
                     <code>Top</code> state and then keeps staying
                     <code>Top</code>. Formally the result reaches a fixpoint
                     over time.
@@ -1109,7 +1108,7 @@ ResolvedAssignment: ...</code></pre>
   ...
 }</code></pre>
                 <p>
-                    Initially every CFG block is assigned an empty lattice,
+                    Initially, every CFG block is assigned an empty lattice,
                     which is filled in during the traversal.
                 </p>
                 <pre><code>bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
@@ -1133,7 +1132,7 @@ ResolvedAssignment: ...</code></pre>
 }</code></pre>
                 <p>
                     As mentioned before the core of the analysis is a fixpoint
-                    iteration over the CFG. At the start of each iteration the
+                    iteration over the CFG. At the start of each iteration, the
                     <code>changed</code> flag is set to false and the pending
                     errors are cleared.
                 </p>
@@ -1199,7 +1198,7 @@ ResolvedAssignment: ...</code></pre>
                     Once the temporary lattice is prepared, the processing of
                     statements in the current block can begin. Since the CFG was
                     built from bottom to top, the statements need to be visited
-                    in a reverse order.
+                    in reverse order.
                 </p>
                 <pre><code>bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
                                        const CFG &cfg) {
@@ -1240,10 +1239,10 @@ ResolvedAssignment: ...</code></pre>
   ...
 }</code></pre>
                 <p>
-                    In case of an <code>Assignment</code> if the LHS is an
+                    In the case of an <code>Assignment</code> if the LHS is an
                     immutable variable and the current state is not
                     <code>Unassigned</code>, a pending error is created, as this
-                    is the mutation of an immutable value. In every other case
+                    is the mutation of an immutable value. In every other case,
                     the state of the LHS is set to <code>Assigned</code>.
                 </p>
                 <pre><code>bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
@@ -1270,9 +1269,9 @@ ResolvedAssignment: ...</code></pre>
   ...
 }</code></pre>
                 <p>
-                    The third and the last statement the analyzer cares about is
-                    the <code>DeclRefExpr</code>. This statement reads the value
-                    of the variable, so if the referenced variable is not in the
+                    The third and last statement the analyzer cares about is the
+                    <code>DeclRefExpr</code>. This statement reads the value of
+                    the variable, so if the referenced variable is not in the
                     <code>Assigned</code> state, a pending error is created.
                 </p>
                 <pre><code>bool Sema::checkVariableInitialization(const ResolvedFunctionDecl &fn,
