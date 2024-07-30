@@ -202,7 +202,7 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(
         resolvedRHS->location,
-        "void expression cannot be used as operand to unary operator");
+        "void expression cannot be used as an operand to unary operator");
 
   return std::make_unique<ResolvedUnaryOperator>(unary.location, unary.op,
                                                  std::move(resolvedRHS));

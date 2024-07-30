@@ -2,10 +2,10 @@
 fn foo(): void {}
 
 fn main(): void {
-    // CHECK: [[# @LINE + 1 ]]:9: error: void expression cannot be used as operand to unary operator
+    // CHECK: [[# @LINE + 1 ]]:9: error: void expression cannot be used as an operand to unary operator
     !foo();
 
-    // CHECK: [[# @LINE + 1 ]]:9: error: void expression cannot be used as operand to unary operator
+    // CHECK: [[# @LINE + 1 ]]:9: error: void expression cannot be used as an operand to unary operator
     -foo();
 }
 // CHECK-NOT: {{.*}}
