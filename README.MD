@@ -45,7 +45,7 @@ To run the tests, proceed with these following optional steps.
 ## Features
 ### Clean Syntax
 
-Unambigous, modern and easy to parse syntax with elements inspired by C, Kotlin, Rust and Swift.
+Unambiguous, modern and easy to parse syntax with elements inspired by C, Kotlin, Rust and Swift.
 
 ```
 fn main(): void {
