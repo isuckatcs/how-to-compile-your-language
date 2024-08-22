@@ -20,8 +20,8 @@ This guide assumes that the project is being built on Linux* but equivalent step
    - `apt-get install cmake`
 
 2. Install LLVM and Clang
-   - The project was originally built for **LLVM 14.0.0**. Other versions are not guaranteed to work.
-   - `apt-get install llvm clang`
+   - The project is currently tested with LLVM **18.1.8**.
+   - `apt-get install llvm-18 clang-18`
 
 3. Create a build directory and enter that directory
    - `mkdir build && cd build`

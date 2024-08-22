@@ -1,6 +1,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 
 #include "codegen.h"
 
@@ -14,6 +14,8 @@ Codegen::Codegen(
   module.setSourceFileName(sourcePath);
   module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
+
+auto Codegen::dump() -> void { module.print(llvm::errs(), nullptr); }
 
 llvm::Type *Codegen::generateType(Type type) {
   if (type.kind == Type::Kind::Number)
@@ -348,8 +350,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 }
 
 void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
-  auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
-                                       {builder.getInt8PtrTy()}, true);
+  auto *type = llvm::FunctionType::get(builder.getInt32Ty(), {builder.getPtrTy()}, true);
   auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
                                         "printf", module);
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
@@ -364,9 +365,7 @@ void Codegen::generateMainWrapper() {
   auto *builtinMain = module.getFunction("main");
   builtinMain->setName("__builtin_main");
 
-  auto *main = llvm::Function::Create(
-      llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
-      llvm::Function::ExternalLinkage, "main", module);
+  auto *main = llvm::Function::Create( llvm::FunctionType::get(builder.getInt32Ty(), {}, false), llvm::Function::ExternalLinkage, "main", module);
 
   auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
@@ -383,8 +382,7 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
     paramTypes.emplace_back(generateType(param->type));
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
-  llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                         functionDecl.identifier, module);
+  llvm::Function::Create(type, llvm::Function::ExternalLinkage, functionDecl.identifier, module);
 }
 
 llvm::Module *Codegen::generateIR() {

@@ -135,7 +135,7 @@ int main(int argc, const char **argv) {
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
-    llvmIR->dump();
+    codegen.dump();
     return 0;
   }
 

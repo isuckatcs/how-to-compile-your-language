@@ -58,6 +58,8 @@ public:
           std::string_view sourcePath);
 
   llvm::Module *generateIR();
+
+  auto dump() -> void;
 };
 } // namespace yl
 

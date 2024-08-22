@@ -333,11 +333,15 @@
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
-    llvmIR->dump();
+    codegen.dump();
     return 0;
   }
   ...
 }</code></pre>
+                <p>
+                    To dump LLVM IR, we implement a small <code>dump</code> function
+                </p>
+                <pre><code>auto Codegen::dump() -> void { module.print(llvm::errs(), nullptr); }</code></pre>
                 <p>
                     To be able to generate the executable, first, the module has
                     to be stored in a temporary file. The name of this temporary
