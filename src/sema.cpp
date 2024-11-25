@@ -553,8 +553,17 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
   ScopeRAII globalScope(this);
   insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
 
+  // FIXME: temporary workaround
+  std::vector<std::unique_ptr<FunctionDecl>> functions;
+  for (auto &&decl : ast) {
+    if (auto *fn = dynamic_cast<FunctionDecl *>(decl.get())) {
+      functions.emplace_back(fn);
+      (void)decl.release();
+    }
+  }
+
   bool error = false;
-  for (auto &&fn : ast) {
+  for (auto &&fn : functions) {
     auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
 
     if (!resolvedFunctionDecl ||
@@ -576,7 +585,7 @@ std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
     for (auto &&param : currentFunction->params)
       insertDeclToCurrentScope(*param);
 
-    auto resolvedBody = resolveBlock(*ast[i - 1]->body);
+    auto resolvedBody = resolveBlock(*functions[i - 1]->body);
     if (!resolvedBody) {
       error = true;
       continue;

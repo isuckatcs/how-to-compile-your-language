@@ -34,6 +34,7 @@ int getTokPrecedence(TokenKind tok) {
 
 // Synchronization points:
 // - start of a function decl
+// - start of a struct decl
 // - end of the current block
 // - ';'
 // - EOF
@@ -59,11 +60,48 @@ void Parser::synchronize() {
     } else if (kind == TokenKind::Semi && braces == 0) {
       eatNextToken(); // eat ';'
       break;
-    } else if (kind == TokenKind::KwFn || kind == TokenKind::Eof)
+    } else if (kind == TokenKind::KwFn || kind == TokenKind::KwStruct ||
+               kind == TokenKind::Eof)
       break;
 
     eatNextToken();
   }
+}
+
+// <memberDecl>
+//  ::= <identifier> ':' <type>
+std::unique_ptr<MemberDecl> Parser::parseMemberDecl() {
+  SourceLocation location = nextToken.location;
+  assert(nextToken.value && "identifier token without value");
+
+  std::string identifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  matchOrReturn(TokenKind::Colon, "expected ':'");
+  eatNextToken(); // eat :
+
+  varOrReturn(type, parseType());
+
+  return std::make_unique<MemberDecl>(location, std::move(identifier),
+                                      std::move(*type));
+};
+
+// <structDecl>
+//  ::= 'struct' <identifier> <memberList>
+std::unique_ptr<StructDecl> Parser::parseStructDecl() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat struct
+
+  matchOrReturn(TokenKind::Identifier, "expected identifier");
+
+  assert(nextToken.value && "identifier token without value");
+  std::string structIdentifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  varOrReturn(memberList, parseMemberList());
+
+  return std::make_unique<StructDecl>(location, structIdentifier,
+                                      std::move(*memberList));
 }
 
 // <functionDecl>
@@ -475,6 +513,34 @@ std::unique_ptr<Parser::ArgumentList> Parser::parseArgumentList() {
   return std::make_unique<ArgumentList>(std::move(argumentList));
 }
 
+// <memberList>
+//  ::= '{' (<memberDecl> (',' <memberDecl>)* ','?)? '}'
+std::unique_ptr<Parser::MemberList> Parser::parseMemberList() {
+  matchOrReturn(TokenKind::Lbrace, "expected '{'");
+  eatNextToken(); // eat '{'
+
+  std::vector<std::unique_ptr<MemberDecl>> memberList;
+
+  while (true) {
+    if (nextToken.kind == TokenKind::Rbrace)
+      break;
+
+    matchOrReturn(TokenKind::Identifier, "expected member declaration");
+
+    varOrReturn(memberDecl, parseMemberDecl());
+    memberList.emplace_back(std::move(memberDecl));
+
+    if (nextToken.kind != TokenKind::Comma)
+      break;
+    eatNextToken(); // eat ','
+  }
+
+  matchOrReturn(TokenKind::Rbrace, "expected '}'");
+  eatNextToken(); // eat '}'
+
+  return std::make_unique<MemberList>(std::move(memberList));
+}
+
 // <type>
 //  ::= 'number'
 //  |   'void'
@@ -505,25 +571,27 @@ std::optional<Type> Parser::parseType() {
 
 // <sourceFile>
 //     ::= <functionDecl>* EOF
-std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool>
-Parser::parseSourceFile() {
-  std::vector<std::unique_ptr<FunctionDecl>> functions;
+std::pair<std::vector<std::unique_ptr<Decl>>, bool> Parser::parseSourceFile() {
+  std::vector<std::unique_ptr<Decl>> declarations;
 
   while (nextToken.kind != TokenKind::Eof) {
-    if (nextToken.kind != TokenKind::KwFn) {
+    if (nextToken.kind == TokenKind::KwFn) {
+      if (auto fn = parseFunctionDecl()) {
+        declarations.emplace_back(std::move(fn));
+        continue;
+      }
+    } else if (nextToken.kind == TokenKind::KwStruct) {
+      if (auto st = parseStructDecl()) {
+        declarations.emplace_back(std::move(st));
+        continue;
+      }
+    } else {
       report(nextToken.location,
-             "only function declarations are allowed on the top level");
-      synchronizeOn(TokenKind::KwFn);
-      continue;
+             "expected function or struct declaration on the top level");
     }
 
-    auto fn = parseFunctionDecl();
-    if (!fn) {
-      synchronizeOn(TokenKind::KwFn);
-      continue;
-    }
-
-    functions.emplace_back(std::move(fn));
+    synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct});
+    continue;
   }
 
   assert(nextToken.kind == TokenKind::Eof && "expected to see end of file");
@@ -531,12 +599,16 @@ Parser::parseSourceFile() {
   // Only the lexer and the parser has access to the tokens, so to report an
   // error on the EOF token, we look for main() here.
   bool hasMainFunction = false;
-  for (auto &&fn : functions)
-    hasMainFunction |= fn->identifier == "main";
+  for (auto &&decl : declarations) {
+    if (!dynamic_cast<const FunctionDecl *>(decl.get()))
+      continue;
+
+    hasMainFunction |= decl->identifier == "main";
+  }
 
   if (!hasMainFunction && !incompleteAST)
     report(nextToken.location, "main function not found");
 
-  return {std::move(functions), !incompleteAST && hasMainFunction};
+  return {std::move(declarations), !incompleteAST && hasMainFunction};
 }
 } // namespace yl

@@ -103,8 +103,8 @@ int main(int argc, const char **argv) {
   auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {
-    for (auto &&fn : ast)
-      fn->dump();
+    for (auto &&decl : ast)
+      decl->dump();
     return 0;
   }
 
