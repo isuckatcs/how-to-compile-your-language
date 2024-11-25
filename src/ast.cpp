@@ -100,6 +100,18 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
+void MemberDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "MemberDecl: " << identifier << ':' << type.name
+            << '\n';
+}
+
+void StructDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "StructDecl: " << identifier << '\n';
+
+  for (auto &&member : members)
+    member->dump(level + 1);
+}
+
 void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl: " << identifier << ':' << type.name
             << '\n';

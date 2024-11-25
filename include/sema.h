@@ -12,7 +12,7 @@
 namespace yl {
 class Sema {
   ConstantExpressionEvaluator cee;
-  std::vector<std::unique_ptr<FunctionDecl>> ast;
+  std::vector<std::unique_ptr<Decl>> ast;
   std::vector<std::vector<ResolvedDecl *>> scopes;
 
   ResolvedFunctionDecl *currentFunction;
@@ -67,7 +67,7 @@ class Sema {
   bool checkVariableInitialization(const CFG &cfg);
 
 public:
-  explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)
+  explicit Sema(std::vector<std::unique_ptr<Decl>> ast)
       : ast(std::move(ast)) {}
 
   std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();

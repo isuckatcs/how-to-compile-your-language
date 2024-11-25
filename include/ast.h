@@ -180,6 +180,28 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct MemberDecl : public Decl {
+  Type type;
+
+  MemberDecl(SourceLocation location, std::string identifier, Type type)
+      : Decl(location, std::move(identifier)),
+        type(std::move(type)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructDecl : public Decl {
+  std::vector<std::unique_ptr<MemberDecl>> members;
+
+  StructDecl(SourceLocation location,
+             std::string identifier,
+             std::vector<std::unique_ptr<MemberDecl>> members)
+      : Decl(location, std::move(identifier)),
+        members(std::move(members)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct ParamDecl : public Decl {
   Type type;
   ParamDecl(SourceLocation location, std::string identifier, Type type)

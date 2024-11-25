@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -17,10 +18,10 @@ class Parser {
 
   void eatNextToken() { nextToken = lexer->getNextToken(); }
   void synchronize();
-  void synchronizeOn(TokenKind kind) {
+  void synchronizeOn(const std::unordered_set<TokenKind> &kind) {
     incompleteAST = true;
 
-    while (nextToken.kind != kind && nextToken.kind != TokenKind::Eof)
+    while (!kind.count(nextToken.kind) && nextToken.kind != TokenKind::Eof)
       eatNextToken();
   }
 
@@ -28,6 +29,8 @@ class Parser {
   std::unique_ptr<FunctionDecl> parseFunctionDecl();
   std::unique_ptr<ParamDecl> parseParamDecl();
   std::unique_ptr<VarDecl> parseVarDecl(bool isLet);
+  std::unique_ptr<StructDecl> parseStructDecl();
+  std::unique_ptr<MemberDecl> parseMemberDecl();
 
   std::unique_ptr<Stmt> parseStmt();
   std::unique_ptr<IfStmt> parseIfStmt();
@@ -54,6 +57,9 @@ class Parser {
   using ArgumentList = std::vector<std::unique_ptr<Expr>>;
   std::unique_ptr<ArgumentList> parseArgumentList();
 
+  using MemberList = std::vector<std::unique_ptr<MemberDecl>>;
+  std::unique_ptr<MemberList> parseMemberList();
+
   std::optional<Type> parseType();
 
 public:
@@ -61,7 +67,7 @@ public:
       : lexer(&lexer),
         nextToken(lexer.getNextToken()) {}
 
-  std::pair<std::vector<std::unique_ptr<FunctionDecl>>, bool> parseSourceFile();
+  std::pair<std::vector<std::unique_ptr<Decl>>, bool> parseSourceFile();
 };
 } // namespace yl
 
