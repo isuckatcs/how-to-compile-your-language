@@ -62,6 +62,19 @@ void ReturnStmt::dump(size_t level) const {
     expr->dump(level + 1);
 }
 
+void MemberInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "MemberInitStmt: " << identifier << '\n';
+  initializer->dump(level + 1);
+}
+
+void StructInstantiationExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "StructInstantiationExpr: " << identifier
+            << '\n';
+
+  for (auto &&member : memberInitializers)
+    member->dump(level + 1);
+}
+
 void NumberLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
 }
