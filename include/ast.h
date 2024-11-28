@@ -105,6 +105,35 @@ struct ReturnStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
+struct MemberInitStmt : public Stmt {
+  std::string identifier;
+  std::unique_ptr<Expr> initializer;
+
+  MemberInitStmt(SourceLocation location,
+                 std::string identifier,
+                 std::unique_ptr<Expr> initializer)
+      : Stmt(location),
+        identifier(identifier),
+        initializer(std::move(initializer)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructInstantiationExpr : public Expr {
+  std::string identifier;
+  std::vector<std::unique_ptr<MemberInitStmt>> memberInitializers;
+
+  StructInstantiationExpr(
+      SourceLocation location,
+      std::string identifier,
+      std::vector<std::unique_ptr<MemberInitStmt>> memberInitializers)
+      : Expr(location),
+        identifier(identifier),
+        memberInitializers(std::move(memberInitializers)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct NumberLiteral : public Expr {
   std::string value;
 

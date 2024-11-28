@@ -212,7 +212,8 @@ std::unique_ptr<IfStmt> Parser::parseIfStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'if'
 
-  varOrReturn(condition, parseExpr());
+  varOrReturn(condition,
+              withRestrictions(StructNotAllowed, &Parser::parseExpr));
 
   matchOrReturn(TokenKind::Lbrace, "expected 'if' body");
 
@@ -250,7 +251,7 @@ std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'while'
 
-  varOrReturn(cond, parseExpr());
+  varOrReturn(cond, withRestrictions(StructNotAllowed, &Parser::parseExpr));
 
   matchOrReturn(TokenKind::Lbrace, "expected 'while' body");
   varOrReturn(body, parseBlock());
@@ -304,6 +305,24 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
   eatNextToken(); // eat ';'
 
   return std::make_unique<ReturnStmt>(location, std::move(expr));
+}
+
+// <memberInit>
+//  ::= <identifier> ':' <expr>
+std::unique_ptr<MemberInitStmt> Parser::parseMemberInitStmt() {
+  SourceLocation location = nextToken.location;
+  assert(nextToken.value && "identifier token without value");
+
+  std::string identifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  matchOrReturn(TokenKind::Colon, "expected ':'");
+  eatNextToken(); // eat ':'
+
+  varOrReturn(init, parseExpr());
+
+  return std::make_unique<MemberInitStmt>(location, std::move(identifier),
+                                          std::move(init));
 }
 
 // <statement>
@@ -420,6 +439,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
 
 // <primaryExpr>
 //  ::= <numberLiteral>
+//  |   <structInstantiation>
 //  |   <declRefExpr>
 //  |   '(' <expr> ')'
 //
@@ -429,6 +449,8 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
 // <declRefExpr>
 //  ::= <identifier>
 //
+// <structInstantiation>
+//  ::= <identifier> <memberInitList>
 std::unique_ptr<Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
@@ -450,13 +472,50 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
   }
 
   if (nextToken.kind == TokenKind::Identifier) {
-    auto declRefExpr =
-        std::make_unique<DeclRefExpr>(location, *nextToken.value);
+    std::string identifier = *nextToken.value;
     eatNextToken(); // eat identifier
+
+    if (!(restrictions & StructNotAllowed) &&
+        nextToken.kind == TokenKind::Lbrace) {
+      varOrReturn(memberInitList, parseMemberInitList());
+      return std::make_unique<StructInstantiationExpr>(
+          location, std::move(identifier), std::move(*memberInitList));
+    }
+
+    auto declRefExpr =
+        std::make_unique<DeclRefExpr>(location, std::move(identifier));
     return declRefExpr;
   }
 
   return report(location, "expected expression");
+}
+
+// <memberInitList>
+//  ::= '{' (<memberInit> (',' <memberInit>)* ','?)? '}'
+std::unique_ptr<Parser::MemberInitList> Parser::parseMemberInitList() {
+  matchOrReturn(TokenKind::Lbrace, "expected '{'");
+  eatNextToken(); // eat '{'
+
+  std::vector<std::unique_ptr<MemberInitStmt>> memberInitList;
+
+  while (true) {
+    if (nextToken.kind == TokenKind::Rbrace)
+      break;
+
+    matchOrReturn(TokenKind::Identifier, "expected member identifier");
+
+    varOrReturn(init, parseMemberInitStmt());
+    memberInitList.emplace_back(std::move(init));
+
+    if (nextToken.kind != TokenKind::Comma)
+      break;
+    eatNextToken(); // eat ','
+  }
+
+  matchOrReturn(TokenKind::Rbrace, "expected '}'");
+  eatNextToken(); // eat '}'
+
+  return std::make_unique<MemberInitList>(std::move(memberInitList));
 }
 
 // <parameterList>

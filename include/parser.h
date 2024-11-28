@@ -16,6 +16,19 @@ class Parser {
   Token nextToken;
   bool incompleteAST = false;
 
+  using RestrictionType = unsigned char;
+  RestrictionType restrictions = 0;
+
+  enum RestrictionKind : RestrictionType { StructNotAllowed = 1 };
+
+  template <typename T>
+  T withRestrictions(RestrictionType rests, T (Parser::*f)()) {
+    restrictions |= rests;
+    auto res = (this->*f)();
+    restrictions &= ~rests;
+    return res;
+  }
+
   void eatNextToken() { nextToken = lexer->getNextToken(); }
   void synchronize();
   void synchronizeOn(const std::unordered_set<TokenKind> &kind) {
@@ -39,6 +52,7 @@ class Parser {
   parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
   std::unique_ptr<ReturnStmt> parseReturnStmt();
+  std::unique_ptr<MemberInitStmt> parseMemberInitStmt();
 
   std::unique_ptr<Stmt> parseAssignmentOrExpr();
 
@@ -59,6 +73,9 @@ class Parser {
 
   using MemberList = std::vector<std::unique_ptr<MemberDecl>>;
   std::unique_ptr<MemberList> parseMemberList();
+
+  using MemberInitList = std::vector<std::unique_ptr<MemberInitStmt>>;
+  std::unique_ptr<MemberInitList> parseMemberInitList();
 
   std::optional<Type> parseType();
 
