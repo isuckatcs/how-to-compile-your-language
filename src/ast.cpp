@@ -92,6 +92,12 @@ void CallExpr::dump(size_t level) const {
     arg->dump(level + 1);
 }
 
+void MemberExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "MemberExpr: ." << member << '\n';
+
+  base->dump(level + 1);
+}
+
 void GroupingExpr::dump(size_t level) const {
   std::cerr << indent(level) << "GroupingExpr:\n";
 

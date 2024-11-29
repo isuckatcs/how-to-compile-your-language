@@ -420,21 +420,33 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
 }
 
 // <postfixExpression>
-//     ::= <primaryExpression> <argumentList>
-
+//     ::= <primaryExpression> (<argumentList>? | ('.' <identifier>)*)
+//
 // <argumentList>
 //     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 std::unique_ptr<Expr> Parser::parsePostfixExpr() {
   varOrReturn(expr, parsePrimary());
 
-  if (nextToken.kind != TokenKind::Lpar)
-    return expr;
+  if (nextToken.kind == TokenKind::Lpar) {
+    SourceLocation location = nextToken.location;
+    varOrReturn(argumentList, parseArgumentList());
 
-  SourceLocation location = nextToken.location;
-  varOrReturn(argumentList, parseArgumentList());
+    return std::make_unique<CallExpr>(location, std::move(expr),
+                                      std::move(*argumentList));
+  }
 
-  return std::make_unique<CallExpr>(location, std::move(expr),
-                                    std::move(*argumentList));
+  while (nextToken.kind == TokenKind::Dot) {
+    SourceLocation location = nextToken.location;
+    eatNextToken(); // eat '.'
+
+    matchOrReturn(TokenKind::Identifier, "expected member identifier");
+
+    expr = std::make_unique<MemberExpr>(location, std::move(expr),
+                                        *nextToken.value);
+    eatNextToken(); // eat identifier
+  }
+
+  return expr;
 }
 
 // <primaryExpr>

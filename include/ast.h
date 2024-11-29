@@ -168,6 +168,20 @@ struct CallExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct MemberExpr : public Expr {
+  std::unique_ptr<Expr> base;
+  std::string member;
+
+  MemberExpr(SourceLocation location,
+             std::unique_ptr<Expr> base,
+             std::string member)
+      : Expr(location),
+        base(std::move(base)),
+        member(std::move(member)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct GroupingExpr : public Expr {
   std::unique_ptr<Expr> expr;
 
