@@ -9,8 +9,8 @@
 #include "utils.h"
 
 namespace yl {
-constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';',
-                                     ',',  '+', '-', '*', '<', '>', '!'};
+constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';', ',',
+                                     '+',  '-', '*', '<', '>', '!', '.'};
 
 enum class TokenKind : char {
   Unk = -128,
@@ -49,6 +49,7 @@ enum class TokenKind : char {
   Lt = singleCharTokens[11],
   Gt = singleCharTokens[12],
   Excl = singleCharTokens[13],
+  Dot = singleCharTokens[14],
 };
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
