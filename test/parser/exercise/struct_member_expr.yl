@@ -1,0 +1,32 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct Color {
+    r: number,
+    g: number,
+    b: number,
+}
+
+fn main(): void {
+    let s = Color {r: 0, g: 1, b: 2};
+    
+    let r = s.r;
+    // CHECK: VarDecl: r
+    // CHECK-NEXT:   MemberExpr: .r
+    // CHECK-NEXT:     DeclRefExpr: s
+
+    let multipleMembers = s.r.g.b;
+    // CHECK: VarDecl: multipleMembers
+    // CHECK-NEXT:   MemberExpr: .b
+    // CHECK-NEXT:     MemberExpr: .g
+    // CHECK-NEXT:       MemberExpr: .r
+    // CHECK-NEXT:         DeclRefExpr: s
+
+    let immediate = Color {r: 0, g: 1, b: 2}.r;
+    // CHECK: MemberExpr: .r
+    // CHECK-NEXT:   StructInstantiationExpr: Color
+    // CHECK-NEXT:     MemberInitStmt: r
+    // CHECK-NEXT:       NumberLiteral: '0'
+    // CHECK-NEXT:     MemberInitStmt: g
+    // CHECK-NEXT:       NumberLiteral: '1'
+    // CHECK-NEXT:     MemberInitStmt: b
+    // CHECK-NEXT:       NumberLiteral: '2'    
+}
