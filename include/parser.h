@@ -65,17 +65,11 @@ class Parser {
   std::unique_ptr<Expr> parsePrimary();
 
   // helper methods
-  using ParameterList = std::vector<std::unique_ptr<ParamDecl>>;
-  std::unique_ptr<ParameterList> parseParameterList();
-
-  using ArgumentList = std::vector<std::unique_ptr<Expr>>;
-  std::unique_ptr<ArgumentList> parseArgumentList();
-
-  using MemberList = std::vector<std::unique_ptr<MemberDecl>>;
-  std::unique_ptr<MemberList> parseMemberList();
-
-  using MemberInitList = std::vector<std::unique_ptr<MemberInitStmt>>;
-  std::unique_ptr<MemberInitList> parseMemberInitList();
+  template <typename T, typename F>
+  std::unique_ptr<std::vector<std::unique_ptr<T>>>
+  parseListWithTrailingComma(std::pair<TokenKind, const char *> openingToken,
+                             F parser,
+                             std::pair<TokenKind, const char *> closingToken);
 
   std::optional<Type> parseType();
 
