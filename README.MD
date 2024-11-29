@@ -1,7 +1,7 @@
 <div align="center">
 <img src="https://github.com/isuckatcs/how-to-compile-your-language/actions/workflows/pipeline.yml/badge.svg" />
 <img src="https://github.com/isuckatcs/how-to-compile-your-language/actions/workflows/deploy.yml/badge.svg" />
-<a href="https://codecov.io/github/isuckatcs/how-to-compile-your-language" target="_blank"><img src="https://codecov.io/github/isuckatcs/how-to-compile-your-language/branch/main/graph/badge.svg?token=SLOD84JALB" /></a>
+<a href="https://codecov.io/github/isuckatcs/how-to-compile-your-language/tree/exercise" target="_blank"><img src="https://codecov.io/github/isuckatcs/how-to-compile-your-language/branch/exercise/graph/badge.svg?token=SLOD84JALB" /></a>
 <br>
 <br>
 </div>
