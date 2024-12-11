@@ -1,0 +1,8 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct Error {
+    r: number,
+    let g = 0,
+    // CHECK: [[# @LINE -1 ]]:5: error: expected member declaration
+    b: number,
+}
+// CHECK-NOT: {{.*}}

@@ -71,6 +71,8 @@ void Parser::synchronize() {
 // <memberDecl>
 //  ::= <identifier> ':' <type>
 std::unique_ptr<MemberDecl> Parser::parseMemberDecl() {
+  matchOrReturn(TokenKind::Identifier, "expected member declaration");
+
   SourceLocation location = nextToken.location;
   assert(nextToken.value && "identifier token without value");
 
@@ -203,7 +205,8 @@ std::unique_ptr<Block> Parser::parseBlock() {
     if (nextToken.kind == TokenKind::Rbrace)
       break;
 
-    if (nextToken.kind == TokenKind::Eof || nextToken.kind == TokenKind::KwFn)
+    if (nextToken.kind == TokenKind::Eof || nextToken.kind == TokenKind::KwFn ||
+        nextToken.kind == TokenKind::KwStruct)
       return report(nextToken.location, "expected '}' at the end of a block");
 
     std::unique_ptr<Stmt> stmt = parseStmt();
@@ -324,7 +327,7 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
 // <memberInit>
 //  ::= <identifier> ':' <expr>
 std::unique_ptr<MemberInitStmt> Parser::parseMemberInitStmt() {
-  matchOrReturn(TokenKind::Identifier, "expected member identifier");
+  matchOrReturn(TokenKind::Identifier, "expected member initialization");
 
   SourceLocation location = nextToken.location;
   assert(nextToken.value && "identifier token without value");
@@ -511,10 +514,16 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 
     if (!(restrictions & StructNotAllowed) &&
         nextToken.kind == TokenKind::Lbrace) {
-      varOrReturn(memberInitList, parseListWithTrailingComma<MemberInitStmt>(
-                                      {TokenKind::Lbrace, "expected '{'"},
-                                      &Parser::parseMemberInitStmt,
-                                      {TokenKind::Rbrace, "expected '}'"}));
+      auto memberInitList = parseListWithTrailingComma<MemberInitStmt>(
+          {TokenKind::Lbrace, "expected '{'"}, &Parser::parseMemberInitStmt,
+          {TokenKind::Rbrace, "expected '}'"});
+
+      if (!memberInitList) {
+        synchronizeOn({TokenKind::Rbrace});
+        eatNextToken(); // eat '}'
+        return nullptr;
+      }
+
       return std::make_unique<StructInstantiationExpr>(
           location, std::move(identifier), std::move(*memberInitList));
     }

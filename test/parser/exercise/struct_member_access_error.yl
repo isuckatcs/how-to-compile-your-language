@@ -1,0 +1,13 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct Color {
+    r: number,
+    g: number,
+    b: number,
+}
+
+fn main(): void {
+    let s = Color {r: 0, g: 1, b: 2};
+    
+    let r = s.;
+    // CHECK: [[# @LINE -1 ]]:15: error: expected member identifier
+}
