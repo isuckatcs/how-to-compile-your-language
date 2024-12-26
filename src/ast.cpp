@@ -195,6 +195,11 @@ void ResolvedParamDecl::dump(size_t level) const {
             << identifier << ':' << '\n';
 }
 
+void ResolvedMemberDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedMemberDecl: @(" << this << ") "
+            << identifier << '\n';
+}
+
 void ResolvedVarDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
             << identifier << ':' << '\n';
@@ -210,6 +215,14 @@ void ResolvedFunctionDecl::dump(size_t level) const {
     param->dump(level + 1);
 
   body->dump(level + 1);
+}
+
+void ResolvedStructDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedStructDecl: @(" << this << ") "
+            << identifier << ':' << '\n';
+
+  for (auto &&member : members)
+    member->dump(level + 1);
 }
 
 void ResolvedNumberLiteral::dump(size_t level) const {
