@@ -122,8 +122,12 @@ int main(int argc, const char **argv) {
 
   if (options.cfgDump) {
     for (auto &&fn : resolvedTree) {
-      std::cerr << fn->identifier << ':' << '\n';
-      CFGBuilder().build(*fn).dump();
+      // FIXME: workaround
+      if (const auto *function =
+              dynamic_cast<const ResolvedFunctionDecl *>(fn.get())) {
+        std::cerr << fn->identifier << ':' << '\n';
+        CFGBuilder().build(*function).dump();
+      }
     }
     return 0;
   }
@@ -131,7 +135,17 @@ int main(int argc, const char **argv) {
   if (resolvedTree.empty())
     return 1;
 
-  Codegen codegen(std::move(resolvedTree), options.source.c_str());
+  // FIXME: workaround
+  std::vector<std::unique_ptr<ResolvedFunctionDecl>> tmp;
+  for (auto &&fn : resolvedTree) {
+    // FIXME: workaround
+    if (const auto *function =
+            dynamic_cast<const ResolvedFunctionDecl *>(fn.get())) {
+      tmp.emplace_back(dynamic_cast<ResolvedFunctionDecl *>(fn.release()));
+    }
+  }
+
+  Codegen codegen(std::move(tmp), options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {

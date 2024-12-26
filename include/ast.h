@@ -11,7 +11,7 @@
 
 namespace yl {
 struct Type {
-  enum class Kind { Void, Number, Custom };
+  enum class Kind { Void, Number, Custom, Struct };
 
   Kind kind;
   std::string name;
@@ -19,6 +19,7 @@ struct Type {
   static Type builtinVoid() { return {Kind::Void, "void"}; }
   static Type builtinNumber() { return {Kind::Number, "number"}; }
   static Type custom(const std::string &name) { return {Kind::Custom, name}; }
+  static Type structType(const std::string &id) { return {Kind::Struct, id}; }
 
 private:
   Type(Kind kind, std::string name)
@@ -400,6 +401,13 @@ struct ResolvedParamDecl : public ResolvedDecl {
   void dump(size_t level = 0) const override;
 };
 
+struct ResolvedMemberDecl : public ResolvedDecl {
+  ResolvedMemberDecl(SourceLocation location, std::string identifier, Type type)
+      : ResolvedDecl(location, std::move(identifier), type) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct ResolvedVarDecl : public ResolvedDecl {
   std::unique_ptr<ResolvedExpr> initializer;
   bool isMutable;
@@ -428,6 +436,19 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
       : ResolvedDecl(location, std::move(identifier), type),
         params(std::move(params)),
         body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct ResolvedStructDecl : public ResolvedDecl {
+  std::vector<std::unique_ptr<ResolvedMemberDecl>> members;
+
+  ResolvedStructDecl(SourceLocation location,
+                     std::string identifier,
+                     Type type,
+                     std::vector<std::unique_ptr<ResolvedMemberDecl>> members)
+      : ResolvedDecl(location, std::move(identifier), type),
+        members(std::move(members)) {}
 
   void dump(size_t level = 0) const override;
 };

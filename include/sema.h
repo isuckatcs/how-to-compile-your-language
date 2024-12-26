@@ -57,6 +57,12 @@ class Sema {
   std::unique_ptr<ResolvedVarDecl> resolveVarDecl(const VarDecl &varDecl);
   std::unique_ptr<ResolvedFunctionDecl>
   resolveFunctionDeclaration(const FunctionDecl &function);
+  std::unique_ptr<ResolvedMemberDecl>
+  resolveMemberDecl(const MemberDecl &member, bool ignoreCustom = false);
+  std::unique_ptr<ResolvedStructDecl>
+  resolveStructDecl(const StructDecl &structDecl);
+
+  bool resolveStructMembers(ResolvedStructDecl &resolvedStructDecl);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
@@ -70,7 +76,7 @@ public:
   explicit Sema(std::vector<std::unique_ptr<Decl>> ast)
       : ast(std::move(ast)) {}
 
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();
+  std::vector<std::unique_ptr<ResolvedDecl>> resolveAST();
 };
 } // namespace yl
 

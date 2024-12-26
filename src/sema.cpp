@@ -1,6 +1,7 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <stack>
 
 #include "cfg.h"
 #include "sema.h"
@@ -189,8 +190,13 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
 };
 
 std::optional<Type> Sema::resolveType(Type parsedType) {
-  if (parsedType.kind == Type::Kind::Custom)
+  if (parsedType.kind == Type::Kind::Custom) {
+    auto *decl = lookupDecl(parsedType.name).first;
+    if (dynamic_cast<ResolvedStructDecl *>(decl))
+      return Type::structType(decl->identifier);
+
     return std::nullopt;
+  }
 
   return parsedType;
 }
@@ -545,47 +551,136 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
       nullptr);
 };
 
-std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
+std::unique_ptr<ResolvedMemberDecl>
+Sema::resolveMemberDecl(const MemberDecl &member, bool ignoreCustom) {
+  Type currentType = member.type;
+  auto resolvedType = ignoreCustom && currentType.kind == Type::Kind::Custom
+                          ? currentType
+                          : resolveType(member.type);
+
+  if (!resolvedType)
+    return nullptr;
+
+  return std::make_unique<ResolvedMemberDecl>(
+      member.location, member.identifier, resolvedType.value_or(member.type));
+}
+
+std::unique_ptr<ResolvedStructDecl>
+Sema::resolveStructDecl(const StructDecl &structDecl) {
+  std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
+
+  for (auto &&member : structDecl.members) {
+    auto resolvedMember = resolveMemberDecl(*member, true);
+
+    if (!resolvedMember)
+      return nullptr;
+
+    resolvedMembers.emplace_back(std::move(resolvedMember));
+  }
+
+  return std::make_unique<ResolvedStructDecl>(
+      structDecl.location, structDecl.identifier,
+      Type::structType(structDecl.identifier), std::move(resolvedMembers));
+}
+
+bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
+  static std::set<ResolvedStructDecl *> visited;
+
+  if (visited.count(&resolvedStructDecl))
+    return true;
+
+  std::stack<ResolvedStructDecl *> worklist;
+  worklist.push(&resolvedStructDecl);
+
+  while (!worklist.empty()) {
+    ResolvedStructDecl *currentDecl = worklist.top();
+    worklist.pop();
+
+    if (!visited.emplace(currentDecl).second) {
+      report(currentDecl->location,
+             "struct '" + currentDecl->identifier + "' contains itself");
+      return false;
+    }
+
+    for (auto &&member : currentDecl->members) {
+      if (member->type.kind != Type::Kind::Custom)
+        continue;
+
+      auto type = resolveType(member->type);
+      if (!type) {
+        report(member->location, "unable to resolve '" + member->type.name +
+                                     "' type of struct member");
+        return false;
+      }
+
+      auto *nestedStruct =
+          dynamic_cast<ResolvedStructDecl *>(lookupDecl(type->name).first);
+      assert(nestedStruct && "unexpected type");
+
+      member->type = *type;
+      worklist.push(nestedStruct);
+    }
+  }
+
+  return true;
+}
+
+std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
+  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
   auto println = createBuiltinPrintln();
 
   // Insert println first to be able to detect a possible redeclaration.
   ScopeRAII globalScope(this);
   insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
 
-  // FIXME: temporary workaround
-  std::vector<std::unique_ptr<FunctionDecl>> functions;
-  for (auto &&decl : ast) {
-    if (auto *fn = dynamic_cast<FunctionDecl *>(decl.get())) {
-      functions.emplace_back(fn);
-      (void)decl.release();
-    }
-  }
-
   bool error = false;
-  for (auto &&fn : functions) {
-    auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
+  for (auto &&decl : ast) {
+    std::unique_ptr<ResolvedDecl> resolvedDecl;
 
-    if (!resolvedFunctionDecl ||
-        !insertDeclToCurrentScope(*resolvedFunctionDecl)) {
+    if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get())) {
+      resolvedDecl = resolveFunctionDeclaration(*fn);
+    } else if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
+      resolvedDecl = resolveStructDecl(*st);
+    } else {
+      llvm_unreachable("unexpected declaration");
+    }
+
+    if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl)) {
       error = true;
       continue;
     }
 
-    resolvedTree.emplace_back(std::move(resolvedFunctionDecl));
+    resolvedTree.emplace_back(std::move(resolvedDecl));
   }
 
   if (error)
     return {};
 
+  // FIXME: think about a better solution
   for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    currentFunction = resolvedTree[i].get();
+    ResolvedDecl *currentDecl = resolvedTree[i].get();
+
+    if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl)) {
+      if (!resolveStructMembers(*st))
+        return {};
+    }
+  }
+
+  for (size_t i = 1; i < resolvedTree.size(); ++i) {
+    ResolvedDecl *currentDecl = resolvedTree[i].get();
+
+    if (!dynamic_cast<ResolvedFunctionDecl *>(currentDecl))
+      continue;
+
+    currentFunction =
+        static_cast<ResolvedFunctionDecl *>(resolvedTree[i].get());
 
     ScopeRAII paramScope(this);
     for (auto &&param : currentFunction->params)
       insertDeclToCurrentScope(*param);
 
-    auto resolvedBody = resolveBlock(*functions[i - 1]->body);
+    auto resolvedBody =
+        resolveBlock(*static_cast<FunctionDecl *>(ast[i - 1].get())->body);
     if (!resolvedBody) {
       error = true;
       continue;
