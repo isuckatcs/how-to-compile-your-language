@@ -487,6 +487,20 @@ struct ResolvedCallExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override;
 };
 
+struct ResolvedMemberExpr : public ResolvedExpr {
+  std::unique_ptr<ResolvedExpr> base;
+  const ResolvedMemberDecl *member;
+
+  ResolvedMemberExpr(SourceLocation location,
+                     std::unique_ptr<ResolvedExpr> base,
+                     const ResolvedMemberDecl &member)
+      : ResolvedExpr(location, member.type),
+        base(std::move(base)),
+        member(&member) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct ResolvedGroupingExpr : public ResolvedExpr {
   std::unique_ptr<ResolvedExpr> expr;
 
