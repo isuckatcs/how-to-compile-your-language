@@ -39,6 +39,8 @@ class Sema {
   std::unique_ptr<ResolvedDeclRefExpr>
   resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee = false);
   std::unique_ptr<ResolvedCallExpr> resolveCallExpr(const CallExpr &call);
+  std::unique_ptr<ResolvedStructInstantiationExpr> resolveStructInstantiation(
+      const StructInstantiationExpr &structInstantiation);
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr);
 
   std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt);

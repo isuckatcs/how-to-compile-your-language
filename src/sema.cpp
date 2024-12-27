@@ -292,6 +292,64 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
 }
 
+std::unique_ptr<ResolvedStructInstantiationExpr>
+Sema::resolveStructInstantiation(
+    const StructInstantiationExpr &structInstantiation) {
+  const auto *st = dynamic_cast<const ResolvedStructDecl *>(
+      lookupDecl(structInstantiation.identifier).first);
+
+  if (!st)
+    return report(structInstantiation.location,
+                  "'" + structInstantiation.identifier +
+                      "' is no a struct type");
+
+  std::vector<std::unique_ptr<ResolvedMemberInitStmt>>
+      resolvedMemberInitializers;
+
+  // FIXME use a map in the ast...
+  bool error = false;
+  for (auto &&memberDecl : st->members) {
+    bool found = false;
+    for (auto &&memberInitializer : structInstantiation.memberInitializers) {
+      if (memberInitializer->identifier != memberDecl->identifier)
+        continue;
+
+      found = true;
+      auto resolvedInitExpr = resolveExpr(*memberInitializer->initializer);
+
+      if (!resolvedInitExpr) {
+        error = true;
+        continue;
+      }
+
+      if (resolvedInitExpr->type.name != memberDecl->type.name) {
+        error = true;
+        report(resolvedInitExpr->location,
+               "'" + resolvedInitExpr->type.name +
+                   "' cannot be used to initialize a member of type '" +
+                   memberDecl->type.name + "'");
+      }
+
+      resolvedMemberInitializers.emplace_back(
+          std::make_unique<ResolvedMemberInitStmt>(
+              memberInitializer->location, *memberDecl,
+              std::move(resolvedInitExpr)));
+    }
+
+    if (!found) {
+      report(structInstantiation.location,
+             "member '" + memberDecl->identifier + "' is not initialized");
+      error = true;
+    }
+  }
+
+  if (error)
+    return nullptr;
+
+  return std::make_unique<ResolvedStructInstantiationExpr>(
+      structInstantiation.location, *st, std::move(resolvedMemberInitializers));
+}
+
 std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *expr = dynamic_cast<const Expr *>(&stmt))
     return resolveExpr(*expr);
@@ -434,6 +492,10 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
     return resolveUnaryOperator(*unaryOperator);
+
+  if (const auto *structInstantiation =
+          dynamic_cast<const StructInstantiationExpr *>(&expr))
+    return resolveStructInstantiation(*structInstantiation);
 
   llvm_unreachable("unexpected expression");
 }
