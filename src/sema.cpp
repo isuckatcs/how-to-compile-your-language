@@ -350,6 +350,37 @@ Sema::resolveStructInstantiation(
       structInstantiation.location, *st, std::move(resolvedMemberInitializers));
 }
 
+std::unique_ptr<ResolvedMemberExpr>
+Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
+  auto resolvedBase = resolveExpr(*memberExpr.base);
+  if (!resolvedBase)
+    return nullptr;
+
+  if (resolvedBase->type.kind != Type::Kind::Struct)
+    return report(memberExpr.base->location,
+                  "cannot access member of '" + resolvedBase->type.name + '\'');
+
+  const auto *st = dynamic_cast<const ResolvedStructDecl *>(
+      lookupDecl(resolvedBase->type.name).first);
+
+  assert(st && "failed to lookup struct");
+
+  // FIXME: use a map...
+  const ResolvedMemberDecl *memberDecl = nullptr;
+  for (auto &&member : st->members) {
+    if (member->identifier == memberExpr.member)
+      memberDecl = member.get();
+  }
+
+  if (!memberDecl)
+    return report(memberExpr.location, '\'' + resolvedBase->type.name +
+                                           "' has no member called '" +
+                                           memberExpr.member + '\'');
+
+  return std::make_unique<ResolvedMemberExpr>(
+      memberExpr.location, std::move(resolvedBase), *memberDecl);
+}
+
 std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
   if (auto *expr = dynamic_cast<const Expr *>(&stmt))
     return resolveExpr(*expr);
@@ -497,6 +528,9 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
           dynamic_cast<const StructInstantiationExpr *>(&expr))
     return resolveStructInstantiation(*structInstantiation);
 
+  if (const auto *memberExpr = dynamic_cast<const MemberExpr *>(&expr))
+    return resolveMemberExpr(*memberExpr);
+
   llvm_unreachable("unexpected expression");
 }
 
@@ -631,6 +665,7 @@ std::unique_ptr<ResolvedStructDecl>
 Sema::resolveStructDecl(const StructDecl &structDecl) {
   std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
 
+  // FIXME: handle multiple members with the same identifiers
   for (auto &&member : structDecl.members) {
     auto resolvedMember = resolveMemberDecl(*member, true);
 
