@@ -564,6 +564,35 @@ struct ResolvedReturnStmt : public ResolvedStmt {
 
   void dump(size_t level = 0) const override;
 };
+
+struct ResolvedMemberInitStmt : public ResolvedStmt {
+  const ResolvedMemberDecl *member;
+  std::unique_ptr<ResolvedExpr> initializer;
+
+  ResolvedMemberInitStmt(SourceLocation location,
+                         const ResolvedMemberDecl &member,
+                         std::unique_ptr<ResolvedExpr> initializer)
+      : ResolvedStmt(location),
+        member(&member),
+        initializer(std::move(initializer)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct ResolvedStructInstantiationExpr : public ResolvedExpr {
+  const ResolvedStructDecl *structDecl;
+  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> memberInitializers;
+
+  ResolvedStructInstantiationExpr(
+      SourceLocation location,
+      const ResolvedStructDecl &structDecl,
+      std::vector<std::unique_ptr<ResolvedMemberInitStmt>> memberInitializers)
+      : ResolvedExpr(location, structDecl.type),
+        structDecl(&structDecl),
+        memberInitializers(std::move(memberInitializers)) {}
+
+  void dump(size_t level = 0) const override;
+};
 } // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H

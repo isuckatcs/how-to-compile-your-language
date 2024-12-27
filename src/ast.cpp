@@ -294,4 +294,19 @@ void ResolvedReturnStmt::dump(size_t level) const {
   if (expr)
     expr->dump(level + 1);
 }
+
+void ResolvedMemberInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedMemberInitStmt: @(" << member << ')'
+            << '\n';
+
+  initializer->dump(level + 1);
+}
+
+void ResolvedStructInstantiationExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedStructInstantiationExpr: @("
+            << structDecl << ')' << '\n';
+
+  for (auto &&member : memberInitializers)
+    member->dump(level + 1);
+}
 } // namespace yl
