@@ -393,7 +393,6 @@ Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
 
   assert(st && "failed to lookup struct");
 
-  // FIXME: use a map...
   const ResolvedMemberDecl *memberDecl = nullptr;
   for (auto &&member : st->members) {
     if (member->identifier == memberExpr.member)
