@@ -146,7 +146,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 }
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
-  const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
+  const auto &[foundDecl, scopeIdx] = lookupDecl<ResolvedDecl>(decl.identifier);
 
   if (foundDecl && scopeIdx == 0) {
     report(decl.location, "redeclaration of '" + decl.identifier + '\'');
@@ -157,14 +157,17 @@ bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   return true;
 }
 
-std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
+template <typename T>
+std::pair<T *, int> Sema::lookupDecl(const std::string id) {
   int scopeIdx = 0;
   for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
     for (auto &&decl : *it) {
-      if (decl->identifier != id)
+      auto *correctDecl = dynamic_cast<T *>(decl);
+
+      if (!correctDecl || decl->identifier != id)
         continue;
 
-      return {decl, scopeIdx};
+      return {correctDecl, scopeIdx};
     }
 
     ++scopeIdx;
@@ -191,7 +194,7 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
 
 std::optional<Type> Sema::resolveType(Type parsedType) {
   if (parsedType.kind == Type::Kind::Custom) {
-    auto *decl = lookupDecl(parsedType.name).first;
+    auto *decl = lookupDecl<ResolvedDecl>(parsedType.name).first;
     if (dynamic_cast<ResolvedStructDecl *>(decl))
       return Type::structType(decl->identifier);
 
@@ -205,6 +208,7 @@ std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
 
+  // FIXME: crash on structs
   if (resolvedRHS->type.kind == Type::Kind::Void)
     return report(
         resolvedRHS->location,
@@ -219,6 +223,7 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
+  // FIXME: crash on structs
   if (resolvedLHS->type.kind == Type::Kind::Void)
     return report(
         resolvedLHS->location,
@@ -246,7 +251,7 @@ Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
 
 std::unique_ptr<ResolvedDeclRefExpr>
 Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
-  ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
+  ResolvedDecl *decl = lookupDecl<ResolvedDecl>(declRefExpr.identifier).first;
   if (!decl)
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
@@ -296,8 +301,8 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
 std::unique_ptr<ResolvedStructInstantiationExpr>
 Sema::resolveStructInstantiation(
     const StructInstantiationExpr &structInstantiation) {
-  const auto *st = dynamic_cast<const ResolvedStructDecl *>(
-      lookupDecl(structInstantiation.identifier).first);
+  const auto *st =
+      lookupDecl<ResolvedStructDecl>(structInstantiation.identifier).first;
 
   if (!st)
     return report(structInstantiation.location,
@@ -388,8 +393,9 @@ Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
     return report(memberExpr.base->location,
                   "cannot access member of '" + resolvedBase->type.name + '\'');
 
-  const auto *st = dynamic_cast<const ResolvedStructDecl *>(
-      lookupDecl(resolvedBase->type.name).first);
+  // FIXME: crash when variable shadows type
+  const auto *st =
+      lookupDecl<ResolvedStructDecl>(resolvedBase->type.name).first;
 
   assert(st && "failed to lookup struct");
 
@@ -740,8 +746,7 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
         return false;
       }
 
-      auto *nestedStruct =
-          dynamic_cast<ResolvedStructDecl *>(lookupDecl(type->name).first);
+      auto *nestedStruct = lookupDecl<ResolvedStructDecl>(type->name).first;
       assert(nestedStruct && "unexpected type");
 
       member->type = *type;
