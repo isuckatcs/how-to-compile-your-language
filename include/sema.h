@@ -69,7 +69,7 @@ class Sema {
   bool resolveStructMembers(ResolvedStructDecl &resolvedStructDecl);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
-  std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
+  template <typename T> std::pair<T *, int> lookupDecl(const std::string id);
   std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrintln();
 
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
