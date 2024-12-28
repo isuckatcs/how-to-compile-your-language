@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct Struct {
+  x: number
+}
+
+fn main(): void {
+  let s = Struct { x: 0 };
+
+  let y = s.y;
+  // CHECK: [[# @LINE - 1 ]]:12: error: 'Struct' has no member called 'y'
+}

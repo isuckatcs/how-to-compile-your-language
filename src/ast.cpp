@@ -249,7 +249,7 @@ void ResolvedCallExpr::dump(size_t level) const {
 }
 
 void ResolvedMemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "ResolvedMemberExpr: (" << member << ')' << ' '
+  std::cerr << indent(level) << "ResolvedMemberExpr: @(" << member << ')' << ' '
             << member->identifier << '\n';
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
