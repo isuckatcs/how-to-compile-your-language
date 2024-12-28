@@ -292,6 +292,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
 }
 
+// FIXME: refactor
 std::unique_ptr<ResolvedStructInstantiationExpr>
 Sema::resolveStructInstantiation(
     const StructInstantiationExpr &structInstantiation) {
@@ -301,17 +302,31 @@ Sema::resolveStructInstantiation(
   if (!st)
     return report(structInstantiation.location,
                   "'" + structInstantiation.identifier +
-                      "' is no a struct type");
+                      "' is not a struct type");
 
   std::vector<std::unique_ptr<ResolvedMemberInitStmt>>
       resolvedMemberInitializers;
 
-  // FIXME use a map in the ast...
   bool error = false;
   for (auto &&memberDecl : st->members) {
     bool found = false;
     for (auto &&memberInitializer : structInstantiation.memberInitializers) {
       if (memberInitializer->identifier != memberDecl->identifier)
+        continue;
+
+      bool alreadyInit = false;
+      for (auto &&alreadyResolved : resolvedMemberInitializers) {
+        if (alreadyResolved->member->identifier ==
+            memberInitializer->identifier) {
+          alreadyInit = true;
+          error = true;
+          report(memberInitializer->location,
+                 "field '" + memberInitializer->identifier +
+                     "' is already initialized");
+        }
+      }
+
+      if (alreadyInit)
         continue;
 
       found = true;
@@ -340,6 +355,19 @@ Sema::resolveStructInstantiation(
       report(structInstantiation.location,
              "member '" + memberDecl->identifier + "' is not initialized");
       error = true;
+    }
+  }
+
+  for (auto &&memberInitializer : structInstantiation.memberInitializers) {
+    bool found = false;
+    for (auto &&memberDecl : st->members)
+      found |= memberDecl->identifier == memberInitializer->identifier;
+
+    if (!found) {
+      error = true;
+      report(memberInitializer->location,
+             '\'' + st->identifier + "' has no field named '" +
+                 memberInitializer->identifier + '\'');
     }
   }
 
@@ -648,14 +676,16 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
 };
 
 std::unique_ptr<ResolvedMemberDecl>
-Sema::resolveMemberDecl(const MemberDecl &member, bool ignoreCustom) {
+Sema::resolveKnownMemberDecl(const MemberDecl &member) {
   Type currentType = member.type;
-  auto resolvedType = ignoreCustom && currentType.kind == Type::Kind::Custom
+  auto resolvedType = currentType.kind == Type::Kind::Custom
                           ? currentType
                           : resolveType(member.type);
 
-  if (!resolvedType)
-    return nullptr;
+  assert(resolvedType && "member type unknown");
+
+  if (resolvedType->kind == Type::Kind::Void)
+    return report(member.location, "struct member cannot be void");
 
   return std::make_unique<ResolvedMemberDecl>(
       member.location, member.identifier, resolvedType.value_or(member.type));
@@ -665,9 +695,13 @@ std::unique_ptr<ResolvedStructDecl>
 Sema::resolveStructDecl(const StructDecl &structDecl) {
   std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
 
-  // FIXME: handle multiple members with the same identifiers
   for (auto &&member : structDecl.members) {
-    auto resolvedMember = resolveMemberDecl(*member, true);
+    for (auto &&alreadyResolved : resolvedMembers)
+      if (alreadyResolved->identifier == member->identifier)
+        return report(member->location,
+                      "field '" + member->identifier + "' is already declared");
+
+    auto resolvedMember = resolveKnownMemberDecl(*member);
 
     if (!resolvedMember)
       return nullptr;
@@ -681,16 +715,13 @@ Sema::resolveStructDecl(const StructDecl &structDecl) {
 }
 
 bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
-  static std::set<ResolvedStructDecl *> visited;
-
-  if (visited.count(&resolvedStructDecl))
-    return true;
-
-  std::stack<ResolvedStructDecl *> worklist;
-  worklist.push(&resolvedStructDecl);
+  std::stack<
+      std::pair<ResolvedStructDecl *, std::set<const ResolvedStructDecl *>>>
+      worklist;
+  worklist.push({&resolvedStructDecl, {}});
 
   while (!worklist.empty()) {
-    ResolvedStructDecl *currentDecl = worklist.top();
+    auto [currentDecl, visited] = worklist.top();
     worklist.pop();
 
     if (!visited.emplace(currentDecl).second) {
@@ -715,7 +746,7 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
       assert(nestedStruct && "unexpected type");
 
       member->type = *type;
-      worklist.push(nestedStruct);
+      worklist.push({nestedStruct, visited});
     }
   }
 

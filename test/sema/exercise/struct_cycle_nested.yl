@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S1 {
+  nested: S2
+}
+
+struct S2 {
+// CHECK: [[# @LINE - 1 ]]:1: error: struct 'S2' contains itself
+  nested: S3
+}
+
+struct S3 {
+  nested: S4
+}
+
+struct S4 {
+  nested: S2
+}
+
+fn main(): void {}

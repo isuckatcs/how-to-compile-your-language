@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn main(): void {
+  let s = S { x: x };
+  // CHECK: [[# @LINE - 1 ]]:18: error: symbol 'x' not found
+}

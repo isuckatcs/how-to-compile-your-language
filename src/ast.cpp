@@ -306,7 +306,7 @@ void ResolvedReturnStmt::dump(size_t level) const {
 
 void ResolvedMemberInitStmt::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedMemberInitStmt: @(" << member << ')'
-            << '\n';
+            << ' ' << member->identifier << '\n';
 
   initializer->dump(level + 1);
 }
