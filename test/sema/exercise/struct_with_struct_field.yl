@@ -1,0 +1,46 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct Point {
+  x: number,
+  y: number,
+}
+// CHECK: ResolvedStructDecl: @({{.*}}) Point:
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) x
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) y
+
+struct Color {
+  r: number,
+  g: number,
+  b: number,
+  p: Point,
+}
+// CHECK-NEXT: ResolvedStructDecl: @({{.*}}) Color:
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) r
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) g
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) b
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) p
+
+fn main(): void {
+  let x = Color { 
+    r: 0,
+    g: 1,
+    b: 2,
+    p: Point { x: 3, y: 4 },
+  };
+}
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT:     ResolvedDeclStmt:
+// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
+// CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) r
+// CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) g
+// CHECK-NEXT:             ResolvedNumberLiteral: '1'
+// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) b
+// CHECK-NEXT:             ResolvedNumberLiteral: '2'
+// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) p
+// CHECK-NEXT:             ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:               ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:                 ResolvedNumberLiteral: '3'
+// CHECK-NEXT:               ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:                 ResolvedNumberLiteral: '4'

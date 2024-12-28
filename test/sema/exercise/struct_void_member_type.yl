@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  nested: void,
+  // CHECK: [[# @LINE - 1 ]]:3: error: struct member cannot be void
+}
+
+fn main(): void {}
