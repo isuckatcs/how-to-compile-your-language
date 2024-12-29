@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+struct S2 {
+  x: number
+}
+
+fn main(): void {
+  var s = S {x: 0};
+  let s2 = S2 {x: 0};
+
+  s = s;
+  s = s2;
+  // CHECK: [[# @LINE - 1 ]]:7: error: assigned value type doesn't match variable type
+}

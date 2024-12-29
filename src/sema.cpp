@@ -286,7 +286,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   for (auto &&arg : call.arguments) {
     varOrReturn(resolvedArg, resolveExpr(*arg));
 
-    if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
+    if (resolvedArg->type.name != resolvedFunctionDecl->params[idx]->type.name)
       return report(resolvedArg->location, "unexpected type of argument");
 
     resolvedArg->setConstantValue(cee.evaluate(*resolvedArg, false));
@@ -500,7 +500,7 @@ Sema::resolveAssignment(const Assignment &assignment) {
   auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
   assert(var && "assignment LHS is not a variable");
 
-  if (resolvedRHS->type.kind != resolvedLHS->type.kind)
+  if (resolvedRHS->type.name != resolvedLHS->type.name)
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
 
@@ -527,7 +527,7 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
     if (!resolvedExpr)
       return nullptr;
 
-    if (currentFunction->type.kind != resolvedExpr->type.kind)
+    if (currentFunction->type.name != resolvedExpr->type.name)
       return report(resolvedExpr->location, "unexpected return type");
 
     resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr, false));
@@ -633,7 +633,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
                                         resolvableType.name + "' type");
 
   if (resolvedInitializer) {
-    if (resolvedInitializer->type.kind != type->kind)
+    if (resolvedInitializer->type.name != type->name)
       return report(resolvedInitializer->location, "initializer type mismatch");
 
     resolvedInitializer->setConstantValue(
