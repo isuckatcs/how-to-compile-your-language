@@ -163,7 +163,7 @@ void DeclStmt::dump(size_t level) const {
 
 void Assignment::dump(size_t level) const {
   std::cerr << indent(level) << "Assignment:\n";
-  variable->dump(level + 1);
+  assignee->dump(level + 1);
   expr->dump(level + 1);
 }
 
@@ -293,7 +293,7 @@ void ResolvedDeclStmt::dump(size_t level) const {
 
 void ResolvedAssignment::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedAssignment:\n";
-  variable->dump(level + 1);
+  assignee->dump(level + 1);
   expr->dump(level + 1);
 }
 

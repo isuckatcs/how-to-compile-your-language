@@ -278,9 +278,9 @@ std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
 }
 
 // <assignment>
-//  ::= <declRefExpr> '=' <expr>
+//  ::= (<declRefExpr> | <memberExpr>) '=' <expr>
 std::unique_ptr<Assignment>
-Parser::parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs) {
+Parser::parseAssignmentRHS(std::unique_ptr<AssignableExpr> lhs) {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '='
 
@@ -379,7 +379,7 @@ std::unique_ptr<Stmt> Parser::parseAssignmentOrExpr() {
     return expr;
   }
 
-  auto *dre = dynamic_cast<DeclRefExpr *>(lhs.get());
+  auto *dre = dynamic_cast<AssignableExpr *>(lhs.get());
   if (!dre)
     return report(lhs->location,
                   "expected variable on the LHS of an assignment");
@@ -387,7 +387,7 @@ std::unique_ptr<Stmt> Parser::parseAssignmentOrExpr() {
   std::ignore = lhs.release();
 
   varOrReturn(assignment,
-              parseAssignmentRHS(std::unique_ptr<DeclRefExpr>(dre)));
+              parseAssignmentRHS(std::unique_ptr<AssignableExpr>(dre)));
 
   matchOrReturn(TokenKind::Semi, "expected ';' at the end of assignment");
   eatNextToken(); // eat ';'

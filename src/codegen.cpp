@@ -108,8 +108,12 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  return builder.CreateStore(generateExpr(*stmt.expr),
-                             declarations[stmt.variable->decl]);
+  // FIXME: workaround
+  return builder.CreateStore(
+      generateExpr(*stmt.expr),
+      declarations[dynamic_cast<const ResolvedDeclRefExpr *>(
+                       stmt.assignee.get())
+                       ->decl]);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {

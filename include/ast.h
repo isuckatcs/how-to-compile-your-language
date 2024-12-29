@@ -147,16 +147,6 @@ struct NumberLiteral : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct DeclRefExpr : public Expr {
-  std::string identifier;
-
-  DeclRefExpr(SourceLocation location, std::string identifier)
-      : Expr(location),
-        identifier(identifier) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct CallExpr : public Expr {
   std::unique_ptr<Expr> callee;
   std::vector<std::unique_ptr<Expr>> arguments;
@@ -171,14 +161,29 @@ struct CallExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct MemberExpr : public Expr {
+struct AssignableExpr : public Expr {
+  AssignableExpr(SourceLocation location)
+      : Expr(location) {}
+};
+
+struct DeclRefExpr : public AssignableExpr {
+  std::string identifier;
+
+  DeclRefExpr(SourceLocation location, std::string identifier)
+      : AssignableExpr(location),
+        identifier(identifier) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct MemberExpr : public AssignableExpr {
   std::unique_ptr<Expr> base;
   std::string member;
 
   MemberExpr(SourceLocation location,
              std::unique_ptr<Expr> base,
              std::string member)
-      : Expr(location),
+      : AssignableExpr(location),
         base(std::move(base)),
         member(std::move(member)) {}
 
@@ -304,14 +309,14 @@ struct DeclStmt : public Stmt {
 };
 
 struct Assignment : public Stmt {
-  std::unique_ptr<DeclRefExpr> variable;
+  std::unique_ptr<AssignableExpr> assignee;
   std::unique_ptr<Expr> expr;
 
   Assignment(SourceLocation location,
-             std::unique_ptr<DeclRefExpr> variable,
+             std::unique_ptr<AssignableExpr> assignee,
              std::unique_ptr<Expr> expr)
       : Stmt(location),
-        variable(std::move(variable)),
+        assignee(std::move(assignee)),
         expr(std::move(expr)) {}
 
   void dump(size_t level = 0) const override;
@@ -465,16 +470,6 @@ struct ResolvedNumberLiteral : public ResolvedExpr {
   void dump(size_t level = 0) const override;
 };
 
-struct ResolvedDeclRefExpr : public ResolvedExpr {
-  const ResolvedDecl *decl;
-
-  ResolvedDeclRefExpr(SourceLocation location, ResolvedDecl &decl)
-      : ResolvedExpr(location, decl.type),
-        decl(&decl) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct ResolvedCallExpr : public ResolvedExpr {
   const ResolvedFunctionDecl *callee;
   std::vector<std::unique_ptr<ResolvedExpr>> arguments;
@@ -489,14 +484,29 @@ struct ResolvedCallExpr : public ResolvedExpr {
   void dump(size_t level = 0) const override;
 };
 
-struct ResolvedMemberExpr : public ResolvedExpr {
+struct ResolvedAssignableExpr : public ResolvedExpr {
+  ResolvedAssignableExpr(SourceLocation location, Type type)
+      : ResolvedExpr(location, type) {}
+};
+
+struct ResolvedDeclRefExpr : public ResolvedAssignableExpr {
+  const ResolvedDecl *decl;
+
+  ResolvedDeclRefExpr(SourceLocation location, ResolvedDecl &decl)
+      : ResolvedAssignableExpr(location, decl.type),
+        decl(&decl) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct ResolvedMemberExpr : public ResolvedAssignableExpr {
   std::unique_ptr<ResolvedExpr> base;
   const ResolvedMemberDecl *member;
 
   ResolvedMemberExpr(SourceLocation location,
                      std::unique_ptr<ResolvedExpr> base,
                      const ResolvedMemberDecl &member)
-      : ResolvedExpr(location, member.type),
+      : ResolvedAssignableExpr(location, member.type),
         base(std::move(base)),
         member(&member) {}
 
@@ -557,14 +567,14 @@ struct ResolvedDeclStmt : public ResolvedStmt {
 };
 
 struct ResolvedAssignment : public ResolvedStmt {
-  std::unique_ptr<ResolvedDeclRefExpr> variable;
+  std::unique_ptr<ResolvedAssignableExpr> assignee;
   std::unique_ptr<ResolvedExpr> expr;
 
   ResolvedAssignment(SourceLocation location,
-                     std::unique_ptr<ResolvedDeclRefExpr> variable,
+                     std::unique_ptr<ResolvedAssignableExpr> assignee,
                      std::unique_ptr<ResolvedExpr> expr)
       : ResolvedStmt(location),
-        variable(std::move(variable)),
+        assignee(std::move(assignee)),
         expr(std::move(expr)) {}
 
   void dump(size_t level = 0) const override;
