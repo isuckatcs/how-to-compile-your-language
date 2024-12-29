@@ -439,7 +439,7 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
 }
 
 // <postfixExpression>
-//  ::= <primaryExpression> (<argumentList>? | ('.' <identifier>)*)
+//  ::= <primaryExpression> <argumentList>? ('.' <identifier>)*
 //
 // <argumentList>
 //  ::= '(' (<expr> (',' <expr>)* ','?)? ')'
@@ -453,7 +453,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
                     {TokenKind::Lpar, "expected '('"}, &Parser::parseExpr,
                     {TokenKind::Rpar, "expected ')'"}));
 
-    return std::make_unique<CallExpr>(location, std::move(expr),
+    expr = std::make_unique<CallExpr>(location, std::move(expr),
                                       std::move(*argumentList));
   }
 

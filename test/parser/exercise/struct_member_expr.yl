@@ -28,5 +28,12 @@ fn main(): void {
     // CHECK-NEXT:     MemberInitStmt: g
     // CHECK-NEXT:       NumberLiteral: '1'
     // CHECK-NEXT:     MemberInitStmt: b
-    // CHECK-NEXT:       NumberLiteral: '2'    
+    // CHECK-NEXT:       NumberLiteral: '2'
+
+    let call = f().m.m.m;
+    // CHECK: MemberExpr: .m
+    // CHECK-NEXT:   MemberExpr: .m
+    // CHECK-NEXT:     MemberExpr: .m
+    // CHECK-NEXT:       CallExpr:
+    // CHECK-NEXT:         DeclRefExpr: f
 }
