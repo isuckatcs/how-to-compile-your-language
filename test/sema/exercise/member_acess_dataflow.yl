@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn foo(): S {
+  return S{ x: 10 };
+}
+
+fn main(): void {
+  let s: S;
+
+  let y = S{ x: 1 }.x;
+  let z = y;
+
+  let x = foo().x;
+  let init = x;
+
+  let uninit = s.x;
+  // CHECK: [[# @LINE - 1 ]]:16: error: 's' is not initialized
+}
