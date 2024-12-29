@@ -494,7 +494,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
   if (nextToken.kind == TokenKind::Lpar) {
     eatNextToken(); // eat '('
 
-    varOrReturn(expr, parseExpr());
+    varOrReturn(expr, withNoRestrictions(&Parser::parseExpr));
 
     matchOrReturn(TokenKind::Rpar, "expected ')'");
     eatNextToken(); // eat ')'

@@ -29,6 +29,14 @@ class Parser {
     return res;
   }
 
+  template <typename T> T withNoRestrictions(T (Parser::*f)()) {
+    RestrictionType prevRestrictions = restrictions;
+    restrictions = 0;
+    auto res = (this->*f)();
+    restrictions = prevRestrictions;
+    return res;
+  }
+
   void eatNextToken() { nextToken = lexer->getNextToken(); }
   void synchronize();
   void synchronizeOn(const std::unordered_set<TokenKind> &kind) {
