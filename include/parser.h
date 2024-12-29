@@ -57,7 +57,7 @@ class Parser {
   std::unique_ptr<IfStmt> parseIfStmt();
   std::unique_ptr<WhileStmt> parseWhileStmt();
   std::unique_ptr<Assignment>
-  parseAssignmentRHS(std::unique_ptr<DeclRefExpr> lhs);
+  parseAssignmentRHS(std::unique_ptr<AssignableExpr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
   std::unique_ptr<ReturnStmt> parseReturnStmt();
   std::unique_ptr<MemberInitStmt> parseMemberInitStmt();

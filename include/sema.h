@@ -43,6 +43,8 @@ class Sema {
       const StructInstantiationExpr &structInstantiation);
   std::unique_ptr<ResolvedMemberExpr>
   resolveMemberExpr(const MemberExpr &memberExpr);
+  std::unique_ptr<ResolvedAssignableExpr>
+  resolveAssignableExpr(const AssignableExpr &assignableExpr);
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr);
 
   std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt);

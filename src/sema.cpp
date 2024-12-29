@@ -105,8 +105,13 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         }
 
         if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(stmt)) {
-          const auto *var =
-              dynamic_cast<const ResolvedVarDecl *>(assignment->variable->decl);
+          const ResolvedExpr *base = assignment->assignee.get();
+          while (const auto *member =
+                     dynamic_cast<const ResolvedMemberExpr *>(base))
+            base = member->base.get();
+
+          const auto *var = dynamic_cast<const ResolvedVarDecl *>(
+              dynamic_cast<const ResolvedDeclRefExpr *>(base)->decl);
 
           assert(var &&
                  "assignment to non-variables should have been caught by sema");
@@ -487,18 +492,16 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
 std::unique_ptr<ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
-  varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
+  varOrReturn(resolvedLHS, resolveAssignableExpr(*assignment.assignee));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
   assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
 
-  if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
+  if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(resolvedLHS.get());
+      dre && dynamic_cast<const ResolvedParamDecl *>(dre->decl))
     return report(resolvedLHS->location,
                   "parameters are immutable and cannot be assigned");
-
-  auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
-  assert(var && "assignment LHS is not a variable");
 
   if (resolvedRHS->type.name != resolvedLHS->type.name)
     return report(resolvedRHS->location,
@@ -537,14 +540,24 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
                                               std::move(resolvedExpr));
 }
 
+std::unique_ptr<ResolvedAssignableExpr>
+Sema::resolveAssignableExpr(const AssignableExpr &assignableExpr) {
+  if (const auto *declRefExpr =
+          dynamic_cast<const DeclRefExpr *>(&assignableExpr))
+    return resolveDeclRefExpr(*declRefExpr);
+
+  if (const auto *memberExpr =
+          dynamic_cast<const MemberExpr *>(&assignableExpr))
+    return resolveMemberExpr(*memberExpr);
+
+  llvm_unreachable("unexpected assignable expression");
+}
+
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (const auto *number = dynamic_cast<const NumberLiteral *>(&expr))
     return std::make_unique<ResolvedNumberLiteral>(number->location,
                                                    std::stod(number->value));
-
-  if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
-    return resolveDeclRefExpr(*declRefExpr);
 
   if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
     return resolveCallExpr(*callExpr);
@@ -562,8 +575,8 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
           dynamic_cast<const StructInstantiationExpr *>(&expr))
     return resolveStructInstantiation(*structInstantiation);
 
-  if (const auto *memberExpr = dynamic_cast<const MemberExpr *>(&expr))
-    return resolveMemberExpr(*memberExpr);
+  if (const auto *assignableExpr = dynamic_cast<const AssignableExpr *>(&expr))
+    return resolveAssignableExpr(*assignableExpr);
 
   llvm_unreachable("unexpected expression");
 }
