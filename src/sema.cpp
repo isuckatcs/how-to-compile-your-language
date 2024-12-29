@@ -64,7 +64,7 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
 bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
-  using Lattice = std::map<const ResolvedVarDecl *, State>;
+  using Lattice = std::map<const ResolvedDecl *, State>;
 
   auto joinStates = [](State s1, State s2) {
     if (s1 == s2)
@@ -110,20 +110,27 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
                      dynamic_cast<const ResolvedMemberExpr *>(base))
             base = member->base.get();
 
-          const auto *var = dynamic_cast<const ResolvedVarDecl *>(
-              dynamic_cast<const ResolvedDeclRefExpr *>(base)->decl);
+          const auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(base);
 
-          assert(var &&
-                 "assignment to non-variables should have been caught by sema");
+          // The base of the expression is not a variable, but a temporary,
+          // which can be mutated.
+          if (!dre)
+            continue;
 
-          if (!var->isMutable && tmp[var] != State::Unassigned) {
-            std::string msg = '\'' + var->identifier + "' cannot be mutated";
+          const auto *decl = dynamic_cast<const ResolvedDecl *>(dre->decl);
+
+          if (!decl->isMutable && tmp[decl] != State::Unassigned) {
+            std::string msg = '\'' + decl->identifier + "' cannot be mutated";
             pendingErrors.emplace_back(assignment->location, std::move(msg));
           }
 
-          tmp[var] = State::Assigned;
+          tmp[decl] = State::Assigned;
           continue;
         }
+
+        while (const auto *memberExpr =
+                   dynamic_cast<const ResolvedMemberExpr *>(stmt))
+          stmt = memberExpr->base.get();
 
         if (const auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(stmt)) {
           const auto *var = dynamic_cast<const ResolvedVarDecl *>(dre->decl);
@@ -497,11 +504,6 @@ Sema::resolveAssignment(const Assignment &assignment) {
 
   assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
-
-  if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(resolvedLHS.get());
-      dre && dynamic_cast<const ResolvedParamDecl *>(dre->decl))
-    return report(resolvedLHS->location,
-                  "parameters are immutable and cannot be assigned");
 
   if (resolvedRHS->type.name != resolvedLHS->type.name)
     return report(resolvedRHS->location,

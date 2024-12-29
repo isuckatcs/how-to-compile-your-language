@@ -1,0 +1,31 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+struct S2 {
+  x: number,
+  s: S,
+}
+
+fn foo(): S {
+  return S { x: 1 };
+}
+
+fn bar(structParam: S): void {
+  foo().x = 1;
+  S { x: 1 }.x = 2;
+
+  var s2 = S2{ x: 0, s: S{ x: 0} };
+  s2.s.x = 1;
+
+  let s = S { x: 1 };
+  s.x = 3;
+  // CHECK: [[# @LINE - 1 ]]:7: error: 's' cannot be mutated
+
+  structParam.x = 3;
+  // CHECK: [[# @LINE - 1 ]]:17: error: 'structParam' cannot be mutated
+}
+
+fn main(): void {
+}
