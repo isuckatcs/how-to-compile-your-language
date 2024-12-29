@@ -208,11 +208,10 @@ std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
 
-  // FIXME: crash on structs
-  if (resolvedRHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedRHS->location,
-        "void expression cannot be used as an operand to unary operator");
+  if (resolvedRHS->type.kind != Type::Kind::Number)
+    return report(resolvedRHS->location,
+                  '\'' + resolvedRHS->type.name +
+                      "' cannot be used as an operand to unary operator");
 
   return std::make_unique<ResolvedUnaryOperator>(unary.location, unary.op,
                                                  std::move(resolvedRHS));
@@ -223,16 +222,15 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
-  // FIXME: crash on structs
-  if (resolvedLHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedLHS->location,
-        "void expression cannot be used as LHS operand to binary operator");
+  if (resolvedLHS->type.kind != Type::Kind::Number)
+    return report(resolvedLHS->location,
+                  '\'' + resolvedLHS->type.name +
+                      "' cannot be used as LHS operand to binary operator");
 
-  if (resolvedRHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedRHS->location,
-        "void expression cannot be used as RHS operand to binary operator");
+  if (resolvedRHS->type.kind != Type::Kind::Number)
+    return report(resolvedRHS->location,
+                  '\'' + resolvedRHS->type.name +
+                      "' cannot be used as RHS operand to binary operator");
 
   assert(resolvedLHS->type.kind == resolvedRHS->type.kind &&
          resolvedLHS->type.kind == Type::Kind::Number &&
@@ -259,6 +257,10 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
   if (!isCallee && dynamic_cast<ResolvedFunctionDecl *>(decl))
     return report(declRefExpr.location,
                   "expected to call function '" + declRefExpr.identifier + "'");
+
+  if (dynamic_cast<ResolvedStructDecl *>(decl))
+    return report(declRefExpr.location,
+                  "expected an instance of '" + decl->type.name + '\'');
 
   return std::make_unique<ResolvedDeclRefExpr>(declRefExpr.location, *decl);
 }
@@ -393,7 +395,6 @@ Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
     return report(memberExpr.base->location,
                   "cannot access member of '" + resolvedBase->type.name + '\'');
 
-  // FIXME: crash when variable shadows type
   const auto *st =
       lookupDecl<ResolvedStructDecl>(resolvedBase->type.name).first;
 
