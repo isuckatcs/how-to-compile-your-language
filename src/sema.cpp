@@ -393,6 +393,11 @@ Sema::resolveStructInstantiation(
   if (error)
     return nullptr;
 
+  for (auto &initStmt : resolvedMemberInitializers) {
+    initStmt->initializer->setConstantValue(
+        cee.evaluate(*initStmt->initializer, false));
+  }
+
   return std::make_unique<ResolvedStructInstantiationExpr>(
       structInstantiation.location, *st, std::move(resolvedMemberInitializers));
 }

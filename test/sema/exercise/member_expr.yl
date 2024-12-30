@@ -20,6 +20,7 @@ fn main(): void {
 // CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) x
 // CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:             | value: 0
 // CHECK-NEXT:     ResolvedDeclStmt:
 // CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) y:
 // CHECK-NEXT:         ResolvedMemberExpr: @({{.*}}) x
