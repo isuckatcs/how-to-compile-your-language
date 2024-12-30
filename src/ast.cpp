@@ -241,8 +241,6 @@ void ResolvedDeclRefExpr::dump(size_t level) const {
 void ResolvedCallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
             << callee->identifier << '\n';
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
 
   for (auto &&arg : arguments)
     arg->dump(level + 1);
@@ -251,8 +249,6 @@ void ResolvedCallExpr::dump(size_t level) const {
 void ResolvedMemberExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedMemberExpr: @(" << member << ')' << ' '
             << member->identifier << '\n';
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
 
   base->dump(level + 1);
 }
