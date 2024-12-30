@@ -11,8 +11,9 @@
 
 namespace yl {
 class Codegen {
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
+  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
+  std::map<std::string, llvm::StructType *> structs;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
@@ -44,17 +45,20 @@ class Codegen {
   llvm::Value *boolToDouble(llvm::Value *v);
 
   llvm::Function *getCurrentFunction();
-  llvm::AllocaInst *allocateStackVariable(const std::string_view identifier);
+  llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
+                                          const Type &type);
 
   void generateBlock(const ResolvedBlock &block);
   void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);
   void generateFunctionDecl(const ResolvedFunctionDecl &functionDecl);
+  void generateStructDecl(const ResolvedStructDecl &structDecl);
+  void generateStructDefinition(const ResolvedStructDecl &structDecl);
 
   void generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println);
   void generateMainWrapper();
 
 public:
-  Codegen(std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree,
+  Codegen(std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree,
           std::string_view sourcePath);
 
   llvm::Module *generateIR();
