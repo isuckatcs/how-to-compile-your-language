@@ -5,9 +5,8 @@
 #include "codegen.h"
 
 namespace yl {
-Codegen::Codegen(
-    std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree,
-    std::string_view sourcePath)
+Codegen::Codegen(std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree,
+                 std::string_view sourcePath)
     : resolvedTree(std::move(resolvedTree)),
       builder(context),
       module("<translation_unit>", context) {
@@ -18,6 +17,9 @@ Codegen::Codegen(
 llvm::Type *Codegen::generateType(Type type) {
   if (type.kind == Type::Kind::Number)
     return builder.getDoubleTy();
+
+  if (type.kind == Type::Kind::Struct)
+    return llvm::StructType::getTypeByName(context, type.name);
 
   return builder.getVoidTy();
 }
@@ -98,7 +100,7 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 
 llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
   const auto *decl = stmt.varDecl.get();
-  llvm::AllocaInst *var = allocateStackVariable(decl->identifier);
+  llvm::AllocaInst *var = allocateStackVariable(decl->identifier, decl->type);
 
   if (const auto &init = decl->initializer)
     builder.CreateStore(generateExpr(*init), var);
@@ -278,11 +280,12 @@ llvm::Function *Codegen::getCurrentFunction() {
 };
 
 llvm::AllocaInst *
-Codegen::allocateStackVariable(const std::string_view identifier) {
+Codegen::allocateStackVariable(const std::string_view identifier,
+                               const Type &type) {
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(allocaInsertPoint);
 
-  return tmpBuilder.CreateAlloca(tmpBuilder.getDoubleTy(), nullptr, identifier);
+  return tmpBuilder.CreateAlloca(generateType(type), nullptr, identifier);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
@@ -314,7 +317,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 
   bool isVoid = functionDecl.type.kind == Type::Kind::Void;
   if (!isVoid)
-    retVal = allocateStackVariable("retval");
+    retVal = allocateStackVariable("retval", functionDecl.type);
   retBB = llvm::BasicBlock::Create(context, "return");
 
   int idx = 0;
@@ -322,7 +325,8 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
-    llvm::Value *var = allocateStackVariable(paramDecl->identifier);
+    llvm::Value *var =
+        allocateStackVariable(paramDecl->identifier, paramDecl->type);
     builder.CreateStore(&arg, var);
 
     declarations[paramDecl] = var;
@@ -391,12 +395,42 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
                          functionDecl.identifier, module);
 }
 
-llvm::Module *Codegen::generateIR() {
-  for (auto &&function : resolvedTree)
-    generateFunctionDecl(*function);
+void Codegen::generateStructDecl(const ResolvedStructDecl &structDecl) {
+  llvm::StructType::create(context, structDecl.identifier);
+}
 
-  for (auto &&function : resolvedTree)
-    generateFunctionBody(*function);
+void Codegen::generateStructDefinition(const ResolvedStructDecl &structDecl) {
+  auto *type = llvm::StructType::getTypeByName(context, structDecl.identifier);
+
+  std::vector<llvm::Type *> fieldTypes;
+  for (auto &&field : structDecl.members) {
+    llvm::Type *t = generateType(field->type);
+    fieldTypes.emplace_back(t);
+  }
+
+  type->setBody(fieldTypes);
+}
+
+llvm::Module *Codegen::generateIR() {
+  for (auto &&decl : resolvedTree) {
+    if (const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get()))
+      generateFunctionDecl(*fn);
+    else if (const auto *sd =
+                 dynamic_cast<const ResolvedStructDecl *>(decl.get()))
+      generateStructDecl(*sd);
+    else
+      llvm_unreachable("unexpected top level declaration");
+  }
+
+  for (auto &&decl : resolvedTree) {
+    if (const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get()))
+      generateFunctionBody(*fn);
+    else if (const auto *sd =
+                 dynamic_cast<const ResolvedStructDecl *>(decl.get()))
+      generateStructDefinition(*sd);
+    else
+      llvm_unreachable("unexpected top level declaration");
+  }
 
   generateMainWrapper();
 
