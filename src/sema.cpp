@@ -172,7 +172,10 @@ std::pair<T *, int> Sema::lookupDecl(const std::string id) {
     for (auto &&decl : *it) {
       auto *correctDecl = dynamic_cast<T *>(decl);
 
-      if (!correctDecl || decl->identifier != id)
+      if (!correctDecl)
+        continue;
+
+      if (decl->identifier != id)
         continue;
 
       return {correctDecl, scopeIdx};
