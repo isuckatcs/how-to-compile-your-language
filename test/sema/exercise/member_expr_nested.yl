@@ -28,10 +28,12 @@ fn main(): void {
 // CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) x
 // CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:             | value: 0
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) n
 // CHECK-NEXT:             ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:               ResolvedMemberInitStmt: @({{.*}}) x
 // CHECK-NEXT:                 ResolvedNumberLiteral: '1'
+// CHECK-NEXT:                 | value: 1
 // CHECK-NEXT:     ResolvedDeclStmt:
 // CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
 // CHECK-NEXT:         ResolvedMemberExpr: @({{.*}}) x

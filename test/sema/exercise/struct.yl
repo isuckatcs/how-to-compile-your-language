@@ -23,7 +23,10 @@ fn main(): void {
 // CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) r
 // CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:             | value: 0
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) g
 // CHECK-NEXT:             ResolvedNumberLiteral: '1'
+// CHECK-NEXT:             | value: 1
 // CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) b
 // CHECK-NEXT:             ResolvedNumberLiteral: '2'
+// CHECK-NEXT:             | value: 2
