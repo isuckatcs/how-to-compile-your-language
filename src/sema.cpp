@@ -128,10 +128,6 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
           continue;
         }
 
-        while (const auto *memberExpr =
-                   dynamic_cast<const ResolvedMemberExpr *>(stmt))
-          stmt = memberExpr->base.get();
-
         if (const auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(stmt)) {
           const auto *var = dynamic_cast<const ResolvedVarDecl *>(dre->decl);
 
