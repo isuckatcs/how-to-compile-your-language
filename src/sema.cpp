@@ -701,7 +701,7 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
 };
 
 std::unique_ptr<ResolvedMemberDecl>
-Sema::resolveKnownMemberDecl(const MemberDecl &member) {
+Sema::resolveKnownMemberDecl(const MemberDecl &member, unsigned idx) {
   Type currentType = member.type;
   auto resolvedType = currentType.kind == Type::Kind::Custom
                           ? currentType
@@ -713,20 +713,22 @@ Sema::resolveKnownMemberDecl(const MemberDecl &member) {
     return report(member.location, "struct member cannot be void");
 
   return std::make_unique<ResolvedMemberDecl>(
-      member.location, member.identifier, resolvedType.value_or(member.type));
+      member.location, member.identifier, resolvedType.value_or(member.type),
+      idx);
 }
 
 std::unique_ptr<ResolvedStructDecl>
 Sema::resolveStructDecl(const StructDecl &structDecl) {
   std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
 
+  unsigned idx = 0;
   for (auto &&member : structDecl.members) {
     for (auto &&alreadyResolved : resolvedMembers)
       if (alreadyResolved->identifier == member->identifier)
         return report(member->location,
                       "field '" + member->identifier + "' is already declared");
 
-    auto resolvedMember = resolveKnownMemberDecl(*member);
+    auto resolvedMember = resolveKnownMemberDecl(*member, idx++);
 
     if (!resolvedMember)
       return nullptr;

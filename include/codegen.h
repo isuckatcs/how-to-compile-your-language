@@ -13,7 +13,6 @@ namespace yl {
 class Codegen {
   std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
   std::map<const ResolvedDecl *, llvm::Value *> declarations;
-  std::map<std::string, llvm::StructType *> structs;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
@@ -32,15 +31,22 @@ class Codegen {
   llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
   llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
 
-  llvm::Value *generateExpr(const ResolvedExpr &expr);
+  llvm::Value *generateExpr(const ResolvedExpr &expr, bool keepPointer = false);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
+  // FIXME: replace the bool flag with a better solution
+  llvm::Value *generateMemberExpr(const ResolvedMemberExpr &memberExpr,
+                                  bool keepPointer = false);
+  llvm::Value *
+  generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie);
 
   void generateConditionalOperator(const ResolvedExpr &op,
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
 
+  llvm::Value *loadValue(llvm::Value *val, const Type &type);
+  llvm::Value *storeValue(llvm::Value *ptr, llvm::Value *val, const Type &type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
 
