@@ -64,7 +64,7 @@ class Sema {
   std::unique_ptr<ResolvedFunctionDecl>
   resolveFunctionDeclaration(const FunctionDecl &function);
   std::unique_ptr<ResolvedMemberDecl>
-  resolveKnownMemberDecl(const MemberDecl &member);
+  resolveKnownMemberDecl(const MemberDecl &member, unsigned idx);
   std::unique_ptr<ResolvedStructDecl>
   resolveStructDecl(const StructDecl &structDecl);
 

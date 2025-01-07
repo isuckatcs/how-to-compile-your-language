@@ -103,30 +103,53 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
   llvm::AllocaInst *var = allocateStackVariable(decl->identifier, decl->type);
 
   if (const auto &init = decl->initializer)
-    builder.CreateStore(generateExpr(*init), var);
+    storeValue(var, generateExpr(*init), init->type);
 
   declarations[decl] = var;
   return nullptr;
 }
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  // FIXME: workaround
-  return builder.CreateStore(
-      generateExpr(*stmt.expr),
-      declarations[dynamic_cast<const ResolvedDeclRefExpr *>(
-                       stmt.assignee.get())
-                       ->decl]);
+  return storeValue(generateExpr(*stmt.assignee, true),
+                    generateExpr(*stmt.expr), stmt.assignee->type);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
   if (stmt.expr)
-    builder.CreateStore(generateExpr(*stmt.expr), retVal);
+    storeValue(retVal, generateExpr(*stmt.expr), stmt.expr->type);
 
   assert(retBB && "function with return stmt doesn't have a return block");
   return builder.CreateBr(retBB);
 }
 
-llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
+llvm::Value *Codegen::generateMemberExpr(const ResolvedMemberExpr &memberExpr,
+                                         bool keepPointer) {
+  llvm::Value *base = generateExpr(*memberExpr.base, true);
+  llvm::Value *member = builder.CreateStructGEP(
+      generateType(memberExpr.base->type), base, memberExpr.member->index);
+
+  return keepPointer ? member : loadValue(member, memberExpr.member->type);
+}
+
+llvm::Value *
+Codegen::generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie) {
+  Type structType = sie.type;
+  llvm::Value *tmp =
+      allocateStackVariable(structType.name + ".tmp", structType);
+
+  size_t idx = 0;
+  for (auto &&initStmt : sie.memberInitializers) {
+    llvm::Value *val = generateExpr(*initStmt->initializer);
+    llvm::Value *ptr =
+        builder.CreateStructGEP(generateType(structType), tmp, idx++);
+
+    storeValue(ptr, val, initStmt->member->type);
+  }
+
+  return tmp;
+}
+
+llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr, bool keepPointer) {
   if (auto *number = dynamic_cast<const ResolvedNumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
 
@@ -134,7 +157,8 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return builder.CreateLoad(builder.getDoubleTy(), declarations[dre->decl]);
+    return keepPointer ? declarations[dre->decl]
+                       : loadValue(declarations[dre->decl], dre->type);
 
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -147,6 +171,12 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
 
   if (auto *unop = dynamic_cast<const ResolvedUnaryOperator *>(&expr))
     return generateUnaryOperator(*unop);
+
+  if (auto *me = dynamic_cast<const ResolvedMemberExpr *>(&expr))
+    return generateMemberExpr(*me, keepPointer);
+
+  if (auto *sie = dynamic_cast<const ResolvedStructInstantiationExpr *>(&expr))
+    return generateTemporaryStruct(*sie);
 
   llvm_unreachable("unexpected expression");
 }
@@ -266,6 +296,26 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
   llvm_unreachable("unexpected binary operator");
 }
 
+llvm::Value *Codegen::loadValue(llvm::Value *v, const Type &type) {
+  if (type.kind == Type::Kind::Number)
+    return builder.CreateLoad(builder.getDoubleTy(), v);
+
+  return v;
+}
+
+llvm::Value *
+Codegen::storeValue(llvm::Value *ptr, llvm::Value *val, const Type &type) {
+  if (type.kind != Type::Kind::Struct)
+    return builder.CreateStore(val, ptr);
+
+  const llvm::DataLayout &dl = module.getDataLayout();
+  const llvm::StructLayout *sl =
+      dl.getStructLayout(llvm::StructType::getTypeByName(context, type.name));
+
+  return builder.CreateMemCpy(ptr, sl->getAlignment(), val, sl->getAlignment(),
+                              sl->getSizeInBytes());
+}
+
 llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
   return builder.CreateFCmpONE(
       v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "to.bool");
@@ -327,7 +377,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 
     llvm::Value *var =
         allocateStackVariable(paramDecl->identifier, paramDecl->type);
-    builder.CreateStore(&arg, var);
+    storeValue(var, &arg, paramDecl->type);
 
     declarations[paramDecl] = var;
     ++idx;
@@ -352,7 +402,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     return;
   }
 
-  builder.CreateRet(builder.CreateLoad(builder.getDoubleTy(), retVal));
+  builder.CreateRet(loadValue(retVal, functionDecl.type));
 }
 
 void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {

@@ -414,8 +414,14 @@ struct ResolvedParamDecl : public ResolvedDecl {
 };
 
 struct ResolvedMemberDecl : public ResolvedDecl {
-  ResolvedMemberDecl(SourceLocation location, std::string identifier, Type type)
-      : ResolvedDecl(location, std::move(identifier), type, false) {}
+  unsigned index;
+
+  ResolvedMemberDecl(SourceLocation location,
+                     std::string identifier,
+                     Type type,
+                     unsigned index)
+      : ResolvedDecl(location, std::move(identifier), type, false),
+        index(index) {}
 
   void dump(size_t level = 0) const override;
 };
