@@ -1,0 +1,119 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o return_struct && ./return_struct | grep -Plzx '0\n1\n2\n3\n'
+struct S {
+  x: number,
+  s2: S2,
+}
+
+struct S2 {
+  x: number,
+  y: number,
+  z: number,
+}
+
+struct Small {
+  x: number,
+  y: number,
+}
+
+fn foo(x: number): Small {
+  let s = Small { x: x, y: x + 5 };
+  return s;
+}
+// CHECK: define void @foo(%Small* sret(%Small) %ret, double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   %s = alloca %Small, align 8
+// CHECK-NEXT:   %Small.tmp = alloca %Small, align 8
+// CHECK-NEXT:   store double %x, double* %x1, align 8
+
+// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   %1 = getelementptr inbounds %Small, %Small* %Small.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %0, double* %1, align 8
+// CHECK-NEXT:   %2 = load double, double* %x1, align 8
+// CHECK-NEXT:   %3 = fadd double %2, 5.000000e+00
+// CHECK-NEXT:   %4 = getelementptr inbounds %Small, %Small* %Small.tmp, i32 0, i32 1
+// CHECK-NEXT:   store double %3, double* %4, align 8
+
+// CHECK-NEXT:   %5 = bitcast %Small* %s to i8*
+// CHECK-NEXT:   %6 = bitcast %Small* %Small.tmp to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 16, i1 false)
+
+// CHECK-NEXT:   %7 = bitcast %Small* %ret to i8*
+// CHECK-NEXT:   %8 = bitcast %Small* %s to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %7, i8* align 8 %8, i64 16, i1 false)
+// CHECK-NEXT:   br label %return
+
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn bar(): S {
+  return S { x: 0, s2: S2 { x: 1, y: 2, z: 3 } };
+}
+// CHECK: define void @bar(%S* sret(%S) %ret) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S.tmp = alloca %S, align 8
+// CHECK-NEXT:   %S2.tmp = alloca %S2, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds %S, %S* %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double 0.000000e+00, double* %0, align 8
+// CHECK-NEXT:   %1 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double 1.000000e+00, double* %1, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   store double 2.000000e+00, double* %2, align 8
+// CHECK-NEXT:   %3 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   store double 3.000000e+00, double* %3, align 8
+// CHECK-NEXT:   %4 = getelementptr inbounds %S, %S* %S.tmp, i32 0, i32 1
+// CHECK-NEXT:   %5 = bitcast %S2* %4 to i8*
+// CHECK-NEXT:   %6 = bitcast %S2* %S2.tmp to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 24, i1 false)
+
+// CHECK-NEXT:   %7 = bitcast %S* %ret to i8*
+// CHECK-NEXT:   %8 = bitcast %S* %S.tmp to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %7, i8* align 8 %8, i64 32, i1 false)
+
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {
+  println(bar().x);
+  println(bar().s2.x);
+  println(bar().s2.y);
+  println(bar().s2.z);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %ret = alloca %S, align 8
+// CHECK-NEXT:   %ret1 = alloca %S, align 8
+// CHECK-NEXT:   %ret2 = alloca %S, align 8
+// CHECK-NEXT:   %ret3 = alloca %S, align 8
+
+// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret)
+// CHECK-NEXT:   %0 = getelementptr inbounds %S, %S* %ret, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, double* %0, align 8
+// CHECK-NEXT:   call void @println(double %1)
+
+// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret1)
+// CHECK-NEXT:   %2 = getelementptr inbounds %S, %S* %ret1, i32 0, i32 1
+// CHECK-NEXT:   %3 = getelementptr inbounds %S2, %S2* %2, i32 0, i32 0
+// CHECK-NEXT:   %4 = load double, double* %3, align 8
+// CHECK-NEXT:   call void @println(double %4)
+
+// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret2)
+// CHECK-NEXT:   %5 = getelementptr inbounds %S, %S* %ret2, i32 0, i32 1
+// CHECK-NEXT:   %6 = getelementptr inbounds %S2, %S2* %5, i32 0, i32 1
+// CHECK-NEXT:   %7 = load double, double* %6, align 8
+// CHECK-NEXT:   call void @println(double %7)
+
+// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret3)
+// CHECK-NEXT:   %8 = getelementptr inbounds %S, %S* %ret3, i32 0, i32 1
+// CHECK-NEXT:   %9 = getelementptr inbounds %S2, %S2* %8, i32 0, i32 2
+// CHECK-NEXT:   %10 = load double, double* %9, align 8
+// CHECK-NEXT:   call void @println(double %10)
+
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
