@@ -182,13 +182,23 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr, bool keepPointer) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
-  llvm::Function *callee = module.getFunction(call.callee->identifier);
+  const ResolvedFunctionDecl *calleeDecl = call.callee;
+  llvm::Function *callee = module.getFunction(calleeDecl->identifier);
 
+  bool isReturningStruct = calleeDecl->type.kind == Type::Kind::Struct;
+  llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
+
+  if (isReturningStruct)
+    retVal = args.emplace_back(allocateStackVariable("ret", calleeDecl->type));
+
   for (auto &&arg : call.arguments)
     args.emplace_back(generateExpr(*arg));
 
-  return builder.CreateCall(callee, args);
+  llvm::CallInst *callInst = builder.CreateCall(callee, args);
+  callInst->setAttributes(constructAttrList(calleeDecl));
+
+  return isReturningStruct ? retVal : callInst;
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const ResolvedUnaryOperator &unop) {
@@ -338,6 +348,21 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(generateType(type), nullptr, identifier);
 }
 
+llvm::AttributeList Codegen::constructAttrList(const ResolvedFunctionDecl *fn) {
+  bool isReturningStruct = fn->type.kind == Type::Kind::Struct;
+  std::vector<llvm::AttributeSet> argAttrs =
+      std::vector<llvm::AttributeSet>(fn->params.size() + isReturningStruct);
+
+  if (isReturningStruct) {
+    llvm::AttrBuilder retAttrs(context);
+    retAttrs.addStructRetAttr(generateType(fn->type));
+    argAttrs[0] = llvm::AttributeSet::get(context, retAttrs);
+  }
+
+  return llvm::AttributeList::get(context, llvm::AttributeSet{},
+                                  llvm::AttributeSet{}, argAttrs);
+}
+
 void Codegen::generateBlock(const ResolvedBlock &block) {
   for (auto &&stmt : block.statements) {
     generateStmt(*stmt);
@@ -365,13 +390,19 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   allocaInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
                                             "alloca.placeholder", entryBB);
 
-  bool isVoid = functionDecl.type.kind == Type::Kind::Void;
-  if (!isVoid)
+  bool returnsVoid = functionDecl.type.kind != Type::Kind::Number;
+  if (!returnsVoid)
     retVal = allocateStackVariable("retval", functionDecl.type);
   retBB = llvm::BasicBlock::Create(context, "return");
 
   int idx = 0;
   for (auto &&arg : function->args()) {
+    if (arg.hasStructRetAttr()) {
+      arg.setName("ret");
+      retVal = &arg;
+      continue;
+    }
+
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
@@ -397,7 +428,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
   allocaInsertPoint->eraseFromParent();
   allocaInsertPoint = nullptr;
 
-  if (isVoid) {
+  if (returnsVoid) {
     builder.CreateRetVoid();
     return;
   }
@@ -434,15 +465,21 @@ void Codegen::generateMainWrapper() {
 }
 
 void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
-  auto *retType = generateType(functionDecl.type);
-
+  llvm::Type *retType = generateType(functionDecl.type);
   std::vector<llvm::Type *> paramTypes;
+
+  if (functionDecl.type.kind == Type::Kind::Struct) {
+    paramTypes.emplace_back(llvm::PointerType::get(retType, 0));
+    retType = builder.getVoidTy();
+  }
+
   for (auto &&param : functionDecl.params)
     paramTypes.emplace_back(generateType(param->type));
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
-  llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                         functionDecl.identifier, module);
+  auto *fn = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
+                                    functionDecl.identifier, module);
+  fn->setAttributes(constructAttrList(&functionDecl));
 }
 
 void Codegen::generateStructDecl(const ResolvedStructDecl &structDecl) {
@@ -462,6 +499,7 @@ void Codegen::generateStructDefinition(const ResolvedStructDecl &structDecl) {
 }
 
 llvm::Module *Codegen::generateIR() {
+  // FIXME: generate structs first, or we crash due to fn return type not found
   for (auto &&decl : resolvedTree) {
     if (const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get()))
       generateFunctionDecl(*fn);
