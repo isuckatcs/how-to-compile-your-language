@@ -24,7 +24,6 @@ fn main(): void {
 }
 
 fn assignParam(x: number): void {
-    // CHECK: [[# @LINE + 1 ]]:7: error: 'x' cannot be mutated
     x = 1.0;
 }
 // CHECK-NOT: {{.*}}

@@ -408,7 +408,7 @@ struct ResolvedWhileStmt : public ResolvedStmt {
 
 struct ResolvedParamDecl : public ResolvedDecl {
   ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
-      : ResolvedDecl(location, std::move(identifier), type, false) {}
+      : ResolvedDecl(location, std::move(identifier), type, true) {}
 
   void dump(size_t level = 0) const override;
 };
