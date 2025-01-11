@@ -189,11 +189,21 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
+  // FIXME: rename 'ret' to avoid name collisions with local variables
   if (isReturningStruct)
     retVal = args.emplace_back(allocateStackVariable("ret", calleeDecl->type));
 
-  for (auto &&arg : call.arguments)
-    args.emplace_back(generateExpr(*arg));
+  for (auto &&arg : call.arguments) {
+    llvm::Value *val = generateExpr(*arg);
+
+    if (arg->type.kind == Type::Kind::Struct) {
+      llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", arg->type);
+      storeValue(tmpVar, val, arg->type);
+      val = tmpVar;
+    }
+
+    args.emplace_back(val);
+  }
 
   llvm::CallInst *callInst = builder.CreateCall(callee, args);
   callInst->setAttributes(constructAttrList(calleeDecl));
@@ -350,17 +360,25 @@ Codegen::allocateStackVariable(const std::string_view identifier,
 
 llvm::AttributeList Codegen::constructAttrList(const ResolvedFunctionDecl *fn) {
   bool isReturningStruct = fn->type.kind == Type::Kind::Struct;
-  std::vector<llvm::AttributeSet> argAttrs =
-      std::vector<llvm::AttributeSet>(fn->params.size() + isReturningStruct);
+  std::vector<llvm::AttributeSet> argsAttrSets;
 
   if (isReturningStruct) {
     llvm::AttrBuilder retAttrs(context);
     retAttrs.addStructRetAttr(generateType(fn->type));
-    argAttrs[0] = llvm::AttributeSet::get(context, retAttrs);
+    argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
+  }
+
+  for (auto &&param : fn->params) {
+    if (param->type.kind != Type::Kind::Struct)
+      continue;
+
+    llvm::AttrBuilder paramAttrs(context);
+    paramAttrs.addByValAttr(generateType(param->type));
+    argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
   }
 
   return llvm::AttributeList::get(context, llvm::AttributeSet{},
-                                  llvm::AttributeSet{}, argAttrs);
+                                  llvm::AttributeSet{}, argsAttrSets);
 }
 
 void Codegen::generateBlock(const ResolvedBlock &block) {
@@ -406,11 +424,13 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
-    llvm::Value *var =
-        allocateStackVariable(paramDecl->identifier, paramDecl->type);
-    storeValue(var, &arg, paramDecl->type);
+    llvm::Value *declVal = &arg;
+    if (paramDecl->type.kind != Type::Kind::Struct) {
+      declVal = allocateStackVariable(paramDecl->identifier, paramDecl->type);
+      storeValue(declVal, &arg, paramDecl->type);
+    }
 
-    declarations[paramDecl] = var;
+    declarations[paramDecl] = declVal;
     ++idx;
   }
 
@@ -473,8 +493,12 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
     retType = builder.getVoidTy();
   }
 
-  for (auto &&param : functionDecl.params)
-    paramTypes.emplace_back(generateType(param->type));
+  for (auto &&param : functionDecl.params) {
+    llvm::Type *paramType = generateType(param->type);
+    if (param->type.kind == Type::Kind::Struct)
+      paramType = llvm::PointerType::get(paramType, 0);
+    paramTypes.emplace_back(paramType);
+  }
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
   auto *fn = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
