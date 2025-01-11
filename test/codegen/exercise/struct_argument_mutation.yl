@@ -1,0 +1,24 @@
+// RUN: compiler %s -o struct_argument_mutation && ./struct_argument_mutation | grep -Plzx '6\n8\n1\n2\n'
+struct S {
+  x: number,
+  y: number,
+}
+
+fn foo(s: S): void {
+  s.x = 6;
+  println(s.x);
+}
+
+fn bar(s: S): S {
+  s.y = 8;
+  return s;
+}
+
+fn main(): void {
+  let s = S { x: 1, y: 2 };
+  foo(s);
+  println(bar(s).y);
+
+  println(s.x);
+  println(s.y);
+}
