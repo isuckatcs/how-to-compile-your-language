@@ -16,7 +16,7 @@ struct Small {
   y: number,
 }
 
-fn foo(x: number): Small {
+fn foo(var x: number): Small {
   let s = Small { x: x, y: x + 5 };
   return s;
 }
