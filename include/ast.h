@@ -255,9 +255,15 @@ struct StructDecl : public Decl {
 
 struct ParamDecl : public Decl {
   Type type;
-  ParamDecl(SourceLocation location, std::string identifier, Type type)
+  bool isMutable;
+
+  ParamDecl(SourceLocation location,
+            std::string identifier,
+            Type type,
+            bool isMutable)
       : Decl(location, std::move(identifier)),
-        type(std::move(type)) {}
+        type(std::move(type)),
+        isMutable(isMutable) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -407,8 +413,11 @@ struct ResolvedWhileStmt : public ResolvedStmt {
 };
 
 struct ResolvedParamDecl : public ResolvedDecl {
-  ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
-      : ResolvedDecl(location, std::move(identifier), type, true) {}
+  ResolvedParamDecl(SourceLocation location,
+                    std::string identifier,
+                    Type type,
+                    bool isMutable)
+      : ResolvedDecl(location, std::move(identifier), type, isMutable) {}
 
   void dump(size_t level = 0) const override;
 };

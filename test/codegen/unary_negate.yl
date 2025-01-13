@@ -1,13 +1,13 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o unary_negate && ./unary_negate | grep -Plzxe '-2.34\n4.56\n-12\n'
-fn negate(x: number): number {
+fn negate(var x: number): number {
     return -x;
     
     // CHECK: %0 = load double, double* %x1, align 8
     // CHECK-NEXT: %1 = fneg double %0
 }
 
-fn null(x: number): number {
+fn null(var x: number): number {
     return --x;
 
     // CHECK: %0 = load double, double* %x1, align 8
@@ -15,7 +15,7 @@ fn null(x: number): number {
     // CHECK-NEXT: %2 = fneg double %1
 }
 
-fn timesNeg3(x: number): number {
+fn timesNeg3(var x: number): number {
     return -(x - -x -(-x));
     // CHECK: %0 = load double, double* %x1, align 8
     // CHECK-NEXT: %1 = load double, double* %x1, align 8

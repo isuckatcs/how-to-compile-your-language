@@ -157,8 +157,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr, bool keepPointer) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return keepPointer ? declarations[dre->decl]
-                       : loadValue(declarations[dre->decl], dre->type);
+    return generateDeclRefExpr(*dre, keepPointer);
 
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -179,6 +178,18 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr, bool keepPointer) {
     return generateTemporaryStruct(*sie);
 
   llvm_unreachable("unexpected expression");
+}
+
+llvm::Value *Codegen::generateDeclRefExpr(const ResolvedDeclRefExpr &dre,
+                                          bool keepPointer) {
+  const ResolvedDecl *decl = dre.decl;
+  llvm::Value *val = declarations[decl];
+
+  keepPointer |=
+      dynamic_cast<const ResolvedParamDecl *>(decl) && !decl->isMutable;
+  keepPointer |= dre.type.kind == Type::Kind::Struct;
+
+  return keepPointer ? val : loadValue(val, dre.type);
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
@@ -373,7 +384,10 @@ llvm::AttributeList Codegen::constructAttrList(const ResolvedFunctionDecl *fn) {
       continue;
 
     llvm::AttrBuilder paramAttrs(context);
-    paramAttrs.addByValAttr(generateType(param->type));
+    if (param->isMutable)
+      paramAttrs.addByValAttr(generateType(param->type));
+    else
+      paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
   }
 
@@ -425,7 +439,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     arg.setName(paramDecl->identifier);
 
     llvm::Value *declVal = &arg;
-    if (paramDecl->type.kind != Type::Kind::Struct) {
+    if (paramDecl->type.kind != Type::Kind::Struct && paramDecl->isMutable) {
       declVal = allocateStackVariable(paramDecl->identifier, paramDecl->type);
       storeValue(declVal, &arg, paramDecl->type);
     }
@@ -463,8 +477,7 @@ void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
                                         "printf", module);
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
 
-  llvm::Value *param = builder.CreateLoad(
-      builder.getDoubleTy(), declarations[println.params[0].get()]);
+  llvm::Value *param = declarations[println.params[0].get()];
 
   builder.CreateCall(printf, {format, param});
 }

@@ -190,8 +190,8 @@ std::pair<T *, int> Sema::lookupDecl(const std::string id) {
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
   SourceLocation loc{"<builtin>", 0, 0};
 
-  auto param =
-      std::make_unique<ResolvedParamDecl>(loc, "n", Type::builtinNumber());
+  auto param = std::make_unique<ResolvedParamDecl>(
+      loc, "n", Type::builtinNumber(), false);
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> params;
   params.emplace_back(std::move(param));
@@ -627,7 +627,7 @@ Sema::resolveParamDecl(const ParamDecl &param) {
                                       "' type");
 
   return std::make_unique<ResolvedParamDecl>(param.location, param.identifier,
-                                             *type);
+                                             *type, param.isMutable);
 }
 
 std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {

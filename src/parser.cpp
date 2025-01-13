@@ -146,11 +146,15 @@ std::unique_ptr<FunctionDecl> Parser::parseFunctionDecl() {
 }
 
 // <paramDecl>
-//  ::= <identifier> ':' <type>
+//  ::= 'var'? <identifier> ':' <type>
 std::unique_ptr<ParamDecl> Parser::parseParamDecl() {
-  matchOrReturn(TokenKind::Identifier, "expected parameter declaration");
-
   SourceLocation location = nextToken.location;
+
+  bool isVar = nextToken.kind == TokenKind::KwVar;
+  if (isVar)
+    eatNextToken(); // eat 'var'
+
+  matchOrReturn(TokenKind::Identifier, "expected parameter declaration");
   assert(nextToken.value && "identifier token without value");
 
   std::string identifier = *nextToken.value;
@@ -162,7 +166,7 @@ std::unique_ptr<ParamDecl> Parser::parseParamDecl() {
   varOrReturn(type, parseType());
 
   return std::make_unique<ParamDecl>(location, std::move(identifier),
-                                     std::move(*type));
+                                     std::move(*type), isVar);
 }
 
 // <varDecl>

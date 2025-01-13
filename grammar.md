@@ -11,7 +11,7 @@
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= <identifier> ':' <type>
+    ::= 'var'? <identifier> ':' <type>
 
 <varDecl>
     ::= <identifier> (':' <type>)? ('=' <expr>)?

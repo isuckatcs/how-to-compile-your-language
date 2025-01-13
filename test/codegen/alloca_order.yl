@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o alloca_order && ./alloca_order | grep -Plzx '1\n2\n3\n'
-fn foo(x: number, y: number, z: number): void {
+fn foo(var x: number, var y: number, var z: number): void {
     let x: number = x;
     let y: number = y;
     let z: number = z;
