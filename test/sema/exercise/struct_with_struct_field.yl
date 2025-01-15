@@ -13,7 +13,7 @@ struct Color {
   b: number,
   p: Point,
 }
-// CHECK-NEXT: ResolvedStructDecl: @({{.*}}) Color:
+// CHECK: ResolvedStructDecl: @({{.*}}) Color:
 // CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) r
 // CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) g
 // CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) b
@@ -27,7 +27,7 @@ fn main(): void {
     p: Point { x: 3 + 4, y: 4 * 9 },
   };
 }
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
+// CHECK: ResolvedFunctionDecl: @({{.*}}) main:
 // CHECK-NEXT:   ResolvedBlock
 // CHECK-NEXT:     ResolvedDeclStmt:
 // CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:

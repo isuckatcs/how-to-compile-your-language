@@ -536,7 +536,6 @@ void Codegen::generateStructDefinition(const ResolvedStructDecl &structDecl) {
 }
 
 llvm::Module *Codegen::generateIR() {
-  // FIXME: generate structs first, or we crash due to fn return type not found
   for (auto &&decl : resolvedTree) {
     if (const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get()))
       generateFunctionDecl(*fn);

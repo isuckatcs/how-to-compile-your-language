@@ -665,7 +665,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl>
-Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
+Sema::resolveFunctionDecl(const FunctionDecl &function) {
   std::optional<Type> type = resolveType(function.type);
 
   if (!type)
@@ -780,68 +780,78 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
 }
 
 std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
-  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
-  auto println = createBuiltinPrintln();
-
-  // Insert println first to be able to detect a possible redeclaration.
   ScopeRAII globalScope(this);
-  insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
+  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
 
   bool error = false;
+  std::vector<const FunctionDecl *> functionsToResolve;
+
+  // Resolve every struct first so that functions have access to them in their
+  // signature.
   for (auto &&decl : ast) {
-    std::unique_ptr<ResolvedDecl> resolvedDecl;
+    if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
+      std::unique_ptr<ResolvedDecl> resolvedDecl = resolveStructDecl(*st);
 
-    if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get())) {
-      resolvedDecl = resolveFunctionDeclaration(*fn);
-    } else if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
-      resolvedDecl = resolveStructDecl(*st);
-    } else {
-      llvm_unreachable("unexpected declaration");
-    }
-
-    if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl)) {
-      error = true;
+      error |= !resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl);
+      if (!error)
+        resolvedTree.emplace_back(std::move(resolvedDecl));
       continue;
     }
 
-    resolvedTree.emplace_back(std::move(resolvedDecl));
+    if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get())) {
+      functionsToResolve.emplace_back(fn);
+      continue;
+    }
+
+    llvm_unreachable("unexpected declaration");
   }
 
   if (error)
     return {};
 
-  // FIXME: think about a better solution
-  for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    ResolvedDecl *currentDecl = resolvedTree[i].get();
+  // Insert println first to be able to detect a possible redeclaration.
+  auto *printlnDecl = resolvedTree.emplace_back(createBuiltinPrintln()).get();
+  insertDeclToCurrentScope(*printlnDecl);
 
-    if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl)) {
-      if (!resolveStructMembers(*st))
-        return {};
+  for (auto &&fn : functionsToResolve) {
+    if (auto resolvedDecl = resolveFunctionDecl(*fn);
+        resolvedDecl && insertDeclToCurrentScope(*resolvedDecl)) {
+      resolvedTree.emplace_back(std::move(resolvedDecl));
+      continue;
     }
+
+    error = true;
   }
 
-  for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    ResolvedDecl *currentDecl = resolvedTree[i].get();
+  if (error)
+    return {};
 
-    if (!dynamic_cast<ResolvedFunctionDecl *>(currentDecl))
-      continue;
+  auto nextFunctionDecl = functionsToResolve.begin();
+  for (auto &&currentDecl : resolvedTree) {
+    if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl.get())) {
+      if (!resolveStructMembers(*st))
+        return {};
 
-    currentFunction =
-        static_cast<ResolvedFunctionDecl *>(resolvedTree[i].get());
-
-    ScopeRAII paramScope(this);
-    for (auto &&param : currentFunction->params)
-      insertDeclToCurrentScope(*param);
-
-    auto resolvedBody =
-        resolveBlock(*static_cast<FunctionDecl *>(ast[i - 1].get())->body);
-    if (!resolvedBody) {
-      error = true;
       continue;
     }
 
-    currentFunction->body = std::move(resolvedBody);
-    error |= runFlowSensitiveChecks(*currentFunction);
+    if (auto *fn = dynamic_cast<ResolvedFunctionDecl *>(currentDecl.get())) {
+      if (fn == printlnDecl)
+        continue;
+
+      ScopeRAII paramScope(this);
+      for (auto &&param : fn->params)
+        insertDeclToCurrentScope(*param);
+
+      currentFunction = fn;
+      if (auto resolvedBody = resolveBlock(*(*nextFunctionDecl++)->body)) {
+        fn->body = std::move(resolvedBody);
+        error |= runFlowSensitiveChecks(*fn);
+        continue;
+      }
+
+      error = true;
+    }
   }
 
   if (error)
