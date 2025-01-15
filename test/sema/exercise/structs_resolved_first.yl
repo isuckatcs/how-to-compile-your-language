@@ -1,0 +1,35 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(s: S): S2 {
+  return S2 { x: s.x, y: s.y };
+}
+
+fn main(): void {}
+
+struct S { x: number, y:number }
+struct S2 { x: number, y:number }
+// CHECK: ResolvedStructDecl: @({{.*}}) S:
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) x
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) y
+
+// CHECK-NEXT: ResolvedStructDecl: @({{.*}}) S2:
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) x
+// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) y
+
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) println:
+// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) n:
+// CHECK-NEXT:   ResolvedBlock
+
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) foo:
+// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) s:
+// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT:     ResolvedReturnStmt
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedMemberExpr: @({{.*}}) x
+// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedMemberExpr: @({{.*}}) y
+// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) s
+
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   ResolvedBlock
