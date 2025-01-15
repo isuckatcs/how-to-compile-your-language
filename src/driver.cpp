@@ -122,12 +122,12 @@ int main(int argc, const char **argv) {
 
   if (options.cfgDump) {
     for (auto &&fn : resolvedTree) {
-      // FIXME: workaround
-      if (const auto *function =
-              dynamic_cast<const ResolvedFunctionDecl *>(fn.get())) {
-        std::cerr << fn->identifier << ':' << '\n';
-        CFGBuilder().build(*function).dump();
-      }
+      const auto *fd = dynamic_cast<const ResolvedFunctionDecl *>(fn.get());
+      if (!fd)
+        continue;
+
+      std::cerr << fn->identifier << ':' << '\n';
+      CFGBuilder().build(*fd).dump();
     }
     return 0;
   }
