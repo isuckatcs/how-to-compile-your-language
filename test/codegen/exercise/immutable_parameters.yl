@@ -8,10 +8,10 @@ struct S {
 fn foo(s: S, y: number): number {
   return s.x * -y;
 }
-// CHECK: define double @foo(%S* readonly %s, double %y) {
+// CHECK: define double @foo(%struct.S* readonly %s, double %y) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   %0 = getelementptr inbounds %S, %S* %s, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %s, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, double* %0, align 8
 // CHECK-NEXT:   %2 = fneg double %y
 // CHECK-NEXT:   %3 = fmul double %1, %2

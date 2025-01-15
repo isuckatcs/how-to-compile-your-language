@@ -20,27 +20,27 @@ fn foo(var x: number): Small {
   let s = Small { x: x, y: x + 5 };
   return s;
 }
-// CHECK: define void @foo(%Small* sret(%Small) %ret, double %x) {
+// CHECK: define void @foo(%struct.Small* sret(%struct.Small) %ret, double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
-// CHECK-NEXT:   %s = alloca %Small, align 8
-// CHECK-NEXT:   %Small.tmp = alloca %Small, align 8
+// CHECK-NEXT:   %s = alloca %struct.Small, align 8
+// CHECK-NEXT:   %Small.tmp = alloca %struct.Small, align 8
 // CHECK-NEXT:   store double %x, double* %x1, align 8
 
 // CHECK-NEXT:   %0 = load double, double* %x1, align 8
-// CHECK-NEXT:   %1 = getelementptr inbounds %Small, %Small* %Small.tmp, i32 0, i32 0
+// CHECK-NEXT:   %1 = getelementptr inbounds %struct.Small, %struct.Small* %Small.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double %0, double* %1, align 8
 // CHECK-NEXT:   %2 = load double, double* %x1, align 8
 // CHECK-NEXT:   %3 = fadd double %2, 5.000000e+00
-// CHECK-NEXT:   %4 = getelementptr inbounds %Small, %Small* %Small.tmp, i32 0, i32 1
+// CHECK-NEXT:   %4 = getelementptr inbounds %struct.Small, %struct.Small* %Small.tmp, i32 0, i32 1
 // CHECK-NEXT:   store double %3, double* %4, align 8
 
-// CHECK-NEXT:   %5 = bitcast %Small* %s to i8*
-// CHECK-NEXT:   %6 = bitcast %Small* %Small.tmp to i8*
+// CHECK-NEXT:   %5 = bitcast %struct.Small* %s to i8*
+// CHECK-NEXT:   %6 = bitcast %struct.Small* %Small.tmp to i8*
 // CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 16, i1 false)
 
-// CHECK-NEXT:   %7 = bitcast %Small* %ret to i8*
-// CHECK-NEXT:   %8 = bitcast %Small* %s to i8*
+// CHECK-NEXT:   %7 = bitcast %struct.Small* %ret to i8*
+// CHECK-NEXT:   %8 = bitcast %struct.Small* %s to i8*
 // CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %7, i8* align 8 %8, i64 16, i1 false)
 // CHECK-NEXT:   br label %return
 
@@ -52,25 +52,25 @@ fn foo(var x: number): Small {
 fn bar(): S {
   return S { x: 0, s2: S2 { x: 1, y: 2, z: 3 } };
 }
-// CHECK: define void @bar(%S* sret(%S) %ret) {
+// CHECK: define void @bar(%struct.S* sret(%struct.S) %ret) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %S.tmp = alloca %S, align 8
-// CHECK-NEXT:   %S2.tmp = alloca %S2, align 8
-// CHECK-NEXT:   %0 = getelementptr inbounds %S, %S* %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %S2.tmp = alloca %struct.S2, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 0.000000e+00, double* %0, align 8
-// CHECK-NEXT:   %1 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   %1 = getelementptr inbounds %struct.S2, %struct.S2* %S2.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, double* %1, align 8
-// CHECK-NEXT:   %2 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   %2 = getelementptr inbounds %struct.S2, %struct.S2* %S2.tmp, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, double* %2, align 8
-// CHECK-NEXT:   %3 = getelementptr inbounds %S2, %S2* %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   %3 = getelementptr inbounds %struct.S2, %struct.S2* %S2.tmp, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, double* %3, align 8
-// CHECK-NEXT:   %4 = getelementptr inbounds %S, %S* %S.tmp, i32 0, i32 1
-// CHECK-NEXT:   %5 = bitcast %S2* %4 to i8*
-// CHECK-NEXT:   %6 = bitcast %S2* %S2.tmp to i8*
+// CHECK-NEXT:   %4 = getelementptr inbounds %struct.S, %struct.S* %S.tmp, i32 0, i32 1
+// CHECK-NEXT:   %5 = bitcast %struct.S2* %4 to i8*
+// CHECK-NEXT:   %6 = bitcast %struct.S2* %S2.tmp to i8*
 // CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 24, i1 false)
 
-// CHECK-NEXT:   %7 = bitcast %S* %ret to i8*
-// CHECK-NEXT:   %8 = bitcast %S* %S.tmp to i8*
+// CHECK-NEXT:   %7 = bitcast %struct.S* %ret to i8*
+// CHECK-NEXT:   %8 = bitcast %struct.S* %S.tmp to i8*
 // CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %7, i8* align 8 %8, i64 32, i1 false)
 
 // CHECK-NEXT:   br label %return
@@ -90,43 +90,43 @@ fn main(): void {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %ret = alloca %S, align 8
-// CHECK-NEXT:   %ret1 = alloca %S, align 8
-// CHECK-NEXT:   %ret2 = alloca %S, align 8
-// CHECK-NEXT:   %ret3 = alloca %S, align 8
-// CHECK-NEXT:   %ret4 = alloca %Small, align 8
-// CHECK-NEXT:   %ret5 = alloca %Small, align 8
+// CHECK-NEXT:   %struct.ret.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.ret.tmp1 = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.ret.tmp2 = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.ret.tmp3 = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.ret.tmp4 = alloca %struct.Small, align 8
+// CHECK-NEXT:   %struct.ret.tmp5 = alloca %struct.Small, align 8
 
-// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret)
-// CHECK-NEXT:   %0 = getelementptr inbounds %S, %S* %ret, i32 0, i32 0
+// CHECK-NEXT:   call void @bar(%struct.S* sret(%struct.S) %struct.ret.tmp)
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, double* %0, align 8
 // CHECK-NEXT:   call void @println(double %1)
 
-// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret1)
-// CHECK-NEXT:   %2 = getelementptr inbounds %S, %S* %ret1, i32 0, i32 1
-// CHECK-NEXT:   %3 = getelementptr inbounds %S2, %S2* %2, i32 0, i32 0
+// CHECK-NEXT:   call void @bar(%struct.S* sret(%struct.S) %struct.ret.tmp1)
+// CHECK-NEXT:   %2 = getelementptr inbounds %struct.S, %struct.S* %struct.ret.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %3 = getelementptr inbounds %struct.S2, %struct.S2* %2, i32 0, i32 0
 // CHECK-NEXT:   %4 = load double, double* %3, align 8
 // CHECK-NEXT:   call void @println(double %4)
 
-// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret2)
-// CHECK-NEXT:   %5 = getelementptr inbounds %S, %S* %ret2, i32 0, i32 1
-// CHECK-NEXT:   %6 = getelementptr inbounds %S2, %S2* %5, i32 0, i32 1
+// CHECK-NEXT:   call void @bar(%struct.S* sret(%struct.S) %struct.ret.tmp2)
+// CHECK-NEXT:   %5 = getelementptr inbounds %struct.S, %struct.S* %struct.ret.tmp2, i32 0, i32 1
+// CHECK-NEXT:   %6 = getelementptr inbounds %struct.S2, %struct.S2* %5, i32 0, i32 1
 // CHECK-NEXT:   %7 = load double, double* %6, align 8
 // CHECK-NEXT:   call void @println(double %7)
 
-// CHECK-NEXT:   call void @bar(%S* sret(%S) %ret3)
-// CHECK-NEXT:   %8 = getelementptr inbounds %S, %S* %ret3, i32 0, i32 1
-// CHECK-NEXT:   %9 = getelementptr inbounds %S2, %S2* %8, i32 0, i32 2
+// CHECK-NEXT:   call void @bar(%struct.S* sret(%struct.S) %struct.ret.tmp3)
+// CHECK-NEXT:   %8 = getelementptr inbounds %struct.S, %struct.S* %struct.ret.tmp3, i32 0, i32 1
+// CHECK-NEXT:   %9 = getelementptr inbounds %struct.S2, %struct.S2* %8, i32 0, i32 2
 // CHECK-NEXT:   %10 = load double, double* %9, align 8
 // CHECK-NEXT:   call void @println(double %10)
 
-// CHECK-NEXT:   call void @foo(%Small* sret(%Small) %ret4, double 1.000000e+01)
-// CHECK-NEXT:   %11 = getelementptr inbounds %Small, %Small* %ret4, i32 0, i32 0
+// CHECK-NEXT:   call void @foo(%struct.Small* sret(%struct.Small) %struct.ret.tmp4, double 1.000000e+01)
+// CHECK-NEXT:   %11 = getelementptr inbounds %struct.Small, %struct.Small* %struct.ret.tmp4, i32 0, i32 0
 // CHECK-NEXT:   %12 = load double, double* %11, align 8
 // CHECK-NEXT:   call void @println(double %12)
 
-// CHECK-NEXT:   call void @foo(%Small* sret(%Small) %ret5, double 1.000000e+01)
-// CHECK-NEXT:   %13 = getelementptr inbounds %Small, %Small* %ret5, i32 0, i32 1
+// CHECK-NEXT:   call void @foo(%struct.Small* sret(%struct.Small) %struct.ret.tmp5, double 1.000000e+01)
+// CHECK-NEXT:   %13 = getelementptr inbounds %struct.Small, %struct.Small* %struct.ret.tmp5, i32 0, i32 1
 // CHECK-NEXT:   %14 = load double, double* %13, align 8
 // CHECK-NEXT:   call void @println(double %14)
 
