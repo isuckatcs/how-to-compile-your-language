@@ -19,7 +19,7 @@ llvm::Type *Codegen::generateType(Type type) {
     return builder.getDoubleTy();
 
   if (type.kind == Type::Kind::Struct)
-    return llvm::StructType::getTypeByName(context, type.name);
+    return llvm::StructType::getTypeByName(context, "struct." + type.name);
 
   return builder.getVoidTy();
 }
@@ -200,9 +200,9 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
-  // FIXME: rename 'ret' to avoid name collisions with local variables
   if (isReturningStruct)
-    retVal = args.emplace_back(allocateStackVariable("ret", calleeDecl->type));
+    retVal = args.emplace_back(
+        allocateStackVariable("struct.ret.tmp", calleeDecl->type));
 
   for (auto &&arg : call.arguments) {
     llvm::Value *val = generateExpr(*arg);
@@ -341,7 +341,7 @@ Codegen::storeValue(llvm::Value *ptr, llvm::Value *val, const Type &type) {
 
   const llvm::DataLayout &dl = module.getDataLayout();
   const llvm::StructLayout *sl =
-      dl.getStructLayout(llvm::StructType::getTypeByName(context, type.name));
+      dl.getStructLayout(static_cast<llvm::StructType *>(generateType(type)));
 
   return builder.CreateMemCpy(ptr, sl->getAlignment(), val, sl->getAlignment(),
                               sl->getSizeInBytes());
@@ -520,11 +520,11 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
 }
 
 void Codegen::generateStructDecl(const ResolvedStructDecl &structDecl) {
-  llvm::StructType::create(context, structDecl.identifier);
+  llvm::StructType::create(context, "struct." + structDecl.identifier);
 }
 
 void Codegen::generateStructDefinition(const ResolvedStructDecl &structDecl) {
-  auto *type = llvm::StructType::getTypeByName(context, structDecl.identifier);
+  auto *type = static_cast<llvm::StructType *>(generateType(structDecl.type));
 
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structDecl.members) {
