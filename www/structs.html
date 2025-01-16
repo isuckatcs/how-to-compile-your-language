@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+        <title>How to Compile Your Language</title>
+        <link rel="icon" href="./favicon.ico" />
+        <link rel="stylesheet" href="stylesheets/styles.css" />
+        <link rel="stylesheet" href="stylesheets/pygment_trac.css" />
+        <meta name="viewport" content="width=device-width" />
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="wrapper">
+            <header>
+                <ul>
+                    <li>
+                        <a href="index.html">Prologue </a>
+                    </li>
+                    <li><a href="lexing.html">Lexing</a></li>
+                    <li><a href="parsing.html">Parsing</a></li>
+                    <li>
+                        <a href="extending-the-parser.html"
+                            >Extending the Language</a
+                        >
+                    </li>
+                    <li><a href="sema.html">Semantic Analysis</a></li>
+                    <li><a href="codegen.html">Generating LLVM IR</a></li>
+                    <li><a href="driver.html">Driver</a></li>
+                    <li>
+                        <a href="operators.html">Operators</a>
+                    </li>
+                    <li>
+                        <a href="constexpr.html">Constant Expressions</a>
+                    </li>
+                    <li>
+                        <a href="control-flow.html">Control Flow</a>
+                    </li>
+                    <li>
+                        <a href="variables.html">Variables</a>
+                    </li>
+                    <br />
+                    <li>
+                        <a href="structs.html">Exercise: Structs</a>
+                        <div id="toc"></div>
+                    </li>
+                </ul>
+            </header>
+            <section>
+                <h1>Extending the Language With Structs</h1>
+                <p>
+                    This section introduces a semi-guided excercise to extend
+                    the language with structs. The subsections only describe the
+                    requirements that need to be done, implementation details
+                    are left to be figured out by the reader. Imagine that this
+                    is a real world situation of working as a compiler engineer
+                    and getting a task to extend the language based on certain
+                    criteria.
+                </p>
+                <h2>Motivation</h2>
+                <p>
+                    The motivation behind structs is to pack values together, so
+                    that multiple values can be passed around easily.
+                </p>
+                <pre><code>fn rgbToGray(r: number, g: number, b: number): number {
+    return (r + g + b) / 3;
+}</code></pre>
+                <p>
+                    Maintaining 3 different variables to store each individual
+                    color value can become overwhelming quickly and also affects
+                    readability and maintanability. With stucts the same
+                    snippets looks more descriptive and maintainable.
+                </p>
+                <pre><code>struct RGBColor {
+    r: number,
+    g: number,
+    b: number,
+}
+
+fn rgbToGray(c: RGBColor): number {
+    return (c.r + c.g + c.b) / 3;
+}</code></pre>
+                <h2>Warm-up</h2>
+                <p>
+                    Whether modifying the compiler from the lexer to code
+                    generation seems overwhelming at first, or it looks like a
+                    walk in the park, getting familiar with working on the
+                    codebase is never a bad idea.
+                </p>
+                <p>
+                    Right now parameters are passed by value, can only be of
+                    <code>number</code> type and are immutable. With
+                    <code>struct</code> parameters however it might be desired
+                    to change the value of only a single field of the parameter
+                    before processing it. Due to the parameter being immutable,
+                    currently this is only possible if the
+                    <code>struct</code> is copied first.
+                </p>
+                <pre><code>fn removeGreenChannel(c: RGBColor): RGBColor {
+    var greenRemoved = c;
+    greenRemoved.g = 0;
+
+    return greenRemoved;
+}</code></pre>
+                <p>
+                    In this case there is no reason to copy the
+                    <code>struct</code> as it is passed by value, so no
+                    modification to it is visible in the caller. To address
+                    this, the parameter needs to be made mutable, which will be
+                    indicated by the <code>var</code> keyword in front of it,
+                    similarly to how it used to be in Swift. Just as
+                    <code>var</code> before a local variable means the variable
+                    is mutable, before a parameter it means the parameter is
+                    also mutable.
+                </p>
+                <!-- FIXME: add a design note on why Swift removed var parameters and why it is not an issue in this language -->
+                <pre><code>fn removeGreenChannel(var c: RGBColor): RGBColor {
+    c.g = 0;
+    return c;
+}</code></pre>
+                <p>
+                    To implement this simple change, proceed with these few
+                    steps:
+                </p>
+                <ol>
+                    <li>
+                        <p>
+                            Update the parser so that it accepts the following
+                            new grammar of <code>paramDecl</code>.
+                        </p>
+                        <pre><code>&lt;paramDecl&gt;
+    ::= 'var'? &lt;identifier&gt; ':' &lt;type&gt;
+</code></pre>
+                        <p>
+                            Don't forget to store whether the parameter is
+                            mutable or not in the AST, or the semantic analyzer
+                            won't be able to reason about it.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Ensure that assigning to an immutable parameter
+                            still results in an error in the semantic analyzer,
+                            but assigning to mutable parameters is allowed. The
+                            mutability of the parameter should also be passed to
+                            the code generator through the
+                            <code>ResolvedParamDecl</code> node.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Currently the code generator handles parameters by
+                            first creating a local variable for each of them
+                            inside the function body and copying their value
+                            into this variable. When the value of the parameter
+                            needs to be read, LLVM is instructed to load the
+                            local variable and proceed with using the loaded
+                            value.
+                        </p>
+                        <pre><code>define void @functionVarParam(double %n) {
+entry:
+  %n1 = alloca double, align 8
+  store double %n, double* %n1, align 8
+  %0 = load double, double* %n1, align 8
+  call void @println(double %0)
+  ret void
+}</code></pre>
+                        <!-- FIXME: add a design note on why this cannot be achieved in C++ with const params by casting away constness -->
+                        <p>
+                            The truth is that this local variable only needs to
+                            be introduced if the parameter is mutable, as this
+                            variable serves as the storage for the mutated
+                            value. If the parameter cannot be mutated, it's
+                            value can be read directly.
+                        </p>
+                        <pre><code>define void @functionNotVarParam(double %n) {
+entry:
+  call void @println(double %n)
+  ret void
+}</code></pre>
+                        <p>
+                            Update the <code>Codegen</code> class so that the
+                            mutability of the parameter affects the generated
+                            code and immutable parameters no longer have a local
+                            variable introduced for them. The generated LLVM IR
+                            for mutable parameters should remain unchanged.
+                        </p>
+                    </li>
+                </ol>
+                <p>
+                    By properly implementing the few short changes described
+                    above, both mutable and immutable function parameters are
+                    supported in the language and any mutation to a function
+                    parameter remains invisible to the caller of the function.
+                </p>
+            </section>
+            <footer>
+                <p>
+                    <small
+                        >Hosted on GitHub Pages &mdash; Theme by
+                        <a href="https://github.com/orderedlist" target="_blank"
+                            >orderedlist</a
+                        ></small
+                    >
+                </p>
+            </footer>
+        </div>
+        <script src="javascripts/scale.fix.js"></script>
+        <script src="javascripts/toc.js"></script>
+    </body>
+</html>
