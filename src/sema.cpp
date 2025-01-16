@@ -310,7 +310,6 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
 }
 
-// FIXME: refactor
 std::unique_ptr<ResolvedStructInstantiationExpr>
 Sema::resolveStructInstantiation(
     const StructInstantiationExpr &structInstantiation) {
@@ -322,83 +321,69 @@ Sema::resolveStructInstantiation(
                   "'" + structInstantiation.identifier +
                       "' is not a struct type");
 
-  std::vector<std::unique_ptr<ResolvedMemberInitStmt>>
-      resolvedMemberInitializers;
+  std::map<std::string_view, std::unique_ptr<ResolvedMemberInitStmt>> inits;
+  std::map<std::string_view, const ResolvedMemberDecl *> members;
+  for (auto &&memberDecl : st->members)
+    members[memberDecl->identifier] = memberDecl.get();
 
   bool error = false;
-  for (auto &&memberDecl : st->members) {
-    bool found = false;
-    for (auto &&memberInitializer : structInstantiation.memberInitializers) {
-      if (memberInitializer->identifier != memberDecl->identifier)
-        continue;
+  for (auto &&initStmt : structInstantiation.memberInitializers) {
+    std::string_view id = initStmt->identifier;
+    const SourceLocation &loc = initStmt->location;
 
-      bool alreadyInit = false;
-      for (auto &&alreadyResolved : resolvedMemberInitializers) {
-        if (alreadyResolved->member->identifier ==
-            memberInitializer->identifier) {
-          alreadyInit = true;
-          error = true;
-          report(memberInitializer->location,
-                 "field '" + memberInitializer->identifier +
-                     "' is already initialized");
-        }
-      }
-
-      if (alreadyInit)
-        continue;
-
-      found = true;
-      auto resolvedInitExpr = resolveExpr(*memberInitializer->initializer);
-
-      if (!resolvedInitExpr) {
-        error = true;
-        continue;
-      }
-
-      if (resolvedInitExpr->type.name != memberDecl->type.name) {
-        error = true;
-        report(resolvedInitExpr->location,
-               "'" + resolvedInitExpr->type.name +
-                   "' cannot be used to initialize a member of type '" +
-                   memberDecl->type.name + "'");
-      }
-
-      resolvedMemberInitializers.emplace_back(
-          std::make_unique<ResolvedMemberInitStmt>(
-              memberInitializer->location, *memberDecl,
-              std::move(resolvedInitExpr)));
+    if (inits.count(id)) {
+      report(loc, "field '" + std::string{id} + "' is already initialized");
+      error = true;
+      continue;
     }
 
-    if (!found) {
+    const ResolvedMemberDecl *memberDecl = members[id];
+    if (!memberDecl) {
+      report(loc, "'" + st->identifier + "' has no field named '" +
+                      std::string{id} + "'");
+      error = true;
+      continue;
+    }
+
+    auto resolvedInitExpr = resolveExpr(*initStmt->initializer);
+    if (!resolvedInitExpr) {
+      error = true;
+      continue;
+    }
+
+    if (resolvedInitExpr->type.name != memberDecl->type.name) {
+      report(resolvedInitExpr->location,
+             "'" + resolvedInitExpr->type.name +
+                 "' cannot be used to initialize a member of type '" +
+                 memberDecl->type.name + "'");
+      error = true;
+      continue;
+    }
+
+    inits[id] = std::make_unique<ResolvedMemberInitStmt>(
+        loc, *memberDecl, std::move(resolvedInitExpr));
+  }
+
+  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> resolvedMemberInits;
+  for (auto &&memberDecl : st->members) {
+    if (!inits.count(memberDecl->identifier)) {
       report(structInstantiation.location,
              "member '" + memberDecl->identifier + "' is not initialized");
       error = true;
+      continue;
     }
-  }
 
-  for (auto &&memberInitializer : structInstantiation.memberInitializers) {
-    bool found = false;
-    for (auto &&memberDecl : st->members)
-      found |= memberDecl->identifier == memberInitializer->identifier;
-
-    if (!found) {
-      error = true;
-      report(memberInitializer->location,
-             '\'' + st->identifier + "' has no field named '" +
-                 memberInitializer->identifier + '\'');
-    }
+    auto &initStmt = inits[memberDecl->identifier];
+    initStmt->initializer->setConstantValue(
+        cee.evaluate(*initStmt->initializer, false));
+    resolvedMemberInits.emplace_back(std::move(initStmt));
   }
 
   if (error)
     return nullptr;
 
-  for (auto &initStmt : resolvedMemberInitializers) {
-    initStmt->initializer->setConstantValue(
-        cee.evaluate(*initStmt->initializer, false));
-  }
-
   return std::make_unique<ResolvedStructInstantiationExpr>(
-      structInstantiation.location, *st, std::move(resolvedMemberInitializers));
+      structInstantiation.location, *st, std::move(resolvedMemberInits));
 }
 
 std::unique_ptr<ResolvedMemberExpr>
