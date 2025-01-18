@@ -195,6 +195,136 @@ entry:
                     supported in the language and any mutation to a function
                     parameter remains invisible to the caller of the function.
                 </p>
+                <h2>Accepting the New Syntax</h2>
+                <p>
+                    A struct declaration can only appear on the top level, so
+                    nested struct declarations are not allowed. Each such
+                    declaration constains a list of field declarations separated
+                    by commas. A trailing comma is allowed at the end.
+                </p>
+                <p>
+                    A field declaration is the name and the type of the field
+                    separated by a <code>:</code>.
+                </p>
+                <pre><code>struct S {
+    field: type,
+    field: type,
+    field: type,
+}</code></pre>
+                <p>
+                    By making the comma at the end optional, the
+                    <code>struct</code> can also be written on only a single
+                    line conveniently.
+                </p>
+                <pre><code>struct S { field: type, field: type, field: type }</code></pre>
+                <p>
+                    This syntax would require the parser to recognize the
+                    grammar below.
+                </p>
+                <pre><code>&lt;sourceFile> 
+    ::= (&lt;structDecl> | &lt;functionDecl>)* EOF
+
+&lt;structDecl>
+    ::= 'struct' &lt;identifier> &lt;fieldList>
+
+&lt;fieldList>
+    ::= '{' (&lt;fieldDecl> (',' &lt;fieldDecl>)* ','?)? '}'</code></pre>
+                <p>
+                    Instantiating the structs happends using the same syntax,
+                    except for dropping the <code>struct</code> keyword from the
+                    beginning and by pairing the fields with expressions that
+                    give values to them.
+                </p>
+                <pre><code>S {
+  field: expr, 
+  field: expr, 
+  field: expr,
+};</code></pre>
+                <p>
+                    A struct instantiation expression is added to the language
+                    as a primary expression, so the resulting grammar is the
+                    following.
+                </p>
+                <pre><code>&lt;primaryExpr>
+    ::= ...
+    |   &lt;structInstantiation>
+    |   &lt;declRefExpr>
+
+&lt;structInstantiation>
+    ::= &lt;identifier> &lt;fieldInitList>
+
+&lt;fieldInitList>
+    ::= '{' (&lt;fieldInit> (',' &lt;fieldInit>)* ','?)? '}'
+
+&lt;memberInit>
+    ::= &lt;identifier> ':' &lt;expr></code></pre>
+                <p>
+                    Notice how <code>structInstantiation</code> is listed before
+                    <code>declRefExpr</code>. Each of these expressions start
+                    with an <code>identifier</code>, but a
+                    <code>structInstantiation</code> has a priority over a
+                    <code>declRefExpr</code>. This ensures that if an expression
+                    can be parsed as a struct instantiation, it is parsed that
+                    way instead of just parsing the name of the struct as a
+                    reference declaration and erroring out on the
+                    <code>{</code> token.
+                </p>
+                <pre><code>Error { ... };
+      ^
+error: expected ';' at the end of expression</code></pre>
+                <p>
+                    Also notice how this struct instantiation syntax introduces
+                    an ambiguity when placed in the condition of an
+                    <code>if</code> or <code>while</code> statement.
+                </p>
+                <pre><code>if Ambiguous {} {}</code></pre>
+                <p>
+                    This can either be parsed as the condition is a reference to
+                    a variable called <code>Ambiguous</code> followed by an
+                    emtpy block, or as the condition is an instantiated struct
+                    followed by an empty block.
+                </p>
+                <pre><code>IfStmt
+  DeclRefExpr: Ambiguous
+  Block
+error: expected expression
+
+IfStmt
+  StructInstantiationExpr: Ambiguous
+    ...
+  Block
+</code></pre>
+                <p>
+                    To resolve this ambiguity a
+                    <code>structInstantiation</code> is not allowed inside a
+                    condition and the parser should ensure that the statement is
+                    always parsed the first way, that results in an error.
+                </p>
+                <p>
+                    After declaring and instantiating structs, there must be a
+                    way to read their members, that gives the last syntactical
+                    extension of the language.
+                </p>
+                <p>
+                    Since a struct can have fields that are also structs, any
+                    arbitrarily deep members can be accessed, or assigned. A
+                    struct can also be returned from a function and accessing or
+                    assigning the members of the returned struct is also
+                    allowed, which means all of the expressions below are valid.
+                </p>
+                <pre><code>s.f1.f2.f3 = v
+foo().f1.f2 = v</code></pre>
+                <p>
+                    On the other hand a struct can't have methods, so calling an
+                    accessed field is not allowed.
+                </p>
+                <pre><code>not.allowed()</code></pre>
+                <p>
+                    This limitation can be handled in the parser by modifying
+                    <code>postfixExpression</code> the following way.
+                </p>
+                <pre><code>&lt;postfixExpression>
+    ::= &lt;primaryExpression> &lt;argumentList>? ('.' &lt;identifier>)*</code></pre>
             </section>
             <footer>
                 <p>
