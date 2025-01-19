@@ -301,6 +301,13 @@ IfStmt
                     always parsed the first way, that results in an error.
                 </p>
                 <p>
+                    If for any reason a struct needs to be instantiated in a
+                    condition, it should be wrapped in a grouping expression as
+                    it can disambiguate the condition.
+                </p>
+                <pre><code>if (NoLongerAmbiguous {}) {}</code></pre>
+
+                <p>
                     After declaring and instantiating structs, there must be a
                     way to read their members, that gives the last syntactical
                     extension of the language.
@@ -325,6 +332,154 @@ foo().f1.f2 = v</code></pre>
                 </p>
                 <pre><code>&lt;postfixExpression>
     ::= &lt;primaryExpression> &lt;argumentList>? ('.' &lt;identifier>)*</code></pre>
+                <p>
+                    To make the parser support the syntactical modifications
+                    take the following steps:
+                </p>
+                <ol>
+                    <li>
+                        <p>
+                            Update the lexer so that it recognizes every new
+                            token and keyword.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Extend the AST with new nodes that represent the
+                            elements of the new syntax. To make this point
+                            easier below can be seen a short description and the
+                            AST dump of every node that needs to be added.
+                        </p>
+                        <p>
+                            The <code>FieldDecl</code> node represents a field
+                            declaration by storing the identifier and the type
+                            of the field.
+                        </p>
+                        <pre><code>FieldDecl: identifier:type</code></pre>
+                        <p>
+                            The <code>StructDecl</code> node represents the
+                            struct declaration. It also houses every
+                            <code>FieldDecl</code> inside the struct.
+                        </p>
+                        <pre><code>StructDecl: identifier
+  FieldDecl: identifier:type
+  FieldDecl: identifier:type
+  FieldDecl: identifier:type</code></pre>
+                        <p>
+                            The <code>FieldInitStmt</code> node represents a
+                            field initialization inside a struct instantiation.
+                            It stores the identifier of the field that's being
+                            initialized as well as the expression the result of
+                            which is used to initialize the field.
+                        </p>
+                        <pre><code>FieldInitStmt: identifier
+  &lt;Expr></code></pre>
+                        <p>
+                            The
+                            <code>StructInstantiationExpr</code>
+                            represents a struct instantiation by storing the
+                            identifier of the struct and the list of member
+                            initialization statements.
+                        </p>
+                        <pre><code>StructInstantiationExpr: identifier
+  FieldInitStmt: identifier
+    &lt;Expr>
+  FieldInitStmt: identifier
+    &lt;Expr>
+  FieldInitStmt: identifier
+    &lt;Expr></code></pre>
+                        <p>
+                            The <code>MemberExpr</code> node represents an
+                            access to a field of a struct. It stores the base
+                            expression that is used to refer to the struct and
+                            the identifier of the field being accessed.
+                        </p>
+                        <pre><code>MemberExpr: .identifier
+  &lt;Expr></code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            To enforce the restrictions on the LHS of an
+                            assigment in the parser, introduce an
+                            <code>AssignableExpr</code> placeholder node and
+                            make it the base class of
+                            <code>DeclRefExpr</code> and
+                            <code>MemberExpr</code>. The
+                            <code>Assignment</code> node should also store an
+                            <code>AssignableExpr</code> instead of a
+                            <code>DeclRefExpr</code>.
+                        </p>
+                        <p>
+                            Update the parser so that it also uses this new node
+                            while parsing an assignment.
+                        </p>
+                    </li>
+                    <li>
+                        <!-- FIXME: explain why the declaration order is preserved in the ast -->
+                        <p>
+                            Extend the parser so that it can parse the grammar
+                            extensions according to their specification
+                            described at the top of this section. Because the
+                            top level of the source file is no longer a list of
+                            functions but a list of functions and structs, the
+                            parser should now return a list of declarations.
+                        </p>
+                        <!-- FIXME: point the reader to the rust parser as a source of help -->
+                        <p>
+                            To resolve the ambiguity of structs inside
+                            conditions find a way to support restrictions on
+                            parsing a specific element.
+                        </p>
+                        <p>
+                            When the condition is parsed, a restriction that
+                            disallows parsing struct instantiation should be
+                            applied to that expression. A grouping expression on
+                            the other hand should disable every restriction that
+                            is currently applied, as it creates a new context
+                            for the expression it wraps.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Extend the parser error recovery, so that
+                            synchronization also happens on the
+                            <code>struct</code> keyword. For update
+                            <code>synchronizeOn()</code> to accept a list of
+                            tokens instead of a single token only, as on the top
+                            level both <code>struct</code> and
+                            <code>fn</code> is a synchronization point.
+                        </p>
+                        <pre><code>fail struct {} fn ...
+┌─────┐ ┌────────┐ ┌───┐ ┌───┐ ┌────┐ ┌─────┐
+│ ... │ │ struct │ │ { │ │ } │ │ fn │ │ ... │
+└─────┘ └────────┘ └───┘ └───┘ └────┘ └─────┘
+   ^        ^                    ^
+   |        └ synchronize here   └ don't skip here
+   └ fail here</code></pre>
+                        <p>
+                            If a failure happens inside a struct instantiation,
+                            the parser should explicitly synchronize on the next
+                            <code>}</code> token instead of waiting for an
+                            automatic synchronization on the top level.
+                        </p>
+                        <pre><code>S { f1: fail, f2: 0 }
+┌─────┐ ┌───┐ ┌─────┐ ┌───┐
+│ ... │ │ , │ │ ... │ │ } │
+└─────┘ └───┘ └─────┘ └───┘
+   ^                    ^                 
+   └ fail here          └ synchronize here</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            At this point the driver is broken as it still
+                            expects a list of function declarations that it
+                            either dumps or passes to the semantic analyzer. Fix
+                            the errors in the driver and make sure that every
+                            code that compiled before the parser extension still
+                            compiles.
+                        </p>
+                    </li>
+                </ol>
             </section>
             <footer>
                 <p>
