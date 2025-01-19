@@ -2,7 +2,13 @@
 
 ```bnf
 <sourceFile> 
-    ::= <functionDecl>* EOF
+    ::= (<structDecl> | <functionDecl>)* EOF
+
+<structDecl>
+    ::= 'struct' <identifier> <memberList>
+
+<memberList>
+    ::= '{' (<memberDecl> (',' <memberDecl>)* ','?)? '}'
 
 <functionDecl> 
     ::= 'fn' <identifier> <parameterList> ':' <type> <block>
@@ -67,18 +73,28 @@
     ::= ('!' | '-')* <postfixExpression>
 
 <postfixExpression>
-    ::= <primaryExpression> <argumentList>
+    ::= <primaryExpression> <argumentList>? ('.' <identifier>)*
 
 <argumentList>
     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <primaryExpression>
     ::= <numberLiteral>
+    |   <structInstantiation>
     |   <declRefExpr>
     |   '(' <expr> ')'
 
 <numberLiteral>
     ::= <number>
+
+<structInstantiation>
+    ::= <identifier> <memberInitList>
+
+<memberInitList>
+    ::= '{' (<memberInit> (',' <memberInit>)* ','?)? '}'
+
+<memberInit>
+    ::= <identifier> ':' <expr>
 
 <declRefExpr>
     ::= <identifier>

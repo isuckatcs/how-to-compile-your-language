@@ -484,14 +484,14 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
 // <numberLiteral>
 //  ::= <number>
 //
-// <declRefExpr>
-//  ::= <identifier>
-//
 // <structInstantiation>
 //  ::= <identifier> <memberInitList>
 //
 // <memberInitList>
 //  ::= '{' (<memberInit> (',' <memberInit>)* ','?)? '}'
+//
+// <declRefExpr>
+//  ::= <identifier>
 std::unique_ptr<Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
@@ -599,7 +599,7 @@ std::optional<Type> Parser::parseType() {
 };
 
 // <sourceFile>
-//     ::= <functionDecl>* EOF
+//     ::= (<structDecl> | <functionDecl>)* EOF
 std::pair<std::vector<std::unique_ptr<Decl>>, bool> Parser::parseSourceFile() {
   std::vector<std::unique_ptr<Decl>> declarations;
 
