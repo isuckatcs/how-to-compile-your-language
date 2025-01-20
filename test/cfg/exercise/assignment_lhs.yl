@@ -1,0 +1,53 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+struct S {
+  x: number,
+  y: number
+}
+
+fn main(): void {
+  var s = S { y: 2, x: 1 };
+
+  s.x = 0;
+}
+// CHECK: main:
+// CHECK-NEXT: [2 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   ResolvedNumberLiteral: '2'
+// CHECK-NEXT:   | value: 2
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK-NEXT:       | value: 1
+// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '2'
+// CHECK-NEXT:       | value: 2
+// CHECK-NEXT:   ResolvedDeclStmt:
+// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedNumberLiteral: '1'
+// CHECK-NEXT:           | value: 1
+// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '2'
+// CHECK-NEXT:           | value: 2
+// CHECK-NEXT:   ResolvedNumberLiteral: '0'
+// CHECK-NEXT:   | value: 0
+// CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   ResolvedMemberExpr: @({{.*}}) x
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   ResolvedAssignment:
+// CHECK-NEXT:     ResolvedMemberExpr: @({{.*}}) x
+// CHECK-NEXT:       ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:     ResolvedNumberLiteral: '0'
+// CHECK-NEXT:     | value: 0
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs:

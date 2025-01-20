@@ -82,6 +82,10 @@ int CFGBuilder::insertDeclStmt(const ResolvedDeclStmt &stmt, int block) {
 
 int CFGBuilder::insertAssignment(const ResolvedAssignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
+
+  if (!dynamic_cast<const ResolvedDeclRefExpr *>(stmt.assignee.get()))
+    block = insertExpr(*stmt.assignee, block);
+
   return insertExpr(*stmt.expr, block);
 }
 
