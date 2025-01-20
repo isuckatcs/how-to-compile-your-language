@@ -103,20 +103,21 @@ llvm::Value *Codegen::generateDeclStmt(const ResolvedDeclStmt &stmt) {
   llvm::AllocaInst *var = allocateStackVariable(decl->identifier, decl->type);
 
   if (const auto &init = decl->initializer)
-    storeValue(var, generateExpr(*init), init->type);
+    storeValue(generateExpr(*init), var, init->type);
 
   declarations[decl] = var;
   return nullptr;
 }
 
 llvm::Value *Codegen::generateAssignment(const ResolvedAssignment &stmt) {
-  return storeValue(generateExpr(*stmt.assignee, true),
-                    generateExpr(*stmt.expr), stmt.assignee->type);
+  llvm::Value *val = generateExpr(*stmt.expr);
+  return storeValue(val, generateExpr(*stmt.assignee, true),
+                    stmt.assignee->type);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
   if (stmt.expr)
-    storeValue(retVal, generateExpr(*stmt.expr), stmt.expr->type);
+    storeValue(generateExpr(*stmt.expr), retVal, stmt.expr->type);
 
   assert(retBB && "function with return stmt doesn't have a return block");
   return builder.CreateBr(retBB);
@@ -140,10 +141,9 @@ Codegen::generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie) {
   size_t idx = 0;
   for (auto &&initStmt : sie.memberInitializers) {
     llvm::Value *val = generateExpr(*initStmt->initializer);
-    llvm::Value *ptr =
+    llvm::Value *dst =
         builder.CreateStructGEP(generateType(structType), tmp, idx++);
-
-    storeValue(ptr, val, initStmt->member->type);
+    storeValue(val, dst, initStmt->member->type);
   }
 
   return tmp;
@@ -209,7 +209,7 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
 
     if (arg->type.kind == Type::Kind::Struct) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", arg->type);
-      storeValue(tmpVar, val, arg->type);
+      storeValue(val, tmpVar, arg->type);
       val = tmpVar;
     }
 
@@ -335,7 +335,7 @@ llvm::Value *Codegen::loadValue(llvm::Value *v, const Type &type) {
 }
 
 llvm::Value *
-Codegen::storeValue(llvm::Value *ptr, llvm::Value *val, const Type &type) {
+Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, const Type &type) {
   if (type.kind != Type::Kind::Struct)
     return builder.CreateStore(val, ptr);
 
@@ -441,7 +441,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     llvm::Value *declVal = &arg;
     if (paramDecl->type.kind != Type::Kind::Struct && paramDecl->isMutable) {
       declVal = allocateStackVariable(paramDecl->identifier, paramDecl->type);
-      storeValue(declVal, &arg, paramDecl->type);
+      storeValue(&arg, declVal, paramDecl->type);
     }
 
     declarations[paramDecl] = declVal;

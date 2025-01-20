@@ -48,7 +48,7 @@ class Codegen {
                                    llvm::BasicBlock *falseBlock);
 
   llvm::Value *loadValue(llvm::Value *val, const Type &type);
-  llvm::Value *storeValue(llvm::Value *ptr, llvm::Value *val, const Type &type);
+  llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, const Type &type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
 
