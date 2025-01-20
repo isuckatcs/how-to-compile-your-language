@@ -488,8 +488,8 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
 std::unique_ptr<ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
-  varOrReturn(resolvedLHS, resolveAssignableExpr(*assignment.assignee));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
+  varOrReturn(resolvedLHS, resolveAssignableExpr(*assignment.assignee));
 
   assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
