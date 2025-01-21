@@ -777,8 +777,9 @@ std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
     if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
       std::unique_ptr<ResolvedDecl> resolvedDecl = resolveStructDecl(*st);
 
-      error |= !resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl);
-      if (!error)
+      if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl))
+        error = true;
+      else
         resolvedTree.emplace_back(std::move(resolvedDecl));
       continue;
     }
