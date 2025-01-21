@@ -480,6 +480,55 @@ foo().f1.f2 = v</code></pre>
                         </p>
                     </li>
                 </ol>
+                <h2>Semantic of Structs</h2>
+                <p>
+                    Structs are declared on the top level, but they are not
+                    location dependent, meaning a struct doesn't have to be
+                    declared before it can be used.
+                </p>
+                <!-- FIXME: design note about forward declarations -->
+                <p>
+                    This leads to the need to resolve structs similarly to
+                    functions, in multiple passes, except that struct
+                    declarations also need to be resolved before function
+                    declarations because a function can refer to a struct before
+                    it is declared.
+                </p>
+                <pre><code>fn returnS(): S { ... }
+              ^ 'S' must be found when resolving the
+                function declaration
+
+struct S { ... }</code></pre>
+                <!-- FIXME: explain why storing structs be reference requires runtime support and talk about GC and ARC -->
+                <p>
+                    Structs are stored on the stack, passed to and returned from
+                    functions by value. To allocate a struct on the stack, it's
+                    size must be known at compile time. Because a struct is a
+                    list of values grouped together, it's size is equivalent to
+                    the sum of the size of it's members.
+                </p>
+                <pre><code>struct Color {      Stack:
+  r: number,          r: size(number) ┐
+  g: number,          g: size(number) ├ (+) size(Color)
+  b: number,          b: size(number) ┘
+}</code></pre>
+                <p>
+                    Because of how the size is computed, a struct cannot have a
+                    member of itself as in that case to compute the size of the
+                    struct, the compiler already has to know it, but to know it,
+                    it has to compute it first.
+                </p>
+                <pre><code>struct S {
+  self: S      size(S) = size(self) = size(S) = ...
+}</code></pre>
+                <p>
+                    The semantic analyzer also has to catch the case, when the
+                    struct contains itself through a nested struct.
+                </p>
+                <pre><code>struct S { x: S2 }
+struct S2 { y: S }
+
+size(S) = size(x) = size(S2) = size(y) = size(S) = ...</code></pre>
             </section>
             <footer>
                 <p>
