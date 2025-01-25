@@ -10,6 +10,9 @@
 <memberList>
     ::= '{' (<memberDecl> (',' <memberDecl>)* ','?)? '}'
 
+<memberDecl>
+    ::= <identifier> ':' <type>
+
 <functionDecl> 
     ::= 'fn' <identifier> <parameterList> ':' <type> <block>
 
@@ -43,7 +46,10 @@
     ::= ('let' | 'var') <varDecl> ';'
 
 <assignment>
-    ::= <declRefExpr> '=' <expr> ';'
+    ::= (<declRefExpr> | <memberExpr>) '=' <expr> ';'
+
+<memberExpr>
+    ::= '.' <identifier>
 
 <returnStmt>
     ::= 'return' <expr>? ';'
@@ -73,7 +79,7 @@
     ::= ('!' | '-')* <postfixExpression>
 
 <postfixExpression>
-    ::= <primaryExpression> <argumentList>? ('.' <identifier>)*
+    ::= <primaryExpression> <argumentList>? <memberExpr>*
 
 <argumentList>
     ::= '(' (<expr> (',' <expr>)* ','?)? ')'

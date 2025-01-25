@@ -443,10 +443,13 @@ std::unique_ptr<Expr> Parser::parsePrefixExpr() {
 }
 
 // <postfixExpression>
-//  ::= <primaryExpression> <argumentList>? ('.' <identifier>)*
+//  ::= <primaryExpression> <argumentList>? <memberExpr>*
 //
 // <argumentList>
 //  ::= '(' (<expr> (',' <expr>)* ','?)? ')'
+//
+// <memberExpr>
+//  ::= '.' <identifier>
 std::unique_ptr<Expr> Parser::parsePostfixExpr() {
   varOrReturn(expr, parsePrimary());
 
