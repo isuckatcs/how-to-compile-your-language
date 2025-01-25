@@ -204,16 +204,19 @@ llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
     retVal = args.emplace_back(
         allocateStackVariable("struct.ret.tmp", calleeDecl->type));
 
+  size_t argIdx = 0;
   for (auto &&arg : call.arguments) {
     llvm::Value *val = generateExpr(*arg);
 
-    if (arg->type.kind == Type::Kind::Struct) {
+    if (arg->type.kind == Type::Kind::Struct &&
+        calleeDecl->params[argIdx]->isMutable) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", arg->type);
       storeValue(val, tmpVar, arg->type);
       val = tmpVar;
     }
 
     args.emplace_back(val);
+    ++argIdx;
   }
 
   llvm::CallInst *callInst = builder.CreateCall(callee, args);
