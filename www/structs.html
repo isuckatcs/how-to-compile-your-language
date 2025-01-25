@@ -523,12 +523,557 @@ struct S { ... }</code></pre>
 }</code></pre>
                 <p>
                     The semantic analyzer also has to catch the case, when the
-                    struct contains itself through a nested struct.
+                    struct contains itself through one or more nested structs.
                 </p>
                 <pre><code>struct S { x: S2 }
 struct S2 { y: S }
 
 size(S) = size(x) = size(S2) = size(y) = size(S) = ...</code></pre>
+                <p>
+                    A struct cannot have <code>void</code> fields, or multiple
+                    fields with the same name.
+                </p>
+                <pre><code>struct VoidField {
+  f: void,
+  ^ error: field cannot be void
+}
+
+struct DuplicateField {
+  f: number,
+  f: number,
+  ^ error: error: field 'f' is already declared
+}</code></pre>
+                <p>
+                    Upon instantiating a struct, each field must be initialized
+                    but only declared fields can be initialized. Also the same
+                    field cannot be initialized more than once.
+                </p>
+                <pre><code>struct Color {
+  r: number,
+  g: number,
+  b: number,
+}
+
+fn main(): void {
+  Color {
+  ^ error: member 'b' is not initialized
+    r: 255,
+    r: 255,
+    ^ error: field 'r' is already initialized
+    g: 255,
+    a: 0,
+    ^ error: 'Color' has no field named 'a'
+  };
+}</code></pre>
+                <p>
+                    A <code>MemberExpr</code> is only allowed to access the
+                    existing fields of structs.
+                </p>
+                <pre><code>fn main(): void {
+  let n = 0;
+  n.x;
+  ^ error: cannot access member of 'number'
+
+  let c = Color { r: 1, g: 2, b: 3 };
+  c.y;
+   ^ error: 'Color' has no member called 'y'
+}</code></pre>
+                <p>Proceed with performing the following steps:</p>
+                <ol>
+                    <li>
+                        <p>
+                            Extend <code>Type</code> with an additional
+                            <code>structType</code>. The <code>kind</code> field
+                            should store a new <code>Struct</code> kind and the
+                            name field should store the identifier of the
+                            struct.
+                        </p>
+                        <pre><code>static Type structType(const std::string &id) { return {Kind::Struct, id}; }</code></pre>
+                        <p>
+                            Two struct types are considered equal if their
+                            identifiers are equal.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Extend the resolved tree with a new node for every
+                            new AST node.
+                        </p>
+                        <p>
+                            The <code>ResolvedFieldDecl</code> node represents
+                            the resolved version of a <code>FieldDecl</code>.
+                            Besides storing the identifier and the type of the
+                            field, it should also store it's index within the
+                            struct to make code generation easier in the future.
+                        </p>
+                        <pre><code>ResolvedFieldDecl: @(decl.address) identifier</code></pre>
+                        <p>
+                            The <code>ResolvedStructDecl</code> is the resolved
+                            version of a <code>StructDecl</code>, it stores the
+                            resolved field declarations of the struct.
+                        </p>
+                        <pre><code>ResolvedStructDecl: @(decl.address) identifier:
+  ResolvedFieldDecl: @(decl.address) identifier
+  ResolvedFieldDecl: @(decl.address) identifier
+  ResolvedFieldDecl: @(decl.address) identifier</code></pre>
+                        <p>
+                            The <code>ResolvedFieldInitStmt</code> should store
+                            the initializer expression and a pointer to the
+                            declaration of the member being initialized.
+                        </p>
+                        <pre><code>ResolvedFieldInitStmt: @(field.address) identifier
+  &lt;ResolvedExpr></code></pre>
+                        <p>
+                            The members of the struct are initialized in the
+                            order they are declared, so to make code generation
+                            simpler, the
+                            <code>ResolvedStructInstantiationExpr</code>
+                            should store the field initialization statements in
+                            the same order.
+                        </p>
+                        <pre><code>ResolvedStructInstantiationExpr: @(struct.addr)
+  ResolvedFieldInitStmt: @(field.address) identifier
+    &lt;ResolvedExpr>
+  ResolvedFieldInitStmt: @(field.address) identifier
+    &lt;ResolvedExpr>
+  ResolvedFieldInitStmt: @(field.address) identifier
+    &lt;ResolvedExpr></code></pre>
+                        <p>
+                            The <code>ResolvedMemberExpr</code> node stores a
+                            pointer to the accessed member decl and the base
+                            expression returning the struct.
+                        </p>
+                        <pre><code>ResolvedMemberExpr: @(field.address) r
+  &lt;ResolvedExpr></code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            Introduce a <code>ResolvedAssignableExpr</code> no
+                            to represent the
+                            <code>AssignableExpr</code> placeholder node and
+                            make it the base class of
+                            <code>ResolvedDeclRefExpr</code> and
+                            <code>ResolvedMemberExpr</code>. The
+                            <code>ResolvedAssignment</code> node should also
+                            store an <code>ResolvedAssignableExpr</code> instead
+                            of a <code>ResolvedDeclRefExpr</code>.
+                        </p>
+                        <p>
+                            Update the semantic analyzer so that it can resolve
+                            this new node properly.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Resolve every <code>StructDecl</code> before
+                            processing the function declarations. A struct can
+                            store other structs that are not resolved when seen,
+                            because they are declared later in the source code.
+                            To avoid errors, at this point only validate that
+                            fields are not redeclared and are not of
+                            <code>void</code> type.
+                        </p>
+                        <p>
+                            Ensure that in the resolved tree every struct
+                            declaration preceedes any function declaration, to
+                            make code generation easier.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            After function declarations are resolved, resolve
+                            the body of the struct declarations, and check for
+                            structs containing themselves.
+                        </p>
+                    </li>
+                    <li>
+                        <p>Resolve struct instantiation and member access.</p>
+                    </li>
+                    <li>
+                        <p>
+                            Add the new expressions to the CFG and update it, so
+                            that is also stores the LHS of an assignment if it's
+                            not a
+                            <code>ResolvedDeclRefExpr</code>.
+                        </p>
+                    </li>
+                </ol>
+                <h2>Structs in LLVM</h2>
+                <p>
+                    At this point structs can be parsed and validated by the
+                    semantic analyzer. This section introduces how to work with
+                    structs in LLVM IR and see all the previous changes put into
+                    a platform specific executable.
+                </p>
+                <ol>
+                    <li>
+                        <!-- FIXME: use the words 'literal' and 'identified' -->
+                        <p>
+                            The first step towards seeing the new syntactical
+                            changes in action is to represent each resolved
+                            struct as a struct type in LLVM IR.
+                        </p>
+                        <p>
+                            LLVM supports two kinds of struct type, named and
+                            unnamed. An unnamed struct comes in handy for
+                            languages that have built-in support for working
+                            with directly packed together values, also known as
+                            tuple types, or when implementing optimizations, but
+                            more on that later.
+                        </p>
+                        <pre><code>fn returnTuple(): (number, number) { ... }</code></pre>
+                        <p>
+                            The snippet above could be represented with the
+                            following piece of LLVM IR, where
+                            <code>{ double, double }</code> is an unnamed struct
+                            of two double members.
+                        </p>
+                        <pre><code>define { double, double } @returnTuple() { ... }</code></pre>
+                        <p>
+                            Named structs on the other hand are useful to
+                            represent a concrete pack of values, like structs or
+                            classes in a language.
+                        </p>
+                        <pre><code>struct Color { r: number, g: number, b: number }</code></pre>
+                        <p>
+                            The <code>Color</code> struct in LLVM IR would be
+                            written the way below.
+                        </p>
+                        <pre><code>%struct.Color = type { double, double, double }</code></pre>
+                        <p>
+                            It's important to note that while unnamed struct are
+                            structurally uniqued, so every
+                            <code>{ double, double }</code> in the IR refers to
+                            the same type, named structs are always different,
+                            so even if the IR contains
+                            <code>%struct.a = type { double, double }</code> and
+                            <code>%struct.b = type { double, double }</code>,
+                            <code>%struct.a</code> is not the same type as
+                            <code>%struct.b</code>.
+                        </p>
+                        <p>
+                            A struct type can also be opaque, which tells LLVM
+                            that this struct exists, but it doesn't describe
+                            what members it has, similarly to a forward
+                            declaration in C.
+                        </p>
+                        <p>
+                            In this step every
+                            <code>ResolvedStructDecl</code> should be
+                            represented with an opaque identified
+                            <code>llvm::StructType</code>. Every time a struct
+                            type is referenced, it's generated type should be
+                            used, don't generate a new
+                            <code>llvm::StructType</code> multiple times for the
+                            same struct.
+                        </p>
+                        <p>
+                            For example, declaring a <code>Color</code> variable
+                            would look like this.
+                        </p>
+                        <pre><code>%struct.Color = type { double, double, double }
+
+define void @allocateColor() {
+entry:
+  %c = alloca %struct.Color, align 8
+  ret void
+}</code></pre>
+                        <p>
+                            Similarly to what happens in the semantic analyzer,
+                            first a type for every struct declaration needs to
+                            be generated, because they can be referenced by
+                            other structs or function declarations. This should
+                            be straightforward as the resolved tree is
+                            guaranteed to list every
+                            <code>ResolvedStructDecl</code> before any other
+                            declaration.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            After every struct declaration has been given it's
+                            own type in the IR, connect the fields of the struct
+                            to a valid type declaration.
+                        </p>
+                        <p>
+                            This step should turn the currently opaque structs
+                            into complete struct types with every field type
+                            correctly specified.
+                        </p>
+                        <pre><code>%struct.S = type opaque
+%struct.S2 = type opaque</code></pre>
+                        <p>
+                            The above structs will turn into ones similar to
+                            these below.
+                        </p>
+                        <pre><code>%struct.S = type { %struct.S2 }
+%struct.S2 = type { double, double }</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            With struct types being supported, it's possible to
+                            generate code for struct instantiations. In LLVM
+                            they way to instantiate structs is to allocate them
+                            first and then initialize each member separately.
+                        </p>
+                        <pre><code>Color { r: 1, g: 2, b: 3 }</code></pre>
+                        <p>
+                            As it can be seen, a struct instantiation expression
+                            doesn't allocate a struct automatically, so it has
+                            to be done manually. Then the fields of this
+                            manually allocated struct will be initialized to the
+                            specified values.
+                        </p>
+                        <p>
+                            The above expression in LLVM IR would result in the
+                            following logic. Note that in source code the
+                            following snippet is invalid, it is only for
+                            illustration purposes.
+                        </p>
+                        <pre><code>let tmp: Color;
+tmp.r = 1;
+tmp.g = 2;
+tmp.b = 3;</code></pre>
+                        <p>
+                            Allocating a new variable is straightforward, the
+                            resultin IR will look like this.
+                        </p>
+                        <pre><code>%Color.tmp = alloca %struct.Color, align 8</code></pre>
+                        <p>
+                            Accessing a field of a variable however was not
+                            necessary until now. In LLVM IR, the field of a
+                            struct is accessed by it's index and not by it's
+                            name. This is the reason for also storing the index
+                            of the field in a <code>ResolvedMemberExpr</code>.
+                        </p>
+                        <!-- FIXME: link to the offcial guide that explains GEP -->
+                        <p>
+                            The field is accessed with the
+                            <code>GetElementPointer</code> instruction. This
+                            instruction can be confusing, so the recommended way
+                            is to let the
+                            <code>llvm::IRBuilder::CreateStructGEP()</code>
+                            helper create it. This helper takes the type of the
+                            struct, a pointer to the beginning of the struct and
+                            the index of the element that needs to be accessed.
+                        </p>
+                        <p>
+                            Initializing <code>tmp.r</code> means calculating
+                            the pointer to the <code>r</code> field and
+                            assigning the initial value to it.
+                        </p>
+                        <pre><code>%0 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
+store double 1.000000e+00, double* %0, align 8</code></pre>
+                        <p>
+                            The full LLVM IR for instantiating the
+                            <code>Color</code> struct at the beginning of this
+                            point looks like this.
+                        </p>
+                        <pre><code>%Color.tmp = alloca %struct.Color, align 8
+%0 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
+store double 1.000000e+00, double* %0, align 8
+%1 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 1
+store double 2.000000e+00, double* %1, align 8
+%2 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 2
+store double 3.000000e+00, double* %2, align 8</code></pre>
+                        <p>
+                            Note that the example struct deliberately has only
+                            <code>number</code> fields. Assigning values to
+                            struct fields works differently and will be
+                            discussed later.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            In the previous points fields of structs have
+                            already been accessed, so it's the perfect time to
+                            implement code generation support for
+                            <code>ResolvedMemberExpr</code>.
+                        </p>
+                        <p>
+                            To read the field of a struct, at some point code
+                            for a <code>ResolvedDeclRefExpr</code> that
+                            references the struct needs to be generated. While
+                            numbers are loaded into a register, when referenced,
+                            struct behave like immutable function parameters and
+                            they are never loaded into registers, so it must be
+                            unsured that a
+                            <code>ResolvedDeclRefExpr</code> referencing a
+                            struct always results in a pointer to that struct
+                            without being followed by a load instruction.
+                        </p>
+                        <p>
+                            A member access results in a
+                            <code>GetElementPointer</code> instruction on the
+                            pointer returned from generating code for it's base
+                            expression, however there is a difference in how
+                            it's followed up depending on whether the field is
+                            being written or read.
+                        </p>
+                        <p>
+                            When the value of a numberic field is being read, it
+                            has to be loaded from memory.
+                        </p>
+                        <pre><code>%3 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
+%4 = load double, double* %3, align 8</code></pre>
+                        <p>
+                            On the other hand, if the field is being assigned
+                            the <code>store</code> instruction expects a pointer
+                            operand, so the field doesn't have to be loaded.
+                        </p>
+                        <pre><code>%3 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
+store double 1.000000e+00, double* %3, align 8</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            At this point creating temporary structs and reading
+                            their fields immediately should work correctly, but
+                            it would be convenient to also be able to store the
+                            structs in variables, initialize struct fields or
+                            assign a struct variable a different value.
+                        </p>
+                        <p>
+                            All of the above use cases are handled by the same
+                            logic. The difference between structs and numbers is
+                            that they are not loaded into registers, so the
+                            <code>load</code> and
+                            <code>store</code> instructions don't work for them.
+                            Any time a struct is assigned, the value of each
+                            field must be manually assigned to the same field of
+                            the destination struct.
+                        </p>
+                        <pre><code>let s = Color { r: 1, g: 2, b: 3 };</code></pre>
+                        <p>
+                            Based on this logic and what's already implemented,
+                            the above snippet is equivalent to the following
+                            piece of code.
+                        </p>
+                        <!-- FIXME: talk about copy elision here and memcpy-ing constant structs -->
+                        <pre><code>let tmp: Color;
+tmp.r = 1;
+tmp.g = 2;
+tmp.b = 3;
+
+let s: Color;
+s.r = tmp.r;
+s.g = tmp.g;
+s.b = tmp.b;</code></pre>
+                        <!-- FIXME: talk about what an intrinsic is -->
+                        <p>
+                            Manually assigning every field however would result
+                            in duplicating the work and generating large LLVM IR
+                            code. The goal is to make the content of the piece
+                            of memory that houses <code>s</code> the same as the
+                            content of the memory housing <code>tmp</code>. For
+                            this use case, LLVM has a builtin
+                            <code>memcpy</code> intrinsic, that copies a
+                            specific amount of memory from one place to another.
+                            With that an assignment between 2 struct variables
+                            can be simplified to a few lines only.
+                        </p>
+                        <pre><code>%3 = bitcast %struct.Color* %s to i8*
+%4 = bitcast %struct.Color* %Color.tmp to i8*
+call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)</code></pre>
+                        <p>
+                            This is the version of <code>memcpy</code> created
+                            by the
+                            <code>llvm::IRBuilder::CreateMemCpy()</code> helper.
+                            To use this helper, the alignment and the size of
+                            the struct must be calculted first, which can be
+                            done easily with the help of the
+                            <code>llvm::DataLayout</code> utility.
+                        </p>
+                    </li>
+                    <!-- FIXME: explain why immutable parameters don't need to be copied, but why they are in C++ (constness can be cast away) -->
+                    <li>
+                        <p>
+                            By this point structs should be fully functional
+                            within the body of a function. The last thing to do
+                            is to implement support for passing them to and
+                            returning them from functions.
+                        </p>
+                        <p>
+                            Structs are passed to functions by value, however as
+                            mentioned previously in LLVM IR only the pointer to
+                            the struct can be moved around. Passing by value
+                            means that no modification to the parameter is
+                            visible outside the function, and this can be
+                            achived in LLVM IR.
+                        </p>
+                        <p>
+                            For mutable parameters the trick is to create a copy
+                            of the struct in the caller and pass a pointer to
+                            that copy.
+                        </p>
+                        <pre><code>%c = alloca %struct.Color, align 8
+%struct.arg.tmp = alloca %struct.Color, align 8
+...
+%5 = bitcast %struct.Color* %struct.arg.tmp to i8*
+%6 = bitcast %struct.Color* %c to i8*
+call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 24, i1 false)
+call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tmp)</code></pre>
+                        <p>
+                            Notice how the <code>byval</code> attribute is added
+                            to the function. It is a way to let LLVM know that
+                            the particular parameter actually simulates a
+                            pass-by-value semantic and when it does, this
+                            attribute must be present at both the function
+                            declaration and the callsite.
+                        </p>
+                        <pre><code>define void @mutableStructParam(%struct.Color* byval(%struct.Color) %c) {
+  ...
+}
+
+call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tmp)</code></pre>
+                        <p>
+                            When the parameter is immutable, there is no need to
+                            copy the struct, as there are no modifications that
+                            can visible in the caller. To indicate that the
+                            struct will never be modified inside the function
+                            through the pointer, the
+                            <code>readonly</code> attribute can be used. This
+                            attribute is not compulsory though and can be
+                            omitted.
+                        </p>
+                        <pre><code>%c = alloca %struct.Color, align 8
+...
+call void @immutableStructParam(%struct.Color* readonly %c)</code></pre>
+                        <p>
+                            Returning the struct is also done through a
+                            dedicated parameter. If the function returns a
+                            struct by value, a temporary variable that stores
+                            the return value is allocated in the caller and the
+                            pointer to this value is passed as the first
+                            parameter of the function marked by the
+                            <code>sret</code> attribute. The function is
+                            otherwise treated as if it was a void function.
+                        </p>
+                        <pre><code>define void @caller() {
+entry:
+  %struct.ret.tmp = alloca %struct.Color, align 8
+  call void @returnStruct(%struct.Color* sret(%struct.Color) %struct.ret.tmp)
+  ret void
+}
+
+define void @returnStruct(%struct.Color* sret(%struct.Color) %ret) {
+entry:
+  %Color.tmp = alloca %struct.Color, align 8
+  ...
+  %3 = bitcast %struct.Color* %ret to i8*
+  %4 = bitcast %struct.Color* %Color.tmp to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)
+  br label %return
+
+return: 
+  ret void
+}</code></pre>
+                    </li>
+                </ol>
+                <p>
+                    Congratulations! If every step was implemented correctly,
+                    any arbitrary source code that works with structs can be
+                    compiled and run correctly.
+                </p>
             </section>
             <footer>
                 <p>
