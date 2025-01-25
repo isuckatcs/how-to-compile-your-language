@@ -241,289 +241,424 @@ entry:
                         </p>
                     </li>
                 </ol>
-                <h2>Accepting the New Syntax</h2>
+                <h2>The Struct Syntax</h2>
                 <p>
-                    A struct declaration can only appear on the top level, so
-                    nested struct declarations are not allowed. Each such
-                    declaration constains a list of field declarations separated
-                    by commas. A trailing comma is allowed at the end.
-                </p>
-                <p>
-                    A field declaration is the name and the type of the field
-                    separated by a <code>:</code>.
-                </p>
-                <pre><code>struct S {
-    field: type,
-    field: type,
-    field: type,
-}</code></pre>
-                <p>
-                    By making the comma at the end optional, the
-                    <code>struct</code> can also be written on only a single
-                    line conveniently.
-                </p>
-                <pre><code>struct S { field: type, field: type, field: type }</code></pre>
-                <p>
-                    This syntax would require the parser to recognize the
-                    grammar below.
-                </p>
-                <pre><code>&lt;sourceFile> 
-    ::= (&lt;structDecl> | &lt;functionDecl>)* EOF
-
-&lt;structDecl>
-    ::= 'struct' &lt;identifier> &lt;fieldList>
-
-&lt;fieldList>
-    ::= '{' (&lt;fieldDecl> (',' &lt;fieldDecl>)* ','?)? '}'</code></pre>
-                <p>
-                    Instantiating the structs happends using the same syntax,
-                    except for dropping the <code>struct</code> keyword from the
-                    beginning and by pairing the fields with expressions that
-                    give values to them.
-                </p>
-                <pre><code>S {
-  field: expr, 
-  field: expr, 
-  field: expr,
-};</code></pre>
-                <p>
-                    A struct instantiation expression is added to the language
-                    as a primary expression, so the resulting grammar is the
-                    following.
-                </p>
-                <pre><code>&lt;primaryExpr>
-    ::= ...
-    |   &lt;structInstantiation>
-    |   &lt;declRefExpr>
-
-&lt;structInstantiation>
-    ::= &lt;identifier> &lt;fieldInitList>
-
-&lt;fieldInitList>
-    ::= '{' (&lt;fieldInit> (',' &lt;fieldInit>)* ','?)? '}'
-
-&lt;memberInit>
-    ::= &lt;identifier> ':' &lt;expr></code></pre>
-                <p>
-                    Notice how <code>structInstantiation</code> is listed before
-                    <code>declRefExpr</code>. Each of these expressions start
-                    with an <code>identifier</code>, but a
-                    <code>structInstantiation</code> has a priority over a
-                    <code>declRefExpr</code>. This ensures that if an expression
-                    can be parsed as a struct instantiation, it is parsed that
-                    way instead of just parsing the name of the struct as a
-                    reference declaration and erroring out on the
-                    <code>{</code> token.
-                </p>
-                <pre><code>Error { ... };
-      ^
-error: expected ';' at the end of expression</code></pre>
-                <p>
-                    Also notice how this struct instantiation syntax introduces
-                    an ambiguity when placed in the condition of an
-                    <code>if</code> or <code>while</code> statement.
-                </p>
-                <pre><code>if Ambiguous {} {}</code></pre>
-                <p>
-                    This can either be parsed as the condition is a reference to
-                    a variable called <code>Ambiguous</code> followed by an
-                    emtpy block, or as the condition is an instantiated struct
-                    followed by an empty block.
-                </p>
-                <pre><code>IfStmt
-  DeclRefExpr: Ambiguous
-  Block
-error: expected expression
-
-IfStmt
-  StructInstantiationExpr: Ambiguous
-    ...
-  Block
-</code></pre>
-                <p>
-                    To resolve this ambiguity a
-                    <code>structInstantiation</code> is not allowed inside a
-                    condition and the parser should ensure that the statement is
-                    always parsed the first way, that results in an error.
-                </p>
-                <p>
-                    If for any reason a struct needs to be instantiated in a
-                    condition, it should be wrapped in a grouping expression as
-                    it can disambiguate the condition.
-                </p>
-                <pre><code>if (NoLongerAmbiguous {}) {}</code></pre>
-
-                <p>
-                    After declaring and instantiating structs, there must be a
-                    way to read their members, that gives the last syntactical
-                    extension of the language.
-                </p>
-                <p>
-                    Since a struct can have fields that are also structs, any
-                    arbitrarily deep members can be accessed, or assigned. A
-                    struct can also be returned from a function and accessing or
-                    assigning the members of the returned struct is also
-                    allowed, which means all of the expressions below are valid.
-                </p>
-                <pre><code>s.f1.f2.f3 = v
-foo().f1.f2 = v</code></pre>
-                <p>
-                    On the other hand a struct can't have methods, so calling an
-                    accessed field is not allowed.
-                </p>
-                <pre><code>not.allowed()</code></pre>
-                <p>
-                    This limitation can be handled in the parser by modifying
-                    <code>postfixExpression</code> the following way.
-                </p>
-                <pre><code>&lt;postfixExpression>
-    ::= &lt;primaryExpression> &lt;argumentList>? ('.' &lt;identifier>)*</code></pre>
-                <p>
-                    To make the parser support the syntactical modifications
-                    take the following steps:
+                    The first bigger step towards supporting structs in the
+                    language is correctly recognizing their syntax, which means
+                    teaching it to the parser. This section describes how the
+                    syntax was designed and explains every step to take to end
+                    up with the parser correctly recognizing this new sytax.
                 </p>
                 <ol>
                     <li>
                         <p>
-                            Update the lexer so that it recognizes every new
-                            token and keyword.
+                            Notice how the example in the
+                            <code>Motivation</code> sections already spoiled all
+                            the new tokens that the lexer must recognize. These
+                            are the <code>struct</code> keyword and the
+                            <code>.</code> when a field is accessed. Let's
+                            update the lexer so that it produces
+                            <code>TokenKind::KwStruct</code> and
+                            <code>TokenKind::Dot</code>, when it sees them.
                         </p>
                     </li>
                     <li>
                         <p>
-                            Extend the AST with new nodes that represent the
-                            elements of the new syntax. To make this point
-                            easier below can be seen a short description and the
-                            AST dump of every node that needs to be added.
+                            The introduction of structs changes the top level of
+                            the source file from a list of function declarations
+                            to a list of function and struct declarations.
+                        </p>
+                        <pre><code>&lt;sourceFile> 
+  ::= (&lt;structDecl> | &lt;functionDecl>)* EOF</code></pre>
+                        <p>
+                            To be able to see the changes and visualize the AST
+                            dump as soon as possible, make sure the parser
+                            returns a list of <code>Decl</code> instead of the
+                            current list of <code>FunctionDecl</code> as the
+                            AST. This makes the <code>-ast-dump</code> flag work
+                            and print out the full AST for a better debugging
+                            experience.
+                        </p>
+                        <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;Decl>>, bool> parseSourceFile();</code></pre>
+                        <p>
+                            The AST should preserve the declaration order in the
+                            source code, so if a struct is declared before a
+                            function in the source code, it should also preceed
+                            it in the AST.
                         </p>
                         <p>
-                            The <code>FieldDecl</code> node represents a field
-                            declaration by storing the identifier and the type
-                            of the field.
+                            Note that after changing the type of the returned
+                            AST in the parser, the driver will not compile
+                            because the next step in the compilation pipeline
+                            still expects a list of <code>FunctionDecl</code>.
+                            To make the compiler still produce an executable
+                            from every already supported source code, introduce
+                            a temporary adapter in the driver that extracts the
+                            function declarations from the AST and only passes
+                            those furher down the pipeline. This adapter will be
+                            removed at the beginning of the next section.
                         </p>
-                        <pre><code>FieldDecl: identifier:type</code></pre>
-                        <p>
-                            The <code>StructDecl</code> node represents the
-                            struct declaration. It also houses every
-                            <code>FieldDecl</code> inside the struct.
-                        </p>
-                        <pre><code>StructDecl: identifier
-  FieldDecl: identifier:type
-  FieldDecl: identifier:type
-  FieldDecl: identifier:type</code></pre>
-                        <p>
-                            The <code>FieldInitStmt</code> node represents a
-                            field initialization inside a struct instantiation.
-                            It stores the identifier of the field that's being
-                            initialized as well as the expression the result of
-                            which is used to initialize the field.
-                        </p>
-                        <pre><code>FieldInitStmt: identifier
-  &lt;Expr></code></pre>
-                        <p>
-                            The
-                            <code>StructInstantiationExpr</code>
-                            represents a struct instantiation by storing the
-                            identifier of the struct and the list of member
-                            initialization statements.
-                        </p>
-                        <pre><code>StructInstantiationExpr: identifier
-  FieldInitStmt: identifier
-    &lt;Expr>
-  FieldInitStmt: identifier
-    &lt;Expr>
-  FieldInitStmt: identifier
-    &lt;Expr></code></pre>
-                        <p>
-                            The <code>MemberExpr</code> node represents an
-                            access to a field of a struct. It stores the base
-                            expression that is used to refer to the struct and
-                            the identifier of the field being accessed.
-                        </p>
-                        <pre><code>MemberExpr: .identifier
-  &lt;Expr></code></pre>
                     </li>
                     <li>
                         <p>
-                            To enforce the restrictions on the LHS of an
-                            assigment in the parser, introduce an
+                            The first new element to recognize is the struct
+                            declaration, which as mentioned appears on the top
+                            level and only on the top level, so nested struct
+                            declarations are not allowed. It starts with the
+                            <code>struct</code> keyword followed by a
+                            <code>{}</code> enclosed list of zero or many field
+                            declaration.
+                        </p>
+                        <pre><code>struct S { ... }</code></pre>
+                        <p>
+                            A field declaration is a <code>:</code> separated
+                            pair of an identifier and a type. In the body of a
+                            struct these declarations are separated by commas
+                            with an optional trailing comma at the end.
+                        </p>
+                        <pre><code>struct S {
+  field: type,
+  field: type,
+  field: type,
+}</code></pre>
+                        <p>
+                            By adding the trailing comma, the
+                            <code>struct</code> can also be written on only a
+                            single line conveniently.
+                        </p>
+                        <pre><code>struct S { field: type, field: type, field: type }</code></pre>
+                        <p>
+                            This syntax leads to the following extension of the
+                            grammar.
+                        </p>
+                        <pre><code>&lt;structDecl>
+  ::= 'struct' &lt;identifier> &lt;fieldList>
+
+&lt;fieldList>
+  ::= '{' (&lt;fieldDecl> (',' &lt;fieldDecl>)* ','?)? '}'
+
+&lt;fieldDecl>
+  ::= &lt;identifier> ':' &lt;type></code></pre>
+                        <p>
+                            Update the parser so that it recognizes this grammar
+                            extension and produces the following AST nodes. Note
+                            that the constructors have been omitted from the
+                            example, but need to be present in source code.
+                        </p>
+                        <pre><code>struct FieldDecl : public Decl {
+  Type type;
+
+  ...
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) << "FieldDecl: "
+              << identifier << ':' << type.name
+              << '\n';
+  }
+};
+
+struct StructDecl : public Decl {
+  std::vector&lt;std::unique_ptr&lt;FieldDecl>> fields;
+
+  ...
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) << "StructDecl: "
+              << identifier << '\n';
+  
+    for (auto &&field : fields)
+      field->dump(level + 1);
+  }
+};</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            The syntax of instantiating a struct is almost
+                            identical to declaring it except for the missing
+                            <code>struct</code> keyword in front of the
+                            identifier and that in the <code>{}</code> enclosed
+                            list of fields, the <code>:</code> is not followed
+                            by a type, but an expression that sets the value of
+                            that field.
+                        </p>
+                        <pre><code>S {
+  field: expr, 
+  field: expr, 
+  field: expr,
+}</code></pre>
+                        <p>
+                            The struct instantiation can also be written on a
+                            single line conveniently because of the optional
+                            trailing comma at the end of the field initializer
+                            list.
+                        </p>
+                        <pre><code>S { field: expr, field: expr, field: expr }</code></pre>
+                        <p>
+                            Instantiating a struct is considered a primary
+                            expression, so the extended grammar looks like this
+                            below.
+                        </p>
+                        <pre><code>&lt;primaryExpression>
+  ::= ...
+  |   &lt;structInstantiation>
+  |   &lt;declRefExpr>
+  |   ...
+
+&lt;structInstantiation>
+  ::= &lt;identifier> &lt;fieldInitList>
+
+&lt;fieldInitList>
+  ::= '{' (&lt;fieldInit> (',' &lt;fieldInit>)* ','?)? '}'
+
+&lt;fieldInit>
+  ::= &lt;identifier> ':' &lt;expr></code></pre>
+                        <p>
+                            Notice how <code>structInstantiation</code> is
+                            listed before <code>declRefExpr</code>. Each of
+                            these expressions start with an
+                            <code>identifier</code>, but a
+                            <code>structInstantiation</code> has a priority over
+                            a <code>declRefExpr</code>.
+                        </p>
+                        <p>
+                            This ensures that if an expression can be parsed as
+                            a struct instantiation, it is always parsed as one,
+                            instead of parsing a
+                            <code>declRefExpr</code> and erroring out on the
+                            <code>{</code> token.
+                        </p>
+                        <pre><code>Error { ... };
+      ^
+error: expected ';' at the end of expression</code></pre>
+                        <p>
+                            Update the parser so that it correctly recognizes
+                            the new primary expression and produces the
+                            following AST nodes. The constructors are once again
+                            omitted.
+                        </p>
+                    </li>
+                    <pre><code>struct FieldInitStmt : public Stmt {
+  std::string identifier;
+  std::unique_ptr&lt;Expr> initializer;
+
+  ...
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) 
+              << "FieldInitStmt: " << identifier
+              << '\n';
+    initializer->dump(level + 1);
+  }
+};
+
+struct StructInstantiationExpr : public Expr {
+  std::string identifier;
+  std::vector&lt;std::unique_ptr&lt;FieldInitStmt>>
+    fieldInitializers;
+
+  ...
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) 
+              << "StructInstantiationExpr: "
+              << identifier << '\n';
+  
+    for (auto &&field : fieldInitializers)
+    field->dump(level + 1);
+  }
+};</code></pre>
+                    <li>
+                        <p>
+                            Notice how this struct instantiation syntax
+                            introduces an ambiguity in the condition of an
+                            <code>if</code> or <code>while</code> statement.
+                        </p>
+                        <pre><code>if condition { ... }</code></pre>
+                        <p>
+                            Because of the grammar modification this would be
+                            parsed as an <code>if</code> followed by a
+                            <code>structInstantiation</code> with a missing
+                            body.
+                        </p>
+                        <pre><code>  structInstantiation
+   ┌───────┴───────┐                          
+if condition { ... } ...
+                     ^ error: expected 'if' body
+</code></pre>
+                        <p>
+                            To resolve this ambiguity, a
+                            <code>structInstantiation</code> is not allowed to
+                            be placed inside a condition and the parser should
+                            ensure that the above example is always parsed as a
+                            <code>declRefExpr</code> followed by a block.
+                        </p>
+                        <pre><code>IfStmt
+  DeclRefExpr: condition
+  Block</code></pre>
+                        <p>
+                            If for any reason a struct needs to be instantiated
+                            in a condition, it can be done by wrapping it in a
+                            grouping expression, as it can disambiguate the
+                            condition.
+                        </p>
+                        <pre><code>if (identifier {}) {}</code></pre>
+                        <p>
+                            Implement a logic similar to what can be found in
+                            the Rust parser, that makes it possible to apply
+                            certain restrictions when an AST node is parsed.
+                        </p>
+                        <p>
+                            When an <code>if</code> or
+                            <code>while</code> condition is parsed, apply a
+                            restriction that tells the parser to ignore struct
+                            instantiations. Upon entering a grouping expression,
+                            every restriction that is currently applied, should
+                            be cleared until the wrapped expression is consumed.
+                        </p>
+                        <pre><code>Statement: if (condition {}) {}
+
+|  parseStmt()                  [NoRestrictions]
+|    parseIfStmt()
+|      parseExpr()              [StructNotAllowed]
+|       ...
+|         parseGroupingExpr()  
+|           parseExpr()         [NoRestrictions]
+|             ...
+|           parseExpr()
+|         parseGroupingExpr()   [StructNotAllowed]
+|       ...
+|      parseExpr()
+|      parseBlock()             [NoRestrictions]
+|       ...
+</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            After declaring and instantiating structs, the final
+                            syntactical extension makes it possible to access
+                            their fields.
+                        </p>
+                        <p>
+                            Since a struct can have fields that are also
+                            structs, any arbitrarily deep field can be read or
+                            written. A struct can also be returned from a
+                            function and reading or assigning the fields of the
+                            returned struct is also allowed, which means all the
+                            following expressions should be accepted.
+                        </p>
+                        <pre><code>s.f1.f2.f3
+foo().f1.f2</code></pre>
+                        <p>
+                            On the other hand a struct cannot have function
+                            fields or methods, so calling an accessed field is
+                            not possible.
+                        </p>
+                        <pre><code>not.possible()</code></pre>
+                        <p>
+                            The restriction that a call expression, if present,
+                            must be the first expression in the chain can be
+                            enforced in the parser by modifying
+                            <code>postfixExpression</code> the following way.
+                        </p>
+                        <pre><code>&lt;postfixExpression>
+  ::= &lt;primaryExpression> &lt;argumentList>? &lt;memberExpr>*
+
+&lt;memberExpr>
+  ::= '.' &lt;identifier></code></pre>
+                        <p>
+                            Update the parser so that it correctly consumes
+                            member expressions and creates the following node
+                            for them. Similarly to the previous examples, the
+                            construcor has been omitted.
+                        </p>
+                        <pre><code>struct MemberExpr : public Expr {
+  std::unique_ptr&lt;Expr> base;
+  std::string member;
+
+  ...
+
+  void dump(size_t level = 0) const override {
+    std::cerr << indent(level) << "MemberExpr: ."
+              << member << '\n';
+  
+    base->dump(level + 1);
+  }
+};</code></pre>
+                    </li>
+                    <li>
+                        <p>
+                            The previous point mentioned that a
+                            <code>MemberExpr</code> can also be used to assign a
+                            value to a field, however and assignment expression
+                            is still restricted so that it only accepts a
+                            <code>DeclRefExpr</code> on it's left-hand side,
+                            thus getting the following statement rejected.
+                        </p>
+                        <pre><code>s.f = 1;</code></pre>
+                        <p>
+                            To make a field assignable while still maintaining a
+                            strict restriction on the LHS of the assignment the
+                            grammar can be updated the way below.
+                        </p>
+                        <pre><code>&lt;assignment>
+  ::= (&lt;declRefExpr> | &lt;memberExpr>) '=' &lt;expr> ';'</code></pre>
+                        <p>
+                            To model the grammar change in the AST, introduce an
                             <code>AssignableExpr</code> placeholder node and
                             make it the base class of
                             <code>DeclRefExpr</code> and
                             <code>MemberExpr</code>. The
-                            <code>Assignment</code> node should also store an
-                            <code>AssignableExpr</code> instead of a
-                            <code>DeclRefExpr</code>.
+                            <code>Assignment</code> node should also store this
+                            node instead of a <code>DeclRefExpr</code>.
                         </p>
+                        <pre><code>struct AssignableExpr : public Expr { ... };
+
+struct DeclRefExpr : public AssignableExpr { ... };
+
+struct MemberExpr : public AssignableExpr { ... };
+
+struct Assignment : public Stmt {
+  std::unique_ptr&lt;AssignableExpr> assignee;
+  ...
+};</code></pre>
                         <p>
-                            Update the parser so that it also uses this new node
-                            while parsing an assignment.
-                        </p>
-                    </li>
-                    <li>
-                        <!-- FIXME: explain why the declaration order is preserved in the ast -->
-                        <p>
-                            Extend the parser so that it can parse the grammar
-                            extensions according to their specification
-                            described at the top of this section. Because the
-                            top level of the source file is no longer a list of
-                            functions but a list of functions and structs, the
-                            parser should now return a list of declarations.
-                        </p>
-                        <!-- FIXME: point the reader to the rust parser as a source of help -->
-                        <p>
-                            To resolve the ambiguity of structs inside
-                            conditions find a way to support restrictions on
-                            parsing a specific element.
-                        </p>
-                        <p>
-                            When the condition is parsed, a restriction that
-                            disallows parsing struct instantiation should be
-                            applied to that expression. A grouping expression on
-                            the other hand should disable every restriction that
-                            is currently applied, as it creates a new context
-                            for the expression it wraps.
+                            Update the parser so that it also accepts a
+                            <code>MemberExpr</code> on the LHS of an assignment.
                         </p>
                     </li>
                     <li>
                         <p>
-                            Extend the parser error recovery, so that
+                            Update the error recovery mechanism, so that
                             synchronization also happens on the
-                            <code>struct</code> keyword. For update
+                            <code>struct</code> keyword. Also update
                             <code>synchronizeOn()</code> to accept a list of
                             tokens instead of a single token only, as on the top
                             level both <code>struct</code> and
-                            <code>fn</code> is a synchronization point.
+                            <code>fn</code> is a synchronization point and
+                            synchronization should happen on the keyword that is
+                            encountered first.
                         </p>
-                        <pre><code>fail struct {} fn ...
-┌─────┐ ┌────────┐ ┌───┐ ┌───┐ ┌────┐ ┌─────┐
-│ ... │ │ struct │ │ { │ │ } │ │ fn │ │ ... │
-└─────┘ └────────┘ └───┘ └───┘ └────┘ └─────┘
-   ^        ^                    ^
-   |        └ synchronize here   └ don't skip here
-   └ fail here</code></pre>
+                        <pre><code>fail struct ... fn ...
+┌─────┐ ┌────────┐ ┌─────┐ ┌────┐ ┌─────┐
+│ ... │ │ struct │ │ ... │ │ fn │ │ ... │
+└─────┘ └────────┘ └─────┘ └────┘ └─────┘
+ ^        ^                  ^
+ |        └ synchronize here └ don't skip here
+ └ fail here</code></pre>
                         <p>
                             If a failure happens inside a struct instantiation,
-                            the parser should explicitly synchronize on the next
+                            the parser should manually synchronize on the next
                             <code>}</code> token instead of waiting for an
-                            automatic synchronization on the top level.
+                            automatic synchronization on the block level, as the
+                            parser might think the <code>}</code> is the end of
+                            the statement, however it is not always true.
                         </p>
                         <pre><code>S { f1: fail, f2: 0 }
-┌─────┐ ┌───┐ ┌─────┐ ┌───┐
-│ ... │ │ , │ │ ... │ │ } │
-└─────┘ └───┘ └─────┘ └───┘
-   ^                    ^                 
-   └ fail here          └ synchronize here</code></pre>
-                    </li>
-                    <li>
-                        <p>
-                            At this point the driver is broken as it still
-                            expects a list of function declarations that it
-                            either dumps or passes to the semantic analyzer. Fix
-                            the errors in the driver and make sure that every
-                            code that compiled before the parser extension still
-                            compiles.
-                        </p>
+┌─────┐ ┌───┐ ┌────┐ ┌───┐ ┌───┐ ┌───┐
+│ ... │ │ , │ │ f2 │ │ : │ │ 0 │ │ } │
+└─────┘ └───┘ └────┘ └───┘ └───┘ └───┘
+ ^                                 ^
+ └ fail here                       └ sync here</code></pre>
                     </li>
                 </ol>
                 <h2>Semantic of Structs</h2>
