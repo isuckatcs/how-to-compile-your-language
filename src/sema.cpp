@@ -321,7 +321,9 @@ Sema::resolveStructInstantiation(
                   "'" + structInstantiation.identifier +
                       "' is not a struct type");
 
-  std::map<std::string_view, std::unique_ptr<ResolvedMemberInitStmt>> inits;
+  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> resolvedMemberInits;
+  std::map<std::string_view, const ResolvedMemberInitStmt *> inits;
+
   std::map<std::string_view, const ResolvedMemberDecl *> members;
   for (auto &&memberDecl : st->members)
     members[memberDecl->identifier] = memberDecl.get();
@@ -360,11 +362,11 @@ Sema::resolveStructInstantiation(
       continue;
     }
 
-    inits[id] = std::make_unique<ResolvedMemberInitStmt>(
+    auto init = std::make_unique<ResolvedMemberInitStmt>(
         loc, *memberDecl, std::move(resolvedInitExpr));
+    inits[id] = resolvedMemberInits.emplace_back(std::move(init)).get();
   }
 
-  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> resolvedMemberInits;
   for (auto &&memberDecl : st->members) {
     if (!inits.count(memberDecl->identifier)) {
       report(structInstantiation.location,
@@ -376,7 +378,6 @@ Sema::resolveStructInstantiation(
     auto &initStmt = inits[memberDecl->identifier];
     initStmt->initializer->setConstantValue(
         cee.evaluate(*initStmt->initializer, false));
-    resolvedMemberInits.emplace_back(std::move(initStmt));
   }
 
   if (error)

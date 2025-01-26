@@ -21,39 +21,39 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '0'
-// CHECK-NEXT:   | value: 0
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
 // CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) y
 // CHECK-NEXT:       ResolvedNumberLiteral: '1'
 // CHECK-NEXT:       | value: 1
+// CHECK-NEXT:   ResolvedNumberLiteral: '0'
+// CHECK-NEXT:   | value: 0
 // CHECK-NEXT:   ResolvedNumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
 // CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) x
-// CHECK-NEXT:       ResolvedNumberLiteral: '0'
-// CHECK-NEXT:       | value: 0
 // CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) s2
 // CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) y
 // CHECK-NEXT:           ResolvedNumberLiteral: '1'
 // CHECK-NEXT:           | value: 1
+// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:       ResolvedNumberLiteral: '0'
+// CHECK-NEXT:       | value: 0
 // CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) y
 // CHECK-NEXT:       ResolvedNumberLiteral: '2'
 // CHECK-NEXT:       | value: 2
 // CHECK-NEXT:   ResolvedDeclStmt:
 // CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
 // CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) x
-// CHECK-NEXT:           ResolvedNumberLiteral: '0'
-// CHECK-NEXT:           | value: 0
 // CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) s2
 // CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
 // CHECK-NEXT:             ResolvedMemberInitStmt: @({{.*}}) y
 // CHECK-NEXT:               ResolvedNumberLiteral: '1'
 // CHECK-NEXT:               | value: 1
+// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedNumberLiteral: '0'
+// CHECK-NEXT:           | value: 0
 // CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) y
 // CHECK-NEXT:           ResolvedNumberLiteral: '2'
 // CHECK-NEXT:           | value: 2

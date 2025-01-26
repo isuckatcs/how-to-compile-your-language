@@ -138,12 +138,15 @@ Codegen::generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie) {
   llvm::Value *tmp =
       allocateStackVariable(structType.name + ".tmp", structType);
 
+  std::map<const ResolvedMemberDecl *, llvm::Value *> initializerVals;
+  for (auto &&initStmt : sie.memberInitializers)
+    initializerVals[initStmt->member] = generateExpr(*initStmt->initializer);
+
   size_t idx = 0;
-  for (auto &&initStmt : sie.memberInitializers) {
-    llvm::Value *val = generateExpr(*initStmt->initializer);
+  for (auto &&member : sie.structDecl->members) {
     llvm::Value *dst =
         builder.CreateStructGEP(generateType(structType), tmp, idx++);
-    storeValue(val, dst, initStmt->member->type);
+    storeValue(initializerVals[member.get()], dst, member->type);
   }
 
   return tmp;
