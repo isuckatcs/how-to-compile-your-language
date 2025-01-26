@@ -11,7 +11,6 @@
 
 namespace yl {
 
-// FIXME: rework for better struct support
 struct Type {
   enum class Kind { Void, Number, Custom, Struct };
 

@@ -37,7 +37,6 @@ class Codegen {
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
-  // FIXME: replace the bool flag with a better solution
   llvm::Value *generateMemberExpr(const ResolvedMemberExpr &memberExpr,
                                   bool keepPointer = false);
   llvm::Value *
