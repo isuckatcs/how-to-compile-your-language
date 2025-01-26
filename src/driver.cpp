@@ -115,19 +115,19 @@ int main(int argc, const char **argv) {
   auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
-    for (auto &&fn : resolvedTree)
-      fn->dump();
+    for (auto &&decl : resolvedTree)
+      decl->dump();
     return 0;
   }
 
   if (options.cfgDump) {
-    for (auto &&fn : resolvedTree) {
-      const auto *fd = dynamic_cast<const ResolvedFunctionDecl *>(fn.get());
-      if (!fd)
+    for (auto &&decl : resolvedTree) {
+      const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get());
+      if (!fn)
         continue;
 
       std::cerr << fn->identifier << ':' << '\n';
-      CFGBuilder().build(*fd).dump();
+      CFGBuilder().build(*fn).dump();
     }
     return 0;
   }
