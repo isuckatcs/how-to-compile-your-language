@@ -9,7 +9,7 @@
 
 namespace yl {
 namespace {
-int getTokPrecedence(TokenKind tok) {
+constexpr int getTokPrecedence(TokenKind tok) {
   switch (tok) {
   case TokenKind::Asterisk:
   case TokenKind::Slash:
@@ -30,6 +30,12 @@ int getTokPrecedence(TokenKind tok) {
     return -1;
   }
 }
+
+constexpr bool isTopLevelToken(TokenKind tok) {
+  return tok == TokenKind::Eof || tok == TokenKind::KwFn ||
+         tok == TokenKind::KwStruct;
+}
+
 }; // namespace
 
 // Synchronization points:
@@ -60,8 +66,7 @@ void Parser::synchronize() {
     } else if (kind == TokenKind::Semi && braces == 0) {
       eatNextToken(); // eat ';'
       break;
-    } else if (kind == TokenKind::KwFn || kind == TokenKind::KwStruct ||
-               kind == TokenKind::Eof)
+    } else if (isTopLevelToken(kind))
       break;
 
     eatNextToken();
@@ -209,8 +214,7 @@ std::unique_ptr<Block> Parser::parseBlock() {
     if (nextToken.kind == TokenKind::Rbrace)
       break;
 
-    if (nextToken.kind == TokenKind::Eof || nextToken.kind == TokenKind::KwFn ||
-        nextToken.kind == TokenKind::KwStruct)
+    if (isTopLevelToken(nextToken.kind))
       return report(nextToken.location, "expected '}' at the end of a block");
 
     std::unique_ptr<Stmt> stmt = parseStmt();
@@ -469,6 +473,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
     eatNextToken(); // eat '.'
 
     matchOrReturn(TokenKind::Identifier, "expected member identifier");
+    assert(nextToken.value && "identifier without value");
 
     expr = std::make_unique<MemberExpr>(location, std::move(expr),
                                         *nextToken.value);
