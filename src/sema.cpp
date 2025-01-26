@@ -685,40 +685,19 @@ Sema::resolveFunctionDecl(const FunctionDecl &function) {
       nullptr);
 };
 
-std::unique_ptr<ResolvedMemberDecl>
-Sema::resolveKnownMemberDecl(const MemberDecl &member, unsigned idx) {
-  Type currentType = member.type;
-  auto resolvedType = currentType.kind == Type::Kind::Custom
-                          ? currentType
-                          : resolveType(member.type);
-
-  assert(resolvedType && "member type unknown");
-
-  if (resolvedType->kind == Type::Kind::Void)
-    return report(member.location, "struct member cannot be void");
-
-  return std::make_unique<ResolvedMemberDecl>(
-      member.location, member.identifier, resolvedType.value_or(member.type),
-      idx);
-}
-
 std::unique_ptr<ResolvedStructDecl>
 Sema::resolveStructDecl(const StructDecl &structDecl) {
+  std::set<std::string_view> identifiers;
   std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
 
   unsigned idx = 0;
   for (auto &&member : structDecl.members) {
-    for (auto &&alreadyResolved : resolvedMembers)
-      if (alreadyResolved->identifier == member->identifier)
-        return report(member->location,
-                      "field '" + member->identifier + "' is already declared");
+    if (!identifiers.emplace(member->identifier).second)
+      return report(member->location,
+                    "field '" + member->identifier + "' is already declared");
 
-    auto resolvedMember = resolveKnownMemberDecl(*member, idx++);
-
-    if (!resolvedMember)
-      return nullptr;
-
-    resolvedMembers.emplace_back(std::move(resolvedMember));
+    resolvedMembers.emplace_back(std::make_unique<ResolvedMemberDecl>(
+        member->location, member->identifier, member->type, idx++));
   }
 
   return std::make_unique<ResolvedStructDecl>(
@@ -743,9 +722,6 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
     }
 
     for (auto &&member : currentDecl->members) {
-      if (member->type.kind != Type::Kind::Custom)
-        continue;
-
       auto type = resolveType(member->type);
       if (!type) {
         report(member->location, "unable to resolve '" + member->type.name +
@@ -753,11 +729,19 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
         return false;
       }
 
-      auto *nestedStruct = lookupDecl<ResolvedStructDecl>(type->name).first;
-      assert(nestedStruct && "unexpected type");
+      if (type->kind == Type::Kind::Void) {
+        report(member->location, "struct member cannot be void");
+        return false;
+      }
+
+      if (type->kind == Type::Kind::Struct) {
+        auto *nestedStruct = lookupDecl<ResolvedStructDecl>(type->name).first;
+        assert(nestedStruct && "unexpected type");
+
+        worklist.push({nestedStruct, visited});
+      }
 
       member->type = *type;
-      worklist.push({nestedStruct, visited});
     }
   }
 
@@ -777,10 +761,12 @@ std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
     if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
       std::unique_ptr<ResolvedDecl> resolvedDecl = resolveStructDecl(*st);
 
-      if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl))
+      if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl)) {
         error = true;
-      else
-        resolvedTree.emplace_back(std::move(resolvedDecl));
+        continue;
+      }
+
+      resolvedTree.emplace_back(std::move(resolvedDecl));
       continue;
     }
 
@@ -816,7 +802,7 @@ std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
   for (auto &&currentDecl : resolvedTree) {
     if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl.get())) {
       if (!resolveStructMembers(*st))
-        return {};
+        error = true;
 
       continue;
     }
