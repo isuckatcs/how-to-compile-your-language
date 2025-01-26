@@ -205,8 +205,7 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
 
 std::optional<Type> Sema::resolveType(Type parsedType) {
   if (parsedType.kind == Type::Kind::Custom) {
-    auto *decl = lookupDecl<ResolvedDecl>(parsedType.name).first;
-    if (dynamic_cast<ResolvedStructDecl *>(decl))
+    if (auto *decl = lookupDecl<ResolvedStructDecl>(parsedType.name).first)
       return Type::structType(decl->identifier);
 
     return std::nullopt;
