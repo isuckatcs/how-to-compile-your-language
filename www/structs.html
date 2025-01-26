@@ -92,8 +92,8 @@ fn rgbToGray(c: RGBColor): number {
                     working on a codebase is always a good idea.
                 </p>
                 <p>
-                    In the current version the language parameters are passed by
-                    value, can only be of
+                    In the current version of the language parameters are passed
+                    by value, can only be of
                     <code>number</code> type and are always immutable. With
                     <code>struct</code> parameters however, there can be use
                     cases when only one or two fields of the struct needs to be
@@ -141,7 +141,7 @@ fn rgbToGray(c: RGBColor): number {
 </code></pre>
                         <p>
                             Don't forget to store whether the parameter is
-                            mutable or not in the AST similary to
+                            mutable or not in the AST similarly to
                             <code>VarDecl</code>, as the semantic analyzer needs
                             this information to ensure that only the allowed
                             operations are performed on the value.
@@ -166,8 +166,8 @@ fn rgbToGray(c: RGBColor): number {
                             only dataflow analysis pass, which expects the LHS
                             of an assignment to be a
                             <code>ResolvedVarDecl</code>, but this is no longer
-                            the case. To make modifying this pass and later the
-                            code generation easier, lift the
+                            the case. To make modifying this pass and later make
+                            the code generation easier, lift the
                             <code>isMutable</code> field up from
                             <code>ResolvedVarDecl</code> to the
                             <code>ResolvedDecl</code> base class.
@@ -182,13 +182,18 @@ fn rgbToGray(c: RGBColor): number {
                             This property should automatically be set to
                             <code>false</code> for every resolved declaration
                             except for variables and parameters, for which it
-                            should be deduced from the AST.
+                            should be deduced from the AST. Note that this
+                            change also forwards the mutability of the parameter
+                            to <code>Codegen</code>, where it can be used for
+                            more efficient LLVM IR generation.
                         </p>
                         <p>
-                            Note that this change also forwards the mutability
-                            of the parameter to <code>Codegen</code>, where it
-                            can be used for more efficient LLVM IR generation.
+                            Also don't forget to update the dataflow analysis
+                            pass, so that lattices also store
+                            <code>ResolvedDecl</code> instead of
+                            <code>ResolvedVarDecl</code>.
                         </p>
+                        <pre><code>using Lattice = std::map&lt;const ResolvedDecl *, State>;</code></pre>
                     </li>
                     <li>
                         <p>
