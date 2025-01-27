@@ -59,7 +59,15 @@
                     situation of working as a compiler engineer and getting a
                     task to extend the language based on certain criteria.
                 </p>
-                <!-- FIXME add the link to the GH repo here -->
+                <p>
+                    One possible solution to this exercise is already the part
+                    of the compiler and can be found on
+                    <a
+                        href="https://github.com/isuckatcs/how-to-compile-your-language"
+                        target="_blank"
+                        >GitHub</a
+                    >.
+                </p>
                 <h2>Motivation</h2>
                 <p>
                     The motivation behind structs is to pack values together and
@@ -108,7 +116,96 @@ fn rgbToGray(c: RGBColor): number {
 
   return greenRemoved;
 }</code></pre>
-                <!-- FIXME design note about why the struct is passeb by value -->
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        The question might arise, why structs are passed by
+                        value like in C or Rust instead of passing only a
+                        reference to the struct like in Kotlin or Swift.
+                    </p>
+                    <p>
+                        Every object has a lifetime, thus every piece of memory
+                        that was once allocated must be freed eventually. In the
+                        worst case scenario the memory is freed when the program
+                        exits... unless the program is designed to be running
+                        infinitely like a web server. In that case if unused
+                        memory is not freed somehow, the program can quickly run
+                        out of memory.
+                    </p>
+                    <p>
+                        With stack allocated variables managing lifetimes is
+                        straightforward. When the function returns and the stack
+                        space is destroyed, the object is considered to be
+                        freed.
+                    </p>
+                    <pre><code>fn returnStruct(): S {
+  let s = S{ ... };
+
+  return s;
+}</code></pre>
+                    <p>
+                        Imagine that structs are moved around by the reference
+                        pointing to them. That means, in this example a
+                        reference to <code>s</code> is returned from the
+                        function, however if <code>s</code> is on the stack, it
+                        is freed after the function returns. Where does the
+                        reference point then? To the piece of memory that used
+                        to house <code>s</code>, but is now freed, so the
+                        reference is now a dangling reference, pointing to an
+                        unknown piece of memory. This is the main reason for
+                        moving structs around by value.
+                    </p>
+                    <p>
+                        But what about those languages, that have been mentioned
+                        to work with references? How can they do that? To
+                        understand this, 2 questions need to explored first. How
+                        is the memory allocated and how is it freed.
+                    </p>
+                    <p>
+                        The first one is straighforward, the memory for the
+                        struct is allocated on the heap upon instantiation. It
+                        cannot be allocated on the stack as it would be
+                        invalidated otherwise.
+                    </p>
+                    <p>
+                        For the second one different languages propose different
+                        solutions. In C heap allocated objects are freed
+                        manually by calling the <code>free()</code> function,
+                        however this requires the developer to keep track of
+                        which block of memory needs to freed and which is
+                        already freed, so there are lots of possibilities to
+                        make a mistake eventually. To reduce the risk of memory
+                        corruption other languages such as Kotlin or Swift use
+                        solutions that automatically keep track of which memory
+                        blocks need to be freed and which need to be kept alive.
+                    </p>
+                    <p>
+                        Kotlin uses garbage collection (GC), where a utility
+                        known as the garbage collector keeps track of which
+                        pieces of memory can be accessed through the available
+                        references at one point of the source code. When a
+                        reference goes out of scope and not other references in
+                        the current scope point to the memory, it is considered
+                        unreachable, otherwise it is reachable. The garbage
+                        collector periodically scans all the reachable objects
+                        and frees those that are unreachable.
+                    </p>
+                    <p>
+                        Swift uses a different method called automatic reference
+                        counting (ARC). In this case the objects themselves have
+                        a counter attached to them, that track how many
+                        available references point to the object. When a
+                        reference goes out of scope, the counter is decremented
+                        and if the reference count reaches 0, the object is
+                        freed.
+                    </p>
+                    <p>
+                        Both GC and ARC execute additional code in runtime, so
+                        they impose some performance overhead and require
+                        additional logic to be performed by the compiler during
+                        code generation.
+                    </p>
+                </blockquote>
                 <p>
                     Because the <code>struct</code> is passed by value, no
                     modification to it would be visible in the caller anyway, so
@@ -862,7 +959,6 @@ fn main(): void {
                             <code>StructDecl</code> resolution should happen
                             after the first pass of function resolution.
                         </p>
-                        <!-- FIXME: explain why storing structs by reference requires runtime support and talk about GC and ARC -->
                         <p>
                             Structs are stored on the stack, passed to and
                             returned from functions by value. To allocate a
