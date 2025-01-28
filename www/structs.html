@@ -218,11 +218,74 @@ fn rgbToGray(c: RGBColor): number {
                     local variable declarations where <code>var</code> also
                     expresses that mutations to the value are intended.
                 </p>
-                <!-- FIXME: add a design note on why Swift removed var parameters and why it is not an issue in this language -->
                 <pre><code>fn removeGreenChannel(var c: RGBColor): RGBColor {
   c.g = 0;
   return c;
 }</code></pre>
+                <blockquote>
+                    <h3>Design Note</h3>
+                    <p>
+                        The <code>var</code> parameter in it's current form
+                        actually also used to be the part of Kotlin and Swift in
+                        their early days, but in case of both languages the
+                        language designers decided to remove it eventually.
+                    </p>
+                    <p>
+                        On the other hand, Rust still has the same concept,
+                        except for <code>mut</code> being written instead of
+                        <code>var</code>.
+                    </p>
+                    <pre><code>fn rust_mutable_param(mut c: RGBColor) { ... }</code></pre>
+                    <p>
+                        The key difference between the mentioned languages is
+                        how object parameters are passed to functions. In Rust
+                        the instance of the struct is passed by value, but in
+                        case of Kotlin and Swift classes, it's the reference to
+                        the instance that gets passed by value, like passing a
+                        pointer to the instance in C/C++. Swift is not so
+                        straightforward though, as it also supports structs, not
+                        just classes and structs are passed by value like in
+                        Rust.
+                    </p>
+                    <p>
+                        Anyway, in case of Swift <code>var</code> parameters
+                        caused a confusion because developers expected that by
+                        making the parameter mutable, the mutation will be
+                        visible outside the function, but Swift had the
+                        <code>inout</code> keyword for that and
+                        <code>var</code> only allowed the mutation to be visible
+                        within the context of the function. The full proposal
+                        for removing <code>var</code> parameters is available on
+                        <a
+                            href="https://github.com/swiftlang/swift-evolution/blob/main/proposals/0003-remove-var-parameters.md"
+                            target="_blank"
+                            >GitHub</a
+                        >.
+                    </p>
+                    <p>
+                        Apparently in Kotlin <code>var</code> caused the same
+                        confusion as it did in Swift. In Kotlin it's always the
+                        reference to the object that is passed by value and by
+                        making the reference mutable and assigning a new value
+                        to it, one might think it wasn't the local copy of the
+                        reference pointed to a new object but the object pointed
+                        by the reference replaced with a new one, so the new
+                        value will be visible outside the function. For more
+                        details see the
+                        <a
+                            href="https://blog.jetbrains.com/kotlin/2013/02/kotlin-m5-1/#parameters-are-immutable"
+                            target="_blank"
+                            >blog post</a
+                        >
+                        about the change.
+                    </p>
+                    <p>
+                        In both Rust and Your Language the actual structs are
+                        passed by value, not references to them, so the
+                        mutability of the parameter shouldn't suggest that the
+                        change is visible in the caller.
+                    </p>
+                </blockquote>
                 <p>
                     To implement this simple, but useful change proceed with the
                     following few steps.
@@ -317,7 +380,6 @@ entry:
                             only purpose is to make changes to the parameter
                             visible within the function body.
                         </p>
-                        <!-- FIXME: add a design note on why this is not default in C++ because of the & operator -->
                         <p>
                             The language is designed such way that the semantic
                             analyzer can ensure that every code modifying an
@@ -332,6 +394,38 @@ entry:
   call void @println(double %n)
   ret void
 }</code></pre>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                When taking a look at how Clang generates code
+                                for C++ function, it can be observed that the
+                                local variable is always present even in case
+                                when the parmeter type is marked
+                                <code>const</code>.
+                            </p>
+                            <p>
+                                There are mainly two reasons for this. The first
+                                is that constness can be cast away, so the
+                                parameter can still be mutated and the second is
+                                the
+                                <code>&</code> operator.
+                            </p>
+                            <pre><code>void immutableParameter(const int x) {
+  *const_cast&lt;int *>(&x) = 2;
+}</code></pre>
+                            <p>
+                                The <code>&</code> operator gets the address of
+                                the parameter, but to do that, it must first
+                                allocate memory for the parameter.
+                            </p>
+                            <p>
+                                The same operator is also present in Rust, but
+                                the Rust compiler only allocates the variable if
+                                it is used. In a function, where the parameter
+                                is not borrowed, it's not copied into a local
+                                variable either.
+                            </p>
+                        </blockquote>
                         <p>
                             Update <code>Codegen</code> so that a local variable
                             is no longer introduced for immutable parameters.
@@ -1428,7 +1522,6 @@ tmp.b = bInit;</code></pre>
                             This is the reason for also storing the index of the
                             field in a <code>ResolvedMemberDecl</code>.
                         </p>
-                        <!-- FIXME: link to the offcial guide that explains GEP -->
                         <p>
                             The field is accessed with the
                             <code>GetElementPointer</code> instruction. This
@@ -1439,6 +1532,20 @@ tmp.b = bInit;</code></pre>
                             struct, a pointer to the beginning of the struct and
                             the index of the element that needs to be accessed.
                         </p>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                To learn more about the GEP instruction, the
+                                LLVM documentation has a
+                                <a
+                                    href="https://llvm.org/docs/GetElementPtr.html"
+                                    target="_blank"
+                                    >dedicated page</a
+                                >
+                                about it, where the instruction is explained in
+                                every detail.
+                            </p>
+                        </blockquote>
                         <p>
                             Initializing <code>tmp.r</code> means getting the
                             pointer to the <code>r</code> field and assigning
@@ -1566,7 +1673,6 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                             <code>llvm::DataLayout</code> utility.
                         </p>
                     </li>
-                    <!-- FIXME: explain why immutable parameters don't need to be copied, but why they are in C++ (constness can be cast away) -->
                     <li>
                         <p>
                             By this point structs should be fully functional
