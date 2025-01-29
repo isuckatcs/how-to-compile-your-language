@@ -51,13 +51,13 @@
             <section>
                 <h1>Extending the Language With Structs</h1>
                 <p>
-                    This section introduces a self-paced excercise to extend the
+                    This section introduces a self-paced exercise to extend the
                     language with structs. The subsections only describe the
-                    requirements and the theoretical background of every step.
-                    Figuring out the implementation details of the new features
-                    is part of the exercise. Imagine that this is a real world
-                    situation of working as a compiler engineer and getting a
-                    task to extend the language based on certain criteria.
+                    requirements and the theoretical background needed for every
+                    step, figuring out the implementation details is up to the
+                    reader. Imagine that this is a real-world scenario of
+                    working as a compiler engineer and getting a task to extend
+                    the language based on certain criteria.
                 </p>
                 <p>
                     One possible solution to this exercise is already the part
@@ -71,7 +71,7 @@
                 <h2>Motivation</h2>
                 <p>
                     The motivation behind structs is to pack values together and
-                    make it more convenient to simultaneously pass them around,
+                    make it more convenient to pass them around simultaneously,
                     as well as to make the source code more expressive.
                 </p>
                 <pre><code>fn rgbToGray(r: number, g: number, b: number): number {
@@ -80,7 +80,7 @@
                 <p>
                     Maintaining 3 different variables to store each individual
                     color channel value can become overwhelming quickly and also
-                    affects readability and maintanability. Expressing the same
+                    affects readability and maintainability. Expressing the same
                     logic with structs makes it more readable and maintainable.
                 </p>
                 <pre><code>struct RGBColor {
@@ -96,19 +96,19 @@ fn rgbToGray(c: RGBColor): number {
                 <p>
                     Whether extending the compiler from the lexer to code
                     generation seems overwhelming at first, or it looks like a
-                    walk in the park, doing some small task to get used to
-                    working on a codebase is always a good idea.
+                    walk in the park, doing a small task to get used to working
+                    on the codebase is always a good idea.
                 </p>
                 <p>
-                    In the current version of the language parameters are passed
-                    by value, can only be of
+                    In the current version of the language, parameters are
+                    passed by value, can only be of
                     <code>number</code> type and are always immutable. With
                     <code>struct</code> parameters however, there can be use
-                    cases when only one or two fields of the struct needs to be
-                    changed within the function body. With immutable parameters,
-                    the only way to achieve this is to duplicate the
+                    cases when only one or two fields of the struct need to be
+                    changed within the body of the function. With immutable
+                    parameters, the only way to achieve this is to duplicate the
                     <code>struct</code> into a local variable and then change
-                    the field value of this variable.
+                    the fields of this variable.
                 </p>
                 <pre><code>fn removeGreenChannel(c: RGBColor): RGBColor {
   var greenRemoved = c;
@@ -127,19 +127,19 @@ fn rgbToGray(c: RGBColor): number {
                         Every object has a lifetime, thus every piece of memory
                         that was once allocated must be freed eventually. In the
                         worst case scenario the memory is freed when the program
-                        exits... unless the program is designed to be running
+                        exits, unless the program is designed to be running
                         infinitely like a web server. In that case if unused
                         memory is not freed somehow, the program can quickly run
                         out of memory.
                     </p>
                     <p>
-                        With stack allocated variables managing lifetimes is
+                        With stack-allocated variables managing lifetimes is
                         straightforward. When the function returns and the stack
                         space is destroyed, the object is considered to be
                         freed.
                     </p>
                     <pre><code>fn returnStruct(): S {
-  let s = S{ ... };
+  let s = S { ... };
 
   return s;
 }</code></pre>
@@ -149,51 +149,53 @@ fn rgbToGray(c: RGBColor): number {
                         reference to <code>s</code> is returned from the
                         function, however if <code>s</code> is on the stack, it
                         is freed after the function returns. Where does the
-                        reference point then? To the piece of memory that used
-                        to house <code>s</code>, but is now freed, so the
-                        reference is now a dangling reference, pointing to an
-                        unknown piece of memory. This is the main reason for
-                        moving structs around by value.
+                        reference point then? It points to the piece of memory
+                        that was used to store <code>s</code>, but is now freed,
+                        so the reference is dangling, pointing to an unknown
+                        piece of memory. Moving structs around by value avoids
+                        this issue automatically.
                     </p>
                     <p>
                         But what about those languages, that have been mentioned
                         to work with references? How can they do that? To
-                        understand this, 2 questions need to explored first. How
-                        is the memory allocated and how is it freed.
+                        understand this, 2 questions need to be explored first.
+                        How the memory is allocated and how it is freed.
                     </p>
                     <p>
-                        The first one is straighforward, the memory for the
-                        struct is allocated on the heap upon instantiation. It
-                        cannot be allocated on the stack as it would be
-                        invalidated otherwise.
+                        The first one is straightforward, in these languages the
+                        memory for the struct is allocated on the heap upon
+                        instantiation. Allocating it on the stack would result
+                        in the dangling reference problem discussed previously.
                     </p>
                     <p>
-                        For the second one different languages propose different
-                        solutions. In C heap allocated objects are freed
-                        manually by calling the <code>free()</code> function,
-                        however this requires the developer to keep track of
-                        which block of memory needs to freed and which is
-                        already freed, so there are lots of possibilities to
-                        make a mistake eventually. To reduce the risk of memory
-                        corruption other languages such as Kotlin or Swift use
-                        solutions that automatically keep track of which memory
-                        blocks need to be freed and which need to be kept alive.
+                        For the second question different languages propose
+                        different solutions. In C heap-allocated objects are
+                        freed manually by calling the
+                        <code>free()</code> function, however, this requires the
+                        developer to keep track of which block of memory needs
+                        to be freed and which has already been freed, so there
+                        are lots of possibilities to make a mistake at some
+                        point. To reduce the risk of memory corruption other
+                        languages such as Kotlin or Swift use solutions that
+                        automatically keep track of which memory blocks need to
+                        be freed and kept alive.
                     </p>
                     <p>
                         Kotlin uses garbage collection (GC), where a utility
                         known as the garbage collector keeps track of which
                         pieces of memory can be accessed through the available
-                        references at one point of the source code. When a
-                        reference goes out of scope and not other references in
-                        the current scope point to the memory, it is considered
-                        unreachable, otherwise it is reachable. The garbage
-                        collector periodically scans all the reachable objects
-                        and frees those that are unreachable.
+                        references at a specific point of running the program.
+                        When a reference goes out of scope and no other
+                        references on the call stack point to the chunk of
+                        memory in question, it is considered unreachable,
+                        otherwise it is reachable. The garbage collector
+                        periodically scans all the allocated memory blocks and
+                        frees those that are unreachable.
                     </p>
                     <p>
                         Swift uses a different method called automatic reference
-                        counting (ARC). In this case the objects themselves have
-                        a counter attached to them, that track how many
+                        counting (ARC). In this case, the objects themselves
+                        have a counter attached to them, that tracks how many
                         available references point to the object. When a
                         reference goes out of scope, the counter is decremented
                         and if the reference count reaches 0, the object is
@@ -208,15 +210,14 @@ fn rgbToGray(c: RGBColor): number {
                 </blockquote>
                 <p>
                     Because the <code>struct</code> is passed by value, no
-                    modification to it would be visible in the caller anyway, so
-                    creating a copy of it doesn't make sense. To resolve this
-                    inconvenience, it's time to introduce support for mutable
-                    parameters, which are marked with the
-                    <code>var</code> keyword, similarly to how it used to be in
-                    Swift. Declaring a parameter with the
-                    <code>var</code> keyword keeps the language consistent with
-                    local variable declarations where <code>var</code> also
-                    expresses that mutations to the value are intended.
+                    modification to it would be visible to the caller anyway, so
+                    copying it to an additional local variable doesn't make
+                    sense. To resolve this inconvenience, it's time to introduce
+                    support for mutable parameters, which are marked with the
+                    <code>var</code> keyword. Using the <code>var</code> to
+                    denote parameter mutability keeps the language consistent
+                    with local variable declarations where <code>var</code> is
+                    also used to express mutability.
                 </p>
                 <pre><code>fn removeGreenChannel(var c: RGBColor): RGBColor {
   c.g = 0;
@@ -225,10 +226,10 @@ fn rgbToGray(c: RGBColor): number {
                 <blockquote>
                     <h3>Design Note</h3>
                     <p>
-                        The <code>var</code> parameter in it's current form
-                        actually also used to be the part of Kotlin and Swift in
-                        their early days, but in case of both languages the
-                        language designers decided to remove it eventually.
+                        The <code>var</code> parameter in it's current form also
+                        used to be the part of Kotlin and Swift in their early
+                        days, but in the case of both languages the language
+                        designers decided to remove it eventually.
                     </p>
                     <p>
                         On the other hand, Rust still has the same concept,
@@ -263,14 +264,14 @@ fn rgbToGray(c: RGBColor): number {
                         >.
                     </p>
                     <p>
-                        Apparently in Kotlin <code>var</code> caused the same
-                        confusion as it did in Swift. In Kotlin it's always the
-                        reference to the object that is passed by value and by
-                        making the reference mutable and assigning a new value
-                        to it, one might think it wasn't the local copy of the
-                        reference pointed to a new object but the object pointed
-                        by the reference replaced with a new one, so the new
-                        value will be visible outside the function. For more
+                        Apparently in Kotlin, <code>var</code> caused the same
+                        confusion that it did in Swift. In Kotlin it's always
+                        the reference to the object that is passed by value and
+                        by making the reference mutable and assigning a new
+                        value to it, one might think it wasn't the local copy of
+                        the reference pointed to a new object but the object
+                        pointed by the reference replaced with a new one, so the
+                        new value will be visible outside the function. For more
                         details see the
                         <a
                             href="https://blog.jetbrains.com/kotlin/2013/02/kotlin-m5-1/#parameters-are-immutable"
@@ -280,20 +281,20 @@ fn rgbToGray(c: RGBColor): number {
                         about the change.
                     </p>
                     <p>
-                        In both Rust and Your Language the actual structs are
-                        passed by value, not references to them, so the
-                        mutability of the parameter shouldn't suggest that the
-                        change is visible in the caller.
+                        In both Rust and your language the instances of structs
+                        are passed by value, not by references pointing to them,
+                        so the mutability of the parameter doesn't suggest that
+                        the change is visible in the caller too.
                     </p>
                 </blockquote>
                 <p>
-                    To implement this simple, but useful change proceed with the
-                    following few steps.
+                    To implement this simple, but convenient change proceed with
+                    the following few steps.
                 </p>
                 <ol>
                     <li>
                         <p>
-                            Update the parser so that it accepts this
+                            Update the parser so that it accepts the following
                             <code>paramDecl</code> grammar extension.
                         </p>
                         <pre><code>&lt;paramDecl&gt;
@@ -301,7 +302,7 @@ fn rgbToGray(c: RGBColor): number {
 </code></pre>
                         <p>
                             Don't forget to store whether the parameter is
-                            mutable or not in the AST similarly to
+                            mutable or not in the AST similar to
                             <code>VarDecl</code>, as the semantic analyzer needs
                             this information to ensure that only the allowed
                             operations are performed on the value.
@@ -312,8 +313,8 @@ fn rgbToGray(c: RGBColor): number {
                             In the semantic analyzer ensure that the parameter
                             declaration is resolved properly and modifying an
                             immutable parameter still results in an error, but
-                            changing a mutable parameters is allowed. The
-                            parameter of built-in
+                            changing a mutable parameter is allowed. The
+                            parameter of the built-in
                             <code>println</code> should remain immutable.
                         </p>
                         <pre><code>fn paramSema(x: number, var y: number): void {
@@ -325,9 +326,9 @@ fn rgbToGray(c: RGBColor): number {
                             The mutation of the value is checked in the one and
                             only dataflow analysis pass, which expects the LHS
                             of an assignment to be a
-                            <code>ResolvedVarDecl</code>, but this is no longer
-                            the case. To make modifying this pass and later make
-                            the code generation easier, lift the
+                            <code>ResolvedVarDecl</code>, however this is no
+                            longer the case. To make modifying this pass and
+                            later the code generation easier, lift the
                             <code>isMutable</code> field up from
                             <code>ResolvedVarDecl</code> to the
                             <code>ResolvedDecl</code> base class.
@@ -341,28 +342,28 @@ fn rgbToGray(c: RGBColor): number {
                         <p>
                             This property should automatically be set to
                             <code>false</code> for every resolved declaration
-                            except for variables and parameters, for which it
-                            should be deduced from the AST. Note that this
-                            change also forwards the mutability of the parameter
-                            to <code>Codegen</code>, where it can be used for
-                            more efficient LLVM IR generation.
+                            except for variables and parameters, for which its
+                            value should be deduced from the AST. Note that this
+                            change also automatically forwards the mutability of
+                            the parameter to <code>Codegen</code>, where it can
+                            be used for more efficient LLVM IR generation.
                         </p>
                         <p>
-                            Also don't forget to update the dataflow analysis
-                            pass, so that lattices also store
-                            <code>ResolvedDecl</code> instead of
+                            Remember to update the dataflow analysis pass, so
+                            that lattices also store the now updated
+                            <code>ResolvedDecl</code> instead of the previous
                             <code>ResolvedVarDecl</code>.
                         </p>
                         <pre><code>using Lattice = std::map&lt;const ResolvedDecl *, State>;</code></pre>
                     </li>
                     <li>
                         <p>
-                            During LLVM IR generation, in the function body a
-                            local variable is introduced for every parameter,
-                            and their values are copied into these variables.
-                            When the value of the parameter is read, LLVM loads
-                            the corresponding local variable and uses its value
-                            for further computation.
+                            During LLVM IR generation, in the body of the
+                            function, a local variable is introduced for each
+                            parameter, and their values are copied into these
+                            variables. When the value of the parameter is read,
+                            LLVM loads the corresponding local variable and uses
+                            its value for further computation.
                         </p>
                         <pre><code>define void @varParam(double %n) {
 entry:
@@ -375,17 +376,17 @@ entry:
                         <p>
                             Notice how the function in the example is called
                             <code>varParam()</code>. This is not a coincidence,
-                            because in truth, this local variable only needs to
+                            because in truth this local variable only needs to
                             be introduced if the parameter is mutable, as its
-                            only purpose is to make changes to the parameter
-                            visible within the function body.
+                            sole purpose is to keep the changes to the parameter
+                            visible inside the given function only.
                         </p>
                         <p>
-                            The language is designed such way that the semantic
-                            analyzer can ensure that every code modifying an
-                            immutable parameter is rejected before code
-                            generation. This allows <code>Codegen</code> to take
-                            advantage of this information and generate more
+                            The language is designed in such a way that the
+                            semantic analyzer can ensure that every code
+                            modifying an immutable parameter is rejected before
+                            code generation. This allows <code>Codegen</code> to
+                            take advantage of this information and generate more
                             optimized LLVM IR by omitting the local variable
                             creation for immutable parameters.
                         </p>
@@ -398,10 +399,10 @@ entry:
                             <h3>Design Note</h3>
                             <p>
                                 When taking a look at how Clang generates code
-                                for C++ function, it can be observed that the
-                                local variable is always present even in case
-                                when the parmeter type is marked
-                                <code>const</code>.
+                                for C++ functions, it can be observed that the
+                                local variable is always present even in cases
+                                when the parameter is of
+                                <code>const</code> type.
                             </p>
                             <p>
                                 There are mainly two reasons for this. The first
@@ -416,7 +417,9 @@ entry:
                             <p>
                                 The <code>&</code> operator gets the address of
                                 the parameter, but to do that, it must first
-                                allocate memory for the parameter.
+                                allocate memory for it, returning the memory
+                                address of a value in a register is not
+                                possible.
                             </p>
                             <p>
                                 The same operator is also present in Rust, but
@@ -429,7 +432,7 @@ entry:
                         <p>
                             Update <code>Codegen</code> so that a local variable
                             is no longer introduced for immutable parameters.
-                            Also ensure that when a
+                            Also, ensure that when a
                             <code>ResolvedDeclRefExpr</code> points to such a
                             parameter, its value is no longer loaded. The
                             generated LLVM IR for mutable parameters should
@@ -443,7 +446,7 @@ entry:
                     language is correctly recognizing their syntax, which means
                     teaching it to the parser. This section describes how the
                     syntax was designed and explains every step to take to end
-                    up with the parser correctly recognizing this new sytax.
+                    up with the parser correctly recognizing it.
                 </p>
                 <ol>
                     <li>
@@ -472,14 +475,14 @@ entry:
                             returns a list of <code>Decl</code> instead of the
                             current list of <code>FunctionDecl</code> as the
                             AST. This makes the <code>-ast-dump</code> flag work
-                            and print out the full AST for a better debugging
+                            and print out the full AST for better debugging
                             experience.
                         </p>
                         <pre><code>std::pair&lt;std::vector&lt;std::unique_ptr&lt;Decl>>, bool> parseSourceFile();</code></pre>
                         <p>
                             The AST should preserve the declaration order in the
                             source code, so if a struct is declared before a
-                            function in the source code, it should also preceed
+                            function in the source code, it should also precede
                             it in the AST.
                         </p>
                         <p>
@@ -491,8 +494,8 @@ entry:
                             from every already supported source code, introduce
                             a temporary adapter in the driver that extracts the
                             function declarations from the AST and only passes
-                            those furher down the pipeline. This adapter will be
-                            removed at the beginning of the next section.
+                            those further down the pipeline. This adapter will
+                            be removed at the beginning of the next section.
                         </p>
                     </li>
                     <li>
@@ -503,7 +506,7 @@ entry:
                             declarations are not allowed. It starts with the
                             <code>struct</code> keyword followed by a
                             <code>{}</code> enclosed list of zero or many field
-                            declaration.
+                            declarations.
                         </p>
                         <pre><code>struct S { ... }</code></pre>
                         <p>
@@ -519,8 +522,8 @@ entry:
 }</code></pre>
                         <p>
                             By adding the trailing comma, the
-                            <code>struct</code> can also be written on only a
-                            single line conveniently.
+                            <code>struct</code> can also be declared
+                            conveniently on a single line only.
                         </p>
                         <pre><code>struct S { field: type, field: type, field: type }</code></pre>
                         <p>
@@ -539,7 +542,8 @@ entry:
                             Update the parser so that it recognizes this grammar
                             extension and produces the following AST nodes. Note
                             that the constructors have been omitted from the
-                            example, but need to be present in source code.
+                            example, but they need to be present in the source
+                            code.
                         </p>
                         <pre><code>struct FieldDecl : public Decl {
   Type type;
@@ -575,7 +579,9 @@ struct StructDecl : public Decl {
                             identifier and that in the <code>{}</code> enclosed
                             list of fields, the <code>:</code> is not followed
                             by a type, but an expression that sets the value of
-                            that field.
+                            that field, thus ensuring that every field is
+                            initialized and making it clear which field has been
+                            initialized to what value.
                         </p>
                         <pre><code>S {
   field: expr, 
@@ -591,8 +597,8 @@ struct StructDecl : public Decl {
                         <pre><code>S { field: expr, field: expr, field: expr }</code></pre>
                         <p>
                             Instantiating a struct is considered a primary
-                            expression, so the extended grammar looks like this
-                            below.
+                            expression, so the extended grammar looks like the
+                            one below.
                         </p>
                         <pre><code>&lt;primaryExpression>
   ::= ...
@@ -614,12 +620,9 @@ struct StructDecl : public Decl {
                             these expressions start with an
                             <code>identifier</code>, but a
                             <code>structInstantiation</code> has a priority over
-                            a <code>declRefExpr</code>.
-                        </p>
-                        <p>
-                            This ensures that if an expression can be parsed as
-                            a struct instantiation, it is always parsed as one,
-                            instead of parsing a
+                            a <code>declRefExpr</code>, which ensures that if an
+                            expression can be parsed as a struct instantiation,
+                            it is always parsed as one, instead of parsing a
                             <code>declRefExpr</code> and erroring out on the
                             <code>{</code> token.
                         </p>
@@ -665,13 +668,13 @@ struct StructInstantiationExpr : public Expr {
 };</code></pre>
                     <li>
                         <p>
-                            Notice how this struct instantiation syntax
+                            Notice how the struct instantiation syntax
                             introduces an ambiguity in the condition of an
                             <code>if</code> or <code>while</code> statement.
                         </p>
                         <pre><code>if condition { ... }</code></pre>
                         <p>
-                            Because of the grammar modification this would be
+                            Because of the grammar modification, this would be
                             parsed as an <code>if</code> followed by a
                             <code>structInstantiation</code> with a missing
                             body.
@@ -694,14 +697,14 @@ if condition { ... } ...
                         <p>
                             If for any reason a struct needs to be instantiated
                             in a condition, it can be done by wrapping it in a
-                            grouping expression, as it can disambiguate the
-                            condition.
+                            grouping expression, which makes it clear, where the
+                            body of the function starts.
                         </p>
                         <pre><code>if (identifier {}) {}</code></pre>
                         <p>
-                            Implement a logic similar to what can be found in
-                            the Rust parser, that makes it possible to apply
-                            certain restrictions when an AST node is parsed.
+                            Implement a logic similar to the Rust parser, that
+                            makes it possible to apply certain restrictions when
+                            an AST node is parsed.
                         </p>
                         <p>
                             When an <code>if</code> or
@@ -745,7 +748,7 @@ if condition { ... } ...
                         <pre><code>s.f1.f2.f3
 foo().f1.f2</code></pre>
                         <p>
-                            On the other hand a struct cannot have function
+                            On the other hand, a struct cannot have function
                             fields or methods, so calling an accessed field is
                             not possible.
                         </p>
@@ -754,7 +757,7 @@ foo().f1.f2</code></pre>
                             The restriction that a call expression, if present,
                             must be the first expression in the chain can be
                             enforced in the parser by modifying
-                            <code>postfixExpression</code> the following way.
+                            <code>postfixExpression</code> the way below.
                         </p>
                         <pre><code>&lt;postfixExpression>
   ::= &lt;primaryExpression> &lt;argumentList>? &lt;memberExpr>*
@@ -764,8 +767,8 @@ foo().f1.f2</code></pre>
                         <p>
                             Update the parser so that it correctly consumes
                             member expressions and creates the following node
-                            for them. Similarly to the previous examples, the
-                            construcor has been omitted.
+                            for them. Like in the previous examples, the
+                            constructors are still omitted.
                         </p>
                         <pre><code>struct MemberExpr : public Expr {
   std::unique_ptr&lt;Expr> base;
@@ -785,16 +788,17 @@ foo().f1.f2</code></pre>
                         <p>
                             The previous point mentioned that a
                             <code>MemberExpr</code> can also be used to assign a
-                            value to a field, however and assignment expression
-                            is still restricted so that it only accepts a
+                            value to a field, however an assignment statement is
+                            still restricted so that it only accepts a
                             <code>DeclRefExpr</code> on its left-hand side, thus
-                            getting the following statement rejected.
+                            getting the following code rejected.
                         </p>
                         <pre><code>s.f = 1;</code></pre>
                         <p>
-                            To make a field assignable while still maintaining a
-                            strict restriction on the LHS of the assignment the
-                            grammar can be updated the way below.
+                            Making a field assignable while still maintaining a
+                            strict restriction on the LHS of the assignment can
+                            be achieved with another simple grammar
+                            modification.
                         </p>
                         <pre><code>&lt;assignment>
   ::= (&lt;declRefExpr> | &lt;memberExpr>) '=' &lt;expr> ';'</code></pre>
@@ -824,22 +828,22 @@ struct Assignment : public Stmt {
                     </li>
                     <li>
                         <p>
-                            Update the error recovery mechanism, so that
-                            synchronization also happens on the
-                            <code>struct</code> keyword. Also update
-                            <code>synchronizeOn()</code> to accept a list of
-                            tokens instead of a single token only, as on the top
-                            level both <code>struct</code> and
-                            <code>fn</code> is a synchronization point and
-                            synchronization should happen on the keyword that is
-                            encountered first.
+                            Tweak the error recovery mechanism, so that
+                            synchronization happens on the
+                            <code>struct</code> keyword too. The
+                            <code>synchronizeOn()</code> utility should also be
+                            updated to accept a list of tokens instead of a
+                            single token only, as on the top level both
+                            <code>struct</code> and <code>fn</code> is a
+                            synchronization point and synchronization should
+                            happen on the keyword that is encountered first.
                         </p>
                         <pre><code>fail struct ... fn ...
 ┌─────┐ ┌────────┐ ┌─────┐ ┌────┐ ┌─────┐
 │ ... │ │ struct │ │ ... │ │ fn │ │ ... │
 └─────┘ └────────┘ └─────┘ └────┘ └─────┘
  ^        ^                  ^
- |        └ synchronize here └ don't skip here
+ |        └ synchronize here └ don't skip to here
  └ fail here</code></pre>
                         <p>
                             If a failure happens inside a struct instantiation,
@@ -847,7 +851,7 @@ struct Assignment : public Stmt {
                             <code>}</code> token instead of waiting for an
                             automatic synchronization on the block level, as the
                             parser might think the <code>}</code> is the end of
-                            the statement, however it is not always true.
+                            the statement, however, that is not always the case.
                         </p>
                         <pre><code>S { f1: fail, f2: 0 }
 ┌─────┐ ┌───┐ ┌────┐ ┌───┐ ┌───┐ ┌───┐
@@ -857,13 +861,13 @@ struct Assignment : public Stmt {
  └ fail here                       └ sync here</code></pre>
                     </li>
                 </ol>
-                <h2>Semantic of Structs</h2>
+                <h2>Static Analysis on Structs</h2>
                 <p>
                     After structs are recognized by the compiler, the next step
                     is to ensure that they are used correctly. This section
-                    explains how to extend the semantic analyzer, to detect the
+                    explains how to extend the semantic analyzer to detect the
                     invalid use of structs and ensure there are no issues in the
-                    user code.
+                    program.
                 </p>
                 <ol>
                     <li>
@@ -916,7 +920,7 @@ public:
                             identifiers are equal. Ensure in the semantic
                             analyzer that types are compared by their
                             <code>name</code> field instead of their
-                            <code>kind</code> field.
+                            <code>kind</code> field, where it's applicable.
                         </p>
                     </li>
                     <li>
@@ -924,14 +928,14 @@ public:
                             Structs are declared on the top level and are
                             location independent, which means that a struct
                             doesn't have to be declared before it can be used.
-                            Due to this property, struct are also resolved in
+                            Due to this property, they are also resolved in
                             multiple passes just like functions.
                         </p>
                         <p>
                             They also need to be resolved before function
                             declarations because a function can have a struct
                             parameter, or it can return a struct and in these
-                            cases the compiler needs to make sure that the
+                            cases, the compiler needs to make sure that the
                             struct is declared in the source code.
                         </p>
                         <pre><code>fn returnS(): S { ... }
@@ -940,9 +944,8 @@ public:
 
 struct S { ... }</code></pre>
                         <p>
-                            Implement the first pass of struct resolution in the
-                            semantic analyzer that results in the following
-                            resolved nodes.
+                            Implement the first pass of struct resolution that
+                            results in the following nodes.
                         </p>
                         <pre><code>struct ResolvedFieldDecl : public ResolvedDecl {
   unsigned index;
@@ -974,6 +977,11 @@ struct ResolvedStructDecl : public ResolvedDecl {
   }
 };</code></pre>
                         <p>
+                            Notice how <code>ResolvedFieldDecl</code> also
+                            stores the index of itself within the struct. This
+                            will be important during code generation.
+                        </p>
+                        <p>
                             This pass should only check if each field
                             declaration is unique and insert the structs to the
                             symbol table. Don't resolve the type of the field
@@ -987,7 +995,7 @@ struct ResolvedStructDecl : public ResolvedDecl {
                         <p>
                             To make code generation easier ensure that in the
                             resolved tree every
-                            <code>ResolvedStructDecl</code> preceeds any
+                            <code>ResolvedStructDecl</code> precedes any
                             <code>ResolvedFunctionDecl</code>. In other words,
                             the resolved tree should have the following
                             structure.
@@ -1008,22 +1016,22 @@ ResolvedFunctionDecl</code></pre>
                             <code>ResolvedStructDecl</code>.
                         </p>
                         <p>
-                            The current lookup logic only supports lookup based
-                            on the identifier of the <code>ResolvedDecl</code>,
-                            which can result in the wrong declaration being
-                            looked up.
+                            The current lookup logic only supports looking up
+                            <code>ResolvedDecl</code> based on its identifier,
+                            which can lead to cases when the wrong declaration
+                            is found.
                         </p>
                         <pre><code>let S = 1;
 let x: S;
-       ^ here it needs to checked if this is an
-         existing struct, but looking up the decl
-         returns the variable above </code></pre>
+       ^ here it needs to be checked if this is an
+         existing struct, but looking up 'S' by 
+         its identifier returns the variable above</code></pre>
                         <p>
-                            Update the symbol lookup logic, so that type of the
-                            searched declaration can also be specified and
+                            Update the symbol lookup logic, so that the type of
+                            the searched declaration can also be specified and
                             instead of returning the first declaration with the
-                            same name, it returns the first declaration with the
-                            same name and the same type.
+                            same name, it returns the first declaration with a
+                            matching type as well.
                         </p>
                         <pre><code>template &lt;typename T>
 std::pair&lt;T *, int> Sema::lookupDecl(const std::string id) { ... }</code></pre>
@@ -1077,7 +1085,7 @@ fn main(): void {
                         <p>
                             The semantic analyzer also has to catch the case,
                             when the struct contains itself through one or more
-                            nested structs.
+                            struct fields.
                         </p>
                         <pre><code>struct S { x: S2 }
 struct S2 { y: S }
@@ -1129,8 +1137,8 @@ Undefined { ... };
 ^ error: 'Undefined' is not a struct type</code></pre>
                         <p>
                             Upon instantiating a struct, every field must be
-                            initialized and only declared fields can be
-                            initialized. Also the same field cannot be
+                            initialized, but only declared fields can be
+                            initialized. Also, the same field cannot be
                             initialized more than once.
                         </p>
                         <pre><code>struct Color {
@@ -1167,7 +1175,7 @@ fn main(): void {
                         <p>
                             Last but not least, a
                             <code>ResolvedStructDecl</code> cannot be referenced
-                            on its own. In such cases it's safe to assume, the
+                            on its own. In such cases, it's safe to assume, the
                             developer forgot to instantiate it.
                         </p>
                         <pre><code>let s = Color;
@@ -1176,8 +1184,8 @@ fn main(): void {
                             Update the semantic analyzer so that all of the
                             mentioned use cases are recognized and their
                             correctness is checked. The resolved nodes to
-                            produce with their constructors omitted can be found
-                            below.
+                            produce, with their constructors omitted can be
+                            found below.
                         </p>
                         <pre><code>struct ResolvedFieldInitStmt : public ResolvedStmt {
   const ResolvedFieldDecl *field;
@@ -1215,14 +1223,24 @@ struct ResolvedStructInstantiationExpr : public ResolvedExpr {
                             The order of the field initializers should be the
                             same as they are written in the source code. Also
                             don't forget to run the constant expression
-                            evaluator on the initializer expression.
+                            evaluator on the initializer expressions.
                         </p>
+                        <pre><code>ResolvedStructInstantiationExpr: @(...)
+  ResolvedMemberInitStmt: @(...) r
+    ResolvedNumberLiteral: '1'
+    | value: 1
+  ResolvedMemberInitStmt: @(...) g
+    ResolvedNumberLiteral: '2'
+    | value: 2
+  ResolvedMemberInitStmt: @(...) b
+    ResolvedNumberLiteral: '3'
+    | value: 3</code></pre>
                     </li>
                     <li>
                         <p>
                             The semantic of a <code>MemberExpr</code> is
                             straightforward. It is only allowed to access the
-                            existing fields of a struct.
+                            existing fields of a struct instance.
                         </p>
                         <pre><code>fn main(): void {
   let n = 0;
@@ -1240,15 +1258,15 @@ struct ResolvedStructInstantiationExpr : public ResolvedExpr {
                         </p>
                         <pre><code>struct ResolvedMemberExpr : public ResolvedAssignableExpr {
   std::unique_ptr&lt;ResolvedExpr> base;
-  const ResolvedMemberDecl *member;
+  const ResolvedFieldDecl *field;
 
   ...
 
   void dump(size_t level = 0) const override {
     std::cerr << indent(level) 
               << "ResolvedMemberExpr: @(" 
-              << member << ") " 
-              << member->identifier << '\n';
+              << field << ") " 
+              << field->identifier << '\n';
   
     base->dump(level + 1);
   }
@@ -1256,12 +1274,12 @@ struct ResolvedStructInstantiationExpr : public ResolvedExpr {
                     </li>
                     <li>
                         <p>
-                            In the AST there is a restriction on the kind of
-                            expressions that can be found on the LHS of an
-                            assignment. Propagate this same restriction to the
-                            resolved tree by using the corresponding resolved
-                            tree nodes and updating <code>Sema</code>, so that
-                            these nodes are produced correctly.
+                            In the AST there is a restriction on what kind of
+                            expressions can be found on the LHS of an
+                            assignment. Propagate this restriction to the
+                            resolved tree too by using the corresponding
+                            resolved tree nodes and updating <code>Sema</code>,
+                            so that these nodes are produced correctly.
                         </p>
                         <pre><code>struct ResolvedAssignableExpr : public ResolvedExpr { ... };
 
@@ -1276,12 +1294,28 @@ struct ResolvedAssignment : public ResolvedStmt {
                         <p>
                             Because <code>ResolvedMemberExpr</code> can appear
                             on the LHS of an assignment, the statement can now
-                            have side-effects on both sides. To set an order of
-                            evaluation, the RHS of the assignment is calculated
+                            have side effects on both sides. To set an order of
+                            evaluation, the RHS of the assignment is evaluated
                             before the LHS. Make sure this is also reflected in
                             the resolution process. Resolve the RHS before the
                             LHS.
                         </p>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                The evaluation order of assignments is also
+                                something that differs in every language. Kotlin
+                                evaluates the LHS first, while in C++ it's
+                                always the RHS first. Finally, there is C, which
+                                doesn't specify an order, it can be either of
+                                the two possibilities.
+                            </p>
+                            <p>
+                                Still, explicitly specifying an evaluation order
+                                lets the developers know in what order they
+                                should expect side effects if there are any.
+                            </p>
+                        </blockquote>
                         <p>
                             The <code>ResolvedMemberExpr</code> on the LHS
                             should also be part of the CFG, but only this node,
@@ -1355,10 +1389,10 @@ foo:
                 </ol>
                 <h2>Structs in LLVM</h2>
                 <p>
-                    At this point structs can be parsed and validated by the
+                    At this point, structs can be parsed and validated by the
                     semantic analyzer. This section introduces how to work with
-                    structs in LLVM IR and see all the previous changes put into
-                    a platform specific executable.
+                    them in LLVM IR and see all the previous changes put into a
+                    platform-specific executable.
                 </p>
                 <ol>
                     <li>
@@ -1383,11 +1417,12 @@ foo:
                             literal ones. A literal struct comes in handy for
                             languages that have built-in support for working
                             with tuple types, or when implementing
-                            optimizations, but more on that later.
+                            platform-specific optimizations. See the design note
+                            on that at the end of this section.
                         </p>
                         <pre><code>fn returnTuple(): (number, number) { ... }</code></pre>
                         <p>
-                            The snippet above could be represented with the
+                            The snippet above could be represented by the
                             following piece of LLVM IR, where
                             <code>{ double, double }</code> is a literal struct
                             of two <code>double</code> members.
@@ -1395,8 +1430,8 @@ foo:
                         <pre><code>define { double, double } @returnTuple() { ... }</code></pre>
                         <p>
                             Identified structs on the other hand are useful to
-                            represent a concrete pack of values, like user
-                            defined structs or classes.
+                            represent a concrete pack of values, like
+                            user-defined structs or classes.
                         </p>
                         <pre><code>struct Color { r: number, g: number, b: number }</code></pre>
                         <p>
@@ -1406,7 +1441,7 @@ foo:
                         <pre><code>%struct.Color = type { double, double, double }</code></pre>
                         <p>
                             It's important to note that while literal structs
-                            are structurally uniqued, meaning that every
+                            are structurally unique, meaning that every
                             <code>{ double, double }</code> in the IR refers to
                             the same type, identified structs are always
                             different, so even if the IR contains
@@ -1439,12 +1474,11 @@ entry:
   ret void
 }</code></pre>
                         <p>
-                            Similarly to what happens in the semantic analyzer,
-                            first a type for every struct declaration needs to
+                            Similar to what happens in the semantic analyzer,
+                            first, a type for every struct declaration needs to
                             be generated, because they can be referenced by
-                            other struct or function declarations. This is
-                            automatically ensured as the resolved tree is
-                            guaranteed to list every
+                            other field or function declarations. Remember that
+                            the resolved tree is guaranteed to list every
                             <code>ResolvedStructDecl</code> before any other
                             declaration, so there is no need to implement any
                             complex logic in this step.
@@ -1465,8 +1499,8 @@ entry:
                         <pre><code>%struct.S = type opaque
 %struct.S2 = type opaque</code></pre>
                         <p>
-                            The above structs will turn into ones similar to
-                            these below.
+                            The above structs will turn into ones similar to the
+                            ones below.
                         </p>
                         <pre><code>%struct.S = type { %struct.S2 }
 %struct.S2 = type { double, double }</code></pre>
@@ -1482,11 +1516,12 @@ entry:
                         <pre><code>Color { r: initR(), g: initG(), b: initB() }</code></pre>
                         <p>
                             A struct instantiation expression doesn't allocate a
-                            struct automatically, so it has to be done manually.
-                            Then the fields of this manually allocated struct
-                            are initialized to the specified values. Field
-                            initialization happens in declaration order, but the
-                            side-effects must be visible in instantiation order.
+                            struct automatically, so it has to be done
+                            explicitly. Then the fields of this explicitly
+                            allocated struct are initialized to the specified
+                            values. Field initialization happens in declaration
+                            order, but the side effects must be visible in
+                            instantiation order.
                         </p>
                         <p>
                             To make the previous logic easier to understand,
@@ -1514,17 +1549,17 @@ tmp.b = bInit;</code></pre>
                         </p>
                         <pre><code>%Color.tmp = alloca %struct.Color, align 8</code></pre>
                         <p>
-                            Accessing a field of a variable however was not
+                            Accessing a field of a variable, however, was not
                             necessary until now. In LLVM IR, the field of a
                             struct is accessed by its index and not by its name.
                             This is the reason for also storing the index of the
-                            field in a <code>ResolvedMemberDecl</code>.
+                            field in a <code>ResolvedFieldDecl</code>.
                         </p>
                         <p>
                             The field is accessed with the
                             <code>GetElementPointer</code> instruction. This
-                            instruction can be confusing, so it's recommended to
-                            let the
+                            instruction can be confusing at first, so it's
+                            recommended to let the
                             <code>llvm::IRBuilder::CreateStructGEP()</code>
                             helper create it. This helper takes the type of the
                             struct, a pointer to the beginning of the struct and
@@ -1569,7 +1604,7 @@ store double %2, double* %5, align 8</code></pre>
                         <p>
                             Note that the example struct deliberately has only
                             <code>number</code> fields. Assigning values to
-                            struct fields works differently and will be
+                            struct fields works differently, which will be
                             discussed later.
                         </p>
                     </li>
@@ -1577,7 +1612,7 @@ store double %2, double* %5, align 8</code></pre>
                         <p>
                             In the previous point, the fields of a struct have
                             already been accessed, so it's the perfect time to
-                            implement code generation support for
+                            implement lowering for
                             <code>ResolvedMemberExpr</code>.
                         </p>
                         <p>
@@ -1597,7 +1632,7 @@ store double %2, double* %5, align 8</code></pre>
                         <p>
                             A member access results in a
                             <code>GetElementPointer</code> instruction on the
-                            result of the base expression, however there is a
+                            result of the base expression, however, there is a
                             difference in how it is followed up depending on
                             whether the field is being written or read.
                         </p>
@@ -1610,7 +1645,7 @@ store double %2, double* %5, align 8</code></pre>
                         <p>
                             On the other hand, if the field is being assigned
                             the <code>store</code> instruction expects a pointer
-                            operand, so the field doesn't have to be loaded.
+                            operand, so the field must not be loaded.
                         </p>
                         <pre><code>%3 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
 store double 1.000000e+00, double* %3, align 8</code></pre>
@@ -1620,8 +1655,8 @@ store double 1.000000e+00, double* %3, align 8</code></pre>
                             At this point creating temporary structs and reading
                             their fields immediately should work correctly, but
                             it would be convenient to also be able to store the
-                            structs in variables, initialize struct type fields
-                            or assign a struct variable a different value.
+                            structs in variables, initialize struct fields or
+                            assign a struct variable a different value.
                         </p>
                         <p>
                             All of the above use cases are handled by the same
@@ -1644,17 +1679,18 @@ s.r = tmp.r;
 s.g = tmp.g;
 s.b = tmp.b;</code></pre>
                         <p>
-                            Manually assigning every field however would result
-                            in duplicating the work and generating large LLVM IR
-                            fragments. The goal is to make the content of the
-                            piece of memory that stores the struct on the LHS
-                            the same as the content of the memory storing the
-                            one on the RHS. To achieve this easily, LLVM has a
-                            builtin
-                            <code>memcpy</code> intrinsic, that copies a
-                            specific amount of memory from one place to another.
-                            With that an assignment between 2 struct variables
-                            can be simplified to a few lines only.
+                            Manually assigning every field, however, would
+                            result in duplicating the work and generating large
+                            LLVM IR fragments. The goal is to make the content
+                            of the piece of memory that stores the struct on the
+                            LHS the same as the content of the memory storing
+                            the one on the RHS. To achieve this easily, LLVM has
+                            a builtin
+                            <code>memcpy</code> intrinsic, that copies the
+                            content of a specific amount of memory from one
+                            place to another. With that an assignment between 2
+                            struct variables can be simplified to only a few
+                            lines.
                         </p>
                         <pre><code>%3 = bitcast %struct.Color* %s to i8*
 %4 = bitcast %struct.Color* %Color.tmp to i8*
@@ -1674,9 +1710,8 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                                 Intrinsics are built-in functions in LLVM that
                                 let the backends know what the desired effect is
                                 at that specific point of the IR. The backends
-                                can use this information to find the most
-                                efficient way to generate native code for that
-                                functionality.
+                                then use this information to find the most
+                                efficient way to achieve it.
                             </p>
                             <p>
                                 The available intrinsics can be found in the
@@ -1706,12 +1741,12 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                         <blockquote>
                             <h3>Design Note</h3>
                             <p>
-                                Upon taking a look at how Clang or Rustc
-                                generate code for an equivalent snippet in C++,
-                                the result will probably be different. If the
-                                values of the initializers are known in compile
-                                time, clang creates a constant struct and copies
-                                it to the destination instead.
+                                Upon taking a look at how Clang generates code
+                                for an equivalent snippet, the result will
+                                probably be different. If the values of the
+                                initializers are known in compile time, Clang
+                                creates a constant struct and copies it to the
+                                destination instead.
                             </p>
                             <pre><code>@__const.clangKnownInitializers.c = private unnamed_addr constant %struct.Color { i32 1, i32 2, i32 3 }, align 4
 
@@ -1722,11 +1757,11 @@ entry:
   ret void
 }</code></pre>
                             <p>
-                                Another optimization Clang or Rustc perform is
-                                copy-elision. If copying the struct has no
-                                side-effects, there is no need to create a
-                                temporary and emit an additional
-                                <code>memcpy</code>, the initializer values can
+                                Another optimization Clang performs is
+                                copy-elision. If copying the struct has no side
+                                effects, there is no need to create a temporary
+                                and emit an additional
+                                <code>memcpy</code>. The initializer values can
                                 be stored directly in the space of the local
                                 variable.
                             </p>
@@ -1751,24 +1786,24 @@ entry:
                     </li>
                     <li>
                         <p>
-                            By this point structs should be fully functional
+                            By this point, structs should be fully functional
                             within the body of a function. The last thing to do
                             is implementing support for passing them to and
                             returning them from functions.
                         </p>
                         <p>
                             Structs are passed to functions by value, however as
-                            mentioned previously in LLVM IR only the pointer to
+                            mentioned previously, in LLVM IR only the pointer to
                             the struct can be moved around, it's not possible to
                             load them and pass the loaded value. Passing by
-                            value however only means that no modification to the
-                            parameter is visible outside the function, and this
-                            can be achieved in LLVM IR.
+                            value, however, only means that no modification to
+                            the parameter is visible outside the function, and
+                            this can be achieved in LLVM IR.
                         </p>
                         <p>
-                            For mutable parameters the trick is to create a copy
-                            of the struct in the caller and pass a pointer to
-                            that copy.
+                            For mutable parameters, the trick is to create a
+                            copy of the struct in the caller and pass a pointer
+                            to that copy.
                         </p>
                         <pre><code>%c = alloca %struct.Color, align 8
 %struct.arg.tmp = alloca %struct.Color, align 8
@@ -1780,10 +1815,10 @@ call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tm
                         <p>
                             Notice how the <code>byval</code> attribute is added
                             to the function. It is a way to let LLVM know that
-                            the particular parameter actually simulates a
-                            pass-by-value semantic and when it does, this
-                            attribute must be present at both the function
-                            declaration and the callsite.
+                            the particular parameter simulates a pass-by-value
+                            semantic and when it does that, this attribute must
+                            be present at both the function declaration and the
+                            callsite.
                         </p>
                         <pre><code>define void @mutableStructParam(%struct.Color* byval(%struct.Color) %c) {
   ...
@@ -1811,9 +1846,9 @@ call void @immutableStructParam(%struct.Color* readonly %c)</code></pre>
                             pointer to this value is passed as the first
                             parameter of the function marked by the compulsory
                             <code>sret</code> attribute. The return statement
-                            copies the returned value into the parameter marked
-                            by <code>sret</code>, and the function is treated as
-                            if it was a void function.
+                            then copies the struct to the address pointed by
+                            this parameter, and the function is treated as if it
+                            were a void function.
                         </p>
                         <pre><code>define void @caller() {
 entry:
@@ -1837,11 +1872,11 @@ return:
                         <blockquote>
                             <h3>Design Note</h3>
                             <p>
-                                Using <code>sret</code> and
+                                Sadly using <code>sret</code> and
                                 <code>byval</code> arguments is not an all-round
-                                solution. Certain platform specific ABI-s might
-                                require certain structs to be passed some other
-                                specific way.
+                                solution. Different platform-specific ABIs might
+                                require different ways of passing and returning
+                                struct values.
                             </p>
                             <pre><code>struct Coerced {
   int x;
@@ -1852,16 +1887,14 @@ Coerced passCoerced(Coerced c) {
   return c;
 }</code></pre>
                             <p>
-                                On some certain platforms like
-                                <code>x86-64</code>, <code>Coerced</code> in the
-                                example has the size of 64 bits and it fits into
-                                a single register, so Clang lowers the
-                                <code>passCoerced</code> function into the
-                                following snippet. Both the parameter and the
-                                return type has been changed to
-                                <code>i64</code>.
+                                In the previous example, on the
+                                <code>x86-64</code> platform,
+                                <code>Coerced</code> has the size of 64 bits and
+                                it fits into a single register, so Clang lowers
+                                <code>passCoerced</code> as a function that
+                                takes and returns an <code>i64</code> value.
                             </p>
-                            <pre><code>define dso_local i64 @passCoerced(Coerced)(i64 %c.coerce) {
+                            <pre><code>define dso_local i64 @passCoerced(i64 %c.coerce) {
 entry:
   %retval = alloca %struct.Coerced, align 4
   %c = alloca %struct.Coerced, align 4
@@ -1871,27 +1904,41 @@ entry:
   ret i64 %0
 }</code></pre>
                             <p>
+                                Larger structs might be passed and returned in 2
+                                separate registers, where the latter can be
+                                expressed with a literal struct.
+                            </p>
+                            <pre><code>%struct.LargerCoerced = type { i32, i32, i32, i32 }
+
+define { i64, i64 } @passLargerCoerced(LargerCoerced)(i64 %l.coerce0, i64 %l.coerce1) {
+entry:
+  %retval = alloca %struct.LargerCoerced, align 4
+  ...
+  %2 = load { i64, i64 }, ptr %retval, align 4
+  ret { i64, i64 } %2
+}</code></pre>
+                            <p>
                                 It's the compiler's responsibility to ensure
                                 that the generated code conforms to the ABI of
-                                the target platform, otherwise compatibility
-                                issues might arise.
+                                the target platform and thus maintains
+                                compatibility.
                             </p>
                             <p>
-                                Implementing full support for a specific ABI is
-                                not a scope of this exercise. This would only
-                                become a real issue if the language supported
-                                for example linking against arbitrary C or C++
-                                libraries, as in that case passing struct to and
-                                receiveing them from the functions of that
-                                library would result in undefined behavior. The
-                                only external function the language uses is
+                                Implementing full support for a specific ABI
+                                alone could also have its dedicated guide, so
+                                it's not in the scope of this exercise. It would
+                                only become necessary if making your language
+                                interoperable with C, C++ or any other language
+                                that compiles to native code was required. The
+                                only external function the language uses that
+                                was compiled by a different compiler is
                                 <code>printf</code>, but it neither receives nor
-                                returns a struct, so incompatibility issues will
+                                returns a struct, so compatibility issues will
                                 not arise.
                             </p>
                             <p>
-                                For more details see some discussions on LLVM
-                                mailing lists like the one about
+                                For more details see some discussions on
+                                dedicated LLVM mailing lists like the one about
                                 <a
                                     href="https://lists.llvm.org/pipermail/cfe-dev/2013-January/027302.html"
                                     target="_blank"
@@ -1912,14 +1959,16 @@ entry:
                 </ol>
                 <h2>The End</h2>
                 <p>
-                    Congratulations for reaching the end of this exercise, the
-                    compiler now fully supports struct in the language!
+                    Congratulations on reaching the end of this exercise, the
+                    compiler now fully supports structs in your language!
                 </p>
                 <p>
-                    Hopefully it was time well spent and an interesting
-                    experience to explore the different fields of language
-                    design, static code analysis and code generation throughout
-                    the previous few sections.
+                    Thank you for taking the time to read through this guide on
+                    how to write a compiler with LLVM! Hopefully, it was time
+                    well spent and an interesting experience to explore the
+                    different fields of language design, parsing, static code
+                    analysis, and code generation throughout the previous few
+                    pages.
                 </p>
             </section>
             <footer>
