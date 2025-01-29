@@ -927,7 +927,6 @@ public:
                             Due to this property, struct are also resolved in
                             multiple passes just like functions.
                         </p>
-                        <!-- FIXME: design note about forward declarations -->
                         <p>
                             They also need to be resolved before function
                             declarations because a function can have a struct
@@ -1374,15 +1373,14 @@ foo:
                         </p>
                     </li>
                     <li>
-                        <!-- FIXME: use the words 'literal' and 'identified' -->
                         <p>
                             The first step towards seeing the new syntactical
                             changes in action is to represent each resolved
                             struct as a struct type in LLVM IR.
                         </p>
                         <p>
-                            LLVM supports two kinds of structs, named and
-                            unnamed ones. An unnamed struct comes in handy for
+                            LLVM supports two kinds of structs, identified and
+                            literal ones. A literal struct comes in handy for
                             languages that have built-in support for working
                             with tuple types, or when implementing
                             optimizations, but more on that later.
@@ -1391,14 +1389,14 @@ foo:
                         <p>
                             The snippet above could be represented with the
                             following piece of LLVM IR, where
-                            <code>{ double, double }</code> is an unnamed struct
+                            <code>{ double, double }</code> is a literal struct
                             of two <code>double</code> members.
                         </p>
                         <pre><code>define { double, double } @returnTuple() { ... }</code></pre>
                         <p>
-                            Named structs on the other hand are useful to
+                            Identified structs on the other hand are useful to
                             represent a concrete pack of values, like user
-                            defined structs or classes in a language.
+                            defined structs or classes.
                         </p>
                         <pre><code>struct Color { r: number, g: number, b: number }</code></pre>
                         <p>
@@ -1407,21 +1405,21 @@ foo:
                         </p>
                         <pre><code>%struct.Color = type { double, double, double }</code></pre>
                         <p>
-                            It's important to note that while unnamed structs
+                            It's important to note that while literal structs
                             are structurally uniqued, meaning that every
                             <code>{ double, double }</code> in the IR refers to
-                            the same type, named structs are always different,
-                            so even if the IR contains
+                            the same type, identified structs are always
+                            different, so even if the IR contains
                             <code>%struct.a = type { double, double }</code> and
                             <code>%struct.b = type { double, double }</code>,
                             <code>%struct.a</code> is not the same type as
                             <code>%struct.b</code>.
                         </p>
                         <p>
-                            A struct type can also be opaque, which tells LLVM
-                            that the struct exists, but it is not known what
-                            fields it has, like a forward declaration in C or
-                            C++.
+                            An identified struct type can also be opaque, which
+                            tells LLVM that the struct exists, but it is not
+                            known what fields it has, like a forward declaration
+                            in C or C++.
                         </p>
                         <p>
                             In this step every
@@ -1634,7 +1632,6 @@ store double 1.000000e+00, double* %3, align 8</code></pre>
                             the value of each field must be manually assigned to
                             the same field of the destination struct.
                         </p>
-                        <!-- FIXME: talk about copy elision here and memcpy-ing constant structs -->
                         <pre><code>let s = Color { r: 1, g: 2, b: 3 };
 
 let tmp: Color;
@@ -1646,7 +1643,6 @@ let s: Color;
 s.r = tmp.r;
 s.g = tmp.g;
 s.b = tmp.b;</code></pre>
-                        <!-- FIXME: talk about what an intrinsic is -->
                         <p>
                             Manually assigning every field however would result
                             in duplicating the work and generating large LLVM IR
@@ -1672,6 +1668,86 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                             done easily with the help of the
                             <code>llvm::DataLayout</code> utility.
                         </p>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                Intrinsics are built-in functions in LLVM that
+                                let the backends know what the desired effect is
+                                at that specific point of the IR. The backends
+                                can use this information to find the most
+                                efficient way to generate native code for that
+                                functionality.
+                            </p>
+                            <p>
+                                The available intrinsics can be found in the
+                                <a
+                                    href="https://llvm.org/docs/LangRef.html#intrinsic-functions"
+                                    target="_blank"
+                                >
+                                    LLVM Language Reference Manual</a
+                                >.
+                            </p>
+                        </blockquote>
+                        <p>
+                            The full struct instantiation in LLVM IR looks like
+                            this.
+                        </p>
+                        <pre><code>%s = alloca %struct.Color, align 8
+%Color.tmp = alloca %struct.Color, align 8
+%0 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
+store double 1.000000e+00, double* %0, align 8
+%1 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 1
+store double 2.000000e+00, double* %1, align 8
+%2 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 2
+store double 3.000000e+00, double* %2, align 8
+%3 = bitcast %struct.Color* %s to i8*
+%4 = bitcast %struct.Color* %Color.tmp to i8*
+call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)</code></pre>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                Upon taking a look at how Clang or Rustc
+                                generate code for an equivalent snippet in C++,
+                                the result will probably be different. If the
+                                values of the initializers are known in compile
+                                time, clang creates a constant struct and copies
+                                it to the destination instead.
+                            </p>
+                            <pre><code>@__const.clangKnownInitializers.c = private unnamed_addr constant %struct.Color { i32 1, i32 2, i32 3 }, align 4
+
+define void @clangKnownInitializers() {
+entry:
+  %c = alloca %struct.Color, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %c, ptr align 4 @__const.clangKnownInitializers().c, i64 12, i1 false)
+  ret void
+}</code></pre>
+                            <p>
+                                Another optimization Clang or Rustc perform is
+                                copy-elision. If copying the struct has no
+                                side-effects, there is no need to create a
+                                temporary and emit an additional
+                                <code>memcpy</code>, the initializer values can
+                                be stored directly in the space of the local
+                                variable.
+                            </p>
+                            <pre><code>define void @copyElision(i32 %0) {
+  %2 = alloca i32, align 4
+  %3 = alloca %struct.Color, align 4
+  store i32 %0, i32* %2, align 4
+
+  %4 = getelementptr inbounds %struct.Color, %struct.Color* %3, i32 0, i32 0
+  %5 = load i32, i32* %2, align 4
+  store i32 %5, i32* %4, align 4
+  %6 = getelementptr inbounds %struct.Color, %struct.Color* %3, i32 0, i32 1
+  %7 = load i32, i32* %2, align 4
+  store i32 %7, i32* %6, align 4
+  %8 = getelementptr inbounds %struct.Color, %struct.Color* %3, i32 0, i32 2
+  %9 = load i32, i32* %2, align 4
+  store i32 %9, i32* %8, align 4
+
+  ret void
+}</code></pre>
+                        </blockquote>
                     </li>
                     <li>
                         <p>
@@ -1758,6 +1834,80 @@ entry:
 return: 
   ret void
 }</code></pre>
+                        <blockquote>
+                            <h3>Design Note</h3>
+                            <p>
+                                Using <code>sret</code> and
+                                <code>byval</code> arguments is not an all-round
+                                solution. Certain platform specific ABI-s might
+                                require certain structs to be passed some other
+                                specific way.
+                            </p>
+                            <pre><code>struct Coerced {
+  int x;
+  int y;
+};
+
+Coerced passCoerced(Coerced c) {
+  return c;
+}</code></pre>
+                            <p>
+                                On some certain platforms like
+                                <code>x86-64</code>, <code>Coerced</code> in the
+                                example has the size of 64 bits and it fits into
+                                a single register, so Clang lowers the
+                                <code>passCoerced</code> function into the
+                                following snippet. Both the parameter and the
+                                return type has been changed to
+                                <code>i64</code>.
+                            </p>
+                            <pre><code>define dso_local i64 @passCoerced(Coerced)(i64 %c.coerce) {
+entry:
+  %retval = alloca %struct.Coerced, align 4
+  %c = alloca %struct.Coerced, align 4
+  store i64 %c.coerce, ptr %c, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %retval, ptr align 4 %c, i64 8, i1 false)
+  %0 = load i64, ptr %retval, align 4
+  ret i64 %0
+}</code></pre>
+                            <p>
+                                It's the compiler's responsibility to ensure
+                                that the generated code conforms to the ABI of
+                                the target platform, otherwise compatibility
+                                issues might arise.
+                            </p>
+                            <p>
+                                Implementing full support for a specific ABI is
+                                not a scope of this exercise. This would only
+                                become a real issue if the language supported
+                                for example linking against arbitrary C or C++
+                                libraries, as in that case passing struct to and
+                                receiveing them from the functions of that
+                                library would result in undefined behavior. The
+                                only external function the language uses is
+                                <code>printf</code>, but it neither receives nor
+                                returns a struct, so incompatibility issues will
+                                not arise.
+                            </p>
+                            <p>
+                                For more details see some discussions on LLVM
+                                mailing lists like the one about
+                                <a
+                                    href="https://lists.llvm.org/pipermail/cfe-dev/2013-January/027302.html"
+                                    target="_blank"
+                                >
+                                    struct parameters being converted to other
+                                    types</a
+                                >
+                                or the one
+                                <a
+                                    href="https://groups.google.com/g/llvm-dev/c/CafdpEzOEp0"
+                                    target="_blank"
+                                >
+                                    on passing structures in registers</a
+                                >.
+                            </p>
+                        </blockquote>
                     </li>
                 </ol>
                 <h2>The End</h2>
