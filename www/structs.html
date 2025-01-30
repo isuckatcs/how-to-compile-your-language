@@ -147,13 +147,13 @@ fn rgbToGray(c: RGBColor): number {
                         Imagine that structs are moved around by the reference
                         pointing to them. That means, in this example a
                         reference to <code>s</code> is returned from the
-                        function, however if <code>s</code> is on the stack, it
+                        function, however, if <code>s</code> is on the stack, it
                         is freed after the function returns. Where does the
                         reference point then? It points to the piece of memory
-                        that was used to store <code>s</code>, but is now freed,
-                        so the reference is dangling, pointing to an unknown
-                        piece of memory. Moving structs around by value avoids
-                        this issue automatically.
+                        that used to store <code>s</code>, but is now freed, so
+                        the reference is dangling, pointing to an unknown piece
+                        of memory. Moving structs around by value avoids this
+                        issue automatically.
                     </p>
                     <p>
                         But what about those languages, that have been mentioned
@@ -181,31 +181,157 @@ fn rgbToGray(c: RGBColor): number {
                         be freed and kept alive.
                     </p>
                     <p>
-                        Kotlin uses garbage collection (GC), where a utility
-                        known as the garbage collector keeps track of which
-                        pieces of memory can be accessed through the available
-                        references at a specific point of running the program.
-                        When a reference goes out of scope and no other
-                        references on the call stack point to the chunk of
-                        memory in question, it is considered unreachable,
-                        otherwise it is reachable. The garbage collector
-                        periodically scans all the allocated memory blocks and
-                        frees those that are unreachable.
+                        Kotlin runs on the JVM, which uses tracing garbage
+                        collection (<a
+                            href="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/gc01/index.html"
+                            target="_blank"
+                            >GC</a
+                        >), where a utility known as the garbage collector keeps
+                        track of which pieces of memory can be accessed through
+                        the available references at a specific point of the
+                        program from a so-called root object. When a reference
+                        goes out of scope and no other accessible references
+                        point to the chunk of memory in question, it is
+                        considered unreachable, otherwise, it is reachable. The
+                        garbage collector periodically scans all the allocated
+                        memory blocks and frees those that are unreachable.
                     </p>
+                    <pre><code style="font-style: normal;">1.) an A object is created
+
+                                    ┌─────────┐
+                                    │ RootObj │
+   6 | fun main() {                 └─────────┘
+-> 7 |   val a = A()                     │
+   8 |   wrapper(a)                      v
+   9 | }                              ┌─────┐
+                                      │ A@7 │
+                                      └─────┘
+
+2.) wrapper is called and a B object is created
+
+                                    ┌─────────┐
+   1 | fun wrapper(a: A) {          │ RootObj │
+-> 2 |   var b = B()                └─────────┘
+   3 |   b = B()                    ┌────┴────┐
+   4 |   a.b = b                    v         v
+   5 | }                         ┌─────┐   ┌─────┐
+                                 │ A@7 │   │ B@2 │
+                                 └─────┘   └─────┘
+
+3.) the same reference is pointed to another B object
+
+                                    ┌─────────┐
+   1 | fun wrapper(a: A) {          │ RootObj │
+   2 |   var b = B()                └─────────┘
+-> 3 |   b = B()                 ┌───────┴───────┐
+   4 |   a.b = b                 v               v
+   5 | }                      ┌─────┐ ┌─────┐ ┌─────┐
+                              │ A@7 │ │ B@2 │ │ B@3 │
+                              └─────┘ └─────┘ └─────┘
+
+4.) a reference in A@7 is pointed to B@3
+
+                                    ┌─────────┐
+                                    │ RootObj │
+   1 | fun wrapper(a: A) {          └─────────┘
+   2 |   var b = B()             ┌───────┴───────┐
+   3 |   b = B()                 v               v
+-> 4 |   a.b = b              ┌─────┐ ┌─────┐ ┌─────┐
+   5 | }                      │ A@7 │ │ B@2 │ │ B@3 │
+                              └─────┘ └─────┘ └─────┘
+                                 │               ^
+                                 └───────────────┘
+
+5.) return and the reference to B@3 goes out of scope
+
+                                    ┌─────────┐
+                                    │ RootObj │
+                                    └─────────┘
+   6 | fun main() {              ┌───────┘
+   7 |   val a = A()             v
+-> 8 |   wrapper(a)           ┌─────┐ ┌─────┐ ┌─────┐
+   9 | }                      │ A@7 │ │ B@2 │ │ B@3 │
+                              └─────┘ └─────┘ └─────┘
+                                 │               ^
+                                 └───────────────┘
+
+6.) execution halts, the GC marks the reachable nodes
+
+                                    ╔────═────╗
+                                    │ RootObj │
+                                    ╚────═────╝
+   6 | fun main() {              ┌───────┘
+   7 |   val a = A()             v
+-> 8 |   wrapper(a)           ╔──═──╗ ┌─────┐ ╔──═──╗
+   9 | }                      │ A@7 │ │ B@2 │ │ B@3 │
+                              ╚──═──╝ └─────┘ ╚──═──╝
+                                 │               ^
+                                 └───────────────┘
+
+7.) any unmarked node is freed
+
+                                    ┌─────────┐   
+                                    │ RootObj │   
+   6 | fun main() {                 └─────────┘   
+   7 |   val a = A()                ┌────┘   
+-> 8 |   wrapper(a)                 v  
+   9 | }                         ┌─────┐   ┌─────┐
+                                 │ A@7 │──>│ B@3 │
+                                 └─────┘   └─────┘
+
+8.) the execution continues
+
+    ...
+                            </code></pre>
                     <p>
-                        Swift uses a different method called automatic reference
-                        counting (ARC). In this case, the objects themselves
-                        have a counter attached to them, that tracks how many
-                        available references point to the object. When a
-                        reference goes out of scope, the counter is decremented
-                        and if the reference count reaches 0, the object is
-                        freed.
+                        Swift uses a different technique called automatic
+                        reference counting (<a
+                            href="https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting"
+                            target="_blank"
+                            >ARC</a
+                        >). In this case, the objects themselves have a counter
+                        attached to them, which tracks how many reachable
+                        references point to the object. When a reference goes
+                        out of scope, the counter is decremented, and if the
+                        reference count reaches 0, the object is freed.
                     </p>
+                    <pre><code style="font-style: normal;">1.) callee is entered and an A class is instantiated
+
+   4 | func callee() {       ┌─────┐    ┌───────────┐
+-> 5 |   let a = A()         │ A@5 │ ─> │ RefCnt: 1 │
+   6 |   wrapper(a: a)       └─────┘    └───────────┘
+   7 | }
+
+2.) wrapper is entered, a local reference is created
+
+   1 | func wrapper(a: A) {  ┌─────┐    ┌───────────┐
+-> 2 |   let b = a           │ A@5 │ ─> │ RefCnt: 2 │
+   3 | }                     └─────┘    └───────────┘
+
+3.) return and the local reference goes out of scope
+
+   4 | func callee() {       ┌─────┐    ┌───────────┐
+   5 |   let a = A()         │ A@5 │ ─> │ RefCnt: 1 │
+-> 6 |   wrapper(a: a)       └─────┘    └───────────┘
+   7 | }
+
+4.) callee returns, the reference count reaches zero
+
+                             ┌─────┐    ┌───────────┐
+-> 8 | callee()              │ A@5 │ ─> │ RefCnt: 0 │
+                             └─────┘    └───────────┘
+
+5.) the object is freed
+
+-> 8 | callee()
+
+</code></pre>
                     <p>
                         Both GC and ARC execute additional code in runtime, so
                         they impose some performance overhead and require
                         additional logic to be performed by the compiler during
-                        code generation.
+                        code generation. And of course, they are also a lot more
+                        complex than these oversimplified examples make it seem.
                     </p>
                 </blockquote>
                 <p>
