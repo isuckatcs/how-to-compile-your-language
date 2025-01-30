@@ -9,16 +9,16 @@ fn main(): void {
     let err = Color {
         r: 0, 
         +,
-        // CHECK: [[# @LINE -1 ]]:9: error: expected member initialization
+        // CHECK: [[# @LINE -1 ]]:9: error: expected field initialization
         b: 2,
     };
 
     let x = 1;
 }
 // CHECK: StructDecl: Color
-// CHECK-NEXT:   MemberDecl: r:number
-// CHECK-NEXT:   MemberDecl: g:number
-// CHECK-NEXT:   MemberDecl: b:number
+// CHECK-NEXT:   FieldDecl: r:number
+// CHECK-NEXT:   FieldDecl: g:number
+// CHECK-NEXT:   FieldDecl: b:number
 // CHECK-NEXT: FunctionDecl: main:void
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:

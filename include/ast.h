@@ -107,13 +107,13 @@ struct ReturnStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct MemberInitStmt : public Stmt {
+struct FieldInitStmt : public Stmt {
   std::string identifier;
   std::unique_ptr<Expr> initializer;
 
-  MemberInitStmt(SourceLocation location,
-                 std::string identifier,
-                 std::unique_ptr<Expr> initializer)
+  FieldInitStmt(SourceLocation location,
+                std::string identifier,
+                std::unique_ptr<Expr> initializer)
       : Stmt(location),
         identifier(identifier),
         initializer(std::move(initializer)) {}
@@ -123,15 +123,15 @@ struct MemberInitStmt : public Stmt {
 
 struct StructInstantiationExpr : public Expr {
   std::string identifier;
-  std::vector<std::unique_ptr<MemberInitStmt>> memberInitializers;
+  std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
 
   StructInstantiationExpr(
       SourceLocation location,
       std::string identifier,
-      std::vector<std::unique_ptr<MemberInitStmt>> memberInitializers)
+      std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers)
       : Expr(location),
         identifier(identifier),
-        memberInitializers(std::move(memberInitializers)) {}
+        fieldInitializers(std::move(fieldInitializers)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -177,14 +177,14 @@ struct DeclRefExpr : public AssignableExpr {
 
 struct MemberExpr : public AssignableExpr {
   std::unique_ptr<Expr> base;
-  std::string member;
+  std::string field;
 
   MemberExpr(SourceLocation location,
              std::unique_ptr<Expr> base,
-             std::string member)
+             std::string field)
       : AssignableExpr(location),
         base(std::move(base)),
-        member(std::move(member)) {}
+        field(std::move(field)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -230,10 +230,10 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct MemberDecl : public Decl {
+struct FieldDecl : public Decl {
   Type type;
 
-  MemberDecl(SourceLocation location, std::string identifier, Type type)
+  FieldDecl(SourceLocation location, std::string identifier, Type type)
       : Decl(location, std::move(identifier)),
         type(std::move(type)) {}
 
@@ -241,13 +241,13 @@ struct MemberDecl : public Decl {
 };
 
 struct StructDecl : public Decl {
-  std::vector<std::unique_ptr<MemberDecl>> members;
+  std::vector<std::unique_ptr<FieldDecl>> fields;
 
   StructDecl(SourceLocation location,
              std::string identifier,
-             std::vector<std::unique_ptr<MemberDecl>> members)
+             std::vector<std::unique_ptr<FieldDecl>> fields)
       : Decl(location, std::move(identifier)),
-        members(std::move(members)) {}
+        fields(std::move(fields)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -421,13 +421,13 @@ struct ResolvedParamDecl : public ResolvedDecl {
   void dump(size_t level = 0) const override;
 };
 
-struct ResolvedMemberDecl : public ResolvedDecl {
+struct ResolvedFieldDecl : public ResolvedDecl {
   unsigned index;
 
-  ResolvedMemberDecl(SourceLocation location,
-                     std::string identifier,
-                     Type type,
-                     unsigned index)
+  ResolvedFieldDecl(SourceLocation location,
+                    std::string identifier,
+                    Type type,
+                    unsigned index)
       : ResolvedDecl(location, std::move(identifier), type, false),
         index(index) {}
 
@@ -465,14 +465,14 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
 };
 
 struct ResolvedStructDecl : public ResolvedDecl {
-  std::vector<std::unique_ptr<ResolvedMemberDecl>> members;
+  std::vector<std::unique_ptr<ResolvedFieldDecl>> fields;
 
   ResolvedStructDecl(SourceLocation location,
                      std::string identifier,
                      Type type,
-                     std::vector<std::unique_ptr<ResolvedMemberDecl>> members)
+                     std::vector<std::unique_ptr<ResolvedFieldDecl>> fields)
       : ResolvedDecl(location, std::move(identifier), type, false),
-        members(std::move(members)) {}
+        fields(std::move(fields)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -518,14 +518,14 @@ struct ResolvedDeclRefExpr : public ResolvedAssignableExpr {
 
 struct ResolvedMemberExpr : public ResolvedAssignableExpr {
   std::unique_ptr<ResolvedExpr> base;
-  const ResolvedMemberDecl *member;
+  const ResolvedFieldDecl *field;
 
   ResolvedMemberExpr(SourceLocation location,
                      std::unique_ptr<ResolvedExpr> base,
-                     const ResolvedMemberDecl &member)
-      : ResolvedAssignableExpr(location, member.type),
+                     const ResolvedFieldDecl &field)
+      : ResolvedAssignableExpr(location, field.type),
         base(std::move(base)),
-        member(&member) {}
+        field(&field) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -608,15 +608,15 @@ struct ResolvedReturnStmt : public ResolvedStmt {
   void dump(size_t level = 0) const override;
 };
 
-struct ResolvedMemberInitStmt : public ResolvedStmt {
-  const ResolvedMemberDecl *member;
+struct ResolvedFieldInitStmt : public ResolvedStmt {
+  const ResolvedFieldDecl *field;
   std::unique_ptr<ResolvedExpr> initializer;
 
-  ResolvedMemberInitStmt(SourceLocation location,
-                         const ResolvedMemberDecl &member,
-                         std::unique_ptr<ResolvedExpr> initializer)
+  ResolvedFieldInitStmt(SourceLocation location,
+                        const ResolvedFieldDecl &field,
+                        std::unique_ptr<ResolvedExpr> initializer)
       : ResolvedStmt(location),
-        member(&member),
+        field(&field),
         initializer(std::move(initializer)) {}
 
   void dump(size_t level = 0) const override;
@@ -624,15 +624,15 @@ struct ResolvedMemberInitStmt : public ResolvedStmt {
 
 struct ResolvedStructInstantiationExpr : public ResolvedExpr {
   const ResolvedStructDecl *structDecl;
-  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> memberInitializers;
+  std::vector<std::unique_ptr<ResolvedFieldInitStmt>> fieldInitializers;
 
   ResolvedStructInstantiationExpr(
       SourceLocation location,
       const ResolvedStructDecl &structDecl,
-      std::vector<std::unique_ptr<ResolvedMemberInitStmt>> memberInitializers)
+      std::vector<std::unique_ptr<ResolvedFieldInitStmt>> fieldInitializers)
       : ResolvedExpr(location, structDecl.type),
         structDecl(&structDecl),
-        memberInitializers(std::move(memberInitializers)) {}
+        fieldInitializers(std::move(fieldInitializers)) {}
 
   void dump(size_t level = 0) const override;
 };

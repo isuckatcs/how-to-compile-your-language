@@ -16,7 +16,7 @@ struct S2 {
 }
 
 // CHECK: StructDecl: S
-// CHECK-NEXT:   MemberDecl: x:number
+// CHECK-NEXT:   FieldDecl: x:number
 // CHECK-NEXT: StructDecl: S2
-// CHECK-NEXT:   MemberDecl: x:number
+// CHECK-NEXT:   FieldDecl: x:number
 // CHECK-NOT: {{.*}}

@@ -126,10 +126,10 @@ llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
 llvm::Value *Codegen::generateMemberExpr(const ResolvedMemberExpr &memberExpr,
                                          bool keepPointer) {
   llvm::Value *base = generateExpr(*memberExpr.base, true);
-  llvm::Value *member = builder.CreateStructGEP(
-      generateType(memberExpr.base->type), base, memberExpr.member->index);
+  llvm::Value *field = builder.CreateStructGEP(
+      generateType(memberExpr.base->type), base, memberExpr.field->index);
 
-  return keepPointer ? member : loadValue(member, memberExpr.member->type);
+  return keepPointer ? field : loadValue(field, memberExpr.field->type);
 }
 
 llvm::Value *
@@ -138,15 +138,15 @@ Codegen::generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie) {
   llvm::Value *tmp =
       allocateStackVariable(structType.name + ".tmp", structType);
 
-  std::map<const ResolvedMemberDecl *, llvm::Value *> initializerVals;
-  for (auto &&initStmt : sie.memberInitializers)
-    initializerVals[initStmt->member] = generateExpr(*initStmt->initializer);
+  std::map<const ResolvedFieldDecl *, llvm::Value *> initializerVals;
+  for (auto &&initStmt : sie.fieldInitializers)
+    initializerVals[initStmt->field] = generateExpr(*initStmt->initializer);
 
   size_t idx = 0;
-  for (auto &&member : sie.structDecl->members) {
+  for (auto &&field : sie.structDecl->fields) {
     llvm::Value *dst =
         builder.CreateStructGEP(generateType(structType), tmp, idx++);
-    storeValue(initializerVals[member.get()], dst, member->type);
+    storeValue(initializerVals[field.get()], dst, field->type);
   }
 
   return tmp;
@@ -533,7 +533,7 @@ void Codegen::generateStructDefinition(const ResolvedStructDecl &structDecl) {
   auto *type = static_cast<llvm::StructType *>(generateType(structDecl.type));
 
   std::vector<llvm::Type *> fieldTypes;
-  for (auto &&field : structDecl.members) {
+  for (auto &&field : structDecl.fields) {
     llvm::Type *t = generateType(field->type);
     fieldTypes.emplace_back(t);
   }

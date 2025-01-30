@@ -5,9 +5,9 @@ struct Color {
   b: number,
 }
 // CHECK: ResolvedStructDecl: @({{.*}}) Color:
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) r
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) g
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) b
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) r
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) g
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) b
 
 fn main(): void {
   let x = Color { 
@@ -21,12 +21,12 @@ fn main(): void {
 // CHECK-NEXT:     ResolvedDeclStmt:
 // CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
 // CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) r
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) r
 // CHECK-NEXT:             ResolvedNumberLiteral: '0'
 // CHECK-NEXT:             | value: 0
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) g
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) g
 // CHECK-NEXT:             ResolvedNumberLiteral: '1'
 // CHECK-NEXT:             | value: 1
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) b
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) b
 // CHECK-NEXT:             ResolvedNumberLiteral: '2'
 // CHECK-NEXT:             | value: 2

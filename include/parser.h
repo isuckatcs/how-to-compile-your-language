@@ -51,7 +51,7 @@ class Parser {
   std::unique_ptr<ParamDecl> parseParamDecl();
   std::unique_ptr<VarDecl> parseVarDecl(bool isLet);
   std::unique_ptr<StructDecl> parseStructDecl();
-  std::unique_ptr<MemberDecl> parseMemberDecl();
+  std::unique_ptr<FieldDecl> parseFieldDecl();
 
   std::unique_ptr<Stmt> parseStmt();
   std::unique_ptr<IfStmt> parseIfStmt();
@@ -60,7 +60,7 @@ class Parser {
   parseAssignmentRHS(std::unique_ptr<AssignableExpr> lhs);
   std::unique_ptr<DeclStmt> parseDeclStmt();
   std::unique_ptr<ReturnStmt> parseReturnStmt();
-  std::unique_ptr<MemberInitStmt> parseMemberInitStmt();
+  std::unique_ptr<FieldInitStmt> parseFieldInitStmt();
 
   std::unique_ptr<Stmt> parseAssignmentOrExpr();
 

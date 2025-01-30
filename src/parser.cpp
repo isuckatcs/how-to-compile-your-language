@@ -73,10 +73,10 @@ void Parser::synchronize() {
   }
 }
 
-// <memberDecl>
+// <fieldDecl>
 //  ::= <identifier> ':' <type>
-std::unique_ptr<MemberDecl> Parser::parseMemberDecl() {
-  matchOrReturn(TokenKind::Identifier, "expected member declaration");
+std::unique_ptr<FieldDecl> Parser::parseFieldDecl() {
+  matchOrReturn(TokenKind::Identifier, "expected field declaration");
 
   SourceLocation location = nextToken.location;
   assert(nextToken.value && "identifier token without value");
@@ -89,15 +89,15 @@ std::unique_ptr<MemberDecl> Parser::parseMemberDecl() {
 
   varOrReturn(type, parseType());
 
-  return std::make_unique<MemberDecl>(location, std::move(identifier),
-                                      std::move(*type));
+  return std::make_unique<FieldDecl>(location, std::move(identifier),
+                                     std::move(*type));
 };
 
 // <structDecl>
-//  ::= 'struct' <identifier> <memberList>
+//  ::= 'struct' <identifier> <fieldList>
 //
-// <memberList>
-//  ::= '{' (<memberDecl> (',' <memberDecl>)* ','?)? '}'
+// <fieldList>
+//  ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
 std::unique_ptr<StructDecl> Parser::parseStructDecl() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat struct
@@ -108,13 +108,13 @@ std::unique_ptr<StructDecl> Parser::parseStructDecl() {
   std::string structIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  varOrReturn(memberList,
-              parseListWithTrailingComma<MemberDecl>(
-                  {TokenKind::Lbrace, "expected '{'"}, &Parser::parseMemberDecl,
+  varOrReturn(fieldList,
+              parseListWithTrailingComma<FieldDecl>(
+                  {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldDecl,
                   {TokenKind::Rbrace, "expected '}'"}));
 
   return std::make_unique<StructDecl>(location, structIdentifier,
-                                      std::move(*memberList));
+                                      std::move(*fieldList));
 }
 
 // <functionDecl>
@@ -332,10 +332,10 @@ std::unique_ptr<ReturnStmt> Parser::parseReturnStmt() {
   return std::make_unique<ReturnStmt>(location, std::move(expr));
 }
 
-// <memberInit>
+// <fieldInit>
 //  ::= <identifier> ':' <expr>
-std::unique_ptr<MemberInitStmt> Parser::parseMemberInitStmt() {
-  matchOrReturn(TokenKind::Identifier, "expected member initialization");
+std::unique_ptr<FieldInitStmt> Parser::parseFieldInitStmt() {
+  matchOrReturn(TokenKind::Identifier, "expected field initialization");
 
   SourceLocation location = nextToken.location;
   assert(nextToken.value && "identifier token without value");
@@ -348,8 +348,8 @@ std::unique_ptr<MemberInitStmt> Parser::parseMemberInitStmt() {
 
   varOrReturn(init, parseExpr());
 
-  return std::make_unique<MemberInitStmt>(location, std::move(identifier),
-                                          std::move(init));
+  return std::make_unique<FieldInitStmt>(location, std::move(identifier),
+                                         std::move(init));
 }
 
 // <statement>
@@ -472,7 +472,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
     SourceLocation location = nextToken.location;
     eatNextToken(); // eat '.'
 
-    matchOrReturn(TokenKind::Identifier, "expected member identifier");
+    matchOrReturn(TokenKind::Identifier, "expected field identifier");
     assert(nextToken.value && "identifier without value");
 
     expr = std::make_unique<MemberExpr>(location, std::move(expr),
@@ -493,10 +493,10 @@ std::unique_ptr<Expr> Parser::parsePostfixExpr() {
 //  ::= <number>
 //
 // <structInstantiation>
-//  ::= <identifier> <memberInitList>
+//  ::= <identifier> <fieldInitList>
 //
-// <memberInitList>
-//  ::= '{' (<memberInit> (',' <memberInit>)* ','?)? '}'
+// <fieldInitList>
+//  ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
 //
 // <declRefExpr>
 //  ::= <identifier>
@@ -526,18 +526,18 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
 
     if (!(restrictions & StructNotAllowed) &&
         nextToken.kind == TokenKind::Lbrace) {
-      auto memberInitList = parseListWithTrailingComma<MemberInitStmt>(
-          {TokenKind::Lbrace, "expected '{'"}, &Parser::parseMemberInitStmt,
+      auto fieldInitList = parseListWithTrailingComma<FieldInitStmt>(
+          {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldInitStmt,
           {TokenKind::Rbrace, "expected '}'"});
 
-      if (!memberInitList) {
+      if (!fieldInitList) {
         synchronizeOn({TokenKind::Rbrace});
         eatNextToken(); // eat '}'
         return nullptr;
       }
 
       return std::make_unique<StructInstantiationExpr>(
-          location, std::move(identifier), std::move(*memberInitList));
+          location, std::move(identifier), std::move(*fieldInitList));
     }
 
     auto declRefExpr =

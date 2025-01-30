@@ -66,7 +66,7 @@ class Sema {
   std::unique_ptr<ResolvedStructDecl>
   resolveStructDecl(const StructDecl &structDecl);
 
-  bool resolveStructMembers(ResolvedStructDecl &resolvedStructDecl);
+  bool resolveStructFields(ResolvedStructDecl &resolvedStructDecl);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
   template <typename T> std::pair<T *, int> lookupDecl(const std::string id);

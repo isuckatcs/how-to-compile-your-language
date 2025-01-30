@@ -320,15 +320,15 @@ Sema::resolveStructInstantiation(
                   "'" + structInstantiation.identifier +
                       "' is not a struct type");
 
-  std::vector<std::unique_ptr<ResolvedMemberInitStmt>> resolvedMemberInits;
-  std::map<std::string_view, const ResolvedMemberInitStmt *> inits;
+  std::vector<std::unique_ptr<ResolvedFieldInitStmt>> resolvedFieldInits;
+  std::map<std::string_view, const ResolvedFieldInitStmt *> inits;
 
-  std::map<std::string_view, const ResolvedMemberDecl *> members;
-  for (auto &&memberDecl : st->members)
-    members[memberDecl->identifier] = memberDecl.get();
+  std::map<std::string_view, const ResolvedFieldDecl *> fields;
+  for (auto &&fieldDecl : st->fields)
+    fields[fieldDecl->identifier] = fieldDecl.get();
 
   bool error = false;
-  for (auto &&initStmt : structInstantiation.memberInitializers) {
+  for (auto &&initStmt : structInstantiation.fieldInitializers) {
     std::string_view id = initStmt->identifier;
     const SourceLocation &loc = initStmt->location;
 
@@ -338,8 +338,8 @@ Sema::resolveStructInstantiation(
       continue;
     }
 
-    const ResolvedMemberDecl *memberDecl = members[id];
-    if (!memberDecl) {
+    const ResolvedFieldDecl *fieldDecl = fields[id];
+    if (!fieldDecl) {
       report(loc, "'" + st->identifier + "' has no field named '" +
                       std::string{id} + "'");
       error = true;
@@ -352,29 +352,29 @@ Sema::resolveStructInstantiation(
       continue;
     }
 
-    if (resolvedInitExpr->type.name != memberDecl->type.name) {
+    if (resolvedInitExpr->type.name != fieldDecl->type.name) {
       report(resolvedInitExpr->location,
              "'" + resolvedInitExpr->type.name +
-                 "' cannot be used to initialize a member of type '" +
-                 memberDecl->type.name + "'");
+                 "' cannot be used to initialize a field of type '" +
+                 fieldDecl->type.name + "'");
       error = true;
       continue;
     }
 
-    auto init = std::make_unique<ResolvedMemberInitStmt>(
-        loc, *memberDecl, std::move(resolvedInitExpr));
-    inits[id] = resolvedMemberInits.emplace_back(std::move(init)).get();
+    auto init = std::make_unique<ResolvedFieldInitStmt>(
+        loc, *fieldDecl, std::move(resolvedInitExpr));
+    inits[id] = resolvedFieldInits.emplace_back(std::move(init)).get();
   }
 
-  for (auto &&memberDecl : st->members) {
-    if (!inits.count(memberDecl->identifier)) {
+  for (auto &&fieldDecl : st->fields) {
+    if (!inits.count(fieldDecl->identifier)) {
       report(structInstantiation.location,
-             "member '" + memberDecl->identifier + "' is not initialized");
+             "field '" + fieldDecl->identifier + "' is not initialized");
       error = true;
       continue;
     }
 
-    auto &initStmt = inits[memberDecl->identifier];
+    auto &initStmt = inits[fieldDecl->identifier];
     initStmt->initializer->setConstantValue(
         cee.evaluate(*initStmt->initializer, false));
   }
@@ -383,7 +383,7 @@ Sema::resolveStructInstantiation(
     return nullptr;
 
   return std::make_unique<ResolvedStructInstantiationExpr>(
-      structInstantiation.location, *st, std::move(resolvedMemberInits));
+      structInstantiation.location, *st, std::move(resolvedFieldInits));
 }
 
 std::unique_ptr<ResolvedMemberExpr>
@@ -394,26 +394,26 @@ Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
 
   if (resolvedBase->type.kind != Type::Kind::Struct)
     return report(memberExpr.base->location,
-                  "cannot access member of '" + resolvedBase->type.name + '\'');
+                  "cannot access field of '" + resolvedBase->type.name + '\'');
 
   const auto *st =
       lookupDecl<ResolvedStructDecl>(resolvedBase->type.name).first;
 
   assert(st && "failed to lookup struct");
 
-  const ResolvedMemberDecl *memberDecl = nullptr;
-  for (auto &&member : st->members) {
-    if (member->identifier == memberExpr.member)
-      memberDecl = member.get();
+  const ResolvedFieldDecl *fieldDecl = nullptr;
+  for (auto &&field : st->fields) {
+    if (field->identifier == memberExpr.field)
+      fieldDecl = field.get();
   }
 
-  if (!memberDecl)
+  if (!fieldDecl)
     return report(memberExpr.location, '\'' + resolvedBase->type.name +
-                                           "' has no member called '" +
-                                           memberExpr.member + '\'');
+                                           "' has no field called '" +
+                                           memberExpr.field + '\'');
 
   return std::make_unique<ResolvedMemberExpr>(
-      memberExpr.location, std::move(resolvedBase), *memberDecl);
+      memberExpr.location, std::move(resolvedBase), *fieldDecl);
 }
 
 std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
@@ -688,24 +688,24 @@ Sema::resolveFunctionDecl(const FunctionDecl &function) {
 std::unique_ptr<ResolvedStructDecl>
 Sema::resolveStructDecl(const StructDecl &structDecl) {
   std::set<std::string_view> identifiers;
-  std::vector<std::unique_ptr<ResolvedMemberDecl>> resolvedMembers;
+  std::vector<std::unique_ptr<ResolvedFieldDecl>> resolvedFields;
 
   unsigned idx = 0;
-  for (auto &&member : structDecl.members) {
-    if (!identifiers.emplace(member->identifier).second)
-      return report(member->location,
-                    "field '" + member->identifier + "' is already declared");
+  for (auto &&field : structDecl.fields) {
+    if (!identifiers.emplace(field->identifier).second)
+      return report(field->location,
+                    "field '" + field->identifier + "' is already declared");
 
-    resolvedMembers.emplace_back(std::make_unique<ResolvedMemberDecl>(
-        member->location, member->identifier, member->type, idx++));
+    resolvedFields.emplace_back(std::make_unique<ResolvedFieldDecl>(
+        field->location, field->identifier, field->type, idx++));
   }
 
   return std::make_unique<ResolvedStructDecl>(
       structDecl.location, structDecl.identifier,
-      Type::structType(structDecl.identifier), std::move(resolvedMembers));
+      Type::structType(structDecl.identifier), std::move(resolvedFields));
 }
 
-bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
+bool Sema::resolveStructFields(ResolvedStructDecl &resolvedStructDecl) {
   std::stack<
       std::pair<ResolvedStructDecl *, std::set<const ResolvedStructDecl *>>>
       worklist;
@@ -721,16 +721,16 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
       return false;
     }
 
-    for (auto &&member : currentDecl->members) {
-      auto type = resolveType(member->type);
+    for (auto &&field : currentDecl->fields) {
+      auto type = resolveType(field->type);
       if (!type) {
-        report(member->location, "unable to resolve '" + member->type.name +
-                                     "' type of struct member");
+        report(field->location, "unable to resolve '" + field->type.name +
+                                    "' type of struct field");
         return false;
       }
 
       if (type->kind == Type::Kind::Void) {
-        report(member->location, "struct member cannot be void");
+        report(field->location, "struct field cannot be void");
         return false;
       }
 
@@ -741,7 +741,7 @@ bool Sema::resolveStructMembers(ResolvedStructDecl &resolvedStructDecl) {
         worklist.push({nestedStruct, visited});
       }
 
-      member->type = *type;
+      field->type = *type;
     }
   }
 
@@ -801,7 +801,7 @@ std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
   auto nextFunctionDecl = functionsToResolve.begin();
   for (auto &&currentDecl : resolvedTree) {
     if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl.get())) {
-      if (!resolveStructMembers(*st))
+      if (!resolveStructFields(*st))
         error = true;
 
       continue;

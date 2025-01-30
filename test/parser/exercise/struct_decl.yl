@@ -8,9 +8,9 @@ struct WithTrailingComma {
     b: number,
 }
 // CHECK: StructDecl: WithTrailingComma
-// CHECK-NEXT:   MemberDecl: r:number
-// CHECK-NEXT:   MemberDecl: g:number
-// CHECK-NEXT:   MemberDecl: b:number
+// CHECK-NEXT:   FieldDecl: r:number
+// CHECK-NEXT:   FieldDecl: g:number
+// CHECK-NEXT:   FieldDecl: b:number
 
 struct WithoutTrailingComma {
     a: number,
@@ -18,6 +18,6 @@ struct WithoutTrailingComma {
     c: number
 }
 // CHECK: StructDecl: WithoutTrailingComma
-// CHECK-NEXT:   MemberDecl: a:number
-// CHECK-NEXT:   MemberDecl: b:number
-// CHECK-NEXT:   MemberDecl: c:number
+// CHECK-NEXT:   FieldDecl: a:number
+// CHECK-NEXT:   FieldDecl: b:number
+// CHECK-NEXT:   FieldDecl: c:number

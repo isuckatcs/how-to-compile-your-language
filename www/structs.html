@@ -1149,7 +1149,7 @@ Undefined { ... };
 
 fn main(): void {
   Color {
-  ^ error: member 'b' is not initialized
+  ^ error: field 'b' is not initialized
     r: 255,
     r: 255,
     ^ error: field 'r' is already initialized
@@ -1166,7 +1166,7 @@ fn main(): void {
 
 fn main(): void {
   Wrapper {
-  ^ error: member 'c' is not initialized
+  ^ error: field 'c' is not initialized
     c: 0
        ^ error: 'number' cannot be used to 
          initialize a field of type 'Color'
@@ -1226,13 +1226,13 @@ struct ResolvedStructInstantiationExpr : public ResolvedExpr {
                             evaluator on the initializer expressions.
                         </p>
                         <pre><code>ResolvedStructInstantiationExpr: @(...)
-  ResolvedMemberInitStmt: @(...) r
+  ResolvedFieldInitStmt: @(...) r
     ResolvedNumberLiteral: '1'
     | value: 1
-  ResolvedMemberInitStmt: @(...) g
+  ResolvedFieldInitStmt: @(...) g
     ResolvedNumberLiteral: '2'
     | value: 2
-  ResolvedMemberInitStmt: @(...) b
+  ResolvedFieldInitStmt: @(...) b
     ResolvedNumberLiteral: '3'
     | value: 3</code></pre>
                     </li>

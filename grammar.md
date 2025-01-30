@@ -5,12 +5,12 @@
     ::= (<structDecl> | <functionDecl>)* EOF
 
 <structDecl>
-    ::= 'struct' <identifier> <memberList>
+    ::= 'struct' <identifier> <fieldList>
 
-<memberList>
-    ::= '{' (<memberDecl> (',' <memberDecl>)* ','?)? '}'
+<fieldList>
+    ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
 
-<memberDecl>
+<fieldDecl>
     ::= <identifier> ':' <type>
 
 <functionDecl> 
@@ -94,12 +94,12 @@
     ::= <number>
 
 <structInstantiation>
-    ::= <identifier> <memberInitList>
+    ::= <identifier> <fieldInitList>
 
-<memberInitList>
-    ::= '{' (<memberInit> (',' <memberInit>)* ','?)? '}'
+<fieldInitList>
+    ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
 
-<memberInit>
+<fieldInit>
     ::= <identifier> ':' <expr>
 
 <declRefExpr>

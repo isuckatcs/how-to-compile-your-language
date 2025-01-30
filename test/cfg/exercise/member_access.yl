@@ -26,27 +26,27 @@ fn main(): void {
 // CHECK-NEXT:   ResolvedNumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
 // CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
 // CHECK-NEXT:       ResolvedNumberLiteral: '1'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
 // CHECK-NEXT:       ResolvedNumberLiteral: '0'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:     ResolvedMemberInitStmt: @({{.*}}) s2
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
 // CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
 // CHECK-NEXT:           ResolvedNumberLiteral: '1'
 // CHECK-NEXT:           | value: 1
 // CHECK-NEXT:   ResolvedDeclStmt:
 // CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
 // CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
 // CHECK-NEXT:           ResolvedNumberLiteral: '0'
 // CHECK-NEXT:           | value: 0
-// CHECK-NEXT:         ResolvedMemberInitStmt: @({{.*}}) s2
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
 // CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:             ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
 // CHECK-NEXT:               ResolvedNumberLiteral: '1'
 // CHECK-NEXT:               | value: 1
 // CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) s

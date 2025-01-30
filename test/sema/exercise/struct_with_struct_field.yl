@@ -4,8 +4,8 @@ struct Point {
   y: number,
 }
 // CHECK: ResolvedStructDecl: @({{.*}}) Point:
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) x
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) y
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) x
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) y
 
 struct Color {
   r: number,
@@ -14,10 +14,10 @@ struct Color {
   p: Point,
 }
 // CHECK: ResolvedStructDecl: @({{.*}}) Color:
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) r
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) g
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) b
-// CHECK-NEXT:   ResolvedMemberDecl: @({{.*}}) p
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) r
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) g
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) b
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) p
 
 fn main(): void {
   let x = Color { 
@@ -32,23 +32,23 @@ fn main(): void {
 // CHECK-NEXT:     ResolvedDeclStmt:
 // CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
 // CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) r
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) r
 // CHECK-NEXT:             ResolvedNumberLiteral: '0'
 // CHECK-NEXT:             | value: 0
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) g
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) g
 // CHECK-NEXT:             ResolvedNumberLiteral: '1'
 // CHECK-NEXT:             | value: 1
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) b
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) b
 // CHECK-NEXT:             ResolvedNumberLiteral: '2'
 // CHECK-NEXT:             | value: 2
-// CHECK-NEXT:           ResolvedMemberInitStmt: @({{.*}}) p
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) p
 // CHECK-NEXT:             ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:               ResolvedMemberInitStmt: @({{.*}}) x
+// CHECK-NEXT:               ResolvedFieldInitStmt: @({{.*}}) x
 // CHECK-NEXT:                 ResolvedBinaryOperator: '+'
 // CHECK-NEXT:                 | value: 7
 // CHECK-NEXT:                   ResolvedNumberLiteral: '3'
 // CHECK-NEXT:                   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:               ResolvedMemberInitStmt: @({{.*}}) y
+// CHECK-NEXT:               ResolvedFieldInitStmt: @({{.*}}) y
 // CHECK-NEXT:                 ResolvedBinaryOperator: '*'
 // CHECK-NEXT:                 | value: 36
 // CHECK-NEXT:                   ResolvedNumberLiteral: '4'

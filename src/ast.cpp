@@ -62,8 +62,8 @@ void ReturnStmt::dump(size_t level) const {
     expr->dump(level + 1);
 }
 
-void MemberInitStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberInitStmt: " << identifier << '\n';
+void FieldInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "FieldInitStmt: " << identifier << '\n';
   initializer->dump(level + 1);
 }
 
@@ -71,8 +71,8 @@ void StructInstantiationExpr::dump(size_t level) const {
   std::cerr << indent(level) << "StructInstantiationExpr: " << identifier
             << '\n';
 
-  for (auto &&member : memberInitializers)
-    member->dump(level + 1);
+  for (auto &&field : fieldInitializers)
+    field->dump(level + 1);
 }
 
 void NumberLiteral::dump(size_t level) const {
@@ -93,7 +93,7 @@ void CallExpr::dump(size_t level) const {
 }
 
 void MemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberExpr: ." << member << '\n';
+  std::cerr << indent(level) << "MemberExpr: ." << field << '\n';
 
   base->dump(level + 1);
 }
@@ -119,16 +119,16 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
-void MemberDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberDecl: " << identifier << ':' << type.name
+void FieldDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "FieldDecl: " << identifier << ':' << type.name
             << '\n';
 }
 
 void StructDecl::dump(size_t level) const {
   std::cerr << indent(level) << "StructDecl: " << identifier << '\n';
 
-  for (auto &&member : members)
-    member->dump(level + 1);
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {
@@ -195,8 +195,8 @@ void ResolvedParamDecl::dump(size_t level) const {
             << identifier << ':' << '\n';
 }
 
-void ResolvedMemberDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ResolvedMemberDecl: @(" << this << ") "
+void ResolvedFieldDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedFieldDecl: @(" << this << ") "
             << identifier << '\n';
 }
 
@@ -221,8 +221,8 @@ void ResolvedStructDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedStructDecl: @(" << this << ") "
             << identifier << ':' << '\n';
 
-  for (auto &&member : members)
-    member->dump(level + 1);
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 void ResolvedNumberLiteral::dump(size_t level) const {
@@ -247,8 +247,8 @@ void ResolvedCallExpr::dump(size_t level) const {
 }
 
 void ResolvedMemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "ResolvedMemberExpr: @(" << member << ')' << ' '
-            << member->identifier << '\n';
+  std::cerr << indent(level) << "ResolvedMemberExpr: @(" << field << ')' << ' '
+            << field->identifier << '\n';
 
   base->dump(level + 1);
 }
@@ -300,9 +300,9 @@ void ResolvedReturnStmt::dump(size_t level) const {
     expr->dump(level + 1);
 }
 
-void ResolvedMemberInitStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "ResolvedMemberInitStmt: @(" << member << ')'
-            << ' ' << member->identifier << '\n';
+void ResolvedFieldInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedFieldInitStmt: @(" << field << ')'
+            << ' ' << field->identifier << '\n';
 
   initializer->dump(level + 1);
 }
@@ -311,7 +311,7 @@ void ResolvedStructInstantiationExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedStructInstantiationExpr: @("
             << structDecl << ')' << '\n';
 
-  for (auto &&member : memberInitializers)
-    member->dump(level + 1);
+  for (auto &&field : fieldInitializers)
+    field->dump(level + 1);
 }
 } // namespace yl

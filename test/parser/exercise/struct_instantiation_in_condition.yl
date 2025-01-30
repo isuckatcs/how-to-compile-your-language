@@ -4,9 +4,9 @@ fn main(): void {
   // CHECK: IfStmt
   // CHECK-NEXT:   GroupingExpr:
   // CHECK-NEXT:     StructInstantiationExpr: Struct
-  // CHECK-NEXT:       MemberInitStmt: field
+  // CHECK-NEXT:       FieldInitStmt: field
   // CHECK-NEXT:         NumberLiteral: '0'
-  // CHECK-NEXT:       MemberInitStmt: field
+  // CHECK-NEXT:       FieldInitStmt: field
   // CHECK-NEXT:         NumberLiteral: '1'
 
   while (Struct{}) {}

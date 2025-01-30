@@ -23,11 +23,11 @@ fn main(): void {
     let immediate = Color {r: 0, g: 1, b: 2}.r;
     // CHECK: MemberExpr: .r
     // CHECK-NEXT:   StructInstantiationExpr: Color
-    // CHECK-NEXT:     MemberInitStmt: r
+    // CHECK-NEXT:     FieldInitStmt: r
     // CHECK-NEXT:       NumberLiteral: '0'
-    // CHECK-NEXT:     MemberInitStmt: g
+    // CHECK-NEXT:     FieldInitStmt: g
     // CHECK-NEXT:       NumberLiteral: '1'
-    // CHECK-NEXT:     MemberInitStmt: b
+    // CHECK-NEXT:     FieldInitStmt: b
     // CHECK-NEXT:       NumberLiteral: '2'
 
     let call = f().m.m.m;

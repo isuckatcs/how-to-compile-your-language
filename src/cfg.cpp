@@ -122,8 +122,8 @@ int CFGBuilder::insertExpr(const ResolvedExpr &expr, int block) {
 
   if (const auto *structInst =
           dynamic_cast<const ResolvedStructInstantiationExpr *>(&expr)) {
-    for (auto it = structInst->memberInitializers.rbegin();
-         it != structInst->memberInitializers.rend(); ++it)
+    for (auto it = structInst->fieldInitializers.rbegin();
+         it != structInst->fieldInitializers.rend(); ++it)
       insertStmt(**it, block);
     return block;
   }
@@ -150,8 +150,8 @@ int CFGBuilder::insertStmt(const ResolvedStmt &stmt, int block) {
   if (auto *returnStmt = dynamic_cast<const ResolvedReturnStmt *>(&stmt))
     return insertReturnStmt(*returnStmt, block);
 
-  if (auto *memberInit = dynamic_cast<const ResolvedMemberInitStmt *>(&stmt))
-    return insertExpr(*memberInit->initializer, block);
+  if (auto *fieldInit = dynamic_cast<const ResolvedFieldInitStmt *>(&stmt))
+    return insertExpr(*fieldInit->initializer, block);
 
   llvm_unreachable("unexpected expression");
 }
