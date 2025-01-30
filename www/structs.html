@@ -1561,8 +1561,9 @@ foo:
                         </p>
                         <pre><code>struct Color { r: number, g: number, b: number }</code></pre>
                         <p>
-                            The <code>Color</code> struct in LLVM IR would be
-                            written like the one below.
+                            The <code>Color</code> struct in LLVM IR would be an
+                            identified struct of three
+                            <code>double</code> fields.
                         </p>
                         <pre><code>%struct.Color = type { double, double, double }</code></pre>
                         <p>
@@ -1577,10 +1578,10 @@ foo:
                             <code>%struct.b</code>.
                         </p>
                         <p>
-                            An identified struct type can also be opaque, which
-                            tells LLVM that the struct exists, but it is not
-                            known what fields it has, like a forward declaration
-                            in C or C++.
+                            An identified struct can also be opaque, which tells
+                            LLVM that the struct exists, but it is not known
+                            what fields it has, like a forward declaration in C
+                            or C++.
                         </p>
                         <p>
                             In this step every
@@ -1613,20 +1614,19 @@ entry:
                     <li>
                         <p>
                             After every struct declaration has been given its
-                            own type in the IR, connect the fields of the
-                            structs to a valid type declaration.
+                            own opaque type in the IR, each field can be
+                            represented with an existing type.
                         </p>
                         <p>
-                            This step should turn the currently opaque structs
-                            into complete struct types with every field type
-                            correctly specified by creating and setting their
+                            Turn the currently opaque structs into complete
+                            struct declarations by generating and setting their
                             bodies.
                         </p>
                         <pre><code>%struct.S = type opaque
 %struct.S2 = type opaque</code></pre>
                         <p>
-                            The above structs will turn into ones similar to the
-                            ones below.
+                            The above structs with their bodies correctly set
+                            might look like the ones below.
                         </p>
                         <pre><code>%struct.S = type { %struct.S2 }
 %struct.S2 = type { double, double }</code></pre>
@@ -1641,45 +1641,48 @@ entry:
                         </p>
                         <pre><code>Color { r: initR(), g: initG(), b: initB() }</code></pre>
                         <p>
-                            A struct instantiation expression doesn't allocate a
-                            struct automatically, so it has to be done
-                            explicitly. Then the fields of this explicitly
-                            allocated struct are initialized to the specified
-                            values. Field initialization happens in declaration
-                            order, but the side effects must be visible in
-                            instantiation order.
+                            When generating code for a struct instantiation
+                            expression, the space that stores the struct must be
+                            allocated explicitly, only then can the fields of
+                            this explicitly allocated struct be initialized to
+                            the given values. Field initialization happens in
+                            declaration order, but the side effects must be
+                            visible in instantiation order.
                         </p>
                         <p>
-                            To make the previous logic easier to understand,
-                            take a look at this example that shows how a struct
-                            instantiation would be generated in LLVM IR.
+                            To make the previous specification easier to
+                            understand, take a look at this example that shows
+                            the steps of how a struct instantiation would be
+                            generated in LLVM IR.
                         </p>
-                        <pre><code>struct Color { r: number, g: number, b: number }
+                        <pre><code>Declaration:
+  struct Color { r: number, g: number, b: number }
 
-fn instantiateColor(): void {
+Instantiation:
   Color { g: initG(), r: initR(), b: initB() }
-}
 
-let tmp: Color;
-
-let gInit = initG();
-let rInit = initR();
-let bInit = initB();
-
-tmp.r = rInit;
-tmp.g = gInit;
-tmp.b = bInit;</code></pre>
+Generated logic:
+  let tmp: Color;
+  
+  let gInit = initG();
+  let rInit = initR();
+  let bInit = initB();
+  
+  tmp.r = rInit;
+  tmp.g = gInit;
+  tmp.b = bInit;</code></pre>
                         <p>
                             Allocating a new variable is straightforward, the
                             resulting IR will look like this.
                         </p>
                         <pre><code>%Color.tmp = alloca %struct.Color, align 8</code></pre>
                         <p>
-                            Accessing a field of a variable, however, was not
-                            necessary until now. In LLVM IR, the field of a
-                            struct is accessed by its index and not by its name.
-                            This is the reason for also storing the index of the
-                            field in a <code>ResolvedFieldDecl</code>.
+                            Accessing a field of a struct instance, however, was
+                            not necessary until now. In LLVM IR, the field of a
+                            struct is accessed by its index rather than by its
+                            name, which is also the reason for storing the index
+                            of the field in a
+                            <code>ResolvedFieldDecl</code>.
                         </p>
                         <p>
                             The field is accessed with the
@@ -1700,9 +1703,8 @@ tmp.b = bInit;</code></pre>
                                     href="https://llvm.org/docs/GetElementPtr.html"
                                     target="_blank"
                                     >dedicated page</a
-                                >
-                                about it, where the instruction is explained in
-                                every detail.
+                                >, which explains it in full detail and why it
+                                was designed this way.
                             </p>
                         </blockquote>
                         <p>
@@ -1714,8 +1716,8 @@ tmp.b = bInit;</code></pre>
 store double 1.000000e+00, double* %0, align 8</code></pre>
                         <p>
                             The full LLVM IR for instantiating the
-                            <code>Color</code> struct at the beginning of this
-                            point looks like this.
+                            <code>Color</code> struct at the top of this point
+                            can be found below.
                         </p>
                         <pre><code>%Color.tmp = alloca %struct.Color, align 8
 %0 = call double @initR()
@@ -1737,8 +1739,8 @@ store double %2, double* %5, align 8</code></pre>
                     <li>
                         <p>
                             In the previous point, the fields of a struct have
-                            already been accessed, so it's the perfect time to
-                            implement lowering for
+                            already been accessed, so it's the perfect time for
+                            lowering a
                             <code>ResolvedMemberExpr</code>.
                         </p>
                         <p>
@@ -1754,7 +1756,7 @@ store double %2, double* %5, align 8</code></pre>
                         </p>
                         <pre><code>%Color.tmp = alloca %struct.Color, align 8
 ...
-%3 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0</code></pre>
+%3 = ..., %struct.Color* %Color.tmp, ...</code></pre>
                         <p>
                             A member access results in a
                             <code>GetElementPointer</code> instruction on the
@@ -1769,7 +1771,7 @@ store double %2, double* %5, align 8</code></pre>
                         <pre><code>%3 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
 %4 = load double, double* %3, align 8</code></pre>
                         <p>
-                            On the other hand, if the field is being assigned
+                            On the other hand, if the field is being assigned,
                             the <code>store</code> instruction expects a pointer
                             operand, so the field must not be loaded.
                         </p>
@@ -1778,52 +1780,53 @@ store double 1.000000e+00, double* %3, align 8</code></pre>
                     </li>
                     <li>
                         <p>
-                            At this point creating temporary structs and reading
-                            their fields immediately should work correctly, but
-                            it would be convenient to also be able to store the
-                            structs in variables, initialize struct fields or
-                            assign a struct variable a different value.
+                            At this point creating a temporary struct and
+                            reading one of its fields immediately should work
+                            correctly, but it would also be convenient to store
+                            them in variables, initialize their struct fields or
+                            assign a different value to a struct variable.
                         </p>
                         <p>
                             All of the above use cases are handled by the same
-                            logic. The difference between structs and numbers is
-                            that structs are not loaded into registers, so the
+                            logic. As mentioned in a previous step, the
+                            difference between structs and numbers is that
+                            structs are not loaded into registers, so the
                             <code>store</code> instruction cannot be used to
                             mutate their values. Any time a struct is assigned,
                             the value of each field must be manually assigned to
                             the same field of the destination struct.
                         </p>
-                        <pre><code>let s = Color { r: 1, g: 2, b: 3 };
+                        <pre><code>Statement:
+  let s = Color { r: 1, g: 2, b: 3 };
 
-let tmp: Color;
-tmp.r = 1;
-tmp.g = 2;
-tmp.b = 3;
-
-let s: Color;
-s.r = tmp.r;
-s.g = tmp.g;
-s.b = tmp.b;</code></pre>
+Generated logic:
+  let tmp: Color;
+  tmp.r = 1;
+  tmp.g = 2;
+  tmp.b = 3;
+  
+  let s: Color;
+  s.r = tmp.r;
+  s.g = tmp.g;
+  s.b = tmp.b;</code></pre>
                         <p>
                             Manually assigning every field, however, would
                             result in duplicating the work and generating large
                             LLVM IR fragments. The goal is to make the content
-                            of the piece of memory that stores the struct on the
-                            LHS the same as the content of the memory storing
-                            the one on the RHS. To achieve this easily, LLVM has
-                            a builtin
-                            <code>memcpy</code> intrinsic, that copies the
-                            content of a specific amount of memory from one
-                            place to another. With that an assignment between 2
-                            struct variables can be simplified to only a few
-                            lines.
+                            of the variable storing the struct on the LHS the
+                            same as the struct on the RHS. To achieve this
+                            easily, LLVM has a builtin
+                            <code>memcpy</code> intrinsic, which copies a
+                            specific amount of memory from one place to another.
+                            With that, an assignment between 2 struct variables
+                            can be simplified to only a few lines.
                         </p>
                         <pre><code>%3 = bitcast %struct.Color* %s to i8*
 %4 = bitcast %struct.Color* %Color.tmp to i8*
 call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)</code></pre>
                         <p>
-                            This is the version of <code>memcpy</code> created
-                            by the
+                            Note that this is the version of
+                            <code>memcpy</code> created by the
                             <code>llvm::IRBuilder::CreateMemCpy()</code> helper.
                             To use this helper, the alignment and the size of
                             the struct must be calculated first, which can be
@@ -1833,14 +1836,14 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                         <blockquote>
                             <h3>Design Note</h3>
                             <p>
-                                Intrinsics are built-in functions in LLVM that
+                                Intrinsics are built-in functions in LLVM, that
                                 let the backends know what the desired effect is
                                 at that specific point of the IR. The backends
                                 then use this information to find the most
                                 efficient way to achieve it.
                             </p>
                             <p>
-                                The available intrinsics can be found in the
+                                More intrinsics can be found in the
                                 <a
                                     href="https://llvm.org/docs/LangRef.html#intrinsic-functions"
                                     target="_blank"
@@ -1850,17 +1853,19 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                             </p>
                         </blockquote>
                         <p>
-                            The full struct instantiation in LLVM IR looks like
-                            this.
+                            The full LLVM IR for the variable declaration can be
+                            seen below.
                         </p>
                         <pre><code>%s = alloca %struct.Color, align 8
 %Color.tmp = alloca %struct.Color, align 8
+
 %0 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 0
 store double 1.000000e+00, double* %0, align 8
 %1 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 1
 store double 2.000000e+00, double* %1, align 8
 %2 = getelementptr inbounds %struct.Color, %struct.Color* %Color.tmp, i32 0, i32 2
 store double 3.000000e+00, double* %2, align 8
+
 %3 = bitcast %struct.Color* %s to i8*
 %4 = bitcast %struct.Color* %Color.tmp to i8*
 call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)</code></pre>
@@ -1868,11 +1873,13 @@ call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 
                             <h3>Design Note</h3>
                             <p>
                                 Upon taking a look at how Clang generates code
-                                for an equivalent snippet, the result will
-                                probably be different. If the values of the
+                                for an equivalent snippet, the result will most
+                                likely be different. If the values of the
                                 initializers are known in compile time, Clang
-                                creates a constant struct and copies it to the
-                                destination instead.
+                                creates a constant struct and a
+                                <code>memcpy</code> intrinsic instead, so the
+                                backends can choose the most optimal way to
+                                initialize the struct in machine code.
                             </p>
                             <pre><code>@__const.clangKnownInitializers.c = private unnamed_addr constant %struct.Color { i32 1, i32 2, i32 3 }, align 4
 
@@ -1885,8 +1892,8 @@ entry:
                             <p>
                                 Another optimization Clang performs is
                                 copy-elision. If copying the struct has no side
-                                effects, there is no need to create a temporary
-                                and emit an additional
+                                effect, there is no need to create a temporary
+                                first and emit a
                                 <code>memcpy</code>. The initializer values can
                                 be stored directly in the space of the local
                                 variable.
@@ -1913,18 +1920,19 @@ entry:
                     <li>
                         <p>
                             By this point, structs should be fully functional
-                            within the body of a function. The last thing to do
-                            is implementing support for passing them to and
-                            returning them from functions.
+                            within the body of a function. The last thing to
+                            support is passing them to and returning them from
+                            other functions.
                         </p>
                         <p>
-                            Structs are passed to functions by value, however as
-                            mentioned previously, in LLVM IR only the pointer to
-                            the struct can be moved around, it's not possible to
+                            Structs in your language are passed to and returned
+                            from functions by value, however, as mentioned
+                            previously, in LLVM IR only the pointer to the
+                            struct can be moved around, it's not possible to
                             load them and pass the loaded value. Passing by
                             value, however, only means that no modification to
-                            the parameter is visible outside the function, and
-                            this can be achieved in LLVM IR.
+                            the parameter is visible in the caller, and this can
+                            be achieved in LLVM IR easily.
                         </p>
                         <p>
                             For mutable parameters, the trick is to create a
@@ -1937,6 +1945,7 @@ entry:
 %5 = bitcast %struct.Color* %struct.arg.tmp to i8*
 %6 = bitcast %struct.Color* %c to i8*
 call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %5, i8* align 8 %6, i64 24, i1 false)
+
 call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tmp)</code></pre>
                         <p>
                             Notice how the <code>byval</code> attribute is added
@@ -1944,7 +1953,8 @@ call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tm
                             the particular parameter simulates a pass-by-value
                             semantic and when it does that, this attribute must
                             be present at both the function declaration and the
-                            callsite.
+                            call site. Note that <code>byval</code> also
+                            requires the copy to be created in the caller.
                         </p>
                         <pre><code>define void @mutableStructParam(%struct.Color* byval(%struct.Color) %c) {
   ...
@@ -1956,10 +1966,12 @@ call void @mutableStructParam(%struct.Color* byval(%struct.Color) %struct.arg.tm
                             copy the struct, as there are no modifications that
                             can be visible in the caller. To indicate that the
                             struct will never be modified inside the function
-                            through the pointer, the
+                            through the passed pointer, the
                             <code>readonly</code> attribute can be used. This
-                            attribute is not compulsory though and can be
-                            omitted.
+                            attribute is not compulsory though, and can be
+                            omitted, but as with every other attribute, it must
+                            also be present at both the function declaration and
+                            the call site.
                         </p>
                         <pre><code>%c = alloca %struct.Color, align 8
 ...
@@ -1968,13 +1980,13 @@ call void @immutableStructParam(%struct.Color* readonly %c)</code></pre>
                             Returning the struct is also done through a
                             dedicated parameter. If the function returns a
                             struct by value, a temporary variable that stores
-                            the return value is allocated in the caller and the
-                            pointer to this value is passed as the first
-                            parameter of the function marked by the compulsory
+                            the returned value is allocated in the caller, and
+                            the pointer to this variable is passed as the first
+                            argument of the function, marked by the compulsory
                             <code>sret</code> attribute. The return statement
-                            then copies the struct to the address pointed by
-                            this parameter, and the function is treated as if it
-                            were a void function.
+                            then copies the struct to the space allocated in the
+                            caller, and the function is treated as if it were a
+                            void function.
                         </p>
                         <pre><code>define void @caller() {
 entry:
@@ -1990,6 +2002,7 @@ entry:
   %3 = bitcast %struct.Color* %ret to i8*
   %4 = bitcast %struct.Color* %Color.tmp to i8*
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 24, i1 false)
+
   br label %return
 
 return: 
@@ -1998,7 +2011,7 @@ return:
                         <blockquote>
                             <h3>Design Note</h3>
                             <p>
-                                Sadly using <code>sret</code> and
+                                Sadly, using <code>sret</code> and
                                 <code>byval</code> arguments is not an all-round
                                 solution. Different platform-specific ABIs might
                                 require different ways of passing and returning
@@ -2018,25 +2031,28 @@ Coerced passCoerced(Coerced c) {
                                 <code>Coerced</code> has the size of 64 bits and
                                 it fits into a single register, so Clang lowers
                                 <code>passCoerced</code> as a function that
-                                takes and returns an <code>i64</code> value.
+                                takes and returns an <code>i64</code> value to
+                                conform to the ABI.
                             </p>
-                            <pre><code>define dso_local i64 @passCoerced(i64 %c.coerce) {
+                            <pre><code>define i64 @passCoerced(i64 %c.coerce) {
 entry:
   %retval = alloca %struct.Coerced, align 4
+
   %c = alloca %struct.Coerced, align 4
   store i64 %c.coerce, ptr %c, align 4
+  
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %retval, ptr align 4 %c, i64 8, i1 false)
   %0 = load i64, ptr %retval, align 4
   ret i64 %0
 }</code></pre>
                             <p>
                                 Larger structs might be passed and returned in 2
-                                separate registers, where the latter can be
-                                expressed with a literal struct.
+                                separate registers, where the latter is
+                                expressed with returning a literal struct.
                             </p>
                             <pre><code>%struct.LargerCoerced = type { i32, i32, i32, i32 }
 
-define { i64, i64 } @passLargerCoerced(LargerCoerced)(i64 %l.coerce0, i64 %l.coerce1) {
+define { i64, i64 } @passLargerCoerced(i64 %l.coerce0, i64 %l.coerce1) {
 entry:
   %retval = alloca %struct.LargerCoerced, align 4
   ...
@@ -2054,17 +2070,19 @@ entry:
                                 alone could also have its dedicated guide, so
                                 it's not in the scope of this exercise. It would
                                 only become necessary if making your language
-                                interoperable with C, C++ or any other language
-                                that compiles to native code was required. The
-                                only external function the language uses that
-                                was compiled by a different compiler is
+                                interoperable with C, C++, or any other language
+                                that compiles to native code, was also a
+                                requirement. The only external function used by
+                                your language, that was compiled by a different
+                                compiler is
                                 <code>printf</code>, but it neither receives nor
                                 returns a struct, so compatibility issues will
                                 not arise.
                             </p>
                             <p>
-                                For more details see some discussions on
-                                dedicated LLVM mailing lists like the one about
+                                For more details about the topic, see some
+                                discussions on LLVM mailing lists, like the one
+                                about
                                 <a
                                     href="https://lists.llvm.org/pipermail/cfe-dev/2013-January/027302.html"
                                     target="_blank"
