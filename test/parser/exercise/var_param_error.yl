@@ -1,0 +1,8 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+
+// CHECK: [[# @LINE + 1 ]]:12: error: expected parameter declaration
+fn foo(var var: number): void {
+}
+
+fn main(): void {
+}
