@@ -355,7 +355,9 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
 std::unique_ptr<ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
-  varOrReturn(resolvedLHS, resolveDeclRefExpr(*assignment.variable));
+  // FIXME: temporary workaround to keep compatibility
+  const auto *dre = dynamic_cast<DeclRefExpr *>(assignment.assignee.get());
+  varOrReturn(resolvedLHS, resolveDeclRefExpr(*dre));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
 
   assert(resolvedLHS->type.kind != Type::Kind::Void &&

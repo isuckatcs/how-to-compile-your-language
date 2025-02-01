@@ -105,22 +105,41 @@ struct ReturnStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
+struct FieldInitStmt : public Stmt {
+  std::string identifier;
+  std::unique_ptr<Expr> initializer;
+
+  FieldInitStmt(SourceLocation location,
+                std::string identifier,
+                std::unique_ptr<Expr> initializer)
+      : Stmt(location),
+        identifier(identifier),
+        initializer(std::move(initializer)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructInstantiationExpr : public Expr {
+  std::string identifier;
+  std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
+
+  StructInstantiationExpr(
+      SourceLocation location,
+      std::string identifier,
+      std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers)
+      : Expr(location),
+        identifier(identifier),
+        fieldInitializers(std::move(fieldInitializers)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct NumberLiteral : public Expr {
   std::string value;
 
   NumberLiteral(SourceLocation location, std::string value)
       : Expr(location),
         value(value) {}
-
-  void dump(size_t level = 0) const override;
-};
-
-struct DeclRefExpr : public Expr {
-  std::string identifier;
-
-  DeclRefExpr(SourceLocation location, std::string identifier)
-      : Expr(location),
-        identifier(identifier) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -135,6 +154,35 @@ struct CallExpr : public Expr {
       : Expr(location),
         callee(std::move(callee)),
         arguments(std::move(arguments)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct AssignableExpr : public Expr {
+  AssignableExpr(SourceLocation location)
+      : Expr(location) {}
+};
+
+struct DeclRefExpr : public AssignableExpr {
+  std::string identifier;
+
+  DeclRefExpr(SourceLocation location, std::string identifier)
+      : AssignableExpr(location),
+        identifier(identifier) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct MemberExpr : public AssignableExpr {
+  std::unique_ptr<Expr> base;
+  std::string field;
+
+  MemberExpr(SourceLocation location,
+             std::unique_ptr<Expr> base,
+             std::string field)
+      : AssignableExpr(location),
+        base(std::move(base)),
+        field(std::move(field)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -176,6 +224,28 @@ struct UnaryOperator : public Expr {
       : Expr(location),
         operand(std::move(operand)),
         op(op) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct FieldDecl : public Decl {
+  Type type;
+
+  FieldDecl(SourceLocation location, std::string identifier, Type type)
+      : Decl(location, std::move(identifier)),
+        type(std::move(type)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructDecl : public Decl {
+  std::vector<std::unique_ptr<FieldDecl>> fields;
+
+  StructDecl(SourceLocation location,
+             std::string identifier,
+             std::vector<std::unique_ptr<FieldDecl>> fields)
+      : Decl(location, std::move(identifier)),
+        fields(std::move(fields)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -242,14 +312,14 @@ struct DeclStmt : public Stmt {
 };
 
 struct Assignment : public Stmt {
-  std::unique_ptr<DeclRefExpr> variable;
+  std::unique_ptr<AssignableExpr> assignee;
   std::unique_ptr<Expr> expr;
 
   Assignment(SourceLocation location,
-             std::unique_ptr<DeclRefExpr> variable,
+             std::unique_ptr<AssignableExpr> assignee,
              std::unique_ptr<Expr> expr)
       : Stmt(location),
-        variable(std::move(variable)),
+        assignee(std::move(assignee)),
         expr(std::move(expr)) {}
 
   void dump(size_t level = 0) const override;

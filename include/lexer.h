@@ -9,8 +9,8 @@
 #include "utils.h"
 
 namespace yl {
-constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';',
-                                     ',',  '+', '-', '*', '<', '>', '!'};
+constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ':', ';', ',',
+                                     '+',  '-', '*', '<', '>', '!', '.'};
 
 enum class TokenKind : char {
   Unk = -128,
@@ -33,6 +33,7 @@ enum class TokenKind : char {
   KwVar,
   KwWhile,
   KwReturn,
+  KwStruct,
 
   Eof = singleCharTokens[0],
   Lpar = singleCharTokens[1],
@@ -48,6 +49,7 @@ enum class TokenKind : char {
   Lt = singleCharTokens[11],
   Gt = singleCharTokens[12],
   Excl = singleCharTokens[13],
+  Dot = singleCharTokens[14],
 };
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
@@ -55,7 +57,7 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
     {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
     {"var", TokenKind::KwVar},       {"while", TokenKind::KwWhile},
-    {"return", TokenKind::KwReturn}};
+    {"return", TokenKind::KwReturn}, {"struct", TokenKind::KwStruct}};
 
 struct Token {
   SourceLocation location;

@@ -62,6 +62,19 @@ void ReturnStmt::dump(size_t level) const {
     expr->dump(level + 1);
 }
 
+void FieldInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "FieldInitStmt: " << identifier << '\n';
+  initializer->dump(level + 1);
+}
+
+void StructInstantiationExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "StructInstantiationExpr: " << identifier
+            << '\n';
+
+  for (auto &&field : fieldInitializers)
+    field->dump(level + 1);
+}
+
 void NumberLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
 }
@@ -77,6 +90,12 @@ void CallExpr::dump(size_t level) const {
 
   for (auto &&arg : arguments)
     arg->dump(level + 1);
+}
+
+void MemberExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "MemberExpr: ." << field << '\n';
+
+  base->dump(level + 1);
 }
 
 void GroupingExpr::dump(size_t level) const {
@@ -98,6 +117,18 @@ void UnaryOperator::dump(size_t level) const {
             << '\n';
 
   operand->dump(level + 1);
+}
+
+void FieldDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "FieldDecl: " << identifier << ':' << type.name
+            << '\n';
+}
+
+void StructDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "StructDecl: " << identifier << '\n';
+
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {
@@ -132,7 +163,7 @@ void DeclStmt::dump(size_t level) const {
 
 void Assignment::dump(size_t level) const {
   std::cerr << indent(level) << "Assignment:\n";
-  variable->dump(level + 1);
+  assignee->dump(level + 1);
   expr->dump(level + 1);
 }
 

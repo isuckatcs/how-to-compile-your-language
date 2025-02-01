@@ -103,15 +103,24 @@ int main(int argc, const char **argv) {
   auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {
-    for (auto &&fn : ast)
-      fn->dump();
+    for (auto &&decl : ast)
+      decl->dump();
     return 0;
   }
 
   if (!success)
     return 1;
 
-  Sema sema(std::move(ast));
+  // FIXME: temporary adapter to keep compatibility
+  std::vector<std::unique_ptr<FunctionDecl>> astAdapter;
+  for (auto &&decl : ast) {
+    if (auto *fn = dynamic_cast<FunctionDecl *>(decl.get())) {
+      astAdapter.emplace_back(fn);
+      std::ignore = decl.release();
+    }
+  }
+
+  Sema sema(std::move(astAdapter));
   auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {

@@ -2,7 +2,16 @@
 
 ```bnf
 <sourceFile> 
-    ::= <functionDecl>* EOF
+    ::= (<structDecl> | <functionDecl>)* EOF
+
+<structDecl>
+    ::= 'struct' <identifier> <fieldList>
+
+<fieldList>
+    ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
+
+<fieldDecl>
+    ::= <identifier> ':' <type>
 
 <functionDecl> 
     ::= 'fn' <identifier> <parameterList> ':' <type> <block>
@@ -37,7 +46,10 @@
     ::= ('let' | 'var') <varDecl> ';'
 
 <assignment>
-    ::= <declRefExpr> '=' <expr> ';'
+    ::= (<declRefExpr> | <memberExpr>) '=' <expr> ';'
+
+<memberExpr>
+    ::= '.' <identifier>
 
 <returnStmt>
     ::= 'return' <expr>? ';'
@@ -67,18 +79,28 @@
     ::= ('!' | '-')* <postfixExpression>
 
 <postfixExpression>
-    ::= <primaryExpression> <argumentList>
+    ::= <primaryExpression> <argumentList>? <memberExpr>*
 
 <argumentList>
     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <primaryExpression>
     ::= <numberLiteral>
+    |   <structInstantiation>
     |   <declRefExpr>
     |   '(' <expr> ')'
 
 <numberLiteral>
     ::= <number>
+
+<structInstantiation>
+    ::= <identifier> <fieldInitList>
+
+<fieldInitList>
+    ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
+
+<fieldInit>
+    ::= <identifier> ':' <expr>
 
 <declRefExpr>
     ::= <identifier>
