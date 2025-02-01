@@ -128,7 +128,7 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
-    return builder.CreateLoad(builder.getDoubleTy(), declarations[dre->decl]);
+    return generateDeclRefExpr(*dre);
 
   if (auto *call = dynamic_cast<const ResolvedCallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -143,6 +143,16 @@ llvm::Value *Codegen::generateExpr(const ResolvedExpr &expr) {
     return generateUnaryOperator(*unop);
 
   llvm_unreachable("unexpected expression");
+}
+
+llvm::Value *Codegen::generateDeclRefExpr(const ResolvedDeclRefExpr &dre) {
+  const ResolvedDecl *decl = dre.decl;
+  llvm::Value *val = declarations[decl];
+
+  if (dynamic_cast<const ResolvedParamDecl *>(decl) && !decl->isMutable)
+    return val;
+
+  return builder.CreateLoad(builder.getDoubleTy(), val);
 }
 
 llvm::Value *Codegen::generateCallExpr(const ResolvedCallExpr &call) {
@@ -318,10 +328,13 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     const auto *paramDecl = functionDecl.params[idx].get();
     arg.setName(paramDecl->identifier);
 
-    llvm::Value *var = allocateStackVariable(paramDecl->identifier);
-    builder.CreateStore(&arg, var);
+    llvm::Value *declVal = &arg;
+    if (paramDecl->isMutable) {
+      declVal = allocateStackVariable(paramDecl->identifier);
+      builder.CreateStore(&arg, declVal);
+    }
 
-    declarations[paramDecl] = var;
+    declarations[paramDecl] = declVal;
     ++idx;
   }
 
@@ -354,8 +367,7 @@ void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
                                         "printf", module);
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
 
-  llvm::Value *param = builder.CreateLoad(
-      builder.getDoubleTy(), declarations[println.params[0].get()]);
+  llvm::Value *param = declarations[println.params[0].get()];
 
   builder.CreateCall(printf, {format, param});
 }

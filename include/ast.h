@@ -182,9 +182,15 @@ struct UnaryOperator : public Expr {
 
 struct ParamDecl : public Decl {
   Type type;
-  ParamDecl(SourceLocation location, std::string identifier, Type type)
+  bool isMutable;
+
+  ParamDecl(SourceLocation location,
+            std::string identifier,
+            Type type,
+            bool isMutable)
       : Decl(location, std::move(identifier)),
-        type(std::move(type)) {}
+        type(std::move(type)),
+        isMutable(isMutable) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -275,11 +281,16 @@ struct ResolvedDecl {
   SourceLocation location;
   std::string identifier;
   Type type;
+  bool isMutable;
 
-  ResolvedDecl(SourceLocation location, std::string identifier, Type type)
+  ResolvedDecl(SourceLocation location,
+               std::string identifier,
+               Type type,
+               bool isMutable)
       : location(location),
         identifier(std::move(identifier)),
-        type(type) {}
+        type(type),
+        isMutable(isMutable) {}
   virtual ~ResolvedDecl() = default;
 
   virtual void dump(size_t level = 0) const = 0;
@@ -329,24 +340,25 @@ struct ResolvedWhileStmt : public ResolvedStmt {
 };
 
 struct ResolvedParamDecl : public ResolvedDecl {
-  ResolvedParamDecl(SourceLocation location, std::string identifier, Type type)
-      : ResolvedDecl{location, std::move(identifier), type} {}
+  ResolvedParamDecl(SourceLocation location,
+                    std::string identifier,
+                    Type type,
+                    bool isMutable)
+      : ResolvedDecl(location, std::move(identifier), type, isMutable) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct ResolvedVarDecl : public ResolvedDecl {
   std::unique_ptr<ResolvedExpr> initializer;
-  bool isMutable;
 
   ResolvedVarDecl(SourceLocation location,
                   std::string identifier,
                   Type type,
                   bool isMutable,
                   std::unique_ptr<ResolvedExpr> initializer = nullptr)
-      : ResolvedDecl(location, std::move(identifier), type),
-        initializer(std::move(initializer)),
-        isMutable(isMutable) {}
+      : ResolvedDecl(location, std::move(identifier), type, isMutable),
+        initializer(std::move(initializer)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -360,7 +372,7 @@ struct ResolvedFunctionDecl : public ResolvedDecl {
                        Type type,
                        std::vector<std::unique_ptr<ResolvedParamDecl>> params,
                        std::unique_ptr<ResolvedBlock> body)
-      : ResolvedDecl(location, std::move(identifier), type),
+      : ResolvedDecl(location, std::move(identifier), type, false),
         params(std::move(params)),
         body(std::move(body)) {}
 

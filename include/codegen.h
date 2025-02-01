@@ -32,6 +32,7 @@ class Codegen {
   llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
 
   llvm::Value *generateExpr(const ResolvedExpr &expr);
+  llvm::Value *generateDeclRefExpr(const ResolvedDeclRefExpr &dre);
   llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
   llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);

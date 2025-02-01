@@ -63,7 +63,7 @@ bool Sema::checkReturnOnAllPaths(const ResolvedFunctionDecl &fn,
 bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
-  using Lattice = std::map<const ResolvedVarDecl *, State>;
+  using Lattice = std::map<const ResolvedDecl *, State>;
 
   auto joinStates = [](State s1, State s2) {
     if (s1 == s2)
@@ -104,18 +104,15 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         }
 
         if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(stmt)) {
-          const auto *var =
-              dynamic_cast<const ResolvedVarDecl *>(assignment->variable->decl);
+          const auto *decl =
+              dynamic_cast<const ResolvedDecl *>(assignment->variable->decl);
 
-          assert(var &&
-                 "assignment to non-variables should have been caught by sema");
-
-          if (!var->isMutable && tmp[var] != State::Unassigned) {
-            std::string msg = '\'' + var->identifier + "' cannot be mutated";
+          if (!decl->isMutable && tmp[decl] != State::Unassigned) {
+            std::string msg = '\'' + decl->identifier + "' cannot be mutated";
             pendingErrors.emplace_back(assignment->location, std::move(msg));
           }
 
-          tmp[var] = State::Assigned;
+          tmp[decl] = State::Assigned;
           continue;
         }
 
@@ -175,8 +172,8 @@ std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
   SourceLocation loc{"<builtin>", 0, 0};
 
-  auto param =
-      std::make_unique<ResolvedParamDecl>(loc, "n", Type::builtinNumber());
+  auto param = std::make_unique<ResolvedParamDecl>(
+      loc, "n", Type::builtinNumber(), false);
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> params;
   params.emplace_back(std::move(param));
@@ -364,13 +361,6 @@ Sema::resolveAssignment(const Assignment &assignment) {
   assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
 
-  if (dynamic_cast<const ResolvedParamDecl *>(resolvedLHS->decl))
-    return report(resolvedLHS->location,
-                  "parameters are immutable and cannot be assigned");
-
-  auto *var = dynamic_cast<const ResolvedVarDecl *>(resolvedLHS->decl);
-  assert(var && "assignment LHS is not a variable");
-
   if (resolvedRHS->type.kind != resolvedLHS->type.kind)
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
@@ -472,7 +462,7 @@ Sema::resolveParamDecl(const ParamDecl &param) {
                                       "' type");
 
   return std::make_unique<ResolvedParamDecl>(param.location, param.identifier,
-                                             *type);
+                                             *type, param.isMutable);
 }
 
 std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
