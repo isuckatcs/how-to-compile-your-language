@@ -12,7 +12,7 @@
 namespace yl {
 class Sema {
   ConstantExpressionEvaluator cee;
-  std::vector<std::unique_ptr<FunctionDecl>> ast;
+  std::vector<std::unique_ptr<Decl>> ast;
   std::vector<std::vector<ResolvedDecl *>> scopes;
 
   ResolvedFunctionDecl *currentFunction;
@@ -39,6 +39,12 @@ class Sema {
   std::unique_ptr<ResolvedDeclRefExpr>
   resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee = false);
   std::unique_ptr<ResolvedCallExpr> resolveCallExpr(const CallExpr &call);
+  std::unique_ptr<ResolvedStructInstantiationExpr> resolveStructInstantiation(
+      const StructInstantiationExpr &structInstantiation);
+  std::unique_ptr<ResolvedMemberExpr>
+  resolveMemberExpr(const MemberExpr &memberExpr);
+  std::unique_ptr<ResolvedAssignableExpr>
+  resolveAssignableExpr(const AssignableExpr &assignableExpr);
   std::unique_ptr<ResolvedExpr> resolveExpr(const Expr &expr);
 
   std::unique_ptr<ResolvedStmt> resolveStmt(const Stmt &stmt);
@@ -56,10 +62,14 @@ class Sema {
   std::unique_ptr<ResolvedParamDecl> resolveParamDecl(const ParamDecl &param);
   std::unique_ptr<ResolvedVarDecl> resolveVarDecl(const VarDecl &varDecl);
   std::unique_ptr<ResolvedFunctionDecl>
-  resolveFunctionDeclaration(const FunctionDecl &function);
+  resolveFunctionDecl(const FunctionDecl &function);
+  std::unique_ptr<ResolvedStructDecl>
+  resolveStructDecl(const StructDecl &structDecl);
+
+  bool resolveStructFields(ResolvedStructDecl &resolvedStructDecl);
 
   bool insertDeclToCurrentScope(ResolvedDecl &decl);
-  std::pair<ResolvedDecl *, int> lookupDecl(const std::string id);
+  template <typename T> std::pair<T *, int> lookupDecl(const std::string id);
   std::unique_ptr<ResolvedFunctionDecl> createBuiltinPrintln();
 
   bool runFlowSensitiveChecks(const ResolvedFunctionDecl &fn);
@@ -67,10 +77,10 @@ class Sema {
   bool checkVariableInitialization(const CFG &cfg);
 
 public:
-  explicit Sema(std::vector<std::unique_ptr<FunctionDecl>> ast)
+  explicit Sema(std::vector<std::unique_ptr<Decl>> ast)
       : ast(std::move(ast)) {}
 
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolveAST();
+  std::vector<std::unique_ptr<ResolvedDecl>> resolveAST();
 };
 } // namespace yl
 

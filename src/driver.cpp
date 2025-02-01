@@ -111,26 +111,21 @@ int main(int argc, const char **argv) {
   if (!success)
     return 1;
 
-  // FIXME: temporary adapter to keep compatibility
-  std::vector<std::unique_ptr<FunctionDecl>> astAdapter;
-  for (auto &&decl : ast) {
-    if (auto *fn = dynamic_cast<FunctionDecl *>(decl.get())) {
-      astAdapter.emplace_back(fn);
-      std::ignore = decl.release();
-    }
-  }
-
-  Sema sema(std::move(astAdapter));
+  Sema sema(std::move(ast));
   auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
-    for (auto &&fn : resolvedTree)
-      fn->dump();
+    for (auto &&decl : resolvedTree)
+      decl->dump();
     return 0;
   }
 
   if (options.cfgDump) {
-    for (auto &&fn : resolvedTree) {
+    for (auto &&decl : resolvedTree) {
+      const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get());
+      if (!fn)
+        continue;
+
       std::cerr << fn->identifier << ':' << '\n';
       CFGBuilder().build(*fn).dump();
     }
@@ -140,7 +135,16 @@ int main(int argc, const char **argv) {
   if (resolvedTree.empty())
     return 1;
 
-  Codegen codegen(std::move(resolvedTree), options.source.c_str());
+  // FIXME: temporary adapter to keep compatibility
+  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTreeAdapter;
+  for (auto &&resolvedDecl : resolvedTree) {
+    if (auto *fn = dynamic_cast<ResolvedFunctionDecl *>(resolvedDecl.get())) {
+      resolvedTreeAdapter.emplace_back(fn);
+      std::ignore = resolvedDecl.release();
+    }
+  }
+
+  Codegen codegen(std::move(resolvedTreeAdapter), options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {

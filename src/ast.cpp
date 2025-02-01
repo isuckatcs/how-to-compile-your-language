@@ -195,6 +195,11 @@ void ResolvedParamDecl::dump(size_t level) const {
             << identifier << ':' << '\n';
 }
 
+void ResolvedFieldDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedFieldDecl: @(" << this << ") "
+            << identifier << '\n';
+}
+
 void ResolvedVarDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedVarDecl: @(" << this << ") "
             << identifier << ':' << '\n';
@@ -210,6 +215,14 @@ void ResolvedFunctionDecl::dump(size_t level) const {
     param->dump(level + 1);
 
   body->dump(level + 1);
+}
+
+void ResolvedStructDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedStructDecl: @(" << this << ") "
+            << identifier << ':' << '\n';
+
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 void ResolvedNumberLiteral::dump(size_t level) const {
@@ -228,11 +241,16 @@ void ResolvedDeclRefExpr::dump(size_t level) const {
 void ResolvedCallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedCallExpr: @(" << callee << ") "
             << callee->identifier << '\n';
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
 
   for (auto &&arg : arguments)
     arg->dump(level + 1);
+}
+
+void ResolvedMemberExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedMemberExpr: @(" << field << ')' << ' '
+            << field->identifier << '\n';
+
+  base->dump(level + 1);
 }
 
 void ResolvedGroupingExpr::dump(size_t level) const {
@@ -271,7 +289,7 @@ void ResolvedDeclStmt::dump(size_t level) const {
 
 void ResolvedAssignment::dump(size_t level) const {
   std::cerr << indent(level) << "ResolvedAssignment:\n";
-  variable->dump(level + 1);
+  assignee->dump(level + 1);
   expr->dump(level + 1);
 }
 
@@ -280,5 +298,20 @@ void ResolvedReturnStmt::dump(size_t level) const {
 
   if (expr)
     expr->dump(level + 1);
+}
+
+void ResolvedFieldInitStmt::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedFieldInitStmt: @(" << field << ')'
+            << ' ' << field->identifier << '\n';
+
+  initializer->dump(level + 1);
+}
+
+void ResolvedStructInstantiationExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ResolvedStructInstantiationExpr: @("
+            << structDecl << ')' << '\n';
+
+  for (auto &&field : fieldInitializers)
+    field->dump(level + 1);
 }
 } // namespace yl

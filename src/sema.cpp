@@ -1,6 +1,7 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <stack>
 
 #include "cfg.h"
 #include "sema.h"
@@ -104,8 +105,19 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         }
 
         if (auto *assignment = dynamic_cast<const ResolvedAssignment *>(stmt)) {
-          const auto *decl =
-              dynamic_cast<const ResolvedDecl *>(assignment->variable->decl);
+          const ResolvedExpr *base = assignment->assignee.get();
+          while (const auto *member =
+                     dynamic_cast<const ResolvedMemberExpr *>(base))
+            base = member->base.get();
+
+          const auto *dre = dynamic_cast<const ResolvedDeclRefExpr *>(base);
+
+          // The base of the expression is not a variable, but a temporary,
+          // which can be mutated.
+          if (!dre)
+            continue;
+
+          const auto *decl = dynamic_cast<const ResolvedDecl *>(dre->decl);
 
           if (!decl->isMutable && tmp[decl] != State::Unassigned) {
             std::string msg = '\'' + decl->identifier + "' cannot be mutated";
@@ -142,7 +154,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 }
 
 bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
-  const auto &[foundDecl, scopeIdx] = lookupDecl(decl.identifier);
+  const auto &[foundDecl, scopeIdx] = lookupDecl<ResolvedDecl>(decl.identifier);
 
   if (foundDecl && scopeIdx == 0) {
     report(decl.location, "redeclaration of '" + decl.identifier + '\'');
@@ -153,14 +165,20 @@ bool Sema::insertDeclToCurrentScope(ResolvedDecl &decl) {
   return true;
 }
 
-std::pair<ResolvedDecl *, int> Sema::lookupDecl(const std::string id) {
+template <typename T>
+std::pair<T *, int> Sema::lookupDecl(const std::string id) {
   int scopeIdx = 0;
   for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
     for (auto &&decl : *it) {
+      auto *correctDecl = dynamic_cast<T *>(decl);
+
+      if (!correctDecl)
+        continue;
+
       if (decl->identifier != id)
         continue;
 
-      return {decl, scopeIdx};
+      return {correctDecl, scopeIdx};
     }
 
     ++scopeIdx;
@@ -186,8 +204,12 @@ std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
 };
 
 std::optional<Type> Sema::resolveType(Type parsedType) {
-  if (parsedType.kind == Type::Kind::Custom)
+  if (parsedType.kind == Type::Kind::Custom) {
+    if (auto *decl = lookupDecl<ResolvedStructDecl>(parsedType.name).first)
+      return Type::structType(decl->identifier);
+
     return std::nullopt;
+  }
 
   return parsedType;
 }
@@ -196,10 +218,10 @@ std::unique_ptr<ResolvedUnaryOperator>
 Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
 
-  if (resolvedRHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedRHS->location,
-        "void expression cannot be used as an operand to unary operator");
+  if (resolvedRHS->type.kind != Type::Kind::Number)
+    return report(resolvedRHS->location,
+                  '\'' + resolvedRHS->type.name +
+                      "' cannot be used as an operand to unary operator");
 
   return std::make_unique<ResolvedUnaryOperator>(unary.location, unary.op,
                                                  std::move(resolvedRHS));
@@ -210,15 +232,15 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
-  if (resolvedLHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedLHS->location,
-        "void expression cannot be used as LHS operand to binary operator");
+  if (resolvedLHS->type.kind != Type::Kind::Number)
+    return report(resolvedLHS->location,
+                  '\'' + resolvedLHS->type.name +
+                      "' cannot be used as LHS operand to binary operator");
 
-  if (resolvedRHS->type.kind == Type::Kind::Void)
-    return report(
-        resolvedRHS->location,
-        "void expression cannot be used as RHS operand to binary operator");
+  if (resolvedRHS->type.kind != Type::Kind::Number)
+    return report(resolvedRHS->location,
+                  '\'' + resolvedRHS->type.name +
+                      "' cannot be used as RHS operand to binary operator");
 
   assert(resolvedLHS->type.kind == resolvedRHS->type.kind &&
          resolvedLHS->type.kind == Type::Kind::Number &&
@@ -237,7 +259,7 @@ Sema::resolveGroupingExpr(const GroupingExpr &grouping) {
 
 std::unique_ptr<ResolvedDeclRefExpr>
 Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
-  ResolvedDecl *decl = lookupDecl(declRefExpr.identifier).first;
+  ResolvedDecl *decl = lookupDecl<ResolvedDecl>(declRefExpr.identifier).first;
   if (!decl)
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
@@ -245,6 +267,10 @@ Sema::resolveDeclRefExpr(const DeclRefExpr &declRefExpr, bool isCallee) {
   if (!isCallee && dynamic_cast<ResolvedFunctionDecl *>(decl))
     return report(declRefExpr.location,
                   "expected to call function '" + declRefExpr.identifier + "'");
+
+  if (dynamic_cast<ResolvedStructDecl *>(decl))
+    return report(declRefExpr.location,
+                  "expected an instance of '" + decl->type.name + '\'');
 
   return std::make_unique<ResolvedDeclRefExpr>(declRefExpr.location, *decl);
 }
@@ -270,7 +296,7 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
   for (auto &&arg : call.arguments) {
     varOrReturn(resolvedArg, resolveExpr(*arg));
 
-    if (resolvedArg->type.kind != resolvedFunctionDecl->params[idx]->type.kind)
+    if (resolvedArg->type.name != resolvedFunctionDecl->params[idx]->type.name)
       return report(resolvedArg->location, "unexpected type of argument");
 
     resolvedArg->setConstantValue(cee.evaluate(*resolvedArg, false));
@@ -281,6 +307,113 @@ std::unique_ptr<ResolvedCallExpr> Sema::resolveCallExpr(const CallExpr &call) {
 
   return std::make_unique<ResolvedCallExpr>(
       call.location, *resolvedFunctionDecl, std::move(resolvedArguments));
+}
+
+std::unique_ptr<ResolvedStructInstantiationExpr>
+Sema::resolveStructInstantiation(
+    const StructInstantiationExpr &structInstantiation) {
+  const auto *st =
+      lookupDecl<ResolvedStructDecl>(structInstantiation.identifier).first;
+
+  if (!st)
+    return report(structInstantiation.location,
+                  "'" + structInstantiation.identifier +
+                      "' is not a struct type");
+
+  std::vector<std::unique_ptr<ResolvedFieldInitStmt>> resolvedFieldInits;
+  std::map<std::string_view, const ResolvedFieldInitStmt *> inits;
+
+  std::map<std::string_view, const ResolvedFieldDecl *> fields;
+  for (auto &&fieldDecl : st->fields)
+    fields[fieldDecl->identifier] = fieldDecl.get();
+
+  bool error = false;
+  for (auto &&initStmt : structInstantiation.fieldInitializers) {
+    std::string_view id = initStmt->identifier;
+    const SourceLocation &loc = initStmt->location;
+
+    if (inits.count(id)) {
+      report(loc, "field '" + std::string{id} + "' is already initialized");
+      error = true;
+      continue;
+    }
+
+    const ResolvedFieldDecl *fieldDecl = fields[id];
+    if (!fieldDecl) {
+      report(loc, "'" + st->identifier + "' has no field named '" +
+                      std::string{id} + "'");
+      error = true;
+      continue;
+    }
+
+    auto resolvedInitExpr = resolveExpr(*initStmt->initializer);
+    if (!resolvedInitExpr) {
+      error = true;
+      continue;
+    }
+
+    if (resolvedInitExpr->type.name != fieldDecl->type.name) {
+      report(resolvedInitExpr->location,
+             "'" + resolvedInitExpr->type.name +
+                 "' cannot be used to initialize a field of type '" +
+                 fieldDecl->type.name + "'");
+      error = true;
+      continue;
+    }
+
+    auto init = std::make_unique<ResolvedFieldInitStmt>(
+        loc, *fieldDecl, std::move(resolvedInitExpr));
+    inits[id] = resolvedFieldInits.emplace_back(std::move(init)).get();
+  }
+
+  for (auto &&fieldDecl : st->fields) {
+    if (!inits.count(fieldDecl->identifier)) {
+      report(structInstantiation.location,
+             "field '" + fieldDecl->identifier + "' is not initialized");
+      error = true;
+      continue;
+    }
+
+    auto &initStmt = inits[fieldDecl->identifier];
+    initStmt->initializer->setConstantValue(
+        cee.evaluate(*initStmt->initializer, false));
+  }
+
+  if (error)
+    return nullptr;
+
+  return std::make_unique<ResolvedStructInstantiationExpr>(
+      structInstantiation.location, *st, std::move(resolvedFieldInits));
+}
+
+std::unique_ptr<ResolvedMemberExpr>
+Sema::resolveMemberExpr(const MemberExpr &memberExpr) {
+  auto resolvedBase = resolveExpr(*memberExpr.base);
+  if (!resolvedBase)
+    return nullptr;
+
+  if (resolvedBase->type.kind != Type::Kind::Struct)
+    return report(memberExpr.base->location,
+                  "cannot access field of '" + resolvedBase->type.name + '\'');
+
+  const auto *st =
+      lookupDecl<ResolvedStructDecl>(resolvedBase->type.name).first;
+
+  assert(st && "failed to lookup struct");
+
+  const ResolvedFieldDecl *fieldDecl = nullptr;
+  for (auto &&field : st->fields) {
+    if (field->identifier == memberExpr.field)
+      fieldDecl = field.get();
+  }
+
+  if (!fieldDecl)
+    return report(memberExpr.location, '\'' + resolvedBase->type.name +
+                                           "' has no field called '" +
+                                           memberExpr.field + '\'');
+
+  return std::make_unique<ResolvedMemberExpr>(
+      memberExpr.location, std::move(resolvedBase), *fieldDecl);
 }
 
 std::unique_ptr<ResolvedStmt> Sema::resolveStmt(const Stmt &stmt) {
@@ -355,15 +488,13 @@ Sema::resolveDeclStmt(const DeclStmt &declStmt) {
 
 std::unique_ptr<ResolvedAssignment>
 Sema::resolveAssignment(const Assignment &assignment) {
-  // FIXME: temporary workaround to keep compatibility
-  const auto *dre = dynamic_cast<DeclRefExpr *>(assignment.assignee.get());
-  varOrReturn(resolvedLHS, resolveDeclRefExpr(*dre));
   varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
+  varOrReturn(resolvedLHS, resolveAssignableExpr(*assignment.assignee));
 
   assert(resolvedLHS->type.kind != Type::Kind::Void &&
          "reference to void declaration in assignment LHS");
 
-  if (resolvedRHS->type.kind != resolvedLHS->type.kind)
+  if (resolvedRHS->type.name != resolvedLHS->type.name)
     return report(resolvedRHS->location,
                   "assigned value type doesn't match variable type");
 
@@ -390,7 +521,7 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
     if (!resolvedExpr)
       return nullptr;
 
-    if (currentFunction->type.kind != resolvedExpr->type.kind)
+    if (currentFunction->type.name != resolvedExpr->type.name)
       return report(resolvedExpr->location, "unexpected return type");
 
     resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr, false));
@@ -400,14 +531,24 @@ Sema::resolveReturnStmt(const ReturnStmt &returnStmt) {
                                               std::move(resolvedExpr));
 }
 
+std::unique_ptr<ResolvedAssignableExpr>
+Sema::resolveAssignableExpr(const AssignableExpr &assignableExpr) {
+  if (const auto *declRefExpr =
+          dynamic_cast<const DeclRefExpr *>(&assignableExpr))
+    return resolveDeclRefExpr(*declRefExpr);
+
+  if (const auto *memberExpr =
+          dynamic_cast<const MemberExpr *>(&assignableExpr))
+    return resolveMemberExpr(*memberExpr);
+
+  llvm_unreachable("unexpected assignable expression");
+}
+
 std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (const auto *number = dynamic_cast<const NumberLiteral *>(&expr))
     return std::make_unique<ResolvedNumberLiteral>(number->location,
                                                    std::stod(number->value));
-
-  if (const auto *declRefExpr = dynamic_cast<const DeclRefExpr *>(&expr))
-    return resolveDeclRefExpr(*declRefExpr);
 
   if (const auto *callExpr = dynamic_cast<const CallExpr *>(&expr))
     return resolveCallExpr(*callExpr);
@@ -420,6 +561,13 @@ std::unique_ptr<ResolvedExpr> Sema::resolveExpr(const Expr &expr) {
 
   if (const auto *unaryOperator = dynamic_cast<const UnaryOperator *>(&expr))
     return resolveUnaryOperator(*unaryOperator);
+
+  if (const auto *structInstantiation =
+          dynamic_cast<const StructInstantiationExpr *>(&expr))
+    return resolveStructInstantiation(*structInstantiation);
+
+  if (const auto *assignableExpr = dynamic_cast<const AssignableExpr *>(&expr))
+    return resolveAssignableExpr(*assignableExpr);
 
   llvm_unreachable("unexpected expression");
 }
@@ -489,7 +637,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
                                         resolvableType.name + "' type");
 
   if (resolvedInitializer) {
-    if (resolvedInitializer->type.kind != type->kind)
+    if (resolvedInitializer->type.name != type->name)
       return report(resolvedInitializer->location, "initializer type mismatch");
 
     resolvedInitializer->setConstantValue(
@@ -502,7 +650,7 @@ std::unique_ptr<ResolvedVarDecl> Sema::resolveVarDecl(const VarDecl &varDecl) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl>
-Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
+Sema::resolveFunctionDecl(const FunctionDecl &function) {
   std::optional<Type> type = resolveType(function.type);
 
   if (!type)
@@ -537,45 +685,145 @@ Sema::resolveFunctionDeclaration(const FunctionDecl &function) {
       nullptr);
 };
 
-std::vector<std::unique_ptr<ResolvedFunctionDecl>> Sema::resolveAST() {
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTree;
-  auto println = createBuiltinPrintln();
+std::unique_ptr<ResolvedStructDecl>
+Sema::resolveStructDecl(const StructDecl &structDecl) {
+  std::set<std::string_view> identifiers;
+  std::vector<std::unique_ptr<ResolvedFieldDecl>> resolvedFields;
 
-  // Insert println first to be able to detect a possible redeclaration.
+  unsigned idx = 0;
+  for (auto &&field : structDecl.fields) {
+    if (!identifiers.emplace(field->identifier).second)
+      return report(field->location,
+                    "field '" + field->identifier + "' is already declared");
+
+    resolvedFields.emplace_back(std::make_unique<ResolvedFieldDecl>(
+        field->location, field->identifier, field->type, idx++));
+  }
+
+  return std::make_unique<ResolvedStructDecl>(
+      structDecl.location, structDecl.identifier,
+      Type::structType(structDecl.identifier), std::move(resolvedFields));
+}
+
+bool Sema::resolveStructFields(ResolvedStructDecl &resolvedStructDecl) {
+  std::stack<
+      std::pair<ResolvedStructDecl *, std::set<const ResolvedStructDecl *>>>
+      worklist;
+  worklist.push({&resolvedStructDecl, {}});
+
+  while (!worklist.empty()) {
+    auto [currentDecl, visited] = worklist.top();
+    worklist.pop();
+
+    if (!visited.emplace(currentDecl).second) {
+      report(currentDecl->location,
+             "struct '" + currentDecl->identifier + "' contains itself");
+      return false;
+    }
+
+    for (auto &&field : currentDecl->fields) {
+      auto type = resolveType(field->type);
+      if (!type) {
+        report(field->location, "unable to resolve '" + field->type.name +
+                                    "' type of struct field");
+        return false;
+      }
+
+      if (type->kind == Type::Kind::Void) {
+        report(field->location, "struct field cannot be void");
+        return false;
+      }
+
+      if (type->kind == Type::Kind::Struct) {
+        auto *nestedStruct = lookupDecl<ResolvedStructDecl>(type->name).first;
+        assert(nestedStruct && "unexpected type");
+
+        worklist.push({nestedStruct, visited});
+      }
+
+      field->type = *type;
+    }
+  }
+
+  return true;
+}
+
+std::vector<std::unique_ptr<ResolvedDecl>> Sema::resolveAST() {
   ScopeRAII globalScope(this);
-  insertDeclToCurrentScope(*resolvedTree.emplace_back(std::move(println)));
+  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
 
   bool error = false;
-  for (auto &&fn : ast) {
-    auto resolvedFunctionDecl = resolveFunctionDeclaration(*fn);
+  std::vector<const FunctionDecl *> functionsToResolve;
 
-    if (!resolvedFunctionDecl ||
-        !insertDeclToCurrentScope(*resolvedFunctionDecl)) {
-      error = true;
+  // Resolve every struct first so that functions have access to them in their
+  // signature.
+  for (auto &&decl : ast) {
+    if (const auto *st = dynamic_cast<const StructDecl *>(decl.get())) {
+      std::unique_ptr<ResolvedDecl> resolvedDecl = resolveStructDecl(*st);
+
+      if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl)) {
+        error = true;
+        continue;
+      }
+
+      resolvedTree.emplace_back(std::move(resolvedDecl));
       continue;
     }
 
-    resolvedTree.emplace_back(std::move(resolvedFunctionDecl));
+    if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get())) {
+      functionsToResolve.emplace_back(fn);
+      continue;
+    }
+
+    llvm_unreachable("unexpected declaration");
   }
 
   if (error)
     return {};
 
-  for (size_t i = 1; i < resolvedTree.size(); ++i) {
-    currentFunction = resolvedTree[i].get();
+  // Insert println first to be able to detect a possible redeclaration.
+  auto *printlnDecl = resolvedTree.emplace_back(createBuiltinPrintln()).get();
+  insertDeclToCurrentScope(*printlnDecl);
 
-    ScopeRAII paramScope(this);
-    for (auto &&param : currentFunction->params)
-      insertDeclToCurrentScope(*param);
-
-    auto resolvedBody = resolveBlock(*ast[i - 1]->body);
-    if (!resolvedBody) {
-      error = true;
+  for (auto &&fn : functionsToResolve) {
+    if (auto resolvedDecl = resolveFunctionDecl(*fn);
+        resolvedDecl && insertDeclToCurrentScope(*resolvedDecl)) {
+      resolvedTree.emplace_back(std::move(resolvedDecl));
       continue;
     }
 
-    currentFunction->body = std::move(resolvedBody);
-    error |= runFlowSensitiveChecks(*currentFunction);
+    error = true;
+  }
+
+  if (error)
+    return {};
+
+  auto nextFunctionDecl = functionsToResolve.begin();
+  for (auto &&currentDecl : resolvedTree) {
+    if (auto *st = dynamic_cast<ResolvedStructDecl *>(currentDecl.get())) {
+      if (!resolveStructFields(*st))
+        error = true;
+
+      continue;
+    }
+
+    if (auto *fn = dynamic_cast<ResolvedFunctionDecl *>(currentDecl.get())) {
+      if (fn == printlnDecl)
+        continue;
+
+      ScopeRAII paramScope(this);
+      for (auto &&param : fn->params)
+        insertDeclToCurrentScope(*param);
+
+      currentFunction = fn;
+      if (auto resolvedBody = resolveBlock(*(*nextFunctionDecl++)->body)) {
+        fn->body = std::move(resolvedBody);
+        error |= runFlowSensitiveChecks(*fn);
+        continue;
+      }
+
+      error = true;
+    }
   }
 
   if (error)
