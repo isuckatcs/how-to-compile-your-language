@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn foo(S: S): void {
+  let x = S.x;
+  // CHECK: ResolvedDeclStmt:
+  // CHECK-NEXT:   ResolvedVarDecl: @({{.*}}) x:
+  // CHECK-NEXT:     ResolvedMemberExpr: @({{.*}}) x
+  // CHECK-NEXT:       ResolvedDeclRefExpr: @({{.*}}) S
+}
+
+fn main(): void {
+}

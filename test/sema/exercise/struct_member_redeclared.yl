@@ -1,0 +1,8 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number,
+  x: number,
+  // CHECK: [[# @LINE - 1 ]]:3: error: field 'x' is already declared
+}
+
+fn main(): void {}

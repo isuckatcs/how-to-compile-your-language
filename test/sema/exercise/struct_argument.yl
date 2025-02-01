@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+struct S2 {
+  x: number
+}
+
+fn foo(s: S): void {}
+
+fn main(): void {
+  foo(S {x: 0});
+  foo(S2 {x: 0});
+  // CHECK: [[# @LINE - 1 ]]:7: error: unexpected type of argument
+}

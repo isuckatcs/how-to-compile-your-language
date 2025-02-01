@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number,
+}
+
+struct S2 {}
+
+fn main(): void {
+  S { x: S2 {} };
+  // CHECK: [[# @LINE - 1 ]]:10: error: 'S2' cannot be used to initialize a field of type 'number'
+}

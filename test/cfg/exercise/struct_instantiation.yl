@@ -1,0 +1,99 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+struct S {
+  x: number,
+  s2: S2,
+  y: number,
+}
+
+struct S2 {
+  y: number
+}
+
+fn main(): void {
+  let s = S { s2: S2 { y : 1 }, x: 0, y: 2 };
+  let s2 = S { x: 3, s2: S2 { y : 4 }, y: 5 };
+}
+// CHECK: main:
+// CHECK-NEXT: [2 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK-NEXT:       | value: 1
+// CHECK-NEXT:   ResolvedNumberLiteral: '0'
+// CHECK-NEXT:   | value: 0
+// CHECK-NEXT:   ResolvedNumberLiteral: '2'
+// CHECK-NEXT:   | value: 2
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '1'
+// CHECK-NEXT:           | value: 1
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:       ResolvedNumberLiteral: '0'
+// CHECK-NEXT:       | value: 0
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '2'
+// CHECK-NEXT:       | value: 2
+// CHECK-NEXT:   ResolvedDeclStmt:
+// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:               ResolvedNumberLiteral: '1'
+// CHECK-NEXT:               | value: 1
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedNumberLiteral: '0'
+// CHECK-NEXT:           | value: 0
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '2'
+// CHECK-NEXT:           | value: 2
+// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   | value: 3
+// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   | value: 4
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:       | value: 4
+// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   | value: 5
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:       | value: 3
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '4'
+// CHECK-NEXT:           | value: 4
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '5'
+// CHECK-NEXT:       | value: 5
+// CHECK-NEXT:   ResolvedDeclStmt:
+// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s2:
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedNumberLiteral: '3'
+// CHECK-NEXT:           | value: 3
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:               ResolvedNumberLiteral: '4'
+// CHECK-NEXT:               | value: 4
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '5'
+// CHECK-NEXT:           | value: 5
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs:

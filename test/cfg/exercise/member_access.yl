@@ -1,0 +1,66 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+struct S {
+  x: number,
+  s2: S2
+}
+
+struct S2 {
+  y: number
+}
+
+fn main(): void {
+  let s = S { x: 0, s2: S2 { y : 1 } };
+
+  let n = s.s2.y;
+}
+// CHECK: main:
+// CHECK-NEXT: [2 (entry)]
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: [1]
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT:   ResolvedNumberLiteral: '0'
+// CHECK-NEXT:   | value: 0
+// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK-NEXT:       | value: 1
+// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:       ResolvedNumberLiteral: '0'
+// CHECK-NEXT:       | value: 0
+// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           ResolvedNumberLiteral: '1'
+// CHECK-NEXT:           | value: 1
+// CHECK-NEXT:   ResolvedDeclStmt:
+// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
+// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           ResolvedNumberLiteral: '0'
+// CHECK-NEXT:           | value: 0
+// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:               ResolvedNumberLiteral: '1'
+// CHECK-NEXT:               | value: 1
+// CHECK-NEXT:   ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   ResolvedMemberExpr: @({{.*}}) s2
+// CHECK-NEXT:     ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   ResolvedMemberExpr: @({{.*}}) y
+// CHECK-NEXT:     ResolvedMemberExpr: @({{.*}}) s2
+// CHECK-NEXT:       ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   ResolvedDeclStmt:
+// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) n:
+// CHECK-NEXT:       ResolvedMemberExpr: @({{.*}}) y
+// CHECK-NEXT:         ResolvedMemberExpr: @({{.*}}) s2
+// CHECK-NEXT:           ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT: 
+// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs:

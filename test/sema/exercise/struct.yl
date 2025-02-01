@@ -1,0 +1,32 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct Color {
+  r: number,
+  g: number,
+  b: number,
+}
+// CHECK: ResolvedStructDecl: @({{.*}}) Color:
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) r
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) g
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) b
+
+fn main(): void {
+  let x = Color { 
+    r: 0,
+    g: 1,
+    b: 2,
+  };
+}
+// CHECK: ResolvedFunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT:     ResolvedDeclStmt:
+// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
+// CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) r
+// CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:             | value: 0
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) g
+// CHECK-NEXT:             ResolvedNumberLiteral: '1'
+// CHECK-NEXT:             | value: 1
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) b
+// CHECK-NEXT:             ResolvedNumberLiteral: '2'
+// CHECK-NEXT:             | value: 2
