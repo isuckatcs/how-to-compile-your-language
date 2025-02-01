@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o condition_empty_merge && ./condition_empty_merge | ( ! grep ^ )
-fn foo(x: number): void {
+fn foo(var x: number): void {
     if x == 0.0 {
         return;
     }
