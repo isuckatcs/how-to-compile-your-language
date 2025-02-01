@@ -950,6 +950,12 @@ struct Assignment : public Stmt {
                         <p>
                             Update the parser so that it also accepts a
                             <code>MemberExpr</code> on the LHS of an assignment.
+                            Remember that the semantic analyzer still expects
+                            the LHS to be a <code>DeclRefExpr</code>, which will
+                            be fixed in the next section. Until then, introduce
+                            a temporary workaround in
+                            <code>Sema::resolveAssignment()</code> to keep the
+                            compiler functioning.
                         </p>
                     </li>
                     <li>
@@ -1417,6 +1423,17 @@ struct ResolvedAssignment : public ResolvedStmt {
   std::unique_ptr&lt;ResolvedAssignableExpr> assignee;
   ...
 };</code></pre>
+                        <p>
+                            Similar to how this change modified the API of the
+                            AST in the parser, it modifies the API of the
+                            resolved tree here, which affects
+                            <code>Codegen</code> directly. To keep the resolved
+                            tree compatible with the current code generation
+                            logic, introduce a similar workaround to what was
+                            added to <code>Sema</code> in the previous section,
+                            but this time in
+                            <code>Codegen::generateAssignment()</code>.
+                        </p>
                         <p>
                             Because <code>ResolvedMemberExpr</code> can appear
                             on the LHS of an assignment, the statement can now
