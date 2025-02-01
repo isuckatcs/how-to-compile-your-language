@@ -135,16 +135,7 @@ int main(int argc, const char **argv) {
   if (resolvedTree.empty())
     return 1;
 
-  // FIXME: temporary adapter to keep compatibility
-  std::vector<std::unique_ptr<ResolvedFunctionDecl>> resolvedTreeAdapter;
-  for (auto &&resolvedDecl : resolvedTree) {
-    if (auto *fn = dynamic_cast<ResolvedFunctionDecl *>(resolvedDecl.get())) {
-      resolvedTreeAdapter.emplace_back(fn);
-      std::ignore = resolvedDecl.release();
-    }
-  }
-
-  Codegen codegen(std::move(resolvedTreeAdapter), options.source.c_str());
+  Codegen codegen(std::move(resolvedTree), options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
