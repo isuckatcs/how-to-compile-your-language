@@ -1,0 +1,28 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o assignment_operand_order && ./assignment_operand_order | grep -Plzx '1\n2\n'
+struct S {
+  x: number
+}
+
+fn rhs(): number {
+  println(1);
+  return 1;
+}
+
+fn lhs(): S {
+  println(2);
+  return S { x: 2 };
+}
+
+fn main(): void {
+  lhs().x = rhs();
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %struct.ret.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %0 = call double @rhs()
+// CHECK-NEXT:   call void @lhs(%struct.S* sret(%struct.S) %struct.ret.tmp)
+// CHECK-NEXT:   %1 = getelementptr inbounds %struct.S, %struct.S* %struct.ret.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %0, double* %1, align 8
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

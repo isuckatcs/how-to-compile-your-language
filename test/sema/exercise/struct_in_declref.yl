@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number,
+}
+
+fn foo(s: S): number {
+  return s.x;
+}
+
+fn main(): void {
+  foo(S);
+  // CHECK: [[# @LINE - 1 ]]:7: error: expected an instance of 'S'
+}

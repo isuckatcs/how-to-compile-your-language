@@ -1,0 +1,17 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main(): void {
+  if (Struct{ field: 0, field: 1 }) {}
+  // CHECK: IfStmt
+  // CHECK-NEXT:   GroupingExpr:
+  // CHECK-NEXT:     StructInstantiationExpr: Struct
+  // CHECK-NEXT:       FieldInitStmt: field
+  // CHECK-NEXT:         NumberLiteral: '0'
+  // CHECK-NEXT:       FieldInitStmt: field
+  // CHECK-NEXT:         NumberLiteral: '1'
+
+  while (Struct{}) {}
+  // CHECK: WhileStmt
+  // CHECK-NEXT:   GroupingExpr:
+  // CHECK-NEXT:     StructInstantiationExpr: Struct
+  // CHECK-NEXT:   Block
+}

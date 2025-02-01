@@ -1,0 +1,56 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o parameter_mutability && ./parameter_mutability | grep -Plzx '3\n2\n1\n1\n'
+
+fn mutableParam(var n: number): void {
+  n = 3;
+  println(n);
+}
+// CHECK: define void @mutableParam(double %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %n1 = alloca double, align 8
+// CHECK-NEXT:   store double %n, double* %n1, align 8
+// CHECK-NEXT:   store double 3.000000e+00, double* %n1, align 8
+// CHECK-NEXT:   %0 = load double, double* %n1, align 8
+// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn immutableParam(n: number): void {
+  println(n);
+}
+// CHECK: define void @immutableParam(double %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double %n)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {
+  var n = 2;
+  mutableParam(n);
+
+  println(2);
+
+  n = n - 1;
+  immutableParam(n);
+    
+  println(n);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %n = alloca double, align 8
+// CHECK-NEXT:   store double 2.000000e+00, double* %n, align 8
+// CHECK-NEXT:   %0 = load double, double* %n, align 8
+// CHECK-NEXT:   call void @mutableParam(double %0)
+
+// CHECK-NEXT:   call void @println(double 2.000000e+00)
+
+// CHECK-NEXT:   %1 = load double, double* %n, align 8
+// CHECK-NEXT:   %2 = fsub double %1, 1.000000e+00
+// CHECK-NEXT:   store double %2, double* %n, align 8
+// CHECK-NEXT:   %3 = load double, double* %n, align 8
+// CHECK-NEXT:   call void @immutableParam(double %3)
+
+// CHECK-NEXT:   %4 = load double, double* %n, align 8
+// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

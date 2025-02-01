@@ -1,0 +1,19 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct Color {
+    r: number,
+    g: number,
+    b: number,
+}
+
+fn main(): void {
+    let s = Color {r: 0, g: 1, b: 2};
+    
+    let r = s.;
+    // CHECK: [[# @LINE -1 ]]:15: error: expected field identifier
+
+    let r = s().r.x();
+    // CHECK: [[# @LINE -1 ]]:20: error: expected ';' after declaration
+
+    s.r.x();
+    // CHECK: [[# @LINE -1 ]]:10: error: expected ';' at the end of expression
+}

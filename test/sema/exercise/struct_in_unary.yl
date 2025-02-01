@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number,
+}
+
+fn main(): void {
+  let s = S { x: 1 };
+
+  !s;
+  // CHECK: [[# @LINE - 1 ]]:4: error: 'S' cannot be used as an operand to unary operator
+}

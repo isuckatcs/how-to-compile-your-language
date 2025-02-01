@@ -1,0 +1,27 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn main(): void {
+  let S = S { x: 0 };
+
+  let x = S.x;
+}
+// CHECK: ResolvedStructDecl: @({{.*}}) S:
+// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) x
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) println:
+// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) n:
+// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT:     ResolvedDeclStmt:
+// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) S:
+// CHECK-NEXT:         ResolvedStructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:           ResolvedFieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:             ResolvedNumberLiteral: '0'
+// CHECK-NEXT:             | value: 0
+// CHECK-NEXT:     ResolvedDeclStmt:
+// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
+// CHECK-NEXT:         ResolvedMemberExpr: @({{.*}}) x
+// CHECK-NEXT:           ResolvedDeclRefExpr: @({{.*}}) S

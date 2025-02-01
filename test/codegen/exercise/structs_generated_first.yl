@@ -1,0 +1,39 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o structs_generated_first && ./structs_generated_first | grep -Plzx '10\n120\n'
+
+// CHECK: %struct.S2 = type { double, double }
+// CHECK: %struct.S = type { double, double }
+
+fn foo(s: S): S2 {
+  return S2 { x: s.x, y: s.y };
+}
+// CHECK: define void @foo(%struct.S2* sret(%struct.S2) %ret, %struct.S* readonly %s) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S2.tmp = alloca %struct.S2, align 8
+
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %s, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, double* %0, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds %struct.S, %struct.S* %s, i32 0, i32 1
+// CHECK-NEXT:   %3 = load double, double* %2, align 8
+// CHECK-NEXT:   %4 = getelementptr inbounds %struct.S2, %struct.S2* %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %1, double* %4, align 8
+// CHECK-NEXT:   %5 = getelementptr inbounds %struct.S2, %struct.S2* %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   store double %3, double* %5, align 8
+// CHECK-NEXT:   %6 = bitcast %struct.S2* %ret to i8*
+// CHECK-NEXT:   %7 = bitcast %struct.S2* %S2.tmp to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %6, i8* align 8 %7, i64 16, i1 false)
+
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {
+  let x = S { x: 10, y: 120 };
+  println(foo(x).x);
+  println(foo(x).y);
+}
+
+struct S { x: number, y:number }
+struct S2 { x: number, y:number }

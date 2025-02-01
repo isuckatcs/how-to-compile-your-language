@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S { f: void }
+// CHECK: [[# @LINE - 1 ]]:12: error: struct field cannot be void
+
+struct S2 {}
+
+struct S3 {}
+
+struct S4 { f: void }
+// CHECK: [[# @LINE - 1 ]]:13: error: struct field cannot be void
+
+fn main(): void {}
