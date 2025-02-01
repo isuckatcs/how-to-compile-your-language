@@ -1,0 +1,27 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct Color {
+    r: number,
+    g: number,
+    b: number,
+}
+
+fn main(): void {
+    let err = Color {
+        r: 0, 
+        +,
+        // CHECK: [[# @LINE -1 ]]:9: error: expected field initialization
+        b: 2,
+    };
+
+    let x = 1;
+}
+// CHECK: StructDecl: Color
+// CHECK-NEXT:   FieldDecl: r:number
+// CHECK-NEXT:   FieldDecl: g:number
+// CHECK-NEXT:   FieldDecl: b:number
+// CHECK-NEXT: FunctionDecl: main:void
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: x
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NOT: {{.*}}

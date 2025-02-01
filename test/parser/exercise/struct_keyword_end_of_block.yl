@@ -1,0 +1,22 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn error() : void {
+
+struct S {
+// CHECK: [[# @LINE -1 ]]:1: error: expected '}' at the end of a block
+    x: number,
+}
+
+fn error2() : void {
+    let y: number = 
+
+struct S2 {
+// CHECK: [[# @LINE -1 ]]:1: error: expected expression
+// CHECK: [[# @LINE -2 ]]:1: error: expected '}' at the end of a block
+    x: number,
+}
+
+// CHECK: StructDecl: S
+// CHECK-NEXT:   FieldDecl: x:number
+// CHECK-NEXT: StructDecl: S2
+// CHECK-NEXT:   FieldDecl: x:number
+// CHECK-NOT: {{.*}}
