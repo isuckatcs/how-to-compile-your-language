@@ -16,4 +16,4 @@ fn main(): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: declare i32 @printf(i8* %0, ...)
+// CHECK: declare i32 @printf(i8*, ...)
