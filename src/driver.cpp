@@ -154,7 +154,7 @@ int main(int argc, const char **argv) {
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  command << "clang " << llvmIRPath;
+  command << "clang-14 " << llvmIRPath;
   if (!options.output.empty())
     command << " -o " << options.output;
 
