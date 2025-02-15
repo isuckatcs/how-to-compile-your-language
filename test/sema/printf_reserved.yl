@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+
+// CHECK: [[# @LINE + 1 ]]:1: error: 'printf' is a reserved function name and cannot be used for user-defined functions
+fn printf(): number {
+  return 12345;
+}
+
+fn main(): void {
+  println(printf());
+}

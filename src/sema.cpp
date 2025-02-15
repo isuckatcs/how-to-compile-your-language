@@ -666,6 +666,10 @@ Sema::resolveFunctionDecl(const FunctionDecl &function) {
     if (!function.params.empty())
       return report(function.location,
                     "'main' function is expected to take no arguments");
+  } else if (function.identifier == "printf") {
+    return report(function.location,
+                  "'printf' is a reserved function name and cannot be used for "
+                  "user-defined functions");
   }
 
   std::vector<std::unique_ptr<ResolvedParamDecl>> resolvedParams;
