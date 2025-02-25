@@ -39,14 +39,14 @@ fn foo(var x: number): number {
 // CHECK-NEXT:   store double 1.000000e+01, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                          ; preds = <null operand!>, %if.false
+// CHECK-NEXT: if.exit:                                          ; preds =  %if.false
 // CHECK-NEXT:   br label %if.exit5
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit5:                                         ; preds = %if.exit, <null operand!>
+// CHECK-NEXT: if.exit5:                                         ; preds = %if.exit
 // CHECK-NEXT:   store double 5.200000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %if.exit5, %if.true4, %if.true
+// CHECK-NEXT: return:                                           ; preds =  %if.exit5, %if.true4, %if.true
 // CHECK-NEXT:   %4 = load double, double* %retval, align 8
 // CHECK-NEXT:   ret double %4
 // CHECK-NEXT: }

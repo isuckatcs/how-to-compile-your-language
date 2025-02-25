@@ -33,11 +33,11 @@ fn foo(var x: number): number {
 // CHECK-NEXT:   store double 3.000000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                          ; preds = <null operand!>, %while.body
+// CHECK-NEXT: if.exit:                                          ; preds =  %while.body
 // CHECK-NEXT:   store double 5.000000e+00, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %while.exit, %if.exit, %if.true
+// CHECK-NEXT: return:                                           ; preds =  %while.exit, %if.exit, %if.true
 // CHECK-NEXT:   %7 = load double, double* %retval, align 8
 // CHECK-NEXT:   ret double %7
 

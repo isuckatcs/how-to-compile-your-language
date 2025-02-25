@@ -18,7 +18,7 @@ fn foo(s: S, y: number): number {
 // CHECK-NEXT:   store double %3, double* %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT: return:                                           ; preds =  %entry
 // CHECK-NEXT:   %4 = load double, double* %retval, align 8
 // CHECK-NEXT:   ret double %4
 // CHECK-NEXT: }
