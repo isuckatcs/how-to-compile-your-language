@@ -62,14 +62,13 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   trueBB->insertInto(function);
   builder.SetInsertPoint(trueBB);
   generateBlock(*stmt.trueBlock);
-  builder.CreateBr(exitBB);
+  breakIntoBB(exitBB);
 
   if (stmt.falseBlock) {
     elseBB->insertInto(function);
-
     builder.SetInsertPoint(elseBB);
     generateBlock(*stmt.falseBlock);
-    builder.CreateBr(exitBB);
+    breakIntoBB(exitBB);
   }
 
   exitBB->insertInto(function);
@@ -92,7 +91,7 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 
   builder.SetInsertPoint(body);
   generateBlock(*stmt.body);
-  builder.CreateBr(header);
+  breakIntoBB(header);
 
   builder.SetInsertPoint(exit);
   return nullptr;
@@ -120,7 +119,8 @@ llvm::Value *Codegen::generateReturnStmt(const ResolvedReturnStmt &stmt) {
     storeValue(generateExpr(*stmt.expr), retVal, stmt.expr->type);
 
   assert(retBB && "function with return stmt doesn't have a return block");
-  return builder.CreateBr(retBB);
+  breakIntoBB(retBB);
+  return nullptr;
 }
 
 llvm::Value *Codegen::generateMemberExpr(const ResolvedMemberExpr &memberExpr,
@@ -290,6 +290,9 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
 
     builder.SetInsertPoint(rhsBB);
     llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
+
+    assert(!builder.GetInsertBlock()->getTerminator() &&
+           "a binop terminated the current block");
     builder.CreateBr(mergeBB);
 
     rhsBB = builder.GetInsertBlock();
@@ -362,6 +365,15 @@ llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
   return builder.CreateUIToFP(v, builder.getDoubleTy(), "to.double");
 }
 
+void Codegen::breakIntoBB(llvm::BasicBlock *targetBB) {
+  llvm::BasicBlock *currentBB = builder.GetInsertBlock();
+
+  if (currentBB && !currentBB->getTerminator())
+    builder.CreateBr(targetBB);
+
+  builder.ClearInsertionPoint();
+}
+
 llvm::Function *Codegen::getCurrentFunction() {
   return builder.GetInsertBlock()->getParent();
 };
@@ -405,15 +417,10 @@ void Codegen::generateBlock(const ResolvedBlock &block) {
   for (auto &&stmt : block.statements) {
     generateStmt(*stmt);
 
-    // After a return statement we clear the insertion point, so that
-    // no other instructions are inserted into the current block and break.
-    // The break ensures that no other instruction is generated that will be
-    // inserted regardless of there is no insertion point and crash (e.g.:
-    // CreateStore, CreateLoad).
-    if (dynamic_cast<const ResolvedReturnStmt *>(stmt.get())) {
-      builder.ClearInsertionPoint();
+    // We exited the current basic block for some reason, so there is
+    // no need for generating the remaining instructions.
+    if (!builder.GetInsertBlock())
       break;
-    }
   }
 }
 
@@ -460,7 +467,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     generateBlock(*functionDecl.body);
 
   if (retBB->hasNPredecessorsOrMore(1)) {
-    builder.CreateBr(retBB);
+    breakIntoBB(retBB);
     retBB->insertInto(function);
     builder.SetInsertPoint(retBB);
   }

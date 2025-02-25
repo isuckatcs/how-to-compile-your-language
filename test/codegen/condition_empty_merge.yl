@@ -22,7 +22,7 @@ fn main(): void {
 // CHECK-NEXT: if.true:                                          ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                          ; preds = <null operand!>, %entry
+// CHECK-NEXT: if.exit:                                          ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
