@@ -50,6 +50,7 @@ class Codegen {
   llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, const Type &type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
+  void breakIntoBB(llvm::BasicBlock *targetBB);
 
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
