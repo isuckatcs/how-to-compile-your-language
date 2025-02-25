@@ -9,7 +9,7 @@ fn noInsertPoint(): void {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT: return:                                           ; preds = %entry
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -25,7 +25,7 @@ fn insertPointEmptyBlock(): void {
 // CHECK-NEXT: if.true:                                             ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %entry
+// CHECK-NEXT: if.exit:                                            ; preds =  %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
@@ -41,7 +41,7 @@ fn insertPointEmptyBlock2(): void {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %entry
+// CHECK-NEXT: while.cond:                                        ; preds =  %entry
 // CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                        ; preds = %while.cond
@@ -69,7 +69,7 @@ fn insertPointNonEmptyBlock(): void {
 // CHECK-NEXT: if.true:                                             ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: if.exit:                                            ; preds = <null operand!>, %entry
+// CHECK-NEXT: if.exit:                                            ; preds =  %entry
 // CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
@@ -89,7 +89,7 @@ fn insertPointNonEmptyBlock2(): void {
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
-// CHECK-NEXT: while.cond:                                        ; preds = <null operand!>, %entry
+// CHECK-NEXT: while.cond:                                        ; preds =  %entry
 // CHECK-NEXT:   br i1 true, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                        ; preds = %while.cond

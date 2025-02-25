@@ -10,6 +10,6 @@ fn main(): void {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = <null operand!>, %entry
+// CHECK-NEXT: return:                                           ; preds =  %entry
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

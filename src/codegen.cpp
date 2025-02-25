@@ -62,14 +62,16 @@ llvm::Value *Codegen::generateIfStmt(const ResolvedIfStmt &stmt) {
   trueBB->insertInto(function);
   builder.SetInsertPoint(trueBB);
   generateBlock(*stmt.trueBlock);
-  builder.CreateBr(exitBB);
+  if (builder.GetInsertBlock())
+    builder.CreateBr(exitBB);
 
   if (stmt.falseBlock) {
     elseBB->insertInto(function);
 
     builder.SetInsertPoint(elseBB);
     generateBlock(*stmt.falseBlock);
-    builder.CreateBr(exitBB);
+    if (builder.GetInsertBlock())
+      builder.CreateBr(exitBB);
   }
 
   exitBB->insertInto(function);
@@ -92,7 +94,8 @@ llvm::Value *Codegen::generateWhileStmt(const ResolvedWhileStmt &stmt) {
 
   builder.SetInsertPoint(body);
   generateBlock(*stmt.body);
-  builder.CreateBr(header);
+  if (builder.GetInsertBlock())
+    builder.CreateBr(header);
 
   builder.SetInsertPoint(exit);
   return nullptr;
@@ -460,7 +463,8 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
     generateBlock(*functionDecl.body);
 
   if (retBB->hasNPredecessorsOrMore(1)) {
-    builder.CreateBr(retBB);
+    if (builder.GetInsertBlock())
+      builder.CreateBr(retBB);
     retBB->insertInto(function);
     builder.SetInsertPoint(retBB);
   }
