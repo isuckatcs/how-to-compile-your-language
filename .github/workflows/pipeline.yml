@@ -25,7 +25,9 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
+      # upgrade pip as a workaround for https://github.com/actions/runner-images/issues/11611
       run: |
+        pip install --upgrade pip
         pip install -r ${{github.workspace}}/test/requirements.txt
         cmake --build . -t check
 
