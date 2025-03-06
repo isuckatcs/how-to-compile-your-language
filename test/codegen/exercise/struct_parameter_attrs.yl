@@ -1,0 +1,48 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o struct_parameter_attrs && ./struct_parameter_attrs | grep -Plzx '1\n2\n3\n2\n'
+struct S {
+  x: number,
+}
+
+fn foo(a: number, b: S, var c: number, var d: S): void {
+  println(a);
+  println(b.x);
+  println(c);
+  println(d.x);
+}
+// CHECK:      define void @foo(double %a, %struct.S* readonly %b, double %c, %struct.S* byval(%struct.S) %d) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %c1 = alloca double, align 8
+// CHECK-NEXT:   store double %c, double* %c1, align 8
+// CHECK-NEXT:   call void @println(double %a)
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %b, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, double* %0, align 8
+// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   %2 = load double, double* %c1, align 8
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   %3 = getelementptr inbounds %struct.S, %struct.S* %d, i32 0, i32 0
+// CHECK-NEXT:   %4 = load double, double* %3, align 8
+// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): void {
+  let s = S { x: 2 };
+  foo(1, s, 3, s);
+}
+// CHECK:      define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %s = alloca %struct.S, align 8
+// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.arg.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds %struct.S, %struct.S* %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double 2.000000e+00, double* %0, align 8
+// CHECK-NEXT:   %1 = bitcast %struct.S* %s to i8*
+// CHECK-NEXT:   %2 = bitcast %struct.S* %S.tmp to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %1, i8* align 8 %2, i64 8, i1 false)
+// CHECK-NEXT:   %3 = bitcast %struct.S* %struct.arg.tmp to i8*
+// CHECK-NEXT:   %4 = bitcast %struct.S* %s to i8*
+// CHECK-NEXT:   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %3, i8* align 8 %4, i64 8, i1 false)
+// CHECK-NEXT:   call void @foo(double 1.000000e+00, %struct.S* readonly %s, double 3.000000e+00, %struct.S* byval(%struct.S) %struct.arg.tmp)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

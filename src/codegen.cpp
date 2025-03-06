@@ -398,14 +398,13 @@ llvm::AttributeList Codegen::constructAttrList(const ResolvedFunctionDecl *fn) {
   }
 
   for (auto &&param : fn->params) {
-    if (param->type.kind != Type::Kind::Struct)
-      continue;
-
     llvm::AttrBuilder paramAttrs(context);
-    if (param->isMutable)
-      paramAttrs.addByValAttr(generateType(param->type));
-    else
-      paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
+    if (param->type.kind == Type::Kind::Struct) {
+      if (param->isMutable)
+        paramAttrs.addByValAttr(generateType(param->type));
+      else
+        paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
+    }
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
   }
 
