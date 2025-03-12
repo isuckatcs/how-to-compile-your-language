@@ -387,11 +387,13 @@ public:
                     block.
                 </p>
                 <p>
-                    The problem with inserting at the end of the block is that
-                    the variables always appear after they are used, which is an
-                    error. A different approach might be to always insert before
-                    the first instruction, but in that case, it's always the
-                    latest variable appearing first, so the order is reversed.
+                    Certain optimization passes only work if all of the
+                    variables are allocated in the entry block of the function,
+                    so always allocating them in the most recent block is
+                    missing out on a better optimized code. A different approach
+                    might be to always insert before the first instruction, but
+                    in that case, it's always the latest variable appearing
+                    first, so the order is reversed.
                 </p>
                 <p>
                     The idea is to insert a placeholder instruction at the
