@@ -1138,16 +1138,16 @@ or.merge:     |                         |
                     together. Consider the following example and how it's block
                     structure should look like.
                 </p>
-                <pre><code>x || y && z || w
+                <pre><code>x || y || z || w
 ┌───┐
 │ x │──F──┐
 └───┘     │
   │     ┌───┐
-  │     │ y │──T──┐
+  │     │ y │──F──┐
   │     └───┘     │
   │       │     ┌───┐
   T       │     │ z │──F──┐
-  │       F     └───┘     │
+  │       T     └───┘     │
   │       │       │     ┌───┐
   │       │       T     │ w │
   │       │       │     └───┘
@@ -1155,49 +1155,29 @@ or.merge:     |                         |
   └──────│  merge  │──────┘
          └─────────┘</code></pre>
                 <p>
-                    Before deciding how to generate something like this, it is
-                    worth taking a quick look at some examples and where each
-                    operand should lead.
+                    Before deciding how to generate something like this, let's
+                    take a quick look at one more example and which AST node
+                    each operand should lead to.
                 </p>
-                <pre><code>x || y
-     ┌────┐               ┌────┐     
-  ┌──│ || │──┐            │ || │     
-  │  └────┘  │            └────┘     
-┌───┐      ┌───┐     ┌───┐      ┌───┐
-│ x │      │ y │     │ x │─────>│ y │
-└───┘      └───┘     └───┘      └───┘
-                       │          │</code></pre>
-                <pre><code>x || y || z
-           ┌────┐                     ┌────┐    
-        ┌──│ || │──┐                  │ || │
-        │  └────┘  │                  └────┘ 
-     ┌────┐      ┌───┐          ┌────┐      ┌───┐
-  ┌──│ || │──┐   │ z │          │ || │      │ z │
-  │  └────┘  │   └───┘          └────┘      └───┘
-┌───┐      ┌───┐           ┌───┐      ┌───┐   ^  
-│ x │      │ y │           │ x │─────>│ y │───┘
-└───┘      └───┘           └───┘      └───┘      
-                             │          │</code></pre>
                 <pre><code>x || y && z || w
            ┌────┐                    ┌────┐
         ┌──│ || │──┐                 │ || │   
         │  └────┘  │                 └────┘   
      ┌────┐      ┌───┐         ┌────┐      ┌───┐
-  ┌──│ || │──┐   │ w │         │ || │      │ w │
-  │  └────┘  │   └───┘         └────┘      └───┘
-┌───┐      ┌────┐         ┌───┐      ┌────┐  ^
-│ x │   ┌──│ && │──┐      │ x │───┐  │ && │  │
-└───┘   │  └────┘  │      └───┘   V  └────┘  │
-      ┌───┐      ┌───┐      │   ┌───┐      ┌───┐
-      │ y │      │ z │      │   │ y │─────>│ z │
-      └───┘      └───┘      │   └───┘      └───┘
-                            │     │          │
-    </code></pre>
+  ┌──│ || │──┐   │ w │         │ || │      │ w │<┐
+  │  └────┘  │   └───┘         └────┘      └───┘ │
+┌───┐      ┌────┐         ┌───┐      ┌────┐  ^   │
+│ x │   ┌──│ && │──┐      │ x │───┐  │ && │  │   │
+└───┘   │  └────┘  │      └───┘   V  └────┘  │   │
+      ┌───┐      ┌───┐      │   ┌───┐      ┌───┐ │
+      │ y │      │ z │      │   │ y │─────>│ z │ │
+      └───┘      └───┘      │   └───┘      └───┘ │
+                            │     └───────── │ ──┘</code></pre>
                 <p>
-                    The observation is that from the basic block of each
-                    operand, one edge should lead to the merge block and the
-                    other one should lead to the block containing the next
-                    operand on the right in the AST.
+                    This latest example shows that when operators are combined,
+                    the resulting execution paths can end up being quite
+                    complicated, so there is no need to look for patterns, just
+                    stick to a good old recursive solution.
                 </p>
                 <p>
                     The idea is to create a function that traverses the AST of a
@@ -1389,8 +1369,8 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                 <p>
                     Since <code>generateExpr()</code> can change the current
                     block, <code>rhsBB</code> needs to be retrieved once again
-                    (consider <code>x || (y && z)</code> where the insertion
-                    point after the function is run is the
+                    (consider <code>x || y && z</code> where the insertion point
+                    after the function is run is the
                     <code>and.merge</code> block). Then the insertion point is
                     set to the merge block and a phi node is created.
                 </p>
@@ -1471,8 +1451,9 @@ Codegen::generateBinaryOperator(const ResolvedBinaryOperator &binop) {
                     When <code>bz</code> is reached, <code>$x</code> and
                     <code>$y</code> are guaranteed to be false. Since the
                     results are <code>||</code>-d together and
-                    <code>false || false || z == z</code>, the result only
-                    depends on the value of <code>$z</code>.
+                    <code>false || false || z</code> can be simplified to
+                    <code>z</code>, the result only depends on the value of
+                    <code>$z</code>.
                 </p>
                 <p>
                     These observations are what
