@@ -24,6 +24,14 @@ Token Lexer::getNextToken() {
     if (c == currentChar)
       return Token{tokenStartLocation, static_cast<TokenKind>(c)};
 
+  if (currentChar == '/' && peekNextChar() == '/') {
+    char c = eatNextChar();
+    while (c != '\n' && c != '\0')
+      c = eatNextChar();
+
+    return getNextToken();
+  }
+
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 
