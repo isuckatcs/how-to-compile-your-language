@@ -1,0 +1,74 @@
+// https://en.wikipedia.org/wiki/Counter_machine - Minsky machine
+struct State {
+    r1: number,
+    r2: number,
+    pc: number,
+}
+
+fn inc(var state: State, r: number, j: number): State {
+    if r == 1 {
+        state.r1 = state.r1 + 1;
+    } else {
+        state.r2 = state.r2 + 1;
+    }
+
+    state.pc = j;
+    return state;
+}
+
+fn decjz(var state: State, r: number, z: number, nz: number): State {
+    let cmp: number;
+
+    if r == 1 {
+        cmp = state.r1;
+    } else {
+        cmp = state.r2;
+    }
+    
+    if cmp == 0 {
+        state.pc = z;
+    } else {
+        state.pc = nz;
+        if r == 1 {
+            state.r1 = state.r1 - 1;
+        } else {
+            state.r2 = state.r2 - 1;
+        }
+    }
+
+    return state;
+}
+
+fn halt(var state: State): State {
+    state.pc = 0;
+    return state;
+}
+
+// R2 = R1 * 2
+//
+// https://en.wikipedia.org/wiki/Structured_program_theorem
+fn R1x2(var state: State): State {
+    while state.pc > 0 {
+        if state.pc == 1 {
+            state = decjz(state, 1, 5, 2);
+        } else if state.pc == 2 {
+            state = inc(state, 2, 3);
+        } else if state.pc == 3 {
+            state = inc(state, 2, 4);
+        } else if state.pc == 4 {
+            state = decjz(state, 1, 5, 2);
+        } else if state.pc == 5 {
+            state = halt(state);
+        }
+    }
+
+    return state;
+}
+
+fn main(): void {
+    let input = State { r1: 15, r2: 0, pc: 1 };
+    let result = R1x2(input);
+
+    println(input.r1);
+    println(result.r2);
+}
