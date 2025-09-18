@@ -8,12 +8,13 @@
 
 namespace yl {
 struct Type {
-  enum class Kind { Void, Custom };
+  enum class Kind { Void, Number, Custom };
 
   Kind kind;
   std::string name;
 
   static Type builtinVoid() { return {Kind::Void, "void"}; }
+  static Type builtinNumber() { return {Kind::Number, "number"}; }
   static Type custom(const std::string &name) { return {Kind::Custom, name}; }
 
 private:
