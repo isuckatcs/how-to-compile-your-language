@@ -2,13 +2,13 @@
 fn foo(): void {}
 
 fn main(): void {
-    // CHECK: [[# @LINE + 1 ]]:8: error: 'void' cannot be used as LHS operand to binary operator
+    // CHECK: [[# @LINE + 1 ]]:11: error: 'void' cannot be used as LHS operand to binary operator
     foo() + 1.0;
     
-    // CHECK: [[# @LINE + 1 ]]:14: error: 'void' cannot be used as RHS operand to binary operator
+    // CHECK: [[# @LINE + 1 ]]:9: error: 'void' cannot be used as RHS operand to binary operator
     1.0 + foo();
     
-    // CHECK: [[# @LINE + 1 ]]:8: error: 'void' cannot be used as LHS operand to binary operator
+    // CHECK: [[# @LINE + 1 ]]:11: error: 'void' cannot be used as LHS operand to binary operator
     foo() + foo();
 
     1.0 + 3.0;

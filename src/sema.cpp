@@ -219,7 +219,7 @@ Sema::resolveUnaryOperator(const UnaryOperator &unary) {
   varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
 
   if (resolvedRHS->type.kind != Type::Kind::Number)
-    return report(resolvedRHS->location,
+    return report(unary.location,
                   '\'' + resolvedRHS->type.name +
                       "' cannot be used as an operand to unary operator");
 
@@ -233,12 +233,12 @@ Sema::resolveBinaryOperator(const BinaryOperator &binop) {
   varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
 
   if (resolvedLHS->type.kind != Type::Kind::Number)
-    return report(resolvedLHS->location,
+    return report(binop.location,
                   '\'' + resolvedLHS->type.name +
                       "' cannot be used as LHS operand to binary operator");
 
   if (resolvedRHS->type.kind != Type::Kind::Number)
-    return report(resolvedRHS->location,
+    return report(binop.location,
                   '\'' + resolvedRHS->type.name +
                       "' cannot be used as RHS operand to binary operator");
 
