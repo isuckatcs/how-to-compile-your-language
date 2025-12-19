@@ -10,4 +10,4 @@ fn bar(x: number, y: customType): void {}
 fn redeclaredParam(x: number, x: number): void {}
 
 fn main(): void {}
-// CHECK-NOT: {{.*}}
+

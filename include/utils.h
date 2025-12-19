@@ -17,7 +17,7 @@ struct SourceFile {
 };
 
 struct SourceLocation {
-  std::string_view filepath;
+  const SourceFile *file;
   int line;
   int col;
 };

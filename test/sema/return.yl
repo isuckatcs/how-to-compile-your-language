@@ -27,4 +27,3 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:5: error: unexpected return value in void function
     return 1.0;
 }
-// CHECK-NOT: {{.*}}

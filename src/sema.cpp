@@ -188,7 +188,7 @@ std::pair<T *, int> Sema::lookupDecl(const std::string id) {
 }
 
 std::unique_ptr<ResolvedFunctionDecl> Sema::createBuiltinPrintln() {
-  SourceLocation loc{"<builtin>", 0, 0};
+  SourceLocation loc{nullptr, 0, 0};
 
   auto param = std::make_unique<ResolvedParamDecl>(
       loc, "n", Type::builtinNumber(), false);

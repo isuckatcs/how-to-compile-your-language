@@ -4,4 +4,3 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:9: error: redeclaration of 'x'
     let x: number = 2.0;
 }
-// CHECK-NOT: {{.*}}

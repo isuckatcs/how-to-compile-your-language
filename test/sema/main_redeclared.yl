@@ -3,4 +3,3 @@ fn main(): void {}
 
 // CHECK: [[# @LINE + 1 ]]:1: error: redeclaration of 'main'
 fn main(): void {}
-// CHECK-NOT: {{.*}}

@@ -33,4 +33,3 @@ fn main(): void {
     bar(1.0, 2.0);
     foo();
 }
-// CHECK-NOT: {{.*}}

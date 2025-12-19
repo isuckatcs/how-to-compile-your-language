@@ -20,7 +20,7 @@ Token Lexer::getNextToken() {
   while (isSpace(currentChar))
     currentChar = eatNextChar();
 
-  SourceLocation tokenStartLocation{source->path, line, column};
+  SourceLocation tokenStartLocation{source, line, column};
 
   for (auto &&c : singleCharTokens)
     if (c == currentChar)

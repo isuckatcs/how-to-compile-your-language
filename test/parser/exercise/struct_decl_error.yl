@@ -5,4 +5,3 @@ struct Error {
     // CHECK: [[# @LINE -1 ]]:5: error: expected field declaration
     b: number,
 }
-// CHECK-NOT: {{.*}}

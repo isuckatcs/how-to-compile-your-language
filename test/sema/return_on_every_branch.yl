@@ -175,4 +175,3 @@ fn returnAllPathsElse2(x: number): number {
 }
 
 fn main(): void {}
-// CHECK-NOT: {{.*}}

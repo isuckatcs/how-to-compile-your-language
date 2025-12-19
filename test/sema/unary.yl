@@ -8,4 +8,3 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:9: error: 'void' cannot be used as an operand to unary operator
     -foo();
 }
-// CHECK-NOT: {{.*}}

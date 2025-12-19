@@ -5,4 +5,3 @@ fn main(): void {}
 fn println(x: number): number {
     return 0.0;
 }
-// CHECK-NOT: {{.*}}

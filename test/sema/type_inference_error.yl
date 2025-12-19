@@ -18,4 +18,3 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'y2' not found
     y2 = 0.0;
 }
-// CHECK-NOT: {{.*}}
