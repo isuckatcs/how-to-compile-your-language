@@ -3,21 +3,19 @@
 
 #include <optional>
 
-#include "ast.h"
+#include "res.h"
 
 namespace yl {
 class ConstantExpressionEvaluator {
-  std::optional<double>
-  evaluateBinaryOperator(const ResolvedBinaryOperator &binop,
-                         bool allowSideEffects);
-  std::optional<double> evaluateUnaryOperator(const ResolvedUnaryOperator &unop,
+  std::optional<double> evaluateBinaryOperator(const res::BinaryOperator &binop,
+                                               bool allowSideEffects);
+  std::optional<double> evaluateUnaryOperator(const res::UnaryOperator &unop,
                                               bool allowSideEffects);
-  std::optional<double> evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
+  std::optional<double> evaluateDeclRefExpr(const res::DeclRefExpr &dre,
                                             bool allowSideEffects);
 
 public:
-  std::optional<double> evaluate(const ResolvedExpr &expr,
-                                 bool allowSideEffects);
+  std::optional<double> evaluate(const res::Expr &expr, bool allowSideEffects);
 };
 } // namespace yl
 

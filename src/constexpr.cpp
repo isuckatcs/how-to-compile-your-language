@@ -13,7 +13,7 @@ std::optional<bool> toBool(std::optional<double> d) {
 
 namespace yl {
 std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
-    const ResolvedBinaryOperator &binop, bool allowSideEffects) {
+    const res::BinaryOperator &binop, bool allowSideEffects) {
   std::optional<double> lhs = evaluate(*binop.lhs, allowSideEffects);
 
   if (!lhs && !allowSideEffects)
@@ -81,7 +81,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
 }
 
 std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
-    const ResolvedUnaryOperator &unop, bool allowSideEffects) {
+    const res::UnaryOperator &unop, bool allowSideEffects) {
   std::optional<double> operand = evaluate(*unop.operand, allowSideEffects);
   if (!operand)
     return std::nullopt;
@@ -96,10 +96,10 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
 }
 
 std::optional<double>
-ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
+ConstantExpressionEvaluator::evaluateDeclRefExpr(const res::DeclRefExpr &dre,
                                                  bool allowSideEffects) {
   // We only care about reference to immutable variables with an initializer.
-  const auto *rvd = dynamic_cast<const ResolvedVarDecl *>(dre.decl);
+  const auto *rvd = dynamic_cast<const res::VarDecl *>(dre.decl);
   if (!rvd || rvd->isMutable || !rvd->initializer)
     return std::nullopt;
 
@@ -107,30 +107,28 @@ ConstantExpressionEvaluator::evaluateDeclRefExpr(const ResolvedDeclRefExpr &dre,
 }
 
 std::optional<double>
-ConstantExpressionEvaluator::evaluate(const ResolvedExpr &expr,
+ConstantExpressionEvaluator::evaluate(const res::Expr &expr,
                                       bool allowSideEffects) {
   // Don't evaluate the same expression multiple times.
   if (std::optional<double> val = expr.getConstantValue())
     return val;
 
   if (const auto *numberLiteral =
-          dynamic_cast<const ResolvedNumberLiteral *>(&expr))
+          dynamic_cast<const res::NumberLiteral *>(&expr))
     return numberLiteral->value;
 
-  if (const auto *groupingExpr =
-          dynamic_cast<const ResolvedGroupingExpr *>(&expr))
+  if (const auto *groupingExpr = dynamic_cast<const res::GroupingExpr *>(&expr))
     return evaluate(*groupingExpr->expr, allowSideEffects);
 
   if (const auto *binaryOperator =
-          dynamic_cast<const ResolvedBinaryOperator *>(&expr))
+          dynamic_cast<const res::BinaryOperator *>(&expr))
     return evaluateBinaryOperator(*binaryOperator, allowSideEffects);
 
   if (const auto *unaryOperator =
-          dynamic_cast<const ResolvedUnaryOperator *>(&expr))
+          dynamic_cast<const res::UnaryOperator *>(&expr))
     return evaluateUnaryOperator(*unaryOperator, allowSideEffects);
 
-  if (const auto *declRefExpr =
-          dynamic_cast<const ResolvedDeclRefExpr *>(&expr))
+  if (const auto *declRefExpr = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return evaluateDeclRefExpr(*declRefExpr, allowSideEffects);
 
   return std::nullopt;

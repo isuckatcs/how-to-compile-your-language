@@ -22,6 +22,7 @@ struct SourceLocation {
   int col;
 };
 
+std::string indent(size_t level);
 std::nullptr_t report(SourceLocation location,
                       std::string_view message,
                       bool isWarning = false);

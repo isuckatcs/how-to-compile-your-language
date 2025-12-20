@@ -7,12 +7,12 @@
 #include <memory>
 #include <vector>
 
-#include "ast.h"
+#include "res.h"
 
 namespace yl {
 class Codegen {
-  std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree;
-  std::map<const ResolvedDecl *, llvm::Value *> declarations;
+  std::vector<std::unique_ptr<res::Decl>> resolvedTree;
+  std::map<const res::Decl *, llvm::Value *> declarations;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
@@ -22,52 +22,52 @@ class Codegen {
   llvm::IRBuilder<> builder;
   llvm::Module module;
 
-  llvm::Type *generateType(Type type);
+  llvm::Type *generateType(res::Type type);
 
-  llvm::Value *generateStmt(const ResolvedStmt &stmt);
-  llvm::Value *generateIfStmt(const ResolvedIfStmt &stmt);
-  llvm::Value *generateWhileStmt(const ResolvedWhileStmt &stmt);
-  llvm::Value *generateDeclStmt(const ResolvedDeclStmt &stmt);
-  llvm::Value *generateAssignment(const ResolvedAssignment &stmt);
-  llvm::Value *generateReturnStmt(const ResolvedReturnStmt &stmt);
+  llvm::Value *generateStmt(const res::Stmt &stmt);
+  llvm::Value *generateIfStmt(const res::IfStmt &stmt);
+  llvm::Value *generateWhileStmt(const res::WhileStmt &stmt);
+  llvm::Value *generateDeclStmt(const res::DeclStmt &stmt);
+  llvm::Value *generateAssignment(const res::Assignment &stmt);
+  llvm::Value *generateReturnStmt(const res::ReturnStmt &stmt);
 
-  llvm::Value *generateExpr(const ResolvedExpr &expr, bool keepPointer = false);
-  llvm::Value *generateDeclRefExpr(const ResolvedDeclRefExpr &dre,
+  llvm::Value *generateExpr(const res::Expr &expr, bool keepPointer = false);
+  llvm::Value *generateDeclRefExpr(const res::DeclRefExpr &dre,
                                    bool keepPointer = false);
-  llvm::Value *generateCallExpr(const ResolvedCallExpr &call);
-  llvm::Value *generateBinaryOperator(const ResolvedBinaryOperator &binop);
-  llvm::Value *generateUnaryOperator(const ResolvedUnaryOperator &unop);
-  llvm::Value *generateMemberExpr(const ResolvedMemberExpr &memberExpr,
+  llvm::Value *generateCallExpr(const res::CallExpr &call);
+  llvm::Value *generateBinaryOperator(const res::BinaryOperator &binop);
+  llvm::Value *generateUnaryOperator(const res::UnaryOperator &unop);
+  llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr,
                                   bool keepPointer = false);
-  llvm::Value *
-  generateTemporaryStruct(const ResolvedStructInstantiationExpr &sie);
+  llvm::Value *generateTemporaryStruct(const res::StructInstantiationExpr &sie);
 
-  void generateConditionalOperator(const ResolvedExpr &op,
+  void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
 
-  llvm::Value *loadValue(llvm::Value *val, const Type &type);
-  llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, const Type &type);
+  llvm::Value *loadValue(llvm::Value *val, const res::Type &type);
+  llvm::Value *
+  storeValue(llvm::Value *val, llvm::Value *ptr, const res::Type &type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
   void breakIntoBB(llvm::BasicBlock *targetBB);
 
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
-                                          const Type &type);
-  llvm::AttributeList constructAttrList(const ResolvedFunctionDecl *fn);
+                                          const res::Type &type);
+  llvm::AttributeList constructAttrList(const res::FunctionDecl *fn);
 
-  void generateBlock(const ResolvedBlock &block);
-  void generateFunctionBody(const ResolvedFunctionDecl &functionDecl);
-  void generateFunctionDecl(const ResolvedFunctionDecl &functionDecl);
-  void generateStructDecl(const ResolvedStructDecl &structDecl);
-  void generateStructDefinition(const ResolvedStructDecl &structDecl);
+  void generateBlock(const res::Block &block);
+  void generateFunctionBody(const res::FunctionDecl &functionDecl);
+  void generateFunctionDecl(const res::FunctionDecl &functionDecl);
+  void generateStructDecl(const res::StructDecl &structDecl);
+  void generateStructDefinition(const res::StructDecl &structDecl);
 
-  void generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println);
+  void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();
 
 public:
-  Codegen(std::vector<std::unique_ptr<ResolvedDecl>> resolvedTree,
+  Codegen(std::vector<std::unique_ptr<res::Decl>> resolvedTree,
           std::string_view sourcePath);
 
   llvm::Module *generateIR();

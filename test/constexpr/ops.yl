@@ -8,27 +8,27 @@ fn prefix(x: number): void {
     foo(-x);
     foo(-1.23);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) prefix:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) x:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedUnaryOperator: '!'
+// CHECK: FunctionDecl: @({{.*}}) prefix:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       UnaryOperator: '!'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedUnaryOperator: '!'
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       UnaryOperator: '!'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedUnaryOperator: '!'
-// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedUnaryOperator: '-'
-// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedUnaryOperator: '-'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       UnaryOperator: '!'
+// CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       UnaryOperator: '-'
+// CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       UnaryOperator: '-'
 // CHECK-NEXT:       | value: -1.23
-// CHECK-NEXT:         ResolvedNumberLiteral: '1.23'
+// CHECK-NEXT:         NumberLiteral: '1.23'
 
 fn multiplicative(x: number): void {
     foo(5.0 * 3.0);
@@ -37,44 +37,44 @@ fn multiplicative(x: number): void {
     foo(x * 1.0);
     foo(1.0 * x);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) multiplicative:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) x:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '*'
+// CHECK: FunctionDecl: @({{.*}}) multiplicative:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '*'
 // CHECK-NEXT:       | value: 15
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:         ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '/'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         NumberLiteral: '3'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '/'
 // CHECK-NEXT:       | value: 5
-// CHECK-NEXT:         ResolvedNumberLiteral: '20'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '*'
-// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '*'
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
-// CHECK-NEXT:         ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:         NumberLiteral: '20'
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '*'
+// CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '*'
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
 
 fn additive(): void {
     foo(5.0 + 3.0);
     foo(20.0 - 4.0);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) additive:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '+'
+// CHECK: FunctionDecl: @({{.*}}) additive:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '+'
 // CHECK-NEXT:       | value: 8
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:         ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '-'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         NumberLiteral: '3'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '-'
 // CHECK-NEXT:       | value: 16
-// CHECK-NEXT:         ResolvedNumberLiteral: '20'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
+// CHECK-NEXT:         NumberLiteral: '20'
+// CHECK-NEXT:         NumberLiteral: '4'
 
 fn comparison(): void {
     foo(2.0 < 5.0);
@@ -83,45 +83,45 @@ fn comparison(): void {
     foo(2.0 > 5.0);
     foo(5.0 > 2.0);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) comparison:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '<'
+// CHECK: FunctionDecl: @({{.*}}) comparison:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '<'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '<'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '<'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '>'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '>'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '>'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '>'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         NumberLiteral: '2'
 
 fn equality(): void {
     foo(2.0 == 2.0);
     foo(5.0 == 3.0);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) equality:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '=='
+// CHECK: FunctionDecl: @({{.*}}) equality:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '=='
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '=='
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '=='
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
-// CHECK-NEXT:         ResolvedNumberLiteral: '3'
+// CHECK-NEXT:         NumberLiteral: '5'
+// CHECK-NEXT:         NumberLiteral: '3'
 
 fn conjunction(): void {
     foo(2.0 && 3.0);
@@ -129,28 +129,28 @@ fn conjunction(): void {
     foo(1.0 && 0.0);
     foo(0.0 && 0.0);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) conjunction:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '&&'
+// CHECK: FunctionDecl: @({{.*}}) conjunction:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '3'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '0'
 
 fn disjunction(): void {
     foo(2.0 || 0.0);
@@ -158,27 +158,27 @@ fn disjunction(): void {
     foo(2.0 || 3.0);
     foo(0.0 || 0.0);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) disjunction:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '||'
+// CHECK: FunctionDecl: @({{.*}}) disjunction:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '||'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '||'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedNumberLiteral: '2'
-// CHECK-NEXT:         ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedBinaryOperator: '||'
+// CHECK-NEXT:         NumberLiteral: '2'
+// CHECK-NEXT:         NumberLiteral: '3'
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
-// CHECK-NEXT:         ResolvedNumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '0'
+// CHECK-NEXT:         NumberLiteral: '0'
 
 fn main(): void {}

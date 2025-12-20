@@ -47,30 +47,31 @@ class Parser {
   }
 
   // AST node parser methods
-  std::unique_ptr<FunctionDecl> parseFunctionDecl();
-  std::unique_ptr<ParamDecl> parseParamDecl();
-  std::unique_ptr<VarDecl> parseVarDecl(bool isLet);
-  std::unique_ptr<StructDecl> parseStructDecl();
-  std::unique_ptr<FieldDecl> parseFieldDecl();
+  std::unique_ptr<ast::FunctionDecl> parseFunctionDecl();
+  std::unique_ptr<ast::ParamDecl> parseParamDecl();
+  std::unique_ptr<ast::VarDecl> parseVarDecl(bool isLet);
+  std::unique_ptr<ast::StructDecl> parseStructDecl();
+  std::unique_ptr<ast::FieldDecl> parseFieldDecl();
 
-  std::unique_ptr<Stmt> parseStmt();
-  std::unique_ptr<IfStmt> parseIfStmt();
-  std::unique_ptr<WhileStmt> parseWhileStmt();
-  std::unique_ptr<Assignment>
-  parseAssignmentRHS(std::unique_ptr<AssignableExpr> lhs);
-  std::unique_ptr<DeclStmt> parseDeclStmt();
-  std::unique_ptr<ReturnStmt> parseReturnStmt();
-  std::unique_ptr<FieldInitStmt> parseFieldInitStmt();
+  std::unique_ptr<ast::Stmt> parseStmt();
+  std::unique_ptr<ast::IfStmt> parseIfStmt();
+  std::unique_ptr<ast::WhileStmt> parseWhileStmt();
+  std::unique_ptr<ast::Assignment>
+  parseAssignmentRHS(std::unique_ptr<ast::AssignableExpr> lhs);
+  std::unique_ptr<ast::DeclStmt> parseDeclStmt();
+  std::unique_ptr<ast::ReturnStmt> parseReturnStmt();
+  std::unique_ptr<ast::FieldInitStmt> parseFieldInitStmt();
 
-  std::unique_ptr<Stmt> parseAssignmentOrExpr();
+  std::unique_ptr<ast::Stmt> parseAssignmentOrExpr();
 
-  std::unique_ptr<Block> parseBlock();
+  std::unique_ptr<ast::Block> parseBlock();
 
-  std::unique_ptr<Expr> parseExpr();
-  std::unique_ptr<Expr> parseExprRHS(std::unique_ptr<Expr> lhs, int precedence);
-  std::unique_ptr<Expr> parsePrefixExpr();
-  std::unique_ptr<Expr> parsePostfixExpr();
-  std::unique_ptr<Expr> parsePrimary();
+  std::unique_ptr<ast::Expr> parseExpr();
+  std::unique_ptr<ast::Expr> parseExprRHS(std::unique_ptr<ast::Expr> lhs,
+                                          int precedence);
+  std::unique_ptr<ast::Expr> parsePrefixExpr();
+  std::unique_ptr<ast::Expr> parsePostfixExpr();
+  std::unique_ptr<ast::Expr> parsePrimary();
 
   // helper methods
   template <typename T, typename F>
@@ -79,14 +80,14 @@ class Parser {
                              F parser,
                              std::pair<TokenKind, const char *> closingToken);
 
-  std::optional<Type> parseType();
+  std::optional<ast::Type> parseType();
 
 public:
   explicit Parser(Lexer &lexer)
       : lexer(&lexer),
         nextToken(lexer.getNextToken()) {}
 
-  std::pair<std::vector<std::unique_ptr<Decl>>, bool> parseSourceFile();
+  std::pair<std::vector<std::unique_ptr<ast::Decl>>, bool> parseSourceFile();
 };
 } // namespace yl
 

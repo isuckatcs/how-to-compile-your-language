@@ -4,14 +4,14 @@
 #include <set>
 #include <vector>
 
-#include "ast.h"
 #include "constexpr.h"
+#include "res.h"
 
 namespace yl {
 struct BasicBlock {
   std::set<std::pair<int, bool>> predecessors;
   std::set<std::pair<int, bool>> successors;
-  std::vector<const ResolvedStmt *> statements;
+  std::vector<const res::Stmt *> statements;
 };
 
 struct CFG {
@@ -35,7 +35,7 @@ struct CFG {
     basicBlocks[to].predecessors.emplace(std::make_pair(from, reachable));
   }
 
-  void insertStmt(const ResolvedStmt *stmt, int block) {
+  void insertStmt(const res::Stmt *stmt, int block) {
     basicBlocks[block].statements.emplace_back(stmt);
   }
 
@@ -46,18 +46,18 @@ class CFGBuilder {
   ConstantExpressionEvaluator cee;
   CFG cfg;
 
-  int insertBlock(const ResolvedBlock &block, int successor);
-  int insertIfStmt(const ResolvedIfStmt &stmt, int exit);
-  int insertWhileStmt(const ResolvedWhileStmt &stmt, int exit);
+  int insertBlock(const res::Block &block, int successor);
+  int insertIfStmt(const res::IfStmt &stmt, int exit);
+  int insertWhileStmt(const res::WhileStmt &stmt, int exit);
 
-  int insertStmt(const ResolvedStmt &stmt, int block);
-  int insertDeclStmt(const ResolvedDeclStmt &stmt, int block);
-  int insertAssignment(const ResolvedAssignment &stmt, int block);
-  int insertReturnStmt(const ResolvedReturnStmt &stmt, int block);
-  int insertExpr(const ResolvedExpr &expr, int block);
+  int insertStmt(const res::Stmt &stmt, int block);
+  int insertDeclStmt(const res::DeclStmt &stmt, int block);
+  int insertAssignment(const res::Assignment &stmt, int block);
+  int insertReturnStmt(const res::ReturnStmt &stmt, int block);
+  int insertExpr(const res::Expr &expr, int block);
 
 public:
-  CFG build(const ResolvedFunctionDecl &fn);
+  CFG build(const res::FunctionDecl &fn);
 };
 } // namespace yl
 

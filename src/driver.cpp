@@ -122,7 +122,7 @@ int main(int argc, const char **argv) {
 
   if (options.cfgDump) {
     for (auto &&decl : resolvedTree) {
-      const auto *fn = dynamic_cast<const ResolvedFunctionDecl *>(decl.get());
+      const auto *fn = dynamic_cast<const res::FunctionDecl *>(decl.get());
       if (!fn)
         continue;
 

@@ -21,77 +21,77 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
-// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       NumberLiteral: '1'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:   ResolvedNumberLiteral: '0'
+// CHECK-NEXT:   NumberLiteral: '0'
 // CHECK-NEXT:   | value: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '2'
+// CHECK-NEXT:   NumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
-// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           NumberLiteral: '1'
 // CHECK-NEXT:           | value: 1
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:       ResolvedNumberLiteral: '0'
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:       NumberLiteral: '0'
 // CHECK-NEXT:       | value: 0
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:       ResolvedNumberLiteral: '2'
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       NumberLiteral: '2'
 // CHECK-NEXT:       | value: 2
-// CHECK-NEXT:   ResolvedDeclStmt:
-// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s:
-// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:               ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   DeclStmt:
+// CHECK-NEXT:     VarDecl: @({{.*}}) s:
+// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:           StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:             FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:               NumberLiteral: '1'
 // CHECK-NEXT:               | value: 1
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:           ResolvedNumberLiteral: '0'
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           NumberLiteral: '0'
 // CHECK-NEXT:           | value: 0
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           ResolvedNumberLiteral: '2'
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           NumberLiteral: '2'
 // CHECK-NEXT:           | value: 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
-// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       NumberLiteral: '4'
 // CHECK-NEXT:       | value: 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
-// CHECK-NEXT:   ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:       NumberLiteral: '3'
 // CHECK-NEXT:       | value: 3
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           ResolvedNumberLiteral: '4'
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           NumberLiteral: '4'
 // CHECK-NEXT:           | value: 4
-// CHECK-NEXT:     ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:       ResolvedNumberLiteral: '5'
+// CHECK-NEXT:     FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:       NumberLiteral: '5'
 // CHECK-NEXT:       | value: 5
-// CHECK-NEXT:   ResolvedDeclStmt:
-// CHECK-NEXT:     ResolvedVarDecl: @({{.*}}) s2:
-// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:           ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   DeclStmt:
+// CHECK-NEXT:     VarDecl: @({{.*}}) s2:
+// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           NumberLiteral: '3'
 // CHECK-NEXT:           | value: 3
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:           ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:             ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:               ResolvedNumberLiteral: '4'
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) s2
+// CHECK-NEXT:           StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:             FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:               NumberLiteral: '4'
 // CHECK-NEXT:               | value: 4
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           ResolvedNumberLiteral: '5'
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           NumberLiteral: '5'
 // CHECK-NEXT:           | value: 5
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]

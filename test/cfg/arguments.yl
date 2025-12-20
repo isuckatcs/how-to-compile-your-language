@@ -12,27 +12,27 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
-// CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   ResolvedBinaryOperator: '+'
+// CHECK-NEXT:   NumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '2'
+// CHECK-NEXT:   BinaryOperator: '+'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:     ResolvedNumberLiteral: '1'
-// CHECK-NEXT:     ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedBinaryOperator: '+'
+// CHECK-NEXT:     NumberLiteral: '1'
+// CHECK-NEXT:     NumberLiteral: '2'
+// CHECK-NEXT:   NumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   BinaryOperator: '+'
 // CHECK-NEXT:   | value: 7
-// CHECK-NEXT:     ResolvedNumberLiteral: '3'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:     ResolvedBinaryOperator: '+'
+// CHECK-NEXT:     NumberLiteral: '3'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:   CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     BinaryOperator: '+'
 // CHECK-NEXT:     | value: 3
-// CHECK-NEXT:       ResolvedNumberLiteral: '1'
-// CHECK-NEXT:       ResolvedNumberLiteral: '2'
-// CHECK-NEXT:     ResolvedBinaryOperator: '+'
+// CHECK-NEXT:       NumberLiteral: '1'
+// CHECK-NEXT:       NumberLiteral: '2'
+// CHECK-NEXT:     BinaryOperator: '+'
 // CHECK-NEXT:     | value: 7
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '3'
+// CHECK-NEXT:       NumberLiteral: '4'
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 

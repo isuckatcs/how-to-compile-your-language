@@ -10,12 +10,12 @@ fn main(): void {
     let x2: number;
     var y2: number;
 }
-// CHECK: ResolvedDeclStmt:
-// CHECK-NEXT:   ResolvedVarDecl: @({{.*}}) x:
-// CHECK-NEXT:     ResolvedNumberLiteral: '1'
+// CHECK: DeclStmt:
+// CHECK-NEXT:   VarDecl: @({{.*}}) x:
+// CHECK-NEXT:     NumberLiteral: '1'
 // CHECK-NEXT:     | value: 1
-// CHECK-NEXT: ResolvedDeclStmt:
-// CHECK-NEXT:   ResolvedVarDecl: @({{.*}}) y:
-// CHECK-NEXT:     ResolvedBinaryOperator: '+'
-// CHECK-NEXT:       ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK-NEXT: DeclStmt:
+// CHECK-NEXT:   VarDecl: @({{.*}}) y:
+// CHECK-NEXT:     BinaryOperator: '+'
+// CHECK-NEXT:       CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       NumberLiteral: '1'

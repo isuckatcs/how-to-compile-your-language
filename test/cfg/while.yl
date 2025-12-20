@@ -15,23 +15,23 @@ fn main(): void {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:   | value: 4
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '4'
 // CHECK-NEXT:     | value: 4
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4
 // CHECK-NEXT:   succs: 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -40,7 +40,7 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 4(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1
@@ -62,37 +62,37 @@ fn orCondition(): void {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedBinaryOperator: '||'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedBinaryOperator: '||'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   BinaryOperator: '||'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   BinaryOperator: '||'
 // CHECK-NEXT:   | value: 1
-// CHECK-NEXT:     ResolvedBinaryOperator: '||'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedBinaryOperator: '||'
+// CHECK-NEXT:     BinaryOperator: '||'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     BinaryOperator: '||'
 // CHECK-NEXT:     | value: 1
-// CHECK-NEXT:       ResolvedBinaryOperator: '||'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:       BinaryOperator: '||'
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4
 // CHECK-NEXT:   succs: 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -101,7 +101,7 @@ fn orCondition(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 4(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1
@@ -123,37 +123,37 @@ fn andCondition(): void {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   BinaryOperator: '&&'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   BinaryOperator: '&&'
 // CHECK-NEXT:   | value: 1
-// CHECK-NEXT:     ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedBinaryOperator: '&&'
+// CHECK-NEXT:     BinaryOperator: '&&'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:     NumberLiteral: '4'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     BinaryOperator: '&&'
 // CHECK-NEXT:     | value: 1
-// CHECK-NEXT:       ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
-// CHECK-NEXT:         ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:       BinaryOperator: '&&'
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:         NumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '4'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4
 // CHECK-NEXT:   succs: 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -162,7 +162,7 @@ fn andCondition(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 4(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1
@@ -187,44 +187,44 @@ fn nestedLoops(): void {
 // CHECK-NEXT: [8]
 // CHECK-NEXT:   preds: 9
 // CHECK-NEXT:   succs: 7
-// CHECK-NEXT:   ResolvedNumberLiteral: '8'
+// CHECK-NEXT:   NumberLiteral: '8'
 // CHECK-NEXT:
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8
 // CHECK-NEXT:   succs: 1(U) 6
-// CHECK-NEXT:   ResolvedNumberLiteral: '7'
+// CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '7'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '7'
 // CHECK-NEXT:     | value: 7
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '6'
-// CHECK-NEXT:       ResolvedWhileStmt
-// CHECK-NEXT:         ResolvedNumberLiteral: '5'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '6'
+// CHECK-NEXT:       WhileStmt
+// CHECK-NEXT:         NumberLiteral: '5'
 // CHECK-NEXT:         | value: 5
-// CHECK-NEXT:         ResolvedBlock
-// CHECK-NEXT:           ResolvedNumberLiteral: '4'
+// CHECK-NEXT:         Block
+// CHECK-NEXT:           NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7
 // CHECK-NEXT:   succs: 5
-// CHECK-NEXT:   ResolvedNumberLiteral: '6'
+// CHECK-NEXT:   NumberLiteral: '6'
 // CHECK-NEXT:
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 3 6
 // CHECK-NEXT:   succs: 2(U) 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '5'
 // CHECK-NEXT:     | value: 5
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5
 // CHECK-NEXT:   succs: 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4
@@ -237,7 +237,7 @@ fn nestedLoops(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 7(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1
@@ -267,56 +267,56 @@ fn returnMidloop(): void {
 // CHECK-NEXT: [8]
 // CHECK-NEXT:   preds: 9
 // CHECK-NEXT:   succs: 7
-// CHECK-NEXT:   ResolvedNumberLiteral: '8'
+// CHECK-NEXT:   NumberLiteral: '8'
 // CHECK-NEXT:
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8
 // CHECK-NEXT:   succs: 1(U) 6
-// CHECK-NEXT:   ResolvedNumberLiteral: '7'
+// CHECK-NEXT:   NumberLiteral: '7'
 // CHECK-NEXT:   | value: 7
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '7'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '7'
 // CHECK-NEXT:     | value: 7
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '6'
-// CHECK-NEXT:       ResolvedIfStmt
-// CHECK-NEXT:         ResolvedNumberLiteral: '6'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '6'
+// CHECK-NEXT:       IfStmt
+// CHECK-NEXT:         NumberLiteral: '6'
 // CHECK-NEXT:         | value: 6
-// CHECK-NEXT:         ResolvedBlock
-// CHECK-NEXT:           ResolvedNumberLiteral: '5'
-// CHECK-NEXT:           ResolvedReturnStmt
-// CHECK-NEXT:           ResolvedNumberLiteral: '4'
-// CHECK-NEXT:       ResolvedNumberLiteral: '3'
+// CHECK-NEXT:         Block
+// CHECK-NEXT:           NumberLiteral: '5'
+// CHECK-NEXT:           ReturnStmt
+// CHECK-NEXT:           NumberLiteral: '4'
+// CHECK-NEXT:       NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7
 // CHECK-NEXT:   succs: 3(U) 5
-// CHECK-NEXT:   ResolvedNumberLiteral: '6'
-// CHECK-NEXT:   ResolvedNumberLiteral: '6'
+// CHECK-NEXT:   NumberLiteral: '6'
+// CHECK-NEXT:   NumberLiteral: '6'
 // CHECK-NEXT:   | value: 6
-// CHECK-NEXT:   ResolvedIfStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '6'
+// CHECK-NEXT:   IfStmt
+// CHECK-NEXT:     NumberLiteral: '6'
 // CHECK-NEXT:     | value: 6
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '5'
-// CHECK-NEXT:       ResolvedReturnStmt
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '5'
+// CHECK-NEXT:       ReturnStmt
+// CHECK-NEXT:       NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
-// CHECK-NEXT:   ResolvedReturnStmt
+// CHECK-NEXT:   NumberLiteral: '5'
+// CHECK-NEXT:   ReturnStmt
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds:
 // CHECK-NEXT:   succs: 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 6(U)
 // CHECK-NEXT:   succs: 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -325,7 +325,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 7(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 5
@@ -344,12 +344,12 @@ fn whileOnly(): void {
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 1 3
 // CHECK-NEXT:   succs: 0(U) 1
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '1'
 // CHECK-NEXT:     | value: 1
-// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:     Block
 // CHECK-NEXT:
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2
@@ -374,18 +374,18 @@ fn whileAfterReturn(): void {
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
-// CHECK-NEXT:   ResolvedReturnStmt
+// CHECK-NEXT:   NumberLiteral: '4'
+// CHECK-NEXT:   ReturnStmt
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '3'
 // CHECK-NEXT:     | value: 3
-// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:     Block
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -394,7 +394,7 @@ fn whileAfterReturn(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 3(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 4
@@ -416,28 +416,28 @@ fn whileAfterIf(): void {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 3(U) 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
-// CHECK-NEXT:   ResolvedIfStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   IfStmt
+// CHECK-NEXT:     NumberLiteral: '5'
 // CHECK-NEXT:     | value: 5
-// CHECK-NEXT:     ResolvedBlock
-// CHECK-NEXT:       ResolvedNumberLiteral: '4'
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5
 // CHECK-NEXT:   succs: 3
-// CHECK-NEXT:   ResolvedNumberLiteral: '4'
+// CHECK-NEXT:   NumberLiteral: '4'
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2 4 5(U)
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '3'
 // CHECK-NEXT:     | value: 3
-// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:     Block
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -446,7 +446,7 @@ fn whileAfterIf(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 3(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1
@@ -465,12 +465,12 @@ fn whileAfterWhile(): void {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 4 6
 // CHECK-NEXT:   succs: 3(U) 4
-// CHECK-NEXT:   ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   NumberLiteral: '5'
 // CHECK-NEXT:   | value: 5
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '5'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '5'
 // CHECK-NEXT:     | value: 5
-// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:     Block
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5
@@ -479,12 +479,12 @@ fn whileAfterWhile(): void {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2 5(U)
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:   ResolvedWhileStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   WhileStmt
+// CHECK-NEXT:     NumberLiteral: '3'
 // CHECK-NEXT:     | value: 3
-// CHECK-NEXT:     ResolvedBlock
+// CHECK-NEXT:     Block
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3
@@ -493,7 +493,7 @@ fn whileAfterWhile(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 3(U)
 // CHECK-NEXT:   succs: 0
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1

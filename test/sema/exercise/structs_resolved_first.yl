@@ -7,29 +7,29 @@ fn main(): void {}
 
 struct S { x: number, y:number }
 struct S2 { x: number, y:number }
-// CHECK: ResolvedStructDecl: @({{.*}}) S:
-// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) x
-// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) y
+// CHECK: StructDecl: @({{.*}}) S:
+// CHECK-NEXT:   FieldDecl: @({{.*}}) x
+// CHECK-NEXT:   FieldDecl: @({{.*}}) y
 
-// CHECK-NEXT: ResolvedStructDecl: @({{.*}}) S2:
-// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) x
-// CHECK-NEXT:   ResolvedFieldDecl: @({{.*}}) y
+// CHECK-NEXT: StructDecl: @({{.*}}) S2:
+// CHECK-NEXT:   FieldDecl: @({{.*}}) x
+// CHECK-NEXT:   FieldDecl: @({{.*}}) y
 
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) n:
-// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT: FunctionDecl: @({{.*}}) println:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) n:
+// CHECK-NEXT:   Block
 
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) foo:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) s:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedReturnStmt
-// CHECK-NEXT:       ResolvedStructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:           ResolvedMemberExpr: @({{.*}}) x
-// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) s
-// CHECK-NEXT:         ResolvedFieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           ResolvedMemberExpr: @({{.*}}) y
-// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) s
+// CHECK-NEXT: FunctionDecl: @({{.*}}) foo:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) s:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) x
+// CHECK-NEXT:           MemberExpr: @({{.*}}) x
+// CHECK-NEXT:             DeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
+// CHECK-NEXT:           MemberExpr: @({{.*}}) y
+// CHECK-NEXT:             DeclRefExpr: @({{.*}}) s
 
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
-// CHECK-NEXT:   ResolvedBlock
+// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   Block

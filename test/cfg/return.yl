@@ -16,30 +16,30 @@ fn foo(): number {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
-// CHECK-NEXT:   ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
+// CHECK-NEXT:   NumberLiteral: '3'
 // CHECK-NEXT:   | value: 3
-// CHECK-NEXT:   ResolvedReturnStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '3'
+// CHECK-NEXT:   ReturnStmt
+// CHECK-NEXT:     NumberLiteral: '3'
 // CHECK-NEXT:     | value: 3
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '2'
-// CHECK-NEXT:   ResolvedNumberLiteral: '2'
+// CHECK-NEXT:   NumberLiteral: '2'
+// CHECK-NEXT:   NumberLiteral: '2'
 // CHECK-NEXT:   | value: 2
-// CHECK-NEXT:   ResolvedReturnStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '2'
+// CHECK-NEXT:   ReturnStmt
+// CHECK-NEXT:     NumberLiteral: '2'
 // CHECK-NEXT:     | value: 2
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   NumberLiteral: '1'
 // CHECK-NEXT:   | value: 1
-// CHECK-NEXT:   ResolvedReturnStmt
-// CHECK-NEXT:     ResolvedNumberLiteral: '1'
+// CHECK-NEXT:   ReturnStmt
+// CHECK-NEXT:     NumberLiteral: '1'
 // CHECK-NEXT:     | value: 1
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]

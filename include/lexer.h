@@ -1,6 +1,8 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_LEXER_H
 
+#include <llvm/Support/ErrorHandling.h>
+
 #include <cassert>
 #include <optional>
 #include <string>
@@ -51,6 +53,8 @@ enum class TokenKind : char {
   Excl = singleCharTokens[13],
   Dot = singleCharTokens[14],
 };
+
+std::string_view getOpStr(TokenKind op);
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},

@@ -14,6 +14,31 @@ bool isAlnum(char c) { return isAlpha(c) || isNum(c); }
 } // namespace
 
 namespace yl {
+std::string_view getOpStr(TokenKind op) {
+  if (op == TokenKind::Plus)
+    return "+";
+  if (op == TokenKind::Minus)
+    return "-";
+  if (op == TokenKind::Asterisk)
+    return "*";
+  if (op == TokenKind::Slash)
+    return "/";
+  if (op == TokenKind::EqualEqual)
+    return "==";
+  if (op == TokenKind::AmpAmp)
+    return "&&";
+  if (op == TokenKind::PipePipe)
+    return "||";
+  if (op == TokenKind::Lt)
+    return "<";
+  if (op == TokenKind::Gt)
+    return ">";
+  if (op == TokenKind::Excl)
+    return "!";
+
+  llvm_unreachable("unexpected operator");
+}
+
 Token Lexer::getNextToken() {
   char currentChar = eatNextChar();
 

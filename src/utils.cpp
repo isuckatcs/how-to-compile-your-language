@@ -5,6 +5,8 @@
 #include "utils.h"
 
 namespace yl {
+std::string indent(size_t level) { return std::string(level * 2, ' '); }
+
 std::nullptr_t
 report(SourceLocation location, std::string_view message, bool isWarning) {
   const auto &[file, line, col] = location;

@@ -7,14 +7,14 @@ fn main(): void {
 
   println(S);
 }
-// CHECK: ResolvedFunctionDecl: @({{.*}}) main:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedDeclStmt:
-// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) S:
-// CHECK-NEXT:         ResolvedNumberLiteral: '1'
+// CHECK: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: @({{.*}}) S:
+// CHECK-NEXT:         NumberLiteral: '1'
 // CHECK-NEXT:         | value: 1
-// CHECK-NEXT:     ResolvedDeclStmt:
-// CHECK-NEXT:       ResolvedVarDecl: @({{.*}}) x:
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) println
-// CHECK-NEXT:       ResolvedDeclRefExpr: @({{.*}}) S
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: @({{.*}}) x:
+// CHECK-NEXT:     CallExpr: @({{.*}}) println
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) S
 // CHECK-NEXT:       | value: 1

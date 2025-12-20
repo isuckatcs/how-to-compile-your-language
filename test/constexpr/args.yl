@@ -9,16 +9,16 @@ fn main(): void {
     bar(1.0);
 }
 
-// CHECK: ResolvedFunctionDecl: @({{.*}}) foo:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) x:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) bar:
-// CHECK-NEXT:   ResolvedParamDecl: @({{.*}}) x:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) foo
-// CHECK-NEXT:       ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT: ResolvedFunctionDecl: @({{.*}}) main:
-// CHECK-NEXT:   ResolvedBlock
-// CHECK-NEXT:     ResolvedCallExpr: @({{.*}}) bar
-// CHECK-NEXT:       ResolvedNumberLiteral: '1'
+// CHECK: FunctionDecl: @({{.*}}) foo:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK-NEXT:   Block
+// CHECK-NEXT: FunctionDecl: @({{.*}}) bar:
+// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr: @({{.*}}) bar
+// CHECK-NEXT:       NumberLiteral: '1'
 // CHECK-NEXT:       | value: 1

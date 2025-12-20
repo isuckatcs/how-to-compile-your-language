@@ -4,25 +4,25 @@ fn binaryLhsKnown(y: number): number {
 
     return (0.0 && y) + (1.0 || x);
 }
-// CHECK:       ResolvedBinaryOperator: '+'
+// CHECK:       BinaryOperator: '+'
 // CHECK-NEXT:       | value: 1
-// CHECK-NEXT:         ResolvedGroupingExpr:
-// CHECK-NEXT:           ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:             ResolvedNumberLiteral: '0'
-// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) y
-// CHECK-NEXT:         ResolvedGroupingExpr:
-// CHECK-NEXT:           ResolvedBinaryOperator: '||'
-// CHECK-NEXT:             ResolvedNumberLiteral: '1'
-// CHECK-NEXT:             ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:         GroupingExpr:
+// CHECK-NEXT:           BinaryOperator: '&&'
+// CHECK-NEXT:             NumberLiteral: '0'
+// CHECK-NEXT:             DeclRefExpr: @({{.*}}) y
+// CHECK-NEXT:         GroupingExpr:
+// CHECK-NEXT:           BinaryOperator: '||'
+// CHECK-NEXT:             NumberLiteral: '1'
+// CHECK-NEXT:             DeclRefExpr: @({{.*}}) x
 
 fn unaryNonConst(): number {
     var x: number = 2.1;
 
     return !x;
 }
-// CHECK:    ResolvedReturnStmt
-// CHECK-NEXT:      ResolvedUnaryOperator: '!'
-// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
+// CHECK:    ReturnStmt
+// CHECK-NEXT:      UnaryOperator: '!'
+// CHECK-NEXT:        DeclRefExpr: @({{.*}}) x
 
 fn ret(): number {
     return 1.0;
@@ -33,42 +33,42 @@ fn call(): void {
         return;
     }
 }
-// CHECK:    ResolvedIfStmt
-// CHECK-NEXT:      ResolvedUnaryOperator: '!'
-// CHECK-NEXT:        ResolvedCallExpr: @({{.*}}) ret
-// CHECK-NEXT:      ResolvedBlock
-// CHECK-NEXT:        ResolvedReturnStmt
+// CHECK:    IfStmt
+// CHECK-NEXT:      UnaryOperator: '!'
+// CHECK-NEXT:        CallExpr: @({{.*}}) ret
+// CHECK-NEXT:      Block
+// CHECK-NEXT:        ReturnStmt
 
 fn lhsKnownRhsNot(y: number): number {
     return 1.0 && y;
 }
-// CHECK:    ResolvedReturnStmt
-// CHECK-NEXT:      ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:        ResolvedNumberLiteral: '1'
-// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) y
+// CHECK:    ReturnStmt
+// CHECK-NEXT:      BinaryOperator: '&&'
+// CHECK-NEXT:        NumberLiteral: '1'
+// CHECK-NEXT:        DeclRefExpr: @({{.*}}) y
 
 fn lhsUnknownRhsFalse(x: number): number {
     return x && 0.0;
 }
-// CHECK:    ResolvedReturnStmt
-// CHECK-NEXT:      ResolvedBinaryOperator: '&&'
-// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:        ResolvedNumberLiteral: '0'
+// CHECK:    ReturnStmt
+// CHECK-NEXT:      BinaryOperator: '&&'
+// CHECK-NEXT:        DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        NumberLiteral: '0'
 
 fn lhsUnknownRhsTrue(x: number): number {
     return x || 1.0;
 }
-// CHECK:    ResolvedReturnStmt
-// CHECK-NEXT:      ResolvedBinaryOperator: '||'
-// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:        ResolvedNumberLiteral: '1'
+// CHECK:    ReturnStmt
+// CHECK-NEXT:      BinaryOperator: '||'
+// CHECK-NEXT:        DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        NumberLiteral: '1'
 
 fn lhsUnknownRhsFalseOr(x: number): number {
     return x || 0.0;
 }
-// CHECK:    ResolvedReturnStmt
-// CHECK-NEXT:      ResolvedBinaryOperator: '||'
-// CHECK-NEXT:        ResolvedDeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:        ResolvedNumberLiteral: '0'
+// CHECK:    ReturnStmt
+// CHECK-NEXT:      BinaryOperator: '||'
+// CHECK-NEXT:        DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:        NumberLiteral: '0'
 
 fn main(): void {}
