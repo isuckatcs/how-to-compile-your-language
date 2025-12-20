@@ -5,7 +5,13 @@
     ::= (<structDecl> | <functionDecl>)* EOF
 
 <structDecl>
-    ::= 'struct' <identifier> <fieldList>
+    ::= 'struct' <identifier> <typeParamList>? <fieldList>
+
+<typeParamList>
+    ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
+
+<typeParamDecl>
+    ::= <identifier>
 
 <fieldList>
     ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
@@ -14,7 +20,7 @@
     ::= <identifier> ':' <type>
 
 <functionDecl> 
-    ::= 'fn' <identifier> <parameterList> ':' <type> <block>
+    ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type> <block>
 
 <parameterList>
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
@@ -46,10 +52,10 @@
     ::= ('let' | 'var') <varDecl> ';'
 
 <assignment>
-    ::= (<declRefExpr> | <memberExpr>) '=' <expr> ';'
+    ::= <expr> '=' <expr> ';'
 
 <memberExpr>
-    ::= '.' <identifier>
+    ::= '.' <declRefExpr>
 
 <returnStmt>
     ::= 'return' <expr>? ';'
@@ -79,22 +85,27 @@
     ::= ('!' | '-')* <postfixExpression>
 
 <postfixExpression>
-    ::= <primaryExpression> <argumentList>? <memberExpr>*
+    ::= <primaryExpression> (<argumentList> | <memberExpr>)*
 
 <argumentList>
     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <primaryExpression>
     ::= <numberLiteral>
-    |   <structInstantiation>
-    |   <declRefExpr>
+    |   <declRefExpr> <fieldInitList>?
     |   '(' <expr> ')'
 
 <numberLiteral>
     ::= <number>
 
-<structInstantiation>
-    ::= <identifier> <fieldInitList>
+<declRefExpr>
+    ::= <identifier> <typeArgumentList>?
+
+<typeArgumentList>
+    ::= '@' <typeList>
+
+<typeList>
+    ::= '<' <type> (',' <type>)* ','? '>'
 
 <fieldInitList>
     ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
@@ -102,13 +113,20 @@
 <fieldInit>
     ::= <identifier> ':' <expr>
 
-<declRefExpr>
-    ::= <identifier>
-
 <type>
+    ::= <builtinType>
+    |   <userDefinedType>
+    |   <functionType>
+
+<builtinType>
     ::= 'number'
     |   'void'
-    |   <identifier>
+
+<userDefinedType>
+    ::= <identifier> <typeList>?
+
+<functionType>
+    ::= '(' <type> (',' <type>)* ','? ')' -> type
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
