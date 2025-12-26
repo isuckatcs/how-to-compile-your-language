@@ -6,6 +6,31 @@
 
 namespace yl {
 namespace ast {
+void BuiltinType::dump(size_t level) const {
+  std::cerr << indent(level) << "BuiltinType: ";
+  if (kind == Kind::Void)
+    std::cerr << "void";
+  else if (kind == Kind::Number)
+    std::cerr << "number";
+
+  std::cerr << '\n';
+}
+
+void UserDefinedType::dump(size_t level) const {
+  std::cerr << indent(level) << "UserDefinedType: " << identifier << '\n';
+
+  for (auto &&type : typeArguments)
+    type->dump(level + 1);
+}
+
+void FunctionType::dump(size_t level) const {
+  std::cerr << indent(level) << "FunctionType\n";
+
+  for (auto &&arg : args)
+    arg->dump(level + 1);
+  ret->dump(level + 1);
+}
+
 void Block::dump(size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
@@ -42,8 +67,9 @@ void FieldInitStmt::dump(size_t level) const {
 }
 
 void StructInstantiationExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "StructInstantiationExpr: " << identifier
-            << '\n';
+  std::cerr << indent(level) << "StructInstantiationExpr" << '\n';
+
+  structRef->dump(level + 1);
 
   for (auto &&field : fieldInitializers)
     field->dump(level + 1);
@@ -55,6 +81,16 @@ void NumberLiteral::dump(size_t level) const {
 
 void DeclRefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr: " << identifier << '\n';
+
+  if (typeArgumentList)
+    typeArgumentList->dump(level + 1);
+}
+
+void TypeArgumentList::dump(size_t level) const {
+  std::cerr << indent(level) << "TypeArgumentList\n";
+
+  for (auto &&arg : args)
+    arg->dump(level + 1);
 }
 
 void CallExpr::dump(size_t level) const {
@@ -67,9 +103,10 @@ void CallExpr::dump(size_t level) const {
 }
 
 void MemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberExpr: ." << field << '\n';
+  std::cerr << indent(level) << "MemberExpr:\n";
 
   base->dump(level + 1);
+  member->dump(level + 1);
 }
 
 void GroupingExpr::dump(size_t level) const {
@@ -93,36 +130,48 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
+void TypeParamDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
+}
+
 void FieldDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FieldDecl: " << identifier << ':' << type.name
-            << '\n';
+  std::cerr << indent(level) << "FieldDecl: " << identifier << '\n';
+
+  type->dump(level + 1);
 }
 
 void StructDecl::dump(size_t level) const {
   std::cerr << indent(level) << "StructDecl: " << identifier << '\n';
+
+  for (auto &&typeParamDecl : typeParameters)
+    typeParamDecl->dump(level + 1);
 
   for (auto &&field : fields)
     field->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ParamDecl: " << identifier << ':' << type.name
-            << '\n';
+  std::cerr << indent(level) << "ParamDecl: " << identifier << '\n';
+
+  type->dump(level + 1);
 }
 
 void VarDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "VarDecl: " << identifier;
+  std::cerr << indent(level) << "VarDecl: " << identifier << '\n';
   if (type)
-    std::cerr << ':' << type->name;
-  std::cerr << '\n';
+    type->dump(level + 1);
 
   if (initializer)
     initializer->dump(level + 1);
 }
 
 void FunctionDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FunctionDecl: " << identifier << ':'
-            << type.name << '\n';
+  std::cerr << indent(level) << "FunctionDecl: " << identifier << '\n';
+
+  for (auto &&typeParamDecl : typeParameters)
+    typeParamDecl->dump(level + 1);
+
+  type->dump(level + 1);
 
   for (auto &&param : params)
     param->dump(level + 1);
