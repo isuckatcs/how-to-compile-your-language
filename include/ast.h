@@ -11,11 +11,52 @@ namespace yl {
 namespace ast {
 struct Type {
   SourceLocation location;
-  std::string name;
 
-  Type(SourceLocation location, std::string name)
-      : location(location),
-        name(std::move(name)) {}
+  Type(SourceLocation location)
+      : location(location) {}
+  virtual ~Type() = default;
+
+  virtual void dump(size_t level = 0) const = 0;
+};
+
+struct BuiltinType : public Type {
+  enum class Kind { Void, Number };
+
+  Kind kind;
+
+  BuiltinType(SourceLocation location, Kind kind)
+      : Type(location),
+        kind(kind) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct UserDefinedType : public Type {
+  std::string identifier;
+  std::vector<std::unique_ptr<Type>> typeArguments;
+
+  UserDefinedType(SourceLocation location,
+                  std::string identifier,
+                  std::vector<std::unique_ptr<Type>> typeArguments)
+      : Type(location),
+        identifier(std::move(identifier)),
+        typeArguments(std::move(typeArguments)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct FunctionType : public Type {
+  std::vector<std::unique_ptr<Type>> args;
+  std::unique_ptr<Type> ret;
+
+  FunctionType(SourceLocation location,
+               std::vector<std::unique_ptr<Type>> args,
+               std::unique_ptr<Type> ret)
+      : Type(location),
+        args(std::move(args)),
+        ret(std::move(ret)) {}
+
+  void dump(size_t level = 0) const override;
 };
 
 struct Decl {
@@ -111,21 +152,6 @@ struct FieldInitStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct StructInstantiationExpr : public Expr {
-  std::string identifier;
-  std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
-
-  StructInstantiationExpr(
-      SourceLocation location,
-      std::string identifier,
-      std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers)
-      : Expr(location),
-        identifier(identifier),
-        fieldInitializers(std::move(fieldInitializers)) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct NumberLiteral : public Expr {
   std::string value;
 
@@ -150,31 +176,56 @@ struct CallExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct AssignableExpr : public Expr {
-  AssignableExpr(SourceLocation location)
-      : Expr(location) {}
-};
+struct TypeArgumentList : public Expr {
+  std::vector<std::unique_ptr<Type>> args;
 
-struct DeclRefExpr : public AssignableExpr {
-  std::string identifier;
-
-  DeclRefExpr(SourceLocation location, std::string identifier)
-      : AssignableExpr(location),
-        identifier(identifier) {}
+  TypeArgumentList(SourceLocation location,
+                   std::vector<std::unique_ptr<Type>> args)
+      : Expr(location),
+        args(std::move(args)) {}
 
   void dump(size_t level = 0) const override;
 };
 
-struct MemberExpr : public AssignableExpr {
+struct DeclRefExpr : public Expr {
+  std::string identifier;
+  std::unique_ptr<TypeArgumentList> typeArgumentList;
+
+  DeclRefExpr(SourceLocation location,
+              std::string identifier,
+              std::unique_ptr<TypeArgumentList> typeArgumentList = nullptr)
+      : Expr(location),
+        identifier(identifier),
+        typeArgumentList(std::move(typeArgumentList)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructInstantiationExpr : public Expr {
+  std::unique_ptr<DeclRefExpr> structRef;
+  std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
+
+  StructInstantiationExpr(
+      SourceLocation location,
+      std::unique_ptr<DeclRefExpr> structRef,
+      std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers)
+      : Expr(location),
+        structRef(std::move(structRef)),
+        fieldInitializers(std::move(fieldInitializers)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct MemberExpr : public Expr {
   std::unique_ptr<Expr> base;
-  std::string field;
+  std::unique_ptr<DeclRefExpr> member;
 
   MemberExpr(SourceLocation location,
              std::unique_ptr<Expr> base,
-             std::string field)
-      : AssignableExpr(location),
+             std::unique_ptr<DeclRefExpr> member)
+      : Expr(location),
         base(std::move(base)),
-        field(std::move(field)) {}
+        member(std::move(member)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -220,10 +271,19 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct FieldDecl : public Decl {
-  Type type;
+struct TypeParamDecl : public Decl {
+  TypeParamDecl(SourceLocation location, std::string identifier)
+      : Decl(location, std::move(identifier)) {}
 
-  FieldDecl(SourceLocation location, std::string identifier, Type type)
+  void dump(size_t level = 0) const override;
+};
+
+struct FieldDecl : public Decl {
+  std::unique_ptr<Type> type;
+
+  FieldDecl(SourceLocation location,
+            std::string identifier,
+            std::unique_ptr<Type> type)
       : Decl(location, std::move(identifier)),
         type(std::move(type)) {}
 
@@ -231,24 +291,27 @@ struct FieldDecl : public Decl {
 };
 
 struct StructDecl : public Decl {
+  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FieldDecl>> fields;
 
   StructDecl(SourceLocation location,
              std::string identifier,
+             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
              std::vector<std::unique_ptr<FieldDecl>> fields)
       : Decl(location, std::move(identifier)),
+        typeParameters(std::move(typeParameters)),
         fields(std::move(fields)) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct ParamDecl : public Decl {
-  Type type;
+  std::unique_ptr<Type> type;
   bool isMutable;
 
   ParamDecl(SourceLocation location,
             std::string identifier,
-            Type type,
+            std::unique_ptr<Type> type,
             bool isMutable)
       : Decl(location, std::move(identifier)),
         type(std::move(type)),
@@ -258,13 +321,13 @@ struct ParamDecl : public Decl {
 };
 
 struct VarDecl : public Decl {
-  std::optional<Type> type;
+  std::unique_ptr<Type> type;
   std::unique_ptr<Expr> initializer;
   bool isMutable;
 
   VarDecl(SourceLocation location,
           std::string identifier,
-          std::optional<Type> type,
+          std::unique_ptr<Type> type,
           bool isMutable,
           std::unique_ptr<Expr> initializer = nullptr)
       : Decl(location, std::move(identifier)),
@@ -276,17 +339,20 @@ struct VarDecl : public Decl {
 };
 
 struct FunctionDecl : public Decl {
-  Type type;
+  std::unique_ptr<Type> type;
+  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<ParamDecl>> params;
   std::unique_ptr<Block> body;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
-               Type type,
+               std::unique_ptr<Type> type,
+               std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
                std::vector<std::unique_ptr<ParamDecl>> params,
                std::unique_ptr<Block> body)
       : Decl(location, std::move(identifier)),
         type(std::move(type)),
+        typeParameters(std::move(typeParameters)),
         params(std::move(params)),
         body(std::move(body)) {}
 
@@ -304,17 +370,35 @@ struct DeclStmt : public Stmt {
 };
 
 struct Assignment : public Stmt {
-  std::unique_ptr<AssignableExpr> assignee;
+  std::unique_ptr<Expr> assignee;
   std::unique_ptr<Expr> expr;
 
   Assignment(SourceLocation location,
-             std::unique_ptr<AssignableExpr> assignee,
+             std::unique_ptr<Expr> assignee,
              std::unique_ptr<Expr> expr)
       : Stmt(location),
         assignee(std::move(assignee)),
         expr(std::move(expr)) {}
 
   void dump(size_t level = 0) const override;
+};
+
+// FIXME: support incremental parsing
+struct Context {
+  std::vector<std::unique_ptr<ast::Decl>> decls;
+
+  std::vector<const StructDecl *> structs;
+  std::vector<const FunctionDecl *> functions;
+
+  void addStructDecl(std::unique_ptr<StructDecl> sd) {
+    structs.emplace_back(sd.get());
+    decls.emplace_back(std::move(sd));
+  }
+
+  void addFunctionDecl(std::unique_ptr<FunctionDecl> function) {
+    functions.emplace_back(function.get());
+    decls.emplace_back(std::move(function));
+  }
 };
 } // namespace ast
 } // namespace yl
