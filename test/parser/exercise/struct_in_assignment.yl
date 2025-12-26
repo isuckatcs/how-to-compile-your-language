@@ -3,6 +3,9 @@ struct S {}
 
 fn main(): void {
   S {} = S {};
-  // CHECK: [[# @LINE -1 ]]:3: error: expected variable on the LHS of an assignment
-  // CHECK: [[# @LINE -2 ]]:14: error: expected expression
+  // CHECK: Assignment:
+  // CHECK-NEXT:   StructInstantiationExpr
+  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:   StructInstantiationExpr
+  // CHECK-NEXT:     DeclRefExpr: S
 }

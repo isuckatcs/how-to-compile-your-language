@@ -1,0 +1,110 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+struct Box<T>{}
+
+struct Box2<T,>{}
+
+struct Box3<T,U>{}
+
+struct Box<>{}
+// CHECK: [[# @LINE - 1 ]]:12: error: expected type parameter declaration
+
+struct Box<{}
+// CHECK: [[# @LINE - 1 ]]:12: error: expected type parameter declaration
+
+struct Box<T{}
+// CHECK: [[# @LINE - 1 ]]:13: error: expected ',' or '>'
+
+struct Box<T,{}
+// CHECK: [[# @LINE - 1 ]]:14: error: expected type parameter declaration
+
+fn box<T>(): void {}
+
+fn box2<T,>(): void {}
+
+fn box3<T,U>(): void {}
+
+fn box<>(): void {}
+// CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
+
+fn box<(): void {}
+// CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
+
+fn box<T(): void {}
+// CHECK: [[# @LINE - 1 ]]:9: error: expected ',' or '>'
+
+fn box<T,(): void {}
+// CHECK: [[# @LINE - 1 ]]:10: error: expected type parameter declaration
+
+fn main(): void {
+    Box@{};
+    // CHECK: [[# @LINE - 1 ]]:9: error: expected '<'
+
+    Box@<{};
+    // CHECK: [[# @LINE - 1 ]]:10: error: expected type specifier
+
+    Box@<number{};
+    // CHECK: [[# @LINE - 1 ]]:16: error: expected ',' or '>'
+
+    Box@<number,{};
+    // CHECK: [[# @LINE - 1 ]]:17: error: expected type specifier
+
+    Box@<number,>{};
+
+    Box@<number>{};
+
+    box@();
+    // CHECK: [[# @LINE - 1 ]]:9: error: expected '<'
+
+    box@<();
+    // CHECK: [[# @LINE - 1 ]]:12: error: expected '->'
+
+    box@<number();
+    // CHECK: [[# @LINE - 1 ]]:16: error: expected ',' or '>'
+
+    box@<number,();
+    // CHECK: [[# @LINE - 1 ]]:19: error: expected '->'
+
+    box@<number,>();
+
+    box@<number>();
+}
+
+// CHECK: StructDecl: Box
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT: StructDecl: Box2
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT: StructDecl: Box3
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   TypeParamDecl: U
+// CHECK-NEXT: FunctionDecl: box
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+// CHECK-NEXT: FunctionDecl: box2
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+// CHECK-NEXT: FunctionDecl: box3
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   TypeParamDecl: U
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+// CHECK-NEXT: FunctionDecl: main
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     StructInstantiationExpr
+// CHECK-NEXT:       DeclRefExpr: Box
+// CHECK-NEXT:         TypeArgumentList
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     StructInstantiationExpr
+// CHECK-NEXT:       DeclRefExpr: Box
+// CHECK-NEXT:         TypeArgumentList
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: box
+// CHECK-NEXT:         TypeArgumentList
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: box
+// CHECK-NEXT:         TypeArgumentList
+// CHECK-NEXT:           BuiltinType: number

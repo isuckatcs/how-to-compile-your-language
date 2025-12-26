@@ -18,10 +18,12 @@ fn main(): void {
 
     let x: number;
     // CHECK: DeclStmt:
-    // CHECK-NEXT:   VarDecl: x:number
+    // CHECK-NEXT:   VarDecl: x
+    // CHECK-NEXT:     BuiltinType: number
     
     var x: number = 1.0;
     // CHECK: DeclStmt:
-    // CHECK-NEXT:   VarDecl: x:number
+    // CHECK-NEXT:   VarDecl: x
+    // CHECK-NEXT:     BuiltinType: number
     // CHECK-NEXT:     NumberLiteral: '1.0'
 }

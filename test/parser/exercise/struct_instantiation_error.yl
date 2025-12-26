@@ -16,10 +16,14 @@ fn main(): void {
     let x = 1;
 }
 // CHECK: StructDecl: Color
-// CHECK-NEXT:   FieldDecl: r:number
-// CHECK-NEXT:   FieldDecl: g:number
-// CHECK-NEXT:   FieldDecl: b:number
-// CHECK-NEXT: FunctionDecl: main:void
+// CHECK-NEXT:   FieldDecl: r
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FieldDecl: g
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FieldDecl: b
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT: FunctionDecl: main
+// CHECK-NEXT:   BuiltinType: void
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: x

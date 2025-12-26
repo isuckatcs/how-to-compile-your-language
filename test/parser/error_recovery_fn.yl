@@ -22,17 +22,21 @@ fn pass(): number {
     let y: number = 1.0 + 2.0;
 }
 
-// CHECK: FunctionDecl: main:void
+// CHECK: FunctionDecl: main
+// CHECK-NEXT:   BuiltinType: void
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y:number
+// CHECK-NEXT:       VarDecl: y
+// CHECK-NEXT:         BuiltinType: number
 // CHECK-NEXT:         BinaryOperator: '+'
 // CHECK-NEXT:           NumberLiteral: '1.0'
 // CHECK-NEXT:           NumberLiteral: '2.0'
-// CHECK-NEXT: FunctionDecl: pass:number
+// CHECK-NEXT: FunctionDecl: pass
+// CHECK-NEXT:   BuiltinType: number
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y:number
+// CHECK-NEXT:       VarDecl: y
+// CHECK-NEXT:         BuiltinType: number
 // CHECK-NEXT:         BinaryOperator: '+'
 // CHECK-NEXT:           NumberLiteral: '1.0'
 // CHECK-NEXT:           NumberLiteral: '2.0'
