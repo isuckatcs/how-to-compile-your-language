@@ -14,8 +14,10 @@ fn error(x: number): void {
     2.0;
 }
 
-// CHECK: FunctionDecl: error:void
-// CHECK-NEXT:   ParamDecl: x:number
+// CHECK: FunctionDecl: error
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   ParamDecl: x
+// CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     IfStmt
 // CHECK-NEXT:       BinaryOperator: '=='
@@ -25,7 +27,7 @@ fn error(x: number): void {
 // CHECK-NEXT:         IfStmt
 // CHECK-NEXT:           BinaryOperator: '=='
 // CHECK-NEXT:             DeclRefExpr: x
-// CHECK-NEXT:             NumberLiteral: '2.0
+// CHECK-NEXT:             NumberLiteral: '2.0'
 // CHECK-NEXT:           Block
 // CHECK-NEXT:             NumberLiteral: '0.0'
 // CHECK-NEXT:           Block

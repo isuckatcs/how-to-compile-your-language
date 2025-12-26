@@ -90,11 +90,46 @@ std::unique_ptr<ast::FieldDecl> Parser::parseFieldDecl() {
   varOrReturn(type, parseType());
 
   return std::make_unique<ast::FieldDecl>(location, std::move(identifier),
-                                          std::move(*type));
+                                          std::move(type));
 };
 
+// <typeParamList>
+//  ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
+std::unique_ptr<std::vector<std::unique_ptr<ast::TypeParamDecl>>>
+Parser::parseTypeParamList() {
+  if (nextToken.kind != TokenKind::Lt)
+    return std::make_unique<std::vector<std::unique_ptr<ast::TypeParamDecl>>>();
+
+  return parseListWithTrailingComma<ast::TypeParamDecl>(
+      {TokenKind::Lt, "expected '<'"}, &Parser::parseTypeParamDecl,
+      {TokenKind::Gt, "expected ',' or '>'"}, false);
+}
+
+// <typeList>
+//  ::= '<' <type> (',' <type>)* ','? '>'
+std::unique_ptr<std::vector<std::unique_ptr<ast::Type>>>
+Parser::parseTypeList() {
+  return parseListWithTrailingComma<ast::Type>(
+      {TokenKind::Lt, "expected '<'"}, &Parser::parseType,
+      {TokenKind::Gt, "expected ',' or '>'"}, false);
+}
+
+// <typeParamDecl>
+//  ::= <identifier>
+std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
+  matchOrReturn(TokenKind::Identifier, "expected type parameter declaration");
+
+  SourceLocation location = nextToken.location;
+  assert(nextToken.value && "identifier token without value");
+
+  std::string identifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  return std::make_unique<ast::TypeParamDecl>(location, std::move(identifier));
+}
+
 // <structDecl>
-//  ::= 'struct' <identifier> <fieldList>
+//  ::= 'struct' <identifier> <typeParamList>? <fieldList>
 //
 // <fieldList>
 //  ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
@@ -108,17 +143,20 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
   std::string structIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
+  varOrReturn(typeParamList, parseTypeParamList());
+
   varOrReturn(fieldList,
               parseListWithTrailingComma<ast::FieldDecl>(
                   {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldDecl,
                   {TokenKind::Rbrace, "expected '}'"}));
 
   return std::make_unique<ast::StructDecl>(location, structIdentifier,
+                                           std::move(*typeParamList),
                                            std::move(*fieldList));
 }
 
 // <functionDecl>
-//  ::= 'fn' <identifier> <parameterList> ':' <type> <block>
+//  ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type> <block>
 //
 // <parameterList>
 //  ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
@@ -131,6 +169,8 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
   assert(nextToken.value && "identifier token without value");
   std::string functionIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
+
+  varOrReturn(typeParamList, parseTypeParamList());
 
   varOrReturn(parameterList,
               parseListWithTrailingComma<ast::ParamDecl>(
@@ -145,9 +185,9 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
   matchOrReturn(TokenKind::Lbrace, "expected function body");
   varOrReturn(block, parseBlock());
 
-  return std::make_unique<ast::FunctionDecl>(location, functionIdentifier,
-                                             *type, std::move(*parameterList),
-                                             std::move(block));
+  return std::make_unique<ast::FunctionDecl>(
+      location, functionIdentifier, std::move(type), std::move(*typeParamList),
+      std::move(*parameterList), std::move(block));
 }
 
 // <paramDecl>
@@ -171,7 +211,7 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   varOrReturn(type, parseType());
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
-                                          std::move(*type), isVar);
+                                          std::move(type), isVar);
 }
 
 // <varDecl>
@@ -184,7 +224,7 @@ std::unique_ptr<ast::VarDecl> Parser::parseVarDecl(bool isLet) {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  std::optional<ast::Type> type;
+  std::unique_ptr<ast::Type> type;
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat ':'
 
@@ -194,13 +234,14 @@ std::unique_ptr<ast::VarDecl> Parser::parseVarDecl(bool isLet) {
   }
 
   if (nextToken.kind != TokenKind::Equal)
-    return std::make_unique<ast::VarDecl>(location, identifier, type, !isLet);
+    return std::make_unique<ast::VarDecl>(location, identifier, std::move(type),
+                                          !isLet);
   eatNextToken(); // eat '='
 
   varOrReturn(initializer, parseExpr());
 
-  return std::make_unique<ast::VarDecl>(location, identifier, type, !isLet,
-                                        std::move(initializer));
+  return std::make_unique<ast::VarDecl>(location, identifier, std::move(type),
+                                        !isLet, std::move(initializer));
 }
 
 // <block>
@@ -286,19 +327,6 @@ std::unique_ptr<ast::WhileStmt> Parser::parseWhileStmt() {
                                           std::move(body));
 }
 
-// <assignment>
-//  ::= (<declRefExpr> | <memberExpr>) '=' <expr>
-std::unique_ptr<ast::Assignment>
-Parser::parseAssignmentRHS(std::unique_ptr<ast::AssignableExpr> lhs) {
-  SourceLocation location = nextToken.location;
-  eatNextToken(); // eat '='
-
-  varOrReturn(rhs, parseExpr());
-
-  return std::make_unique<ast::Assignment>(location, std::move(lhs),
-                                           std::move(rhs));
-}
-
 // <declStmt>
 //  ::= ('let'|'var') <varDecl>  ';'
 std::unique_ptr<ast::DeclStmt> Parser::parseDeclStmt() {
@@ -377,6 +405,12 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
   return parseAssignmentOrExpr();
 }
 
+// <statement>
+//  ::= <expr> ';'
+//  |   ...
+//
+// <assignment>
+//  ::= <expr> '=' <expr> ';'
 std::unique_ptr<ast::Stmt> Parser::parseAssignmentOrExpr() {
   varOrReturn(lhs, parsePrefixExpr());
 
@@ -389,20 +423,16 @@ std::unique_ptr<ast::Stmt> Parser::parseAssignmentOrExpr() {
     return expr;
   }
 
-  auto *dre = dynamic_cast<ast::AssignableExpr *>(lhs.get());
-  if (!dre)
-    return report(lhs->location,
-                  "expected variable on the LHS of an assignment");
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat '='
 
-  std::ignore = lhs.release();
-
-  varOrReturn(assignment,
-              parseAssignmentRHS(std::unique_ptr<ast::AssignableExpr>(dre)));
+  varOrReturn(rhs, parseExpr());
 
   matchOrReturn(TokenKind::Semi, "expected ';' at the end of assignment");
   eatNextToken(); // eat ';'
 
-  return assignment;
+  return std::make_unique<ast::Assignment>(location, std::move(lhs),
+                                           std::move(rhs));
 }
 
 std::unique_ptr<ast::Expr> Parser::parseExpr() {
@@ -434,7 +464,7 @@ std::unique_ptr<ast::Expr> Parser::parseExprRHS(std::unique_ptr<ast::Expr> lhs,
 }
 
 // <prefixExpression>
-//  ::= ('!' | '-')* <primaryExpr>
+//  ::= ('!' | '-')* <postfixExpression>
 std::unique_ptr<ast::Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
@@ -449,59 +479,59 @@ std::unique_ptr<ast::Expr> Parser::parsePrefixExpr() {
 }
 
 // <postfixExpression>
-//  ::= <primaryExpression> <argumentList>? <memberExpr>*
+//  ::= <primaryExpression> (<argumentList> | <memberExpr>)*
 //
 // <argumentList>
 //  ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 //
 // <memberExpr>
-//  ::= '.' <identifier>
+//  ::= '.' <declRefExpr>
 std::unique_ptr<ast::Expr> Parser::parsePostfixExpr() {
   varOrReturn(expr, parsePrimary());
 
-  if (nextToken.kind == TokenKind::Lpar) {
+  while (true) {
     SourceLocation location = nextToken.location;
-    varOrReturn(argumentList,
-                parseListWithTrailingComma<ast::Expr>(
-                    {TokenKind::Lpar, "expected '('"}, &Parser::parseExpr,
-                    {TokenKind::Rpar, "expected ')'"}));
 
-    expr = std::make_unique<ast::CallExpr>(location, std::move(expr),
-                                           std::move(*argumentList));
-  }
+    if (nextToken.kind == TokenKind::Lpar) {
+      varOrReturn(argumentList,
+                  parseListWithTrailingComma<ast::Expr>(
+                      {TokenKind::Lpar, "expected '('"}, &Parser::parseExpr,
+                      {TokenKind::Rpar, "expected ')'"}));
 
-  while (nextToken.kind == TokenKind::Dot) {
-    SourceLocation location = nextToken.location;
-    eatNextToken(); // eat '.'
+      expr = std::make_unique<ast::CallExpr>(location, std::move(expr),
+                                             std::move(*argumentList));
+      continue;
+    }
 
-    matchOrReturn(TokenKind::Identifier, "expected field identifier");
-    assert(nextToken.value && "identifier without value");
+    if (nextToken.kind == TokenKind::Dot) {
+      eatNextToken(); // eat '.'
 
-    expr = std::make_unique<ast::MemberExpr>(location, std::move(expr),
-                                             *nextToken.value);
-    eatNextToken(); // eat identifier
+      varOrReturn(member, parseDeclRefExpr());
+
+      expr = std::make_unique<ast::MemberExpr>(location, std::move(expr),
+                                               std::move(member));
+      continue;
+    }
+
+    break;
   }
 
   return expr;
 }
 
-// <primaryExpr>
+// <primaryExpression>
 //  ::= <numberLiteral>
-//  |   <structInstantiation>
-//  |   <declRefExpr>
+//  |   <declRefExpr> <fieldInitList>?
 //  |   '(' <expr> ')'
 //
 // <numberLiteral>
 //  ::= <number>
 //
-// <structInstantiation>
-//  ::= <identifier> <fieldInitList>
+// <declRefExpr>
+//  ::= <identifier> <typeArgumentList>?
 //
 // <fieldInitList>
 //  ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
-//
-// <declRefExpr>
-//  ::= <identifier>
 std::unique_ptr<ast::Expr> Parser::parsePrimary() {
   SourceLocation location = nextToken.location;
 
@@ -524,31 +554,57 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
   }
 
   if (nextToken.kind == TokenKind::Identifier) {
-    std::string identifier = *nextToken.value;
-    eatNextToken(); // eat identifier
+    varOrReturn(dre, parseDeclRefExpr());
+    if (restrictions & StructNotAllowed || nextToken.kind != TokenKind::Lbrace)
+      return dre;
 
-    if (!(restrictions & StructNotAllowed) &&
-        nextToken.kind == TokenKind::Lbrace) {
-      auto fieldInitList = parseListWithTrailingComma<ast::FieldInitStmt>(
-          {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldInitStmt,
-          {TokenKind::Rbrace, "expected '}'"});
+    location = nextToken.location;
+    auto fieldInitList = parseListWithTrailingComma<ast::FieldInitStmt>(
+        {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldInitStmt,
+        {TokenKind::Rbrace, "expected '}'"});
 
-      if (!fieldInitList) {
-        synchronizeOn({TokenKind::Rbrace});
-        eatNextToken(); // eat '}'
-        return nullptr;
-      }
-
-      return std::make_unique<ast::StructInstantiationExpr>(
-          location, std::move(identifier), std::move(*fieldInitList));
+    if (!fieldInitList) {
+      synchronizeOn({TokenKind::Rbrace});
+      eatNextToken(); // eat '}'
+      return nullptr;
     }
 
-    auto declRefExpr =
-        std::make_unique<ast::DeclRefExpr>(location, std::move(identifier));
-    return declRefExpr;
+    return std::make_unique<ast::StructInstantiationExpr>(
+        location, std::move(dre), std::move(*fieldInitList));
   }
 
   return report(location, "expected expression");
+}
+
+std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
+  SourceLocation location = nextToken.location;
+
+  if (nextToken.kind != TokenKind::Identifier)
+    return report(location, "expected identifier");
+
+  assert(nextToken.value && "identifier without value");
+  std::string identifier = *nextToken.value;
+  eatNextToken(); // eat identifier
+
+  std::unique_ptr<ast::TypeArgumentList> typeArgsList = nullptr;
+  if (nextToken.kind == TokenKind::At) {
+    varOrReturn(parsedTypeArgList, parseTypeArgumentList());
+    typeArgsList = std::move(parsedTypeArgList);
+  }
+
+  return std::make_unique<ast::DeclRefExpr>(location, std::move(identifier),
+                                            std::move(typeArgsList));
+}
+
+std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {
+  matchOrReturn(TokenKind::At, "expected '@'");
+
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat '@'
+
+  varOrReturn(args, parseTypeList());
+
+  return std::make_unique<ast::TypeArgumentList>(location, std::move(*args));
 }
 
 // <TList>
@@ -558,13 +614,14 @@ std::unique_ptr<std::vector<std::unique_ptr<T>>>
 Parser::parseListWithTrailingComma(
     std::pair<TokenKind, const char *> openingToken,
     F parser,
-    std::pair<TokenKind, const char *> closingToken) {
+    std::pair<TokenKind, const char *> closingToken,
+    bool allowEmpty) {
   matchOrReturn(openingToken.first, openingToken.second);
   eatNextToken(); // eat openingToken
 
   std::vector<std::unique_ptr<T>> list;
   while (true) {
-    if (nextToken.kind == closingToken.first)
+    if (allowEmpty && nextToken.kind == closingToken.first)
       break;
 
     varOrReturn(init, (this->*parser)());
@@ -573,6 +630,9 @@ Parser::parseListWithTrailingComma(
     if (nextToken.kind != TokenKind::Comma)
       break;
     eatNextToken(); // eat ','
+
+    if (!allowEmpty && nextToken.kind == closingToken.first)
+      break;
   }
 
   matchOrReturn(closingToken.first, closingToken.second);
@@ -582,41 +642,97 @@ Parser::parseListWithTrailingComma(
 }
 
 // <type>
+//  ::= <builtinType>
+//  |   <structType>
+//  |   <functionType>
+std::unique_ptr<ast::Type> Parser::parseType() {
+
+  if (nextToken.kind == TokenKind::Identifier)
+    return parseUserDefinedType();
+
+  if (nextToken.kind == TokenKind::Lpar)
+    return parseFunctionType();
+
+  if (nextToken.kind == TokenKind::KwNumber ||
+      nextToken.kind == TokenKind::KwVoid)
+    return parseBuiltinType();
+
+  return report(nextToken.location, "expected type specifier");
+};
+
+// <builtinType>
 //  ::= 'number'
 //  |   'void'
-//  |   <identifier>
-std::optional<ast::Type> Parser::parseType() {
-  TokenKind kind = nextToken.kind;
+std::unique_ptr<ast::BuiltinType> Parser::parseBuiltinType() {
+  SourceLocation location = nextToken.location;
 
-  if (kind != TokenKind::KwNumber && kind != TokenKind::KwVoid &&
-      kind != TokenKind::Identifier) {
-    report(nextToken.location, "expected type specifier");
-    return std::nullopt;
+  if (nextToken.kind == TokenKind::KwNumber) {
+    eatNextToken(); // eat 'number'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Number);
   }
 
+  if (nextToken.kind == TokenKind::KwVoid) {
+    eatNextToken(); // eat 'void'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Void);
+  }
+
+  return report(nextToken.location, "expected 'void' or 'number'");
+};
+
+// <userDefinedType>
+//     ::= <identifier> <typeList>?
+std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
   SourceLocation location = nextToken.location;
+
+  if (nextToken.kind != TokenKind::Identifier)
+    return report(location, "expected identifier");
+
   assert(nextToken.value && "identifier without value");
-  std::string name = *nextToken.value;
+  std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  return ast::Type(location, std::move(name));
-};
+  std::vector<std::unique_ptr<ast::Type>> types;
+  if (nextToken.kind == TokenKind::Lt) {
+    varOrReturn(typeArguments, parseTypeList());
+    types = std::move(*typeArguments);
+  }
+
+  return std::make_unique<ast::UserDefinedType>(location, std::move(identifier),
+                                                std::move(types));
+}
+
+// <functionType>
+//  ::= '(' <type> (',' <type>)* ','? ')' -> type
+std::unique_ptr<ast::FunctionType> Parser::parseFunctionType() {
+  SourceLocation location = nextToken.location;
+  auto argumentList = parseListWithTrailingComma<ast::Type>(
+      {TokenKind::Lpar, "expected '('"}, &Parser::parseType,
+      {TokenKind::Rpar, "expected ')'"});
+
+  matchOrReturn(TokenKind::Arrow, "expected '->'");
+  eatNextToken(); // eat '->'
+
+  varOrReturn(returnType, parseType());
+  return std::make_unique<ast::FunctionType>(location, std::move(*argumentList),
+                                             std::move(returnType));
+}
 
 // <sourceFile>
 //     ::= (<structDecl> | <functionDecl>)* EOF
-std::pair<std::vector<std::unique_ptr<ast::Decl>>, bool>
-Parser::parseSourceFile() {
-  std::vector<std::unique_ptr<ast::Decl>> declarations;
+std::pair<ast::Context, bool> Parser::parseSourceFile() {
+  ast::Context ctx;
 
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind == TokenKind::KwFn) {
       if (auto fn = parseFunctionDecl()) {
-        declarations.emplace_back(std::move(fn));
+        ctx.addFunctionDecl(std::move(fn));
         continue;
       }
     } else if (nextToken.kind == TokenKind::KwStruct) {
       if (auto st = parseStructDecl()) {
-        declarations.emplace_back(std::move(st));
+        ctx.addStructDecl(std::move(st));
         continue;
       }
     } else {
@@ -633,16 +749,12 @@ Parser::parseSourceFile() {
   // Only the lexer and the parser has access to the tokens, so to report an
   // error on the EOF token, we look for main() here.
   bool hasMainFunction = false;
-  for (auto &&decl : declarations) {
-    if (!dynamic_cast<const ast::FunctionDecl *>(decl.get()))
-      continue;
-
+  for (auto &&decl : ctx.functions)
     hasMainFunction |= decl->identifier == "main";
-  }
 
   if (!hasMainFunction && !incompleteAST)
     report(nextToken.location, "main function not found");
 
-  return {std::move(declarations), !incompleteAST && hasMainFunction};
+  return {std::move(ctx), !incompleteAST && hasMainFunction};
 }
 } // namespace yl

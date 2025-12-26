@@ -1,19 +1,29 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-struct Color {
-    r: number,
-    g: number,
-    b: number,
-}
-
 fn main(): void {
-    let s = Color {r: 0, g: 1, b: 2};
-    
     let r = s.;
-    // CHECK: [[# @LINE -1 ]]:15: error: expected field identifier
+    // CHECK: [[# @LINE -1 ]]:15: error: expected identifier
+
+    let r = s().r...;
+    // CHECK: [[# @LINE -1 ]]:19: error: expected identifier
 
     let r = s().r.x();
-    // CHECK: [[# @LINE -1 ]]:20: error: expected ';' after declaration
+    // CHECK: DeclStmt:
+    // CHECK-NEXT:   VarDecl: r
+    // CHECK-NEXT:     CallExpr:
+    // CHECK-NEXT:       MemberExpr:
+    // CHECK-NEXT:         MemberExpr:
+    // CHECK-NEXT:           CallExpr:
+    // CHECK-NEXT:             DeclRefExpr: s
+    // CHECK-NEXT:           DeclRefExpr: r
+    // CHECK-NEXT:         DeclRefExpr: x
 
-    s.r.x();
-    // CHECK: [[# @LINE -1 ]]:10: error: expected ';' at the end of expression
+    s.r.x()()();
+    // CHECK: CallExpr:
+    // CHECK-NEXT:   CallExpr:
+    // CHECK-NEXT:     CallExpr:
+    // CHECK-NEXT:       MemberExpr:
+    // CHECK-NEXT:         MemberExpr:
+    // CHECK-NEXT:           DeclRefExpr: s
+    // CHECK-NEXT:           DeclRefExpr: r
+    // CHECK-NEXT:         DeclRefExpr: x
 }

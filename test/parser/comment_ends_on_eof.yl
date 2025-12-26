@@ -1,4 +1,4 @@
-// RUN: compiler %s 2>&1
+// RUN: compiler -ast-dump %s 2>&1
 
 fn main(): void {}
 

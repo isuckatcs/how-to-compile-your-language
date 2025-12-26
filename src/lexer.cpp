@@ -79,6 +79,14 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::PipePipe};
   }
 
+  if (currentChar == '-') {
+    if (peekNextChar() != '>')
+      return Token{tokenStartLocation, TokenKind::Minus};
+
+    eatNextChar();
+    return Token{tokenStartLocation, TokenKind::Arrow};
+  }
+
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 
