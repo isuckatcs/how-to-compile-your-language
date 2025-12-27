@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main(): void {
   let x = invalid { x: 0 };
-  // CHECK: [[# @LINE - 1 ]]:11: error: 'invalid' is not a struct type
+  // CHECK: [[# @LINE - 1 ]]:11: error: symbol 'invalid' not found
 }

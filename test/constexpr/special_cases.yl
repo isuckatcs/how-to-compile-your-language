@@ -35,7 +35,8 @@ fn call(): void {
 }
 // CHECK:    IfStmt
 // CHECK-NEXT:      UnaryOperator: '!'
-// CHECK-NEXT:        CallExpr: @({{.*}}) ret
+// CHECK-NEXT:        CallExpr:
+// CHECK-NEXT:             DeclRefExpr: @({{.*}}) ret
 // CHECK-NEXT:      Block
 // CHECK-NEXT:        ReturnStmt
 

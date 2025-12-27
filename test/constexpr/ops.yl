@@ -11,21 +11,26 @@ fn prefix(x: number): void {
 // CHECK: FunctionDecl: @({{.*}}) prefix:
 // CHECK-NEXT:   ParamDecl: @({{.*}}) x:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       UnaryOperator: '!'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '1'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       UnaryOperator: '!'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '0'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       UnaryOperator: '!'
 // CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       UnaryOperator: '-'
 // CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       UnaryOperator: '-'
 // CHECK-NEXT:       | value: -1.23
 // CHECK-NEXT:         NumberLiteral: '1.23'
@@ -40,21 +45,25 @@ fn multiplicative(x: number): void {
 // CHECK: FunctionDecl: @({{.*}}) multiplicative:
 // CHECK-NEXT:   ParamDecl: @({{.*}}) x:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '*'
 // CHECK-NEXT:       | value: 15
 // CHECK-NEXT:         NumberLiteral: '5'
 // CHECK-NEXT:         NumberLiteral: '3'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '/'
 // CHECK-NEXT:       | value: 5
 // CHECK-NEXT:         NumberLiteral: '20'
 // CHECK-NEXT:         NumberLiteral: '4'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '*'
 // CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
 // CHECK-NEXT:         NumberLiteral: '1'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '*'
 // CHECK-NEXT:         NumberLiteral: '1'
 // CHECK-NEXT:         DeclRefExpr: @({{.*}}) x
@@ -65,12 +74,14 @@ fn additive(): void {
 }
 // CHECK: FunctionDecl: @({{.*}}) additive:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '+'
 // CHECK-NEXT:       | value: 8
 // CHECK-NEXT:         NumberLiteral: '5'
 // CHECK-NEXT:         NumberLiteral: '3'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '-'
 // CHECK-NEXT:       | value: 16
 // CHECK-NEXT:         NumberLiteral: '20'
@@ -85,22 +96,26 @@ fn comparison(): void {
 }
 // CHECK: FunctionDecl: @({{.*}}) comparison:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '<'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '5'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '<'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '5'
 // CHECK-NEXT:         NumberLiteral: '2'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '>'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '5'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '>'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '5'
@@ -112,12 +127,14 @@ fn equality(): void {
 }
 // CHECK: FunctionDecl: @({{.*}}) equality:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '=='
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '2'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '=='
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '5'
@@ -131,22 +148,26 @@ fn conjunction(): void {
 }
 // CHECK: FunctionDecl: @({{.*}}) conjunction:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '3'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '0'
 // CHECK-NEXT:         NumberLiteral: '1'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '1'
 // CHECK-NEXT:         NumberLiteral: '0'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '&&'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '0'
@@ -160,22 +181,26 @@ fn disjunction(): void {
 }
 // CHECK: FunctionDecl: @({{.*}}) disjunction:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '0'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '0'
 // CHECK-NEXT:         NumberLiteral: '2'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral: '2'
 // CHECK-NEXT:         NumberLiteral: '3'
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       BinaryOperator: '||'
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral: '0'

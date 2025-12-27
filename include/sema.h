@@ -2,7 +2,6 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H
 
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include "ast.h"
@@ -12,8 +11,9 @@
 
 namespace yl {
 class Sema {
+  // FIXME: dependency injection
   ConstantExpressionEvaluator cee;
-  std::vector<std::unique_ptr<ast::Decl>> ast;
+  const ast::Context *ast;
   std::vector<std::vector<res::Decl *>> scopes;
 
   res::FunctionDecl *currentFunction;
@@ -29,60 +29,63 @@ class Sema {
     ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 
-  std::optional<res::Type> resolveType(ast::Type parsedType);
+  const res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
 
-  std::unique_ptr<res::UnaryOperator>
-  resolveUnaryOperator(const ast::UnaryOperator &unary);
-  std::unique_ptr<res::BinaryOperator>
-  resolveBinaryOperator(const ast::BinaryOperator &binop);
-  std::unique_ptr<res::GroupingExpr>
-  resolveGroupingExpr(const ast::GroupingExpr &grouping);
-  std::unique_ptr<res::DeclRefExpr>
-  resolveDeclRefExpr(const ast::DeclRefExpr &declRefExpr,
-                     bool isCallee = false);
-  std::unique_ptr<res::CallExpr> resolveCallExpr(const ast::CallExpr &call);
-  std::unique_ptr<res::StructInstantiationExpr> resolveStructInstantiation(
+  res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
+                                           const ast::UnaryOperator &unary);
+  res::BinaryOperator *resolveBinaryOperator(res::Context &ctx,
+                                             const ast::BinaryOperator &binop);
+  res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
+                                         const ast::GroupingExpr &grouping);
+  res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
+                                       const ast::DeclRefExpr &declRefExpr);
+  res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
+  res::StructInstantiationExpr *resolveStructInstantiation(
+      res::Context &ctx,
       const ast::StructInstantiationExpr &structInstantiation);
-  std::unique_ptr<res::MemberExpr>
-  resolveMemberExpr(const ast::MemberExpr &memberExpr);
-  std::unique_ptr<res::AssignableExpr>
-  resolveAssignableExpr(const ast::AssignableExpr &assignableExpr);
-  std::unique_ptr<res::Expr> resolveExpr(const ast::Expr &expr);
+  res::MemberExpr *resolveMemberExpr(res::Context &ctx,
+                                     const ast::MemberExpr &memberExpr);
+  res::Expr *resolveExpr(res::Context &ctx, const ast::Expr &expr);
 
-  std::unique_ptr<res::Stmt> resolveStmt(const ast::Stmt &stmt);
-  std::unique_ptr<res::IfStmt> resolveIfStmt(const ast::IfStmt &ifStmt);
-  std::unique_ptr<res::WhileStmt>
-  resolveWhileStmt(const ast::WhileStmt &whileStmt);
-  std::unique_ptr<res::DeclStmt> resolveDeclStmt(const ast::DeclStmt &declStmt);
-  std::unique_ptr<res::Assignment>
-  resolveAssignment(const ast::Assignment &assignment);
-  std::unique_ptr<res::ReturnStmt>
-  resolveReturnStmt(const ast::ReturnStmt &returnStmt);
+  res::Stmt *resolveStmt(res::Context &ctx, const ast::Stmt &stmt);
+  res::IfStmt *resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt);
+  res::WhileStmt *resolveWhileStmt(res::Context &ctx,
+                                   const ast::WhileStmt &whileStmt);
+  res::DeclStmt *resolveDeclStmt(res::Context &ctx,
+                                 const ast::DeclStmt &declStmt);
+  res::Assignment *resolveAssignment(res::Context &ctx,
+                                     const ast::Assignment &assignment);
+  res::ReturnStmt *resolveReturnStmt(res::Context &ctx,
+                                     const ast::ReturnStmt &returnStmt);
 
-  std::unique_ptr<res::Block> resolveBlock(const ast::Block &block);
+  res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  std::unique_ptr<res::ParamDecl> resolveParamDecl(const ast::ParamDecl &param);
-  std::unique_ptr<res::VarDecl> resolveVarDecl(const ast::VarDecl &varDecl);
-  std::unique_ptr<res::FunctionDecl>
-  resolveFunctionDecl(const ast::FunctionDecl &function);
-  std::unique_ptr<res::StructDecl>
-  resolveStructDecl(const ast::StructDecl &structDecl);
+  res::ParamDecl *resolveParamDecl(res::Context &ctx,
+                                   const ast::ParamDecl &param);
+  res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
+  res::FunctionDecl *resolveFunctionDecl(res::Context &ctx,
+                                         const ast::FunctionDecl &function);
+  res::StructDecl *resolveStructDecl(res::Context &ctx,
+                                     const ast::StructDecl &structDecl);
+  res::StructDecl *resolveStructFields(res::Context &ctx,
+                                       const ast::StructDecl &structDecl);
 
-  bool resolveStructFields(res::StructDecl &resolvedStructDecl);
-
-  bool insertDeclToCurrentScope(res::Decl &decl);
+  bool insertDeclToCurrentScope(res::Decl *decl);
   template <typename T> std::pair<T *, int> lookupDecl(const std::string id);
-  std::unique_ptr<res::FunctionDecl> createBuiltinPrintln();
+  res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
 
-  bool runFlowSensitiveChecks(const res::FunctionDecl &fn);
-  bool checkReturnOnAllPaths(const res::FunctionDecl &fn, const CFG &cfg);
+  bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);
+  bool checkReturnOnAllPaths(res::Context &ctx,
+                             const res::FunctionDecl &fn,
+                             const CFG &cfg);
   bool checkVariableInitialization(const CFG &cfg);
+  bool checkSelfContainingStructs(const res::Context &ctx);
 
 public:
-  explicit Sema(std::vector<std::unique_ptr<ast::Decl>> ast)
-      : ast(std::move(ast)) {}
+  explicit Sema(const ast::Context &ast)
+      : ast(&ast) {}
 
-  std::vector<std::unique_ptr<res::Decl>> resolveAST();
+  std::optional<res::Context> resolveAST();
 };
 } // namespace yl
 

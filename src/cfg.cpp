@@ -83,7 +83,7 @@ int CFGBuilder::insertDeclStmt(const res::DeclStmt &stmt, int block) {
 int CFGBuilder::insertAssignment(const res::Assignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
 
-  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee.get()))
+  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee))
     block = insertExpr(*stmt.assignee, block);
 
   return insertExpr(*stmt.expr, block);
@@ -164,7 +164,7 @@ int CFGBuilder::insertBlock(const res::Block &block, int succ) {
     if (insertNewBlock && !isTerminator(**it))
       succ = cfg.insertNewBlockBefore(succ, true);
 
-    insertNewBlock = dynamic_cast<const res::WhileStmt *>(it->get());
+    insertNewBlock = dynamic_cast<const res::WhileStmt *>(*it);
     succ = insertStmt(**it, succ);
   }
 

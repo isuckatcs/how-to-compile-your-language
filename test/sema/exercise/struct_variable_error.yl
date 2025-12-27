@@ -5,5 +5,5 @@ struct S2 {}
 fn main(): void {
   let x: S = S {};
   let y: S = S2 {};
-  // CHECK: [[# @LINE - 1 ]]:14: error: initializer type mismatch
+  // CHECK: [[# @LINE - 1 ]]:17: error: an expression of type 'S2' cannot be used to initialize a variable of type 'S'
 }

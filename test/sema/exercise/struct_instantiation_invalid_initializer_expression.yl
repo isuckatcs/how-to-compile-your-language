@@ -7,5 +7,6 @@ struct S2 {}
 
 fn main(): void {
   S { x: S2 {} };
-  // CHECK: [[# @LINE - 1 ]]:10: error: 'S2' cannot be used to initialize a field of type 'number'
+  // CHECK: [[# @LINE - 1 ]]:13: error: an expression of type 'S2' cannot be assigned to a variable of type 'number'
+  // CHECK: [[# @LINE - 2 ]]:5: error: field 'x' is not initialized
 }

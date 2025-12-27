@@ -9,7 +9,7 @@ fn foo(s: S): S {
 
 fn bar(s: S): S {
   return S2 {};
-  // CHECK: [[# @LINE - 1 ]]:10: error: unexpected return type
+  // CHECK: [[# @LINE - 1 ]]:13: error: cannot return 'S2' from a function returning 'S'
 }
 
 fn main(): void {

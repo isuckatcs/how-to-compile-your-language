@@ -7,7 +7,7 @@ fn foo(): number {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected a return value
     return;
 
-    // CHECK: [[# @LINE + 1 ]]:16: error: unexpected return type
+    // CHECK: [[# @LINE + 1 ]]:16: error: cannot return 'void' from a function returning 'number'
     return main();
 }
 
@@ -24,6 +24,6 @@ fn main(): void {
         return;
     }
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: unexpected return value in void function
+    // CHECK: [[# @LINE + 1 ]]:5: error: unexpected return value in 'void' function
     return 1.0;
 }

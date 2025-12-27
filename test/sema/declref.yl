@@ -4,7 +4,6 @@ fn foo(): void {}
 fn main(): void {
     var x: number = 1.0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expected to call function 'foo'
     foo;
     
     x;
@@ -14,13 +13,13 @@ fn main(): void {
 
     let foo: number = 2.0;
 
-    // CHECK: [[# @LINE + 1 ]]:8: error: calling non-function symbol
+    // CHECK: [[# @LINE + 1 ]]:8: error: calling expression of type 'number'
     foo();
 }
 
 fn bar(x: number): void {
     x;
 
-    // CHECK: [[# @LINE + 1 ]]:6: error: calling non-function symbol
+    // CHECK: [[# @LINE + 1 ]]:6: error: calling expression of type 'number'
     x();
 }

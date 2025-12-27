@@ -17,5 +17,6 @@ fn main(): void {
 // CHECK-NEXT: DeclStmt:
 // CHECK-NEXT:   VarDecl: @({{.*}}) y:
 // CHECK-NEXT:     BinaryOperator: '+'
-// CHECK-NEXT:       CallExpr: @({{.*}}) foo
+// CHECK-NEXT:       CallExpr:
+// CHECK-NEXT:         DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       NumberLiteral: '1'
