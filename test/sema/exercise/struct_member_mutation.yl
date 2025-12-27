@@ -24,6 +24,7 @@ fn bar(structParam: S): void {
   // CHECK: [[# @LINE - 1 ]]:7: error: 's' cannot be mutated
 
   structParam.x = 3;
+  // CHECK: [[# @LINE - 1 ]]:17: error: 'structParam' cannot be mutated
 }
 
 fn main(): void {

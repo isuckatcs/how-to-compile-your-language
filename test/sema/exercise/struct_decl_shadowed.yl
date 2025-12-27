@@ -15,6 +15,7 @@ fn main(): void {
 // CHECK-NEXT:         | value: 1
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: @({{.*}}) x:
-// CHECK-NEXT:     CallExpr: @({{.*}}) println
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) println
 // CHECK-NEXT:       DeclRefExpr: @({{.*}}) S
 // CHECK-NEXT:       | value: 1

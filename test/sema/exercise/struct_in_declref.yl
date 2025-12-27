@@ -9,5 +9,5 @@ fn foo(s: S): number {
 
 fn main(): void {
   foo(S);
-  // CHECK: [[# @LINE - 1 ]]:7: error: expected an instance of 'S'
+  // CHECK: [[# @LINE - 1 ]]:7: error: expected value, but received type 'S'
 }

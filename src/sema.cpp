@@ -8,18 +8,23 @@
 #include "utils.h"
 
 namespace yl {
-bool Sema::runFlowSensitiveChecks(const res::FunctionDecl &fn) {
+bool Sema::runFlowSensitiveChecks(res::Context &ctx,
+                                  const res::FunctionDecl &fn) {
   CFG cfg = CFGBuilder().build(fn);
 
   bool error = false;
-  error |= checkReturnOnAllPaths(fn, cfg);
+  error |= checkReturnOnAllPaths(ctx, fn, cfg);
   error |= checkVariableInitialization(cfg);
 
   return error;
 };
 
-bool Sema::checkReturnOnAllPaths(const res::FunctionDecl &fn, const CFG &cfg) {
-  if (fn.type.kind == res::Type::Kind::Void)
+bool Sema::checkReturnOnAllPaths(res::Context &ctx,
+                                 const res::FunctionDecl &fn,
+                                 const CFG &cfg) {
+  const auto *type = ctx.getType(&fn);
+  assert(type && type->isFunctionType());
+  if (static_cast<const res::FunctionType *>(type)->ret->isBuiltinVoid())
     return false;
 
   int returnCount = 0;
@@ -98,16 +103,16 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         const res::Stmt *stmt = *it;
 
         if (auto *decl = dynamic_cast<const res::DeclStmt *>(stmt)) {
-          tmp[decl->varDecl.get()] =
+          tmp[decl->varDecl] =
               decl->varDecl->initializer ? State::Assigned : State::Unassigned;
           continue;
         }
 
         if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
-          const res::Expr *base = assignment->assignee.get();
+          const res::Expr *base = assignment->assignee;
           while (const auto *member =
                      dynamic_cast<const res::MemberExpr *>(base))
-            base = member->base.get();
+            base = member->base;
 
           const auto *dre = dynamic_cast<const res::DeclRefExpr *>(base);
 
@@ -116,7 +121,8 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
           if (!dre)
             continue;
 
-          const auto *decl = dynamic_cast<const res::Decl *>(dre->decl);
+          // FIXME: what if this is a type?
+          const auto *decl = dynamic_cast<const res::ValueDecl *>(dre->decl);
 
           if (!decl->isMutable && tmp[decl] != State::Unassigned) {
             std::string msg = '\'' + decl->identifier + "' cannot be mutated";
@@ -152,15 +158,18 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
   return !pendingErrors.empty();
 }
 
-bool Sema::insertDeclToCurrentScope(res::Decl &decl) {
-  const auto &[foundDecl, scopeIdx] = lookupDecl<res::Decl>(decl.identifier);
+bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
+  if (decl == nullptr)
+    return false;
+
+  const auto &[foundDecl, scopeIdx] = lookupDecl<res::Decl>(decl->identifier);
 
   if (foundDecl && scopeIdx == 0) {
-    report(decl.location, "redeclaration of '" + decl.identifier + '\'');
+    report(decl->location, "redeclaration of '" + decl->identifier + '\'');
     return false;
   }
 
-  scopes.back().emplace_back(&decl);
+  scopes.back().emplace_back(decl);
   return true;
 }
 
@@ -186,151 +195,182 @@ std::pair<T *, int> Sema::lookupDecl(const std::string id) {
   return {nullptr, -1};
 }
 
-std::unique_ptr<res::FunctionDecl> Sema::createBuiltinPrintln() {
+res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
-  auto param = std::make_unique<res::ParamDecl>(
-      loc, "n", res::Type::builtinNumber(), false);
+  const auto *numTy = ctx.getBuiltinType(res::BuiltinType::Kind::Number);
+  const auto *voidTy = ctx.getBuiltinType(res::BuiltinType::Kind::Void);
+  const auto *fnTy = ctx.getFunctionType({numTy}, voidTy);
 
-  std::vector<std::unique_ptr<res::ParamDecl>> params;
-  params.emplace_back(std::move(param));
+  auto *param = ctx.bind(ctx.create<res::ParamDecl>(loc, "n", false), numTy);
+  auto *fn = ctx.create<res::FunctionDecl>(loc, "println", std::vector{param});
+  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
-  auto block = std::make_unique<res::Block>(
-      loc, std::vector<std::unique_ptr<res::Stmt>>());
-
-  return std::make_unique<res::FunctionDecl>(
-      loc, "println", res::Type::builtinVoid(), std::move(params),
-      std::move(block));
+  return ctx.bind(fn, fnTy);
 };
 
-std::optional<res::Type> Sema::resolveType(ast::Type parsedType) {
-  // FIXME: refactor type system
-  const std::string_view typeName = parsedType.name;
+const res::Type *Sema::resolveType(res::Context &ctx,
+                                   const ast::Type &parsedType) {
+  if (const auto *builtin =
+          dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
+    switch (builtin->kind) {
+    case ast::BuiltinType::Kind::Void:
+      return ctx.getBuiltinType(res::BuiltinType::Kind::Void);
+    case ast::BuiltinType::Kind::Number:
+      return ctx.getBuiltinType(res::BuiltinType::Kind::Number);
+    }
+  }
 
-  if (typeName == "number")
-    return res::Type::builtinNumber();
+  if (const auto *udt =
+          dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
+    res::Decl *decl = lookupDecl<res::TypeDecl>(udt->identifier).first;
+    if (!decl)
+      return report(udt->location,
+                    "failed to resolve type '" + udt->identifier + "'");
 
-  if (typeName == "void")
-    return res::Type::builtinVoid();
+    if (const auto *sd = dynamic_cast<const res::StructDecl *>(decl))
+      return ctx.getStructType(*sd);
 
-  if (auto *decl = lookupDecl<res::StructDecl>(parsedType.name).first)
-    return res::Type::structType(decl->identifier);
+    llvm_unreachable("unexpected value type encountered");
+  }
 
-  return std::nullopt;
+  if (const auto *function =
+          dynamic_cast<const ast::FunctionType *>(&parsedType)) {
+
+    std::vector<const res::Type *> args;
+    for (auto &&arg : function->args) {
+      varOrReturn(type, resolveType(ctx, *arg));
+      args.emplace_back(type);
+    }
+
+    varOrReturn(ret, resolveType(ctx, *function->ret));
+    return ctx.getFunctionType(std::move(args), ret);
+  }
+
+  // FIXME: we should error out here
+  return nullptr;
 }
 
-std::unique_ptr<res::UnaryOperator>
-Sema::resolveUnaryOperator(const ast::UnaryOperator &unary) {
-  varOrReturn(resolvedRHS, resolveExpr(*unary.operand));
+res::UnaryOperator *
+Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
+  varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
-  if (resolvedRHS->type.kind != res::Type::Kind::Number)
-    return report(unary.location,
-                  '\'' + resolvedRHS->type.name +
-                      "' cannot be used as an operand to unary operator");
+  auto rhsTy = ctx.getType(rhs);
+  if (!rhsTy->isKnown())
+    return report(rhs->location,
+                  "type of operand to unary operator is unknown");
 
-  return std::make_unique<res::UnaryOperator>(unary.location, unary.op,
-                                              std::move(resolvedRHS));
+  const auto &loc = unary.location;
+  if (!rhsTy->isBuiltinNumber())
+    return report(loc, '\'' + rhsTy->asString() +
+                           "' cannot be used as an operand to unary operator");
+
+  return ctx.bind(ctx.create<res::UnaryOperator>(loc, unary.op, rhs), rhsTy);
 }
 
-std::unique_ptr<res::BinaryOperator>
-Sema::resolveBinaryOperator(const ast::BinaryOperator &binop) {
-  varOrReturn(resolvedLHS, resolveExpr(*binop.lhs));
-  varOrReturn(resolvedRHS, resolveExpr(*binop.rhs));
+res::BinaryOperator *
+Sema::resolveBinaryOperator(res::Context &ctx,
+                            const ast::BinaryOperator &binop) {
+  varOrReturn(lhs, resolveExpr(ctx, *binop.lhs));
+  varOrReturn(rhs, resolveExpr(ctx, *binop.rhs));
 
-  if (resolvedLHS->type.kind != res::Type::Kind::Number)
-    return report(binop.location,
-                  '\'' + resolvedLHS->type.name +
-                      "' cannot be used as LHS operand to binary operator");
+  auto lhsTy = ctx.getType(lhs);
+  auto rhsTy = ctx.getType(rhs);
 
-  if (resolvedRHS->type.kind != res::Type::Kind::Number)
-    return report(binop.location,
-                  '\'' + resolvedRHS->type.name +
-                      "' cannot be used as RHS operand to binary operator");
+  // FIXME: catch this on read?
+  if (!lhsTy->isKnown() || !rhsTy->isKnown())
+    return report((!lhsTy->isKnown() ? lhs : rhs)->location,
+                  "type of " + std::string(!lhsTy->isKnown() ? "LHS" : "RHS") +
+                      " to binary operator is unknown");
 
-  assert(resolvedLHS->type.kind == resolvedRHS->type.kind &&
-         resolvedLHS->type.kind == res::Type::Kind::Number &&
-         "unexpected type in binop");
+  const auto &loc = binop.location;
+  if (lhsTy != rhsTy || !lhsTy->isBuiltinNumber())
+    return report(loc, "incompatible operands to binary operator ('" +
+                           lhsTy->asString() + "' and '" + rhsTy->asString() +
+                           "')");
 
-  return std::make_unique<res::BinaryOperator>(
-      binop.location, binop.op, std::move(resolvedLHS), std::move(resolvedRHS));
+  return ctx.bind(ctx.create<res::BinaryOperator>(loc, binop.op, lhs, rhs),
+                  lhsTy);
 }
 
-std::unique_ptr<res::GroupingExpr>
-Sema::resolveGroupingExpr(const ast::GroupingExpr &grouping) {
-  varOrReturn(resolvedExpr, resolveExpr(*grouping.expr));
-  return std::make_unique<res::GroupingExpr>(grouping.location,
-                                             std::move(resolvedExpr));
+res::GroupingExpr *
+Sema::resolveGroupingExpr(res::Context &ctx,
+                          const ast::GroupingExpr &grouping) {
+  varOrReturn(expr, resolveExpr(ctx, *grouping.expr));
+  return ctx.bind(ctx.create<res::GroupingExpr>(grouping.location, expr),
+                  ctx.getType(expr));
 }
 
-std::unique_ptr<res::DeclRefExpr>
-Sema::resolveDeclRefExpr(const ast::DeclRefExpr &declRefExpr, bool isCallee) {
+res::DeclRefExpr *
+Sema::resolveDeclRefExpr(res::Context &ctx,
+                         const ast::DeclRefExpr &declRefExpr) {
   res::Decl *decl = lookupDecl<res::Decl>(declRefExpr.identifier).first;
   if (!decl)
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
-  if (!isCallee && dynamic_cast<res::FunctionDecl *>(decl))
-    return report(declRefExpr.location,
-                  "expected to call function '" + declRefExpr.identifier + "'");
-
-  if (dynamic_cast<res::StructDecl *>(decl))
-    return report(declRefExpr.location,
-                  "expected an instance of '" + decl->type.name + '\'');
-
-  return std::make_unique<res::DeclRefExpr>(declRefExpr.location, *decl);
+  // FIXME: handle templates
+  return ctx.bind(ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl),
+                  ctx.getType(decl));
 }
 
-std::unique_ptr<res::CallExpr>
-Sema::resolveCallExpr(const ast::CallExpr &call) {
-  const auto *dre = dynamic_cast<const ast::DeclRefExpr *>(call.callee.get());
-  if (!dre)
-    return report(call.location, "expression cannot be called as a function");
+res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
+                                     const ast::CallExpr &call) {
+  varOrReturn(callee, resolveExpr(ctx, *call.callee));
 
-  varOrReturn(resolvedCallee, resolveDeclRefExpr(*dre, true));
+  auto calleeTy = ctx.getType(callee);
+  if (!calleeTy->isFunctionType())
+    return report(call.location,
+                  "calling expression of type '" + calleeTy->asString() + '\'');
 
-  const auto *resolvedFunctionDecl =
-      dynamic_cast<const res::FunctionDecl *>(resolvedCallee->decl);
-
-  if (!resolvedFunctionDecl)
-    return report(call.location, "calling non-function symbol");
-
-  if (call.arguments.size() != resolvedFunctionDecl->params.size())
+  const auto *fnType = static_cast<const res::FunctionType *>(calleeTy);
+  if (call.arguments.size() != fnType->args.size())
     return report(call.location, "argument count mismatch in function call");
 
-  std::vector<std::unique_ptr<res::Expr>> resolvedArguments;
+  std::vector<res::Expr *> args;
   int idx = 0;
-  for (auto &&arg : call.arguments) {
-    varOrReturn(resolvedArg, resolveExpr(*arg));
+  for (auto &&argument : call.arguments) {
+    varOrReturn(arg, resolveExpr(ctx, *argument));
 
-    if (resolvedArg->type.name != resolvedFunctionDecl->params[idx]->type.name)
-      return report(resolvedArg->location, "unexpected type of argument");
+    if (!ctx.unify(fnType->args[idx], ctx.getType(arg)))
+      return report(arg->location, "expected '" +
+                                       fnType->args[idx]->asString() +
+                                       "' argument, but received '" +
+                                       ctx.getType(arg)->asString() + "'");
 
-    resolvedArg->setConstantValue(cee.evaluate(*resolvedArg, false));
-
+    arg->setConstantValue(cee.evaluate(*arg, false));
+    args.emplace_back(arg);
     ++idx;
-    resolvedArguments.emplace_back(std::move(resolvedArg));
   }
 
-  return std::make_unique<res::CallExpr>(call.location, *resolvedFunctionDecl,
-                                         std::move(resolvedArguments));
+  return ctx.bind(
+      ctx.create<res::CallExpr>(call.location, callee, std::move(args)),
+      fnType->ret);
 }
 
-std::unique_ptr<res::StructInstantiationExpr> Sema::resolveStructInstantiation(
+res::StructInstantiationExpr *Sema::resolveStructInstantiation(
+    res::Context &ctx,
     const ast::StructInstantiationExpr &structInstantiation) {
-  const auto *st =
-      lookupDecl<res::StructDecl>(structInstantiation.identifier).first;
 
-  if (!st)
+  // FIXME: revisit
+  varOrReturn(structExpr,
+              resolveDeclRefExpr(ctx, *structInstantiation.structRef));
+
+  auto type = ctx.getType(structExpr);
+  if (!type->isStructType())
     return report(structInstantiation.location,
-                  "'" + structInstantiation.identifier +
-                      "' is not a struct type");
+                  "'" + type->asString() + "' is not a struct type");
+  res::StructDecl *st =
+      lookupDecl<res::StructDecl>(
+          static_cast<const res::StructType *>(type)->decl->identifier)
+          .first;
 
-  std::vector<std::unique_ptr<res::FieldInitStmt>> resolvedFieldInits;
-  std::map<std::string_view, const res::FieldInitStmt *> inits;
+  std::vector<res::FieldInitStmt *> resolvedFieldInits;
+  std::map<std::string_view, res::FieldInitStmt *> inits;
 
-  std::map<std::string_view, const res::FieldDecl *> fields;
+  std::map<std::string_view, res::FieldDecl *> fields;
   for (auto &&fieldDecl : st->fields)
-    fields[fieldDecl->identifier] = fieldDecl.get();
+    fields[fieldDecl->identifier] = fieldDecl;
 
   bool error = false;
   for (auto &&initStmt : structInstantiation.fieldInitializers) {
@@ -343,7 +383,7 @@ std::unique_ptr<res::StructInstantiationExpr> Sema::resolveStructInstantiation(
       continue;
     }
 
-    const res::FieldDecl *fieldDecl = fields[id];
+    res::FieldDecl *fieldDecl = fields[id];
     if (!fieldDecl) {
       report(loc, "'" + st->identifier + "' has no field named '" +
                       std::string{id} + "'");
@@ -351,24 +391,24 @@ std::unique_ptr<res::StructInstantiationExpr> Sema::resolveStructInstantiation(
       continue;
     }
 
-    auto resolvedInitExpr = resolveExpr(*initStmt->initializer);
+    auto resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer);
     if (!resolvedInitExpr) {
       error = true;
       continue;
     }
 
-    if (resolvedInitExpr->type.name != fieldDecl->type.name) {
+    if (!ctx.unify(ctx.getType(fieldDecl), ctx.getType(resolvedInitExpr))) {
       report(resolvedInitExpr->location,
-             "'" + resolvedInitExpr->type.name +
-                 "' cannot be used to initialize a field of type '" +
-                 fieldDecl->type.name + "'");
+             "an expression of type '" +
+                 ctx.getType(resolvedInitExpr)->asString() +
+                 "' cannot be assigned to a variable of type '" +
+                 ctx.getType(fieldDecl)->asString() + "'");
       error = true;
       continue;
     }
 
-    auto init = std::make_unique<res::FieldInitStmt>(
-        loc, *fieldDecl, std::move(resolvedInitExpr));
-    inits[id] = resolvedFieldInits.emplace_back(std::move(init)).get();
+    inits[id] = resolvedFieldInits.emplace_back(
+        ctx.create<res::FieldInitStmt>(loc, fieldDecl, resolvedInitExpr));
   }
 
   for (auto &&fieldDecl : st->fields) {
@@ -387,209 +427,214 @@ std::unique_ptr<res::StructInstantiationExpr> Sema::resolveStructInstantiation(
   if (error)
     return nullptr;
 
-  return std::make_unique<res::StructInstantiationExpr>(
-      structInstantiation.location, *st, std::move(resolvedFieldInits));
+  return ctx.bind(
+      ctx.create<res::StructInstantiationExpr>(structInstantiation.location, st,
+                                               std::move(resolvedFieldInits)),
+      type);
 }
 
-std::unique_ptr<res::MemberExpr>
-Sema::resolveMemberExpr(const ast::MemberExpr &memberExpr) {
-  auto resolvedBase = resolveExpr(*memberExpr.base);
-  if (!resolvedBase)
-    return nullptr;
+res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
+                                         const ast::MemberExpr &memberExpr) {
+  // FIXME: revisit
+  varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
-  if (resolvedBase->type.kind != res::Type::Kind::Struct)
+  auto baseTy = ctx.getType(base);
+  if (!baseTy->isStructType())
     return report(memberExpr.base->location,
-                  "cannot access field of '" + resolvedBase->type.name + '\'');
+                  "cannot access field of '" + baseTy->asString() + '\'');
 
-  const auto *st = lookupDecl<res::StructDecl>(resolvedBase->type.name).first;
+  const res::StructDecl *sd =
+      static_cast<const res::StructType *>(baseTy)->decl;
+  assert(sd && "struct type without decl");
 
-  assert(st && "failed to lookup struct");
-
-  const res::FieldDecl *fieldDecl = nullptr;
-  for (auto &&field : st->fields) {
-    if (field->identifier == memberExpr.field)
-      fieldDecl = field.get();
-  }
+  res::FieldDecl *fieldDecl = nullptr;
+  for (auto &&field : sd->fields)
+    if (field->identifier == memberExpr.member->identifier)
+      fieldDecl = field;
 
   if (!fieldDecl)
-    return report(memberExpr.location, '\'' + resolvedBase->type.name +
-                                           "' has no field called '" +
-                                           memberExpr.field + '\'');
+    return report(memberExpr.location,
+                  '\'' + sd->identifier + "' has no field called '" +
+                      memberExpr.member->identifier + '\'');
 
-  return std::make_unique<res::MemberExpr>(memberExpr.location,
-                                           std::move(resolvedBase), *fieldDecl);
+  return ctx.bind(
+      ctx.create<res::MemberExpr>(memberExpr.location, base, fieldDecl),
+      ctx.getType(fieldDecl));
 }
 
-std::unique_ptr<res::Stmt> Sema::resolveStmt(const ast::Stmt &stmt) {
+res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
   if (auto *expr = dynamic_cast<const ast::Expr *>(&stmt))
-    return resolveExpr(*expr);
+    return resolveExpr(ctx, *expr);
 
   if (auto *ifStmt = dynamic_cast<const ast::IfStmt *>(&stmt))
-    return resolveIfStmt(*ifStmt);
+    return resolveIfStmt(ctx, *ifStmt);
 
   if (auto *assignment = dynamic_cast<const ast::Assignment *>(&stmt))
-    return resolveAssignment(*assignment);
+    return resolveAssignment(ctx, *assignment);
 
   if (auto *declStmt = dynamic_cast<const ast::DeclStmt *>(&stmt))
-    return resolveDeclStmt(*declStmt);
+    return resolveDeclStmt(ctx, *declStmt);
 
   if (auto *whileStmt = dynamic_cast<const ast::WhileStmt *>(&stmt))
-    return resolveWhileStmt(*whileStmt);
+    return resolveWhileStmt(ctx, *whileStmt);
 
   if (auto *returnStmt = dynamic_cast<const ast::ReturnStmt *>(&stmt))
-    return resolveReturnStmt(*returnStmt);
+    return resolveReturnStmt(ctx, *returnStmt);
 
   llvm_unreachable("unexpected statement");
 }
 
-std::unique_ptr<res::IfStmt> Sema::resolveIfStmt(const ast::IfStmt &ifStmt) {
-  varOrReturn(condition, resolveExpr(*ifStmt.condition));
+res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
+  varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition));
+  if (!ctx.unify(ctx.getType(cond),
+                 ctx.getBuiltinType(res::BuiltinType::Kind::Number)))
+    return report(cond->location, "expected number in condition");
 
-  if (condition->type.kind != res::Type::Kind::Number)
-    return report(condition->location, "expected number in condition");
+  varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
 
-  varOrReturn(resolvedTrueBlock, resolveBlock(*ifStmt.trueBlock));
-
-  std::unique_ptr<res::Block> resolvedFalseBlock;
+  res::Block *falseBlock = nullptr;
   if (ifStmt.falseBlock) {
-    resolvedFalseBlock = resolveBlock(*ifStmt.falseBlock);
-    if (!resolvedFalseBlock)
+    falseBlock = resolveBlock(ctx, *ifStmt.falseBlock);
+    if (!falseBlock)
       return nullptr;
   }
 
-  condition->setConstantValue(cee.evaluate(*condition, false));
+  cond->setConstantValue(cee.evaluate(*cond, false));
 
-  return std::make_unique<res::IfStmt>(ifStmt.location, std::move(condition),
-                                       std::move(resolvedTrueBlock),
-                                       std::move(resolvedFalseBlock));
+  return ctx.create<res::IfStmt>(ifStmt.location, cond, trueBlock, falseBlock);
 }
 
-std::unique_ptr<res::WhileStmt>
-Sema::resolveWhileStmt(const ast::WhileStmt &whileStmt) {
-  varOrReturn(condition, resolveExpr(*whileStmt.condition));
+res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
+                                       const ast::WhileStmt &whileStmt) {
+  varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition));
+  if (!ctx.unify(ctx.getType(cond),
+                 ctx.getBuiltinType(res::BuiltinType::Kind::Number)))
+    return report(cond->location, "expected number in condition");
 
-  if (condition->type.kind != res::Type::Kind::Number)
-    return report(condition->location, "expected number in condition");
+  varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
-  varOrReturn(body, resolveBlock(*whileStmt.body));
+  cond->setConstantValue(cee.evaluate(*cond, false));
 
-  condition->setConstantValue(cee.evaluate(*condition, false));
-
-  return std::make_unique<res::WhileStmt>(
-      whileStmt.location, std::move(condition), std::move(body));
+  return ctx.create<res::WhileStmt>(whileStmt.location, cond, body);
 }
 
-std::unique_ptr<res::DeclStmt>
-Sema::resolveDeclStmt(const ast::DeclStmt &declStmt) {
-  varOrReturn(resolvedVarDecl, resolveVarDecl(*declStmt.varDecl));
+res::DeclStmt *Sema::resolveDeclStmt(res::Context &ctx,
+                                     const ast::DeclStmt &declStmt) {
+  varOrReturn(varDecl, resolveVarDecl(ctx, *declStmt.varDecl));
 
-  if (!insertDeclToCurrentScope(*resolvedVarDecl))
+  if (!insertDeclToCurrentScope(varDecl))
     return nullptr;
 
-  return std::make_unique<res::DeclStmt>(declStmt.location,
-                                         std::move(resolvedVarDecl));
+  return ctx.create<res::DeclStmt>(declStmt.location, varDecl);
 }
 
-std::unique_ptr<res::Assignment>
-Sema::resolveAssignment(const ast::Assignment &assignment) {
-  varOrReturn(resolvedRHS, resolveExpr(*assignment.expr));
-  varOrReturn(resolvedLHS, resolveAssignableExpr(*assignment.assignee));
+res::Assignment *Sema::resolveAssignment(res::Context &ctx,
+                                         const ast::Assignment &assignment) {
+  varOrReturn(rhs, resolveExpr(ctx, *assignment.expr));
+  varOrReturn(lhs, resolveExpr(ctx, *assignment.assignee));
 
-  assert(resolvedLHS->type.kind != res::Type::Kind::Void &&
-         "reference to void declaration in assignment LHS");
+  auto lhsTy = ctx.getType(lhs);
+  auto rhsTy = ctx.getType(rhs);
 
-  if (resolvedRHS->type.name != resolvedLHS->type.name)
-    return report(resolvedRHS->location,
-                  "assigned value type doesn't match variable type");
+  // FIXME: what if RHS is void, or the assignee is not a variable, but field or
+  // a parameter?
+  if (!ctx.unify(lhsTy, rhsTy))
+    return report(rhs->location,
+                  "an expression of type '" + rhsTy->asString() +
+                      "' cannot be assigned to a variable of type '" +
+                      lhsTy->asString() + "'");
+  rhs->setConstantValue(cee.evaluate(*rhs, false));
 
-  resolvedRHS->setConstantValue(cee.evaluate(*resolvedRHS, false));
-
-  return std::make_unique<res::Assignment>(
-      assignment.location, std::move(resolvedLHS), std::move(resolvedRHS));
+  return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
 }
 
-std::unique_ptr<res::ReturnStmt>
-Sema::resolveReturnStmt(const ast::ReturnStmt &returnStmt) {
+res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
+                                         const ast::ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
-  if (currentFunction->type.kind == res::Type::Kind::Void && returnStmt.expr)
+  // FIXME: static_cast?!
+  const res::Type *fnRetType =
+      static_cast<const res::FunctionType *>(ctx.getType(currentFunction))->ret;
+  if (fnRetType->isBuiltinVoid() && returnStmt.expr)
     return report(returnStmt.location,
-                  "unexpected return value in void function");
+                  "unexpected return value in 'void' function");
 
-  if (currentFunction->type.kind != res::Type::Kind::Void && !returnStmt.expr)
+  if (fnRetType->isKnown() && !fnRetType->isBuiltinVoid() && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
 
-  std::unique_ptr<res::Expr> resolvedExpr;
+  res::Expr *expr = nullptr;
   if (returnStmt.expr) {
-    resolvedExpr = resolveExpr(*returnStmt.expr);
-    if (!resolvedExpr)
+    expr = resolveExpr(ctx, *returnStmt.expr);
+    if (!expr)
       return nullptr;
 
-    if (currentFunction->type.name != resolvedExpr->type.name)
-      return report(resolvedExpr->location, "unexpected return type");
+    const res::Type *exprTy = ctx.getType(expr);
+    if (!ctx.unify(fnRetType, exprTy))
+      // FIXME: unification changes types
+      return report(expr->location, "cannot return '" + exprTy->asString() +
+                                        "' from a function returning '" +
+                                        fnRetType->asString() + "'");
 
-    resolvedExpr->setConstantValue(cee.evaluate(*resolvedExpr, false));
+    expr->setConstantValue(cee.evaluate(*expr, false));
   }
 
-  return std::make_unique<res::ReturnStmt>(returnStmt.location,
-                                           std::move(resolvedExpr));
+  return ctx.create<res::ReturnStmt>(returnStmt.location, expr);
 }
 
-std::unique_ptr<res::AssignableExpr>
-Sema::resolveAssignableExpr(const ast::AssignableExpr &assignableExpr) {
-  if (const auto *declRefExpr =
-          dynamic_cast<const ast::DeclRefExpr *>(&assignableExpr))
-    return resolveDeclRefExpr(*declRefExpr);
+res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
 
-  if (const auto *memberExpr =
-          dynamic_cast<const ast::MemberExpr *>(&assignableExpr))
-    return resolveMemberExpr(*memberExpr);
-
-  llvm_unreachable("unexpected assignable expression");
-}
-
-std::unique_ptr<res::Expr> Sema::resolveExpr(const ast::Expr &expr) {
-
-  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr))
-    return std::make_unique<res::NumberLiteral>(number->location,
-                                                std::stod(number->value));
+  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr)) {
+    return ctx.bind(ctx.create<res::NumberLiteral>(number->location,
+                                                   std::stod(number->value)),
+                    ctx.getBuiltinType(res::BuiltinType::Kind::Number));
+  }
 
   if (const auto *callExpr = dynamic_cast<const ast::CallExpr *>(&expr))
-    return resolveCallExpr(*callExpr);
+    return resolveCallExpr(ctx, *callExpr);
 
   if (const auto *groupingExpr = dynamic_cast<const ast::GroupingExpr *>(&expr))
-    return resolveGroupingExpr(*groupingExpr);
+    return resolveGroupingExpr(ctx, *groupingExpr);
 
   if (const auto *binaryOperator =
           dynamic_cast<const ast::BinaryOperator *>(&expr))
-    return resolveBinaryOperator(*binaryOperator);
+    return resolveBinaryOperator(ctx, *binaryOperator);
 
   if (const auto *unaryOperator =
           dynamic_cast<const ast::UnaryOperator *>(&expr))
-    return resolveUnaryOperator(*unaryOperator);
+    return resolveUnaryOperator(ctx, *unaryOperator);
 
   if (const auto *structInstantiation =
           dynamic_cast<const ast::StructInstantiationExpr *>(&expr))
-    return resolveStructInstantiation(*structInstantiation);
+    return resolveStructInstantiation(ctx, *structInstantiation);
 
-  if (const auto *assignableExpr =
-          dynamic_cast<const ast::AssignableExpr *>(&expr))
-    return resolveAssignableExpr(*assignableExpr);
+  if (const auto *declRefExpr = dynamic_cast<const ast::DeclRefExpr *>(&expr)) {
+    varOrReturn(dre, resolveDeclRefExpr(ctx, *declRefExpr));
+
+    if (!dynamic_cast<res::ValueDecl *>(dre->decl))
+      return report(declRefExpr->location,
+                    "expected value, but received type '" +
+                        declRefExpr->identifier + '\'');
+
+    return dre;
+  }
+
+  if (const auto *memberExpr = dynamic_cast<const ast::MemberExpr *>(&expr))
+    return resolveMemberExpr(ctx, *memberExpr);
 
   llvm_unreachable("unexpected expression");
 }
 
-std::unique_ptr<res::Block> Sema::resolveBlock(const ast::Block &block) {
-  std::vector<std::unique_ptr<res::Stmt>> resolvedStatements;
+res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
+  std::vector<res::Stmt *> resolvedStatements;
 
   bool error = false;
   int reportUnreachableCount = 0;
 
   ScopeRAII blockScope(this);
   for (auto &&stmt : block.statements) {
-    auto resolvedStmt = resolveStmt(*stmt);
+    auto resolvedStmt = resolveStmt(ctx, *stmt);
 
-    error |= !resolvedStatements.emplace_back(std::move(resolvedStmt));
+    error |= !resolvedStatements.emplace_back(resolvedStmt);
     if (error)
       continue;
 
@@ -605,72 +650,76 @@ std::unique_ptr<res::Block> Sema::resolveBlock(const ast::Block &block) {
   if (error)
     return nullptr;
 
-  return std::make_unique<res::Block>(block.location,
-                                      std::move(resolvedStatements));
+  return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-std::unique_ptr<res::ParamDecl>
-Sema::resolveParamDecl(const ast::ParamDecl &param) {
-  std::optional<res::Type> type = resolveType(param.type);
+res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
+                                       const ast::ParamDecl &param) {
+  auto type = resolveType(ctx, *param.type);
 
-  if (!type || type->kind == res::Type::Kind::Void)
-    return report(param.location, "parameter '" + param.identifier +
-                                      "' has invalid '" + param.type.name +
-                                      "' type");
+  if (!type || type->isBuiltinVoid())
+    return report(param.location,
+                  "parameter '" + param.identifier + "' has invalid type");
 
-  return std::make_unique<res::ParamDecl>(param.location, param.identifier,
-                                          *type, param.isMutable);
+  return ctx.bind(ctx.create<res::ParamDecl>(param.location, param.identifier,
+                                             param.isMutable),
+                  type);
 }
 
-std::unique_ptr<res::VarDecl>
-Sema::resolveVarDecl(const ast::VarDecl &varDecl) {
-  if (!varDecl.type && !varDecl.initializer)
-    return report(
-        varDecl.location,
-        "an uninitialized variable is expected to have a type specifier");
-
-  std::unique_ptr<res::Expr> resolvedInitializer = nullptr;
+res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
+                                   const ast::VarDecl &varDecl) {
+  res::Expr *initializer = nullptr;
   if (varDecl.initializer) {
-    resolvedInitializer = resolveExpr(*varDecl.initializer);
-    if (!resolvedInitializer)
+    initializer = resolveExpr(ctx, *varDecl.initializer);
+    if (!initializer)
       return nullptr;
   }
 
-  std::optional<res::Type> type =
-      varDecl.type ? resolveType(*varDecl.type) : resolvedInitializer->type;
-  if (!type || type->kind == res::Type::Kind::Void)
-    return report(varDecl.location,
-                  "variable '" + varDecl.identifier + "' has invalid '" +
-                      (varDecl.type ? varDecl.type->name
-                                    : resolvedInitializer->type.name) +
-                      "' type");
+  auto decl =
+      ctx.bind(ctx.create<res::VarDecl>(varDecl.location, varDecl.identifier,
+                                        varDecl.isMutable, initializer),
+               ctx.getNewUninferredType());
 
-  if (resolvedInitializer) {
-    if (resolvedInitializer->type.name != type->name)
-      return report(resolvedInitializer->location, "initializer type mismatch");
-
-    resolvedInitializer->setConstantValue(
-        cee.evaluate(*resolvedInitializer, false));
+  if (varDecl.type) {
+    varOrReturn(type, resolveType(ctx, *varDecl.type));
+    ctx.unify(ctx.getType(decl), type);
   }
 
-  return std::make_unique<res::VarDecl>(varDecl.location, varDecl.identifier,
-                                        *type, varDecl.isMutable,
-                                        std::move(resolvedInitializer));
+  if (initializer) {
+    auto declTy = ctx.getType(decl);
+    auto initTy = ctx.getType(initializer);
+
+    if (!ctx.unify(declTy, initTy)) {
+      // FIXME: unification changes types
+      return report(decl->initializer->location,
+                    "an expression of type '" + initTy->asString() +
+                        "' cannot be used to initialize a variable of type '" +
+                        declTy->asString() + "'");
+    }
+
+    initializer->setConstantValue(cee.evaluate(*initializer, false));
+  }
+
+  auto declTy = ctx.getType(decl);
+  if (declTy == ctx.getBuiltinType(res::BuiltinType::Kind::Void))
+    return report(decl->location, "a variable of '" + declTy->asString() +
+                                      "' type is not allowed");
+  return decl;
 }
 
-std::unique_ptr<res::FunctionDecl>
-Sema::resolveFunctionDecl(const ast::FunctionDecl &function) {
-  std::optional<res::Type> type = resolveType(function.type);
+res::FunctionDecl *
+Sema::resolveFunctionDecl(res::Context &ctx,
+                          const ast::FunctionDecl &function) {
+  const auto *retTy = resolveType(ctx, *function.type);
 
-  if (!type)
-    return report(function.location, "function '" + function.identifier +
-                                         "' has invalid '" +
-                                         function.type.name + "' type");
+  if (!retTy)
+    return report(function.type->location, "function '" + function.identifier +
+                                               "' has invalid return type");
 
   if (function.identifier == "main") {
-    if (type->kind != res::Type::Kind::Void)
+    if (!retTy->isBuiltinVoid())
       return report(function.location,
-                    "'main' function is expected to have 'void' type");
+                    "'main' function is expected to return 'void'");
 
     if (!function.params.empty())
       return report(function.location,
@@ -681,169 +730,151 @@ Sema::resolveFunctionDecl(const ast::FunctionDecl &function) {
                   "user-defined functions");
   }
 
-  std::vector<std::unique_ptr<res::ParamDecl>> resolvedParams;
+  std::vector<res::ParamDecl *> resolvedParams;
+  std::vector<const res::Type *> paramTypes;
 
+  // FIXME: how to avoid doing this twice?
   ScopeRAII paramScope(this);
   for (auto &&param : function.params) {
-    auto resolvedParam = resolveParamDecl(*param);
+    auto *resolvedParam = resolveParamDecl(ctx, *param);
 
-    if (!resolvedParam || !insertDeclToCurrentScope(*resolvedParam))
+    if (!resolvedParam || !insertDeclToCurrentScope(resolvedParam))
       return nullptr;
 
+    paramTypes.emplace_back(ctx.getType(resolvedParam));
     resolvedParams.emplace_back(std::move(resolvedParam));
   }
 
-  return std::make_unique<res::FunctionDecl>(
-      function.location, function.identifier, *type, std::move(resolvedParams),
-      nullptr);
+  return ctx.bind(ctx.create<res::FunctionDecl>(function.location,
+                                                function.identifier,
+                                                std::move(resolvedParams)),
+                  ctx.getFunctionType(std::move(paramTypes), retTy));
 };
 
-std::unique_ptr<res::StructDecl>
-Sema::resolveStructDecl(const ast::StructDecl &structDecl) {
-  std::set<std::string_view> identifiers;
-  std::vector<std::unique_ptr<res::FieldDecl>> resolvedFields;
-
-  unsigned idx = 0;
-  for (auto &&field : structDecl.fields) {
-    if (!identifiers.emplace(field->identifier).second)
-      return report(field->location,
-                    "field '" + field->identifier + "' is already declared");
-
-    // FIXME: this resolution logic will be reworked soon
-    resolvedFields.emplace_back(std::make_unique<res::FieldDecl>(
-        field->location, field->identifier, res::Type::custom(field->type.name),
-        idx++));
-  }
-
-  return std::make_unique<res::StructDecl>(
-      structDecl.location, structDecl.identifier,
-      res::Type::structType(structDecl.identifier), std::move(resolvedFields));
+res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
+                                         const ast::StructDecl &structDecl) {
+  auto *resolvedStruct =
+      ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier);
+  return ctx.bind(resolvedStruct, ctx.getStructType(*resolvedStruct));
 }
 
-bool Sema::resolveStructFields(res::StructDecl &resolvedStructDecl) {
-  std::stack<std::pair<res::StructDecl *, std::set<const res::StructDecl *>>>
-      worklist;
-  worklist.push({&resolvedStructDecl, {}});
-
-  while (!worklist.empty()) {
-    auto [currentDecl, visited] = worklist.top();
-    worklist.pop();
-
-    if (!visited.emplace(currentDecl).second) {
-      report(currentDecl->location,
-             "struct '" + currentDecl->identifier + "' contains itself");
-      return false;
-    }
-
-    for (auto &&field : currentDecl->fields) {
-      // FIXME: this resolution logic will be reworked soon
-      auto type = resolveType(ast::Type(field->location, field->type.name));
-      if (!type) {
-        report(field->location, "unable to resolve '" + field->type.name +
-                                    "' type of struct field");
-        return false;
-      }
-
-      if (type->kind == res::Type::Kind::Void) {
-        report(field->location, "struct field cannot be void");
-        return false;
-      }
-
-      if (type->kind == res::Type::Kind::Struct) {
-        auto *nestedStruct = lookupDecl<res::StructDecl>(type->name).first;
-        assert(nestedStruct && "unexpected type");
-
-        worklist.push({nestedStruct, visited});
-      }
-
-      field->type = *type;
-    }
-  }
-
-  return true;
-}
-
-std::vector<std::unique_ptr<res::Decl>> Sema::resolveAST() {
-  ScopeRAII globalScope(this);
-  std::vector<std::unique_ptr<res::Decl>> resolvedTree;
+res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
+                                           const ast::StructDecl &astDecl) {
+  // FIXME: should empty structs be allowed?
+  res::StructDecl *decl = lookupDecl<res::StructDecl>(astDecl.identifier).first;
+  assert(decl && !decl->isComplete);
 
   bool error = false;
-  std::vector<const ast::FunctionDecl *> functionsToResolve;
+  std::set<std::string_view> identifiers;
+  std::vector<res::FieldDecl *> resolvedFields;
+  for (auto &&field : astDecl.fields) {
+    varOrReturn(fieldTy, resolveType(ctx, *field->type));
+
+    auto loc = field->location;
+    if (fieldTy->isBuiltinVoid()) {
+      report(loc, "struct field cannot be 'void'");
+      error = true;
+    }
+
+    if (!identifiers.emplace(field->identifier).second) {
+      report(field->location,
+             "field '" + field->identifier + "' is already declared");
+      error = true;
+    }
+
+    auto *fieldDecl = ctx.create<res::FieldDecl>(loc, field->identifier,
+                                                 resolvedFields.size());
+    resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
+  }
+
+  if (error)
+    return nullptr;
+
+  decl->setFields(std::move(resolvedFields));
+  return decl;
+}
+
+std::optional<res::Context> Sema::resolveAST() {
+  ScopeRAII globalScope(this);
+  res::Context ctx = res::Context::createEmptyContext();
+  bool error = false;
 
   // Resolve every struct first so that functions have access to them in their
   // signature.
-  for (auto &&decl : ast) {
-    if (const auto *st = dynamic_cast<const ast::StructDecl *>(decl.get())) {
-      std::unique_ptr<res::Decl> resolvedDecl = resolveStructDecl(*st);
-
-      if (!resolvedDecl || !insertDeclToCurrentScope(*resolvedDecl)) {
-        error = true;
-        continue;
-      }
-
-      resolvedTree.emplace_back(std::move(resolvedDecl));
-      continue;
-    }
-
-    if (const auto *fn = dynamic_cast<const ast::FunctionDecl *>(decl.get())) {
-      functionsToResolve.emplace_back(fn);
-      continue;
-    }
-
-    llvm_unreachable("unexpected declaration");
-  }
-
+  for (auto &&st : ast->structs)
+    error |= !insertDeclToCurrentScope(resolveStructDecl(ctx, *st));
   if (error)
-    return {};
+    return std::nullopt;
 
   // Insert println first to be able to detect a possible redeclaration.
-  auto *printlnDecl = resolvedTree.emplace_back(createBuiltinPrintln()).get();
-  insertDeclToCurrentScope(*printlnDecl);
+  insertDeclToCurrentScope(createBuiltinPrintln(ctx));
 
-  for (auto &&fn : functionsToResolve) {
-    if (auto resolvedDecl = resolveFunctionDecl(*fn);
-        resolvedDecl && insertDeclToCurrentScope(*resolvedDecl)) {
-      resolvedTree.emplace_back(std::move(resolvedDecl));
+  for (auto &&fn : ast->functions)
+    error |= !insertDeclToCurrentScope(resolveFunctionDecl(ctx, *fn));
+  if (error)
+    return std::nullopt;
+
+  for (auto &&st : ast->structs)
+    error |= !resolveStructFields(ctx, *st);
+  if (error)
+    return std::nullopt;
+
+  if (!checkSelfContainingStructs(ctx))
+    return std::nullopt;
+
+  for (auto &&fn : ast->functions) {
+    ScopeRAII paramScope(this);
+
+    currentFunction = lookupDecl<res::FunctionDecl>(fn->identifier).first;
+    for (auto &&param : currentFunction->params)
+      insertDeclToCurrentScope(param);
+
+    auto *body = resolveBlock(ctx, *fn->body);
+    if (!body) {
+      error = true;
       continue;
     }
 
-    error = true;
+    currentFunction->setBody(body);
+    error |= runFlowSensitiveChecks(ctx, *currentFunction);
   }
 
   if (error)
-    return {};
+    return std::nullopt;
 
-  auto nextFunctionDecl = functionsToResolve.begin();
-  for (auto &&currentDecl : resolvedTree) {
-    if (auto *st = dynamic_cast<res::StructDecl *>(currentDecl.get())) {
-      if (!resolveStructFields(*st))
-        error = true;
+  return ctx;
+}
 
-      continue;
-    }
+bool Sema::checkSelfContainingStructs(const res::Context &ctx) {
+  std::stack<const res::StructDecl *> worklist;
+  std::set<const res::StructDecl *> selfContaining;
 
-    if (auto *fn = dynamic_cast<res::FunctionDecl *>(currentDecl.get())) {
-      if (fn == printlnDecl)
-        continue;
+  for (auto &&sd : ctx.getStructs()) {
+    std::set<const res::StructDecl *> seen;
+    worklist.emplace(sd);
 
-      ScopeRAII paramScope(this);
-      for (auto &&param : fn->params)
-        insertDeclToCurrentScope(*param);
+    while (!worklist.empty()) {
+      const res::StructDecl *decl = worklist.top();
+      worklist.pop();
 
-      currentFunction = fn;
-      if (auto resolvedBody = resolveBlock(*(*nextFunctionDecl++)->body)) {
-        fn->body = std::move(resolvedBody);
-        error |= runFlowSensitiveChecks(*fn);
+      if (!seen.emplace(decl).second) {
+        selfContaining.emplace(decl);
         continue;
       }
 
-      error = true;
+      for (auto &&field : decl->fields) {
+        const auto *type = ctx.getType(field);
+        if (!type->isStructType())
+          continue;
+
+        worklist.emplace(static_cast<const res::StructType *>(type)->decl);
+      }
     }
   }
 
-  if (error)
-    return {};
+  for (auto &&sd : selfContaining)
+    report(sd->location, "struct '" + sd->identifier + "' contains itself");
 
-  return resolvedTree;
+  return selfContaining.empty();
 }
 } // namespace yl

@@ -12,5 +12,5 @@ fn foo(s: S): void {}
 fn main(): void {
   foo(S {x: 0});
   foo(S2 {x: 0});
-  // CHECK: [[# @LINE - 1 ]]:7: error: unexpected type of argument
+  // CHECK: [[# @LINE - 1 ]]:10: error: expected 'S' argument, but received 'S2'
 }

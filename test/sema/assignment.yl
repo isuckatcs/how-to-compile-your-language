@@ -6,17 +6,17 @@ fn bar(): number { return 1.0; }
 fn main(): void {
     var x: number = 1.0;
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: assigned value type doesn't match variable type
+    // CHECK: [[# @LINE + 1 ]]:12: error: an expression of type 'void' cannot be assigned to a variable of type 'number'
     x = foo();
 
     let y: number = 3.0;
     
     y = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expected to call function 'bar'
+    // CHECK: [[# @LINE + 1 ]]:11: error: an expression of type 'number' cannot be assigned to a variable of type '() -> number'
     bar = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expected to call function 'foo'
+    // CHECK: [[# @LINE + 1 ]]:11: error: an expression of type 'number' cannot be assigned to a variable of type '() -> void'
     foo = 3.0;
 
     let z: number;

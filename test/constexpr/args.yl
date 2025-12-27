@@ -15,10 +15,12 @@ fn main(): void {
 // CHECK-NEXT: FunctionDecl: @({{.*}}) bar:
 // CHECK-NEXT:   ParamDecl: @({{.*}}) x:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) foo
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
 // CHECK-NEXT:       DeclRefExpr: @({{.*}}) x
 // CHECK-NEXT: FunctionDecl: @({{.*}}) main:
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr: @({{.*}}) bar
+// CHECK-NEXT:     CallExpr:
+// CHECK-NEXT:       DeclRefExpr: @({{.*}}) bar
 // CHECK-NEXT:       NumberLiteral: '1'
 // CHECK-NEXT:       | value: 1

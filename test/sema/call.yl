@@ -6,22 +6,22 @@ fn bar(x: number, y: number): void {}
 fn main(): void {
     let x: number = 1.0;
 
-    // CHECK: [[# @LINE + 1 ]]:6: error: calling non-function symbol
+    // CHECK: [[# @LINE + 1 ]]:6: error: calling expression of type 'number'
     x();
 
     // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'y' not found
     y();
 
-    // CHECK: [[# @LINE + 1 ]]:6: error: expression cannot be called as a function
+    // CHECK: [[# @LINE + 1 ]]:6: error: calling expression of type 'number'
     0();
 
     // CHECK: [[# @LINE + 1 ]]:8: error: argument count mismatch in function call
     foo(x);
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: unexpected type of argument
+    // CHECK: [[# @LINE + 1 ]]:12: error: expected 'number' argument, but received 'void'
     bar(foo(), foo());
 
-    // CHECK: [[# @LINE + 1 ]]:17: error: unexpected type of argument
+    // CHECK: [[# @LINE + 1 ]]:17: error: expected 'number' argument, but received 'void'
     bar(1.0, foo());
     
     // CHECK: [[# @LINE + 1 ]]:8: error: argument count mismatch in function call

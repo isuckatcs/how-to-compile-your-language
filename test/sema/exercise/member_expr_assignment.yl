@@ -8,5 +8,5 @@ fn main(): void {
 
   s.x = 1;
   s2.x = s2;
-  // CHECK: [[# @LINE - 1 ]]:10: error: assigned value type doesn't match variable type
+  // CHECK: [[# @LINE - 1 ]]:10: error: an expression of type 'S2' cannot be assigned to a variable of type 'number'
 }

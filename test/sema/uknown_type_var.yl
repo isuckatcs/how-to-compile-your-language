@@ -1,5 +1,10 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main(): void {
-    // CHECK: [[# @LINE + 1 ]]:9: error: variable 'x' has invalid 'userDefinedType' type
+    // CHECK: [[# @LINE + 1 ]]:12: error: failed to resolve type 'userDefinedType'
     let x: userDefinedType = 1.0;
+
+    let y = 0;
+
+    // CHECK: [[# @LINE + 1 ]]:12: error: failed to resolve type 'y'
+    let z: y = 1.0;
 }
