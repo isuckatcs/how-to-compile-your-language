@@ -103,7 +103,7 @@ int main(int argc, const char **argv) {
   auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {
-    for (auto &&decl : ast)
+    for (auto &&decl : ast.decls)
       decl->dump();
     return 0;
   }
@@ -115,27 +115,31 @@ int main(int argc, const char **argv) {
   auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
-    for (auto &&decl : resolvedTree)
-      decl->dump();
+    if (resolvedTree.has_value()) {
+      for (auto &&decl : resolvedTree->getStructs())
+        decl->dump();
+
+      for (auto &&decl : resolvedTree->getFunctions())
+        decl->dump();
+    }
+
     return 0;
   }
 
   if (options.cfgDump) {
-    for (auto &&decl : resolvedTree) {
-      const auto *fn = dynamic_cast<const res::FunctionDecl *>(decl.get());
-      if (!fn)
-        continue;
-
-      std::cerr << fn->identifier << ':' << '\n';
-      CFGBuilder().build(*fn).dump();
+    if (resolvedTree.has_value()) {
+      for (auto &&fn : resolvedTree->getFunctions()) {
+        std::cerr << fn->identifier << ':' << '\n';
+        CFGBuilder().build(*fn).dump();
+      }
     }
     return 0;
   }
 
-  if (resolvedTree.empty())
+  if (!resolvedTree.has_value())
     return 1;
 
-  Codegen codegen(std::move(resolvedTree), options.source.c_str());
+  Codegen codegen(*resolvedTree, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
@@ -154,6 +158,7 @@ int main(int argc, const char **argv) {
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
+  // FIXME: upgrade LLVM to 17+ for opaque pointers
   command << "clang-14 " << llvmIRPath;
   if (!options.output.empty())
     command << " -o " << options.output;
