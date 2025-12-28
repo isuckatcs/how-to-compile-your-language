@@ -12,8 +12,8 @@ fn main(): void {
 
 // CHECK: define void @println(double %n) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0), double %n)
+// CHECK-NEXT:   %0 = call i32 (ptr, ...) @printf(ptr @0, double %n)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: declare i32 @printf(i8*, ...)
+// CHECK: declare i32 @printf(ptr, ...)

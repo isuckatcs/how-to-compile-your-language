@@ -17,37 +17,37 @@ fn foo(var x: number): number {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %x1 = alloca double, align 8
-// CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %1 = fcmp oeq double %0, 1.000000e+00
 // CHECK-NEXT:   %to.double = uitofp i1 %1 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %if.true, label %if.false
 // CHECK-NEXT: 
 // CHECK-NEXT: if.true:                                          ; preds = %entry
-// CHECK-NEXT:   store double 2.000000e+00, double* %retval, align 8
+// CHECK-NEXT:   store double 2.000000e+00, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: if.false:                                         ; preds = %entry
-// CHECK-NEXT:   %2 = load double, double* %x1, align 8
+// CHECK-NEXT:   %2 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %3 = fcmp oeq double %2, 2.000000e+00
 // CHECK-NEXT:   %to.double2 = uitofp i1 %3 to double
 // CHECK-NEXT:   %to.bool3 = fcmp one double %to.double2, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool3, label %if.true4, label %if.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: if.true4:                                         ; preds = %if.false
-// CHECK-NEXT:   store double 1.000000e+01, double* %retval, align 8
+// CHECK-NEXT:   store double 1.000000e+01, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: if.exit:                                          ; preds = %if.false
 // CHECK-NEXT:   br label %if.exit5
 // CHECK-NEXT: 
 // CHECK-NEXT: if.exit5:                                         ; preds = %if.exit
-// CHECK-NEXT:   store double 5.200000e+00, double* %retval, align 8
+// CHECK-NEXT:   store double 5.200000e+00, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit5, %if.true4, %if.true
-// CHECK-NEXT:   %4 = load double, double* %retval, align 8
+// CHECK-NEXT:   %4 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %4
 // CHECK-NEXT: }
 

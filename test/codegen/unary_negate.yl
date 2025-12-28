@@ -3,25 +3,25 @@
 fn negate(var x: number): number {
     return -x;
     
-    // CHECK: %0 = load double, double* %x1, align 8
+    // CHECK: %0 = load double, ptr %x1, align 8
     // CHECK-NEXT: %1 = fneg double %0
 }
 
 fn null(var x: number): number {
     return --x;
 
-    // CHECK: %0 = load double, double* %x1, align 8
+    // CHECK: %0 = load double, ptr %x1, align 8
     // CHECK-NEXT: %1 = fneg double %0
     // CHECK-NEXT: %2 = fneg double %1
 }
 
 fn timesNeg3(var x: number): number {
     return -(x - -x -(-x));
-    // CHECK: %0 = load double, double* %x1, align 8
-    // CHECK-NEXT: %1 = load double, double* %x1, align 8
+    // CHECK: %0 = load double, ptr %x1, align 8
+    // CHECK-NEXT: %1 = load double, ptr %x1, align 8
     // CHECK-NEXT: %2 = fneg double %1
     // CHECK-NEXT: %3 = fsub double %0, %2
-    // CHECK-NEXT: %4 = load double, double* %x1, align 8
+    // CHECK-NEXT: %4 = load double, ptr %x1, align 8
     // CHECK-NEXT: %5 = fneg double %4
     // CHECK-NEXT: %6 = fsub double %3, %5
     // CHECK-NEXT: %7 = fneg double %6

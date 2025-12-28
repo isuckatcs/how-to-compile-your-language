@@ -11,11 +11,11 @@ fn constant(): number {
 // CHECK: define double @constant() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   store double 1.000000e+00, double* %retval, align 8
+// CHECK-NEXT:   store double 1.000000e+00, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load double, double* %retval, align 8
+// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
 
@@ -25,11 +25,11 @@ fn constant2(): number {
 // CHECK: define double @constant2() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   store double 0.000000e+00, double* %retval, align 8
+// CHECK-NEXT:   store double 0.000000e+00, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load double, double* %retval, align 8
+// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
 

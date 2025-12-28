@@ -17,20 +17,20 @@ fn foo(var x: number, var y: number, var z: number): void {
 // CHECK-NEXT:   %x4 = alloca double, align 8
 // CHECK-NEXT:   %y5 = alloca double, align 8
 // CHECK-NEXT:   %z6 = alloca double, align 8
-// CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   store double %y, double* %y2, align 8
-// CHECK-NEXT:   store double %z, double* %z3, align 8
-// CHECK-NEXT:   %0 = load double, double* %x1, align 8
-// CHECK-NEXT:   store double %0, double* %x4, align 8
-// CHECK-NEXT:   %1 = load double, double* %y2, align 8
-// CHECK-NEXT:   store double %1, double* %y5, align 8
-// CHECK-NEXT:   %2 = load double, double* %z3, align 8
-// CHECK-NEXT:   store double %2, double* %z6, align 8
-// CHECK-NEXT:   %3 = load double, double* %x4, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   store double %y, ptr %y2, align 8
+// CHECK-NEXT:   store double %z, ptr %z3, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
+// CHECK-NEXT:   store double %0, ptr %x4, align 8
+// CHECK-NEXT:   %1 = load double, ptr %y2, align 8
+// CHECK-NEXT:   store double %1, ptr %y5, align 8
+// CHECK-NEXT:   %2 = load double, ptr %z3, align 8
+// CHECK-NEXT:   store double %2, ptr %z6, align 8
+// CHECK-NEXT:   %3 = load double, ptr %x4, align 8
 // CHECK-NEXT:   call void @println(double %3)
-// CHECK-NEXT:   %4 = load double, double* %y5, align 8
+// CHECK-NEXT:   %4 = load double, ptr %y5, align 8
 // CHECK-NEXT:   call void @println(double %4)
-// CHECK-NEXT:   %5 = load double, double* %z6, align 8
+// CHECK-NEXT:   %5 = load double, ptr %z6, align 8
 // CHECK-NEXT:   call void @println(double %5)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

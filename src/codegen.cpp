@@ -1,6 +1,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 
 #include "codegen.h"
 
@@ -35,17 +35,17 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     std::vector<llvm::Type *> args;
 
     if (fnTy->ret->isStructType()) {
-      args.emplace_back(llvm::PointerType::get(generateType(fnTy->ret), 0));
+      args.emplace_back(llvm::PointerType::get(context, 0));
       res = builder.getVoidTy();
     } else if (fnTy->ret->isFunctionType()) {
-      res = llvm::PointerType::get(generateType(fnTy->ret), 0);
+      res = llvm::PointerType::get(context, 0);
     } else {
       res = generateType(fnTy->ret);
     }
 
     for (auto &&arg : fnTy->args) {
       if (arg->isStructType() || arg->isFunctionType())
-        args.emplace_back(llvm::PointerType::get(generateType(arg), 0));
+        args.emplace_back(llvm::PointerType::get(context, 0));
       else
         args.emplace_back(generateType(arg));
     }
@@ -281,7 +281,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   llvm::CallInst *callInst =
       builder.CreateCall(llvm::cast<llvm::FunctionType>(
-                             callee->getType()->getPointerElementType()),
+                             generateType(resolvedTree->getType(call.callee))),
                          callee, args);
   callInst->setAttributes(constructAttrList(calleeDecl));
 
@@ -542,18 +542,15 @@ void Codegen::generateFunctionBody(const res::FunctionDecl &functionDecl) {
   if (returnTy->isVoidTy())
     builder.CreateRetVoid();
   else
-    // FIXME: this will go away with opaque pointers
-    builder.CreateRet(loadValue(
-        returnTy->isPointerTy() ? builder.CreateLoad(returnTy, retVal) : retVal,
-        returnTy));
+    builder.CreateRet(loadValue(retVal, returnTy));
 }
 
 void Codegen::generateBuiltinPrintlnBody(const res::FunctionDecl &println) {
-  auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
-                                       {builder.getInt8PtrTy()}, true);
+  auto *type =
+      llvm::FunctionType::get(builder.getInt32Ty(), {builder.getPtrTy()}, true);
   auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
                                         "printf", module);
-  auto *format = builder.CreateGlobalStringPtr("%.15g\n");
+  auto *format = builder.CreateGlobalString("%.15g\n");
 
   llvm::Value *param = declarations[println.params[0]];
 

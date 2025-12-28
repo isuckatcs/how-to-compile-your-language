@@ -12,8 +12,8 @@ fn main(): void {
 // CHECK: define void @foo(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
-// CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %1 = fcmp oeq double %0, 0.000000e+00
 // CHECK-NEXT:   %to.double = uitofp i1 %1 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00

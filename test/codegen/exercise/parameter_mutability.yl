@@ -8,9 +8,9 @@ fn mutableParam(var n: number): void {
 // CHECK: define void @mutableParam(double %n) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %n1 = alloca double, align 8
-// CHECK-NEXT:   store double %n, double* %n1, align 8
-// CHECK-NEXT:   store double 3.000000e+00, double* %n1, align 8
-// CHECK-NEXT:   %0 = load double, double* %n1, align 8
+// CHECK-NEXT:   store double %n, ptr %n1, align 8
+// CHECK-NEXT:   store double 3.000000e+00, ptr %n1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %n1, align 8
 // CHECK-NEXT:   call void @println(double %0)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
@@ -38,19 +38,19 @@ fn main(): void {
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %n = alloca double, align 8
-// CHECK-NEXT:   store double 2.000000e+00, double* %n, align 8
-// CHECK-NEXT:   %0 = load double, double* %n, align 8
+// CHECK-NEXT:   store double 2.000000e+00, ptr %n, align 8
+// CHECK-NEXT:   %0 = load double, ptr %n, align 8
 // CHECK-NEXT:   call void @mutableParam(double %0)
 
 // CHECK-NEXT:   call void @println(double 2.000000e+00)
 
-// CHECK-NEXT:   %1 = load double, double* %n, align 8
+// CHECK-NEXT:   %1 = load double, ptr %n, align 8
 // CHECK-NEXT:   %2 = fsub double %1, 1.000000e+00
-// CHECK-NEXT:   store double %2, double* %n, align 8
-// CHECK-NEXT:   %3 = load double, double* %n, align 8
+// CHECK-NEXT:   store double %2, ptr %n, align 8
+// CHECK-NEXT:   %3 = load double, ptr %n, align 8
 // CHECK-NEXT:   call void @immutableParam(double %3)
 
-// CHECK-NEXT:   %4 = load double, double* %n, align 8
+// CHECK-NEXT:   %4 = load double, ptr %n, align 8
 // CHECK-NEXT:   call void @println(double %4)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

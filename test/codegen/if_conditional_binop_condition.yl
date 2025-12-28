@@ -7,15 +7,15 @@ fn foo(var x: number): void {
 // CHECK: define void @foo(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
-// CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %0 = load double, double* %x1, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %1 = fcmp oeq double %0, 1.000000e+00
 // CHECK-NEXT:   %to.double = uitofp i1 %1 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %entry
-// CHECK-NEXT:   %2 = load double, double* %x1, align 8
+// CHECK-NEXT:   %2 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %3 = fcmp oeq double %2, 2.000000e+00
 // CHECK-NEXT:   %to.double2 = uitofp i1 %3 to double
 // CHECK-NEXT:   %to.bool3 = fcmp one double %to.double2, 0.000000e+00
@@ -28,7 +28,7 @@ fn foo(var x: number): void {
 // CHECK-NEXT:   br i1 %to.bool9, label %if.true, label %if.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %or.rhs
-// CHECK-NEXT:   %5 = load double, double* %x1, align 8
+// CHECK-NEXT:   %5 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %6 = fcmp ogt double %5, 3.000000e+00
 // CHECK-NEXT:   %to.double4 = uitofp i1 %6 to double
 // CHECK-NEXT:   %to.bool5 = fcmp one double %to.double4, 0.000000e+00

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 
 project(how-to-compile-your-language)
 
-find_package(LLVM 14.0.0 REQUIRED CONFIG)
+find_package(LLVM 20.1 REQUIRED CONFIG)
 include_directories(include "${LLVM_INCLUDE_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)

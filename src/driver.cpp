@@ -143,7 +143,7 @@ int main(int argc, const char **argv) {
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {
-    llvmIR->print(llvm::dbgs(), nullptr);
+    llvmIR->print(llvm::errs(), nullptr);
     return 0;
   }
 
@@ -158,8 +158,7 @@ int main(int argc, const char **argv) {
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  // FIXME: upgrade LLVM to 17+ for opaque pointers
-  command << "clang-14 " << llvmIRPath;
+  command << "clang-20 " << llvmIRPath;
   if (!options.output.empty())
     command << " -o " << options.output;
 

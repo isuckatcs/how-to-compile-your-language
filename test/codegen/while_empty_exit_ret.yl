@@ -16,24 +16,24 @@ fn main(): void {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   %i = alloca double, align 8
-// CHECK-NEXT:   store double %x, double* %x1, align 8
-// CHECK-NEXT:   %0 = load double, double* %x1, align 8
-// CHECK-NEXT:   store double %0, double* %i, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
+// CHECK-NEXT:   store double %0, ptr %i, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
 // CHECK-NEXT: while.cond:                                       ; preds = %while.body, %entry
-// CHECK-NEXT:   %1 = load double, double* %i, align 8
+// CHECK-NEXT:   %1 = load double, ptr %i, align 8
 // CHECK-NEXT:   %2 = fcmp ogt double %1, 1.000000e+00
 // CHECK-NEXT:   %to.double = uitofp i1 %2 to double
 // CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                       ; preds = %while.cond
-// CHECK-NEXT:   %3 = load double, double* %i, align 8
+// CHECK-NEXT:   %3 = load double, ptr %i, align 8
 // CHECK-NEXT:   call void @println(double %3)
-// CHECK-NEXT:   %4 = load double, double* %i, align 8
+// CHECK-NEXT:   %4 = load double, ptr %i, align 8
 // CHECK-NEXT:   %5 = fsub double %4, 1.000000e+00
-// CHECK-NEXT:   store double %5, double* %i, align 8
+// CHECK-NEXT:   store double %5, ptr %i, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
 // CHECK-NEXT: while.exit:                                       ; preds = %while.cond

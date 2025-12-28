@@ -70,7 +70,7 @@ fn insertPointNonEmptyBlock(): void {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: if.exit:                                            ; preds = %entry
-// CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
+// CHECK-NEXT:   store double 1.000000e+00, ptr %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
@@ -96,7 +96,7 @@ fn insertPointNonEmptyBlock2(): void {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: while.exit:                                        ; preds = %while.cond
-// CHECK-NEXT:   store double 1.000000e+00, double* %x, align 8
+// CHECK-NEXT:   store double 1.000000e+00, ptr %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %while.exit, %while.body
