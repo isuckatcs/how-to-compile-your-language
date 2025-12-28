@@ -4,14 +4,12 @@
 #include <llvm/IR/IRBuilder.h>
 
 #include <map>
-#include <memory>
-#include <vector>
 
 #include "res.h"
 
 namespace yl {
 class Codegen {
-  std::vector<std::unique_ptr<res::Decl>> resolvedTree;
+  const res::Context *resolvedTree;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   llvm::Value *retVal = nullptr;
@@ -22,7 +20,7 @@ class Codegen {
   llvm::IRBuilder<> builder;
   llvm::Module module;
 
-  llvm::Type *generateType(res::Type type);
+  llvm::Type *generateType(const res::Type *type);
 
   llvm::Value *generateStmt(const res::Stmt &stmt);
   llvm::Value *generateIfStmt(const res::IfStmt &stmt);
@@ -45,16 +43,15 @@ class Codegen {
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
 
-  llvm::Value *loadValue(llvm::Value *val, const res::Type &type);
-  llvm::Value *
-  storeValue(llvm::Value *val, llvm::Value *ptr, const res::Type &type);
+  llvm::Value *loadValue(llvm::Value *val, llvm::Type *type);
+  llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);
   void breakIntoBB(llvm::BasicBlock *targetBB);
 
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
-                                          const res::Type &type);
+                                          llvm::Type *type);
   llvm::AttributeList constructAttrList(const res::FunctionDecl *fn);
 
   void generateBlock(const res::Block &block);
@@ -67,8 +64,7 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  Codegen(std::vector<std::unique_ptr<res::Decl>> resolvedTree,
-          std::string_view sourcePath);
+  Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };
