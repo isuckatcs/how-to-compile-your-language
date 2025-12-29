@@ -13,5 +13,5 @@ fn main(): void {
 
   s = s;
   s = s2;
-  // CHECK: [[# @LINE - 1 ]]:7: error: an expression of type 'S2' cannot be assigned to a variable of type 'S'
+  // CHECK: [[# @LINE - 1 ]]:7: error: expected to assign 'S' but received 'S2' instead
 }

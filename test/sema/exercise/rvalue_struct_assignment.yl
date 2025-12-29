@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S { x: number }
+
+fn foo(): S {
+  return S { x: 1 };
+}
+
+fn main(): void {
+  let s = S { x: 2 };
+  foo() = s;
+  // CHECK: [[# @LINE - 1 ]]:6: error: expression is not assignable
+}
+

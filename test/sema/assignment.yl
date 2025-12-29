@@ -6,18 +6,21 @@ fn bar(): number { return 1.0; }
 fn main(): void {
     var x: number = 1.0;
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: an expression of type 'void' cannot be assigned to a variable of type 'number'
+    // CHECK: [[# @LINE + 1 ]]:12: error: 'void' expression is not allowed inside assignment
     x = foo();
 
     let y: number = 3.0;
     
     y = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:11: error: an expression of type 'number' cannot be assigned to a variable of type '() -> number'
+    // CHECK: [[# @LINE + 1 ]]:5: error: expression is not assignable
     bar = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:11: error: an expression of type 'number' cannot be assigned to a variable of type '() -> void'
+    // CHECK: [[# @LINE + 1 ]]:5: error: expression is not assignable
     foo = 3.0;
+
+    // CHECK: [[# @LINE + 1 ]]:7: error: expression is not assignable
+    1 + 1 = 2;
 
     let z: number;
     z = 3.0;

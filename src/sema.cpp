@@ -309,9 +309,14 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
+  res::Expr::Kind kind = decl->isFunctionDecl() || decl->isStructDecl()
+                             ? res::Expr::Kind::Rvalue
+                             : res::Expr::Kind::Lvalue;
+
   // FIXME: handle templates
-  return ctx.bind(ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl),
-                  ctx.getType(decl));
+  return ctx.bind(
+      ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl, kind),
+      ctx.getType(decl));
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
@@ -352,24 +357,18 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     res::Context &ctx,
     const ast::StructInstantiationExpr &structInstantiation) {
 
-  // FIXME: revisit
-  varOrReturn(structExpr,
-              resolveDeclRefExpr(ctx, *structInstantiation.structRef));
+  varOrReturn(dre, resolveDeclRefExpr(ctx, *structInstantiation.structRef));
 
-  auto type = ctx.getType(structExpr);
-  if (!type->isStructType())
-    return report(structInstantiation.location,
-                  "'" + type->asString() + "' is not a struct type");
-  res::StructDecl *st =
-      lookupDecl<res::StructDecl>(
-          static_cast<const res::StructType *>(type)->decl->identifier)
-          .first;
+  if (!dre->decl->isStructDecl())
+    return report(dre->location, "expected struct declaration to instantiate");
+
+  auto *sd = static_cast<res::StructDecl *>(dre->decl);
 
   std::vector<res::FieldInitStmt *> resolvedFieldInits;
   std::map<std::string_view, res::FieldInitStmt *> inits;
 
   std::map<std::string_view, res::FieldDecl *> fields;
-  for (auto &&fieldDecl : st->fields)
+  for (auto &&fieldDecl : sd->fields)
     fields[fieldDecl->identifier] = fieldDecl;
 
   bool error = false;
@@ -385,13 +384,13 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     res::FieldDecl *fieldDecl = fields[id];
     if (!fieldDecl) {
-      report(loc, "'" + st->identifier + "' has no field named '" +
+      report(loc, "'" + sd->identifier + "' has no field named '" +
                       std::string{id} + "'");
       error = true;
       continue;
     }
 
-    auto resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer);
+    auto *resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer);
     if (!resolvedInitExpr) {
       error = true;
       continue;
@@ -411,7 +410,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
         ctx.create<res::FieldInitStmt>(loc, fieldDecl, resolvedInitExpr));
   }
 
-  for (auto &&fieldDecl : st->fields) {
+  for (auto &&fieldDecl : sd->fields) {
     if (!inits.count(fieldDecl->identifier)) {
       report(structInstantiation.location,
              "field '" + fieldDecl->identifier + "' is not initialized");
@@ -428,9 +427,9 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     return nullptr;
 
   return ctx.bind(
-      ctx.create<res::StructInstantiationExpr>(structInstantiation.location, st,
+      ctx.create<res::StructInstantiationExpr>(structInstantiation.location, sd,
                                                std::move(resolvedFieldInits)),
-      type);
+      ctx.getType(sd));
 }
 
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
@@ -533,16 +532,20 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   varOrReturn(rhs, resolveExpr(ctx, *assignment.expr));
   varOrReturn(lhs, resolveExpr(ctx, *assignment.assignee));
 
-  auto lhsTy = ctx.getType(lhs);
-  auto rhsTy = ctx.getType(rhs);
+  if (!lhs->isLvalue())
+    return report(lhs->location, "expression is not assignable");
 
-  // FIXME: what if RHS is void, or the assignee is not a variable, but field or
-  // a parameter?
-  if (!ctx.unify(lhsTy, rhsTy))
+  const auto *lhsTy = ctx.getType(lhs);
+  const auto *rhsTy = ctx.getType(rhs);
+
+  if (rhsTy->isBuiltinVoid())
     return report(rhs->location,
-                  "an expression of type '" + rhsTy->asString() +
-                      "' cannot be assigned to a variable of type '" +
-                      lhsTy->asString() + "'");
+                  "'void' expression is not allowed inside assignment");
+
+  if (!ctx.unify(lhsTy, rhsTy))
+    return report(rhs->location, "expected to assign '" + lhsTy->asString() +
+                                     "' but received '" + rhsTy->asString() +
+                                     "' instead");
   rhs->setConstantValue(cee.evaluate(*rhs, false));
 
   return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
@@ -610,10 +613,9 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
   if (const auto *declRefExpr = dynamic_cast<const ast::DeclRefExpr *>(&expr)) {
     varOrReturn(dre, resolveDeclRefExpr(ctx, *declRefExpr));
 
-    if (!dynamic_cast<res::ValueDecl *>(dre->decl))
-      return report(declRefExpr->location,
-                    "expected value, but received type '" +
-                        declRefExpr->identifier + '\'');
+    if (dre->decl->isStructDecl())
+      return report(declRefExpr->location, "expected an instance of '" +
+                                               declRefExpr->identifier + '\'');
 
     return dre;
   }

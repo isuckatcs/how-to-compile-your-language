@@ -22,34 +22,54 @@ struct Stmt {
 };
 
 struct Expr : public ConstantValueContainer<double>, public Stmt {
-  Expr(SourceLocation location)
-      : Stmt(location) {}
+  enum class Kind { Lvalue, Rvalue };
+
+  Kind kind;
+
+  Expr(SourceLocation location, Kind kind)
+      : Stmt(location),
+        kind(kind) {}
+
+  bool isLvalue() const { return kind == Kind::Lvalue; }
 
   virtual ~Expr() = default;
 };
 
 struct Decl {
+  enum class Kind { StructDecl, FieldDecl, FunctionDecl, ParamDecl, VarDecl };
+
   SourceLocation location;
   std::string identifier;
+  Kind kind;
 
-  Decl(SourceLocation location, std::string identifier)
+  Decl(SourceLocation location, std::string identifier, Kind kind)
       : location(location),
-        identifier(std::move(identifier)) {}
+        identifier(std::move(identifier)),
+        kind(kind) {}
   virtual ~Decl() = default;
+
+  bool isStructDecl() const { return kind == Kind::StructDecl; }
+  bool isFieldDecl() const { return kind == Kind::FieldDecl; }
+  bool isFunctionDecl() const { return kind == Kind::FunctionDecl; }
+  bool isParamDecl() const { return kind == Kind::ParamDecl; }
+  bool isVarDecl() const { return kind == Kind::VarDecl; }
 
   virtual void dump(size_t level = 0) const = 0;
 };
 
 struct TypeDecl : public Decl {
-  TypeDecl(SourceLocation location, std::string identifier)
-      : Decl(location, std::move(identifier)) {}
+  TypeDecl(SourceLocation location, std::string identifier, Kind kind)
+      : Decl(location, std::move(identifier), kind) {}
 };
 
 struct ValueDecl : public Decl {
   bool isMutable;
 
-  ValueDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : Decl(location, std::move(identifier)),
+  ValueDecl(SourceLocation location,
+            std::string identifier,
+            Kind kind,
+            bool isMutable)
+      : Decl(location, std::move(identifier), kind),
         isMutable(isMutable) {}
 };
 
@@ -95,7 +115,9 @@ struct WhileStmt : public Stmt {
 
 struct ParamDecl : public ValueDecl {
   ParamDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : ValueDecl(location, std::move(identifier), isMutable) {}
+      : ValueDecl(
+            location, std::move(identifier), Decl::Kind::ParamDecl, isMutable) {
+  }
 
   void dump(size_t level = 0) const override;
 };
@@ -104,7 +126,8 @@ struct FieldDecl : public ValueDecl {
   unsigned index;
 
   FieldDecl(SourceLocation location, std::string identifier, unsigned index)
-      : ValueDecl(location, std::move(identifier), false),
+      : ValueDecl(
+            location, std::move(identifier), Decl::Kind::FieldDecl, false),
         index(index) {}
 
   void dump(size_t level = 0) const override;
@@ -117,7 +140,8 @@ struct VarDecl : public ValueDecl {
           std::string identifier,
           bool isMutable,
           Expr *initializer = nullptr)
-      : ValueDecl(location, std::move(identifier), isMutable),
+      : ValueDecl(
+            location, std::move(identifier), Decl::Kind::VarDecl, isMutable),
         initializer(initializer) {}
 
   void dump(size_t level = 0) const override;
@@ -131,7 +155,8 @@ struct FunctionDecl : public ValueDecl {
   FunctionDecl(SourceLocation location,
                std::string identifier,
                std::vector<ParamDecl *> params)
-      : ValueDecl(location, std::move(identifier), false),
+      : ValueDecl(
+            location, std::move(identifier), Decl::Kind::FunctionDecl, false),
         params(std::move(params)) {}
 
   void setBody(Block *body);
@@ -144,7 +169,7 @@ struct StructDecl : public TypeDecl {
   bool isComplete = false;
 
   StructDecl(SourceLocation location, std::string identifier)
-      : TypeDecl(location, std::move(identifier)) {}
+      : TypeDecl(location, std::move(identifier), Decl::Kind::StructDecl) {}
 
   void setFields(std::vector<FieldDecl *> fields);
 
@@ -155,7 +180,7 @@ struct NumberLiteral : public Expr {
   double value;
 
   NumberLiteral(SourceLocation location, double value)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Rvalue),
         value(value) {}
 
   void dump(size_t level = 0) const override;
@@ -166,7 +191,7 @@ struct CallExpr : public Expr {
   std::vector<Expr *> arguments;
 
   CallExpr(SourceLocation location, Expr *callee, std::vector<Expr *> arguments)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Rvalue),
         callee(callee),
         arguments(std::move(arguments)) {}
 
@@ -176,8 +201,8 @@ struct CallExpr : public Expr {
 struct DeclRefExpr : public Expr {
   Decl *decl;
 
-  DeclRefExpr(SourceLocation location, Decl &decl)
-      : Expr(location),
+  DeclRefExpr(SourceLocation location, Decl &decl, Expr::Kind kind)
+      : Expr(location, kind),
         decl(&decl) {}
 
   void dump(size_t level = 0) const override;
@@ -188,7 +213,7 @@ struct MemberExpr : public Expr {
   FieldDecl *field;
 
   MemberExpr(SourceLocation location, Expr *base, FieldDecl *field)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Lvalue),
         base(base),
         field(field) {}
 
@@ -199,7 +224,7 @@ struct GroupingExpr : public Expr {
   Expr *expr;
 
   GroupingExpr(SourceLocation location, Expr *expr)
-      : Expr(location),
+      : Expr(location, expr->kind),
         expr(expr) {}
 
   void dump(size_t level = 0) const override;
@@ -211,7 +236,7 @@ struct BinaryOperator : public Expr {
   Expr *rhs;
 
   BinaryOperator(SourceLocation location, TokenKind op, Expr *lhs, Expr *rhs)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Rvalue),
         op(op),
         lhs(lhs),
         rhs(rhs) {}
@@ -224,7 +249,7 @@ struct UnaryOperator : public Expr {
   Expr *operand;
 
   UnaryOperator(SourceLocation location, TokenKind op, Expr *operand)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Rvalue),
         op(op),
         operand(operand) {}
 
@@ -282,7 +307,7 @@ struct StructInstantiationExpr : public Expr {
   StructInstantiationExpr(SourceLocation location,
                           StructDecl *structDecl,
                           std::vector<FieldInitStmt *> fieldInitializers)
-      : Expr(location),
+      : Expr(location, Expr::Kind::Lvalue),
         structDecl(structDecl),
         fieldInitializers(std::move(fieldInitializers)) {}
 
