@@ -412,15 +412,13 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
 // <assignment>
 //  ::= <expr> '=' <expr> ';'
 std::unique_ptr<ast::Stmt> Parser::parseAssignmentOrExpr() {
-  varOrReturn(lhs, parsePrefixExpr());
+  varOrReturn(lhs, parseExpr());
 
   if (nextToken.kind != TokenKind::Equal) {
-    varOrReturn(expr, parseExprRHS(std::move(lhs), 0));
-
     matchOrReturn(TokenKind::Semi, "expected ';' at the end of expression");
     eatNextToken(); // eat ';'
 
-    return expr;
+    return lhs;
   }
 
   SourceLocation location = nextToken.location;
