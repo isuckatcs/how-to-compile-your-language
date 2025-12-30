@@ -8,19 +8,21 @@ fn bar(x: number): void {
 fn main(): void {
     bar(1.0);
 }
-
-// CHECK: FunctionDecl: @({{.*}}) foo:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: @({{.*}}) bar:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) x:
+// CHECK-NEXT: FunctionDecl @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) foo
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) x
-// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT: FunctionDecl @({{.*}}) bar {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) bar
-// CHECK-NEXT:       NumberLiteral: '1'
+// CHECK-NEXT:     CallExpr {void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) bar {(number) -> void}
+// CHECK-NEXT:       NumberLiteral '1' {number}
 // CHECK-NEXT:       | value: 1

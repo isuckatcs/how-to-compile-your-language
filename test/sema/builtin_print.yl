@@ -1,6 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main(): void {}
 
-// CHECK: FunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:  ParamDecl: @({{.*}}) n:
-// CHECK-NEXT:  Block
+// CHECK: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
+// CHECK-NEXT:   Block
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block

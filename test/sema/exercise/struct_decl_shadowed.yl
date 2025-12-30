@@ -7,15 +7,15 @@ fn main(): void {
 
   println(S);
 }
-// CHECK: FunctionDecl: @({{.*}}) main:
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) S:
-// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) S {number}
+// CHECK-NEXT:         NumberLiteral '1' {number}
 // CHECK-NEXT:         | value: 1
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) x:
-// CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) println
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) S
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {S}
+// CHECK-NEXT:     CallExpr {void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) S {number}
 // CHECK-NEXT:       | value: 1

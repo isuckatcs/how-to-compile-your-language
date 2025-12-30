@@ -8,20 +8,20 @@ fn main(): void {
 
   let x = S.x;
 }
-// CHECK: StructDecl: @({{.*}}) S:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT: FunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) n:
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) S:
-// CHECK-NEXT:         StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:             NumberLiteral: '0'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) S {S}
+// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {S}
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) x:
-// CHECK-NEXT:         MemberExpr: @({{.*}}) x
-// CHECK-NEXT:           DeclRefExpr: @({{.*}}) S
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {number}
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}

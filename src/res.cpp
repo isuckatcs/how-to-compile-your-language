@@ -5,46 +5,54 @@
 #include "res.h"
 #include "utils.h"
 
+#define printType(node)                                                        \
+  if (auto *ty = ctx.getType(node))                                            \
+    std::cerr << ' ' << '{' << ty->asString() << '}';
+
 namespace yl {
 namespace res {
-void Block::dump(size_t level) const {
+void Block::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
   for (auto &&stmt : statements)
-    stmt->dump(level + 1);
+    stmt->dump(ctx, level + 1);
 }
 
-void IfStmt::dump(size_t level) const {
+void IfStmt::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "IfStmt\n";
 
-  condition->dump(level + 1);
-  trueBlock->dump(level + 1);
+  condition->dump(ctx, level + 1);
+  trueBlock->dump(ctx, level + 1);
   if (falseBlock)
-    falseBlock->dump(level + 1);
+    falseBlock->dump(ctx, level + 1);
 }
 
-void WhileStmt::dump(size_t level) const {
+void WhileStmt::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "WhileStmt\n";
 
-  condition->dump(level + 1);
-  body->dump(level + 1);
+  condition->dump(ctx, level + 1);
+  body->dump(ctx, level + 1);
 }
 
-void ParamDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ParamDecl: @(" << this << ") " << identifier
-            << ':' << '\n';
+void ParamDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "ParamDecl @(" << this << ") " << identifier;
+  printType(this);
+  std::cerr << '\n';
 }
 
-void FieldDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FieldDecl: @(" << this << ") " << identifier
-            << '\n';
+void FieldDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "FieldDecl @(" << this << ") " << identifier;
+  printType(this);
+  std::cerr << '\n';
 }
 
-void VarDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "VarDecl: @(" << this << ") " << identifier
-            << ':' << '\n';
+void VarDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "VarDecl @(" << this << ") " << identifier;
+  printType(this);
+  std::cerr << '\n';
+
   if (initializer)
-    initializer->dump(level + 1);
+    initializer->dump(ctx, level + 1);
 }
 
 void FunctionDecl::setBody(Block *body) {
@@ -55,15 +63,17 @@ void FunctionDecl::setBody(Block *body) {
   isComplete = true;
 }
 
-void FunctionDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FunctionDecl: @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "") << ':' << '\n';
+void FunctionDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "FunctionDecl @(" << this << ") " << identifier
+            << (!isComplete ? " [incomplete]" : "");
+  printType(this);
+  std::cerr << '\n';
 
   for (auto &&param : params)
-    param->dump(level + 1);
+    param->dump(ctx, level + 1);
 
   if (body)
-    body->dump(level + 1);
+    body->dump(ctx, level + 1);
 }
 
 void StructDecl::setFields(std::vector<FieldDecl *> fields) {
@@ -73,102 +83,124 @@ void StructDecl::setFields(std::vector<FieldDecl *> fields) {
   isComplete = true;
 }
 
-void StructDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "StructDecl: @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "") << ':' << '\n';
+void StructDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "StructDecl @(" << this << ") " << identifier
+            << (!isComplete ? " [incomplete]" : "");
+  printType(this);
+  std::cerr << '\n';
 
   for (auto &&field : fields)
-    field->dump(level + 1);
+    field->dump(ctx, level + 1);
 }
 
-void NumberLiteral::dump(size_t level) const {
-  std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+void NumberLiteral::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "NumberLiteral '" << value << '\'';
+  printType(this);
+  std::cerr << '\n';
+
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
-void DeclRefExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclRefExpr: @(" << decl << ") "
-            << decl->identifier << '\n';
+void DeclRefExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
+            << decl->identifier;
+  printType(this);
+  std::cerr << '\n';
+
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
-void CallExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "CallExpr:\n";
-  callee->dump(level + 1);
+void CallExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "CallExpr";
+  printType(this);
+  std::cerr << '\n';
+
+  callee->dump(ctx, level + 1);
 
   for (auto &&arg : arguments)
-    arg->dump(level + 1);
+    arg->dump(ctx, level + 1);
 }
 
-void MemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberExpr: @(" << field << ')' << ' '
-            << field->identifier << '\n';
+void MemberExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "MemberExpr @(" << field << ')' << ' '
+            << field->identifier;
+  printType(this);
+  std::cerr << '\n';
 
-  base->dump(level + 1);
+  base->dump(ctx, level + 1);
 }
 
-void GroupingExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "GroupingExpr:\n";
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
-
-  expr->dump(level + 1);
-}
-
-void BinaryOperator::dump(size_t level) const {
-  std::cerr << indent(level) << "BinaryOperator: '" << getOpStr(op) << '\''
-            << '\n';
+void GroupingExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "GroupingExpr";
+  printType(this);
+  std::cerr << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 
-  lhs->dump(level + 1);
-  rhs->dump(level + 1);
+  expr->dump(ctx, level + 1);
 }
 
-void UnaryOperator::dump(size_t level) const {
-  std::cerr << indent(level) << "UnaryOperator: '" << getOpStr(op) << '\''
-            << '\n';
+void BinaryOperator::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\'';
+  printType(this);
+  std::cerr << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 
-  operand->dump(level + 1);
+  lhs->dump(ctx, level + 1);
+  rhs->dump(ctx, level + 1);
 }
 
-void DeclStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclStmt:\n";
-  varDecl->dump(level + 1);
+void UnaryOperator::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\'';
+  printType(this);
+  std::cerr << '\n';
+
+  if (auto val = getConstantValue())
+    std::cerr << indent(level) << "| value: " << *val << '\n';
+
+  operand->dump(ctx, level + 1);
 }
 
-void Assignment::dump(size_t level) const {
-  std::cerr << indent(level) << "Assignment:\n";
-  assignee->dump(level + 1);
-  expr->dump(level + 1);
+void DeclStmt::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "DeclStmt\n";
+
+  varDecl->dump(ctx, level + 1);
 }
 
-void ReturnStmt::dump(size_t level) const {
+void Assignment::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "Assignment\n";
+
+  assignee->dump(ctx, level + 1);
+  expr->dump(ctx, level + 1);
+}
+
+void ReturnStmt::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "ReturnStmt\n";
 
   if (expr)
-    expr->dump(level + 1);
+    expr->dump(ctx, level + 1);
 }
 
-void FieldInitStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "FieldInitStmt: @(" << field << ')' << ' '
+void FieldInitStmt::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "FieldInitStmt @(" << field << ')' << ' '
             << field->identifier << '\n';
 
-  initializer->dump(level + 1);
+  initializer->dump(ctx, level + 1);
 }
 
-void StructInstantiationExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "StructInstantiationExpr: @(" << structDecl
-            << ')' << '\n';
+void StructInstantiationExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "StructInstantiationExpr @(" << structDecl
+            << ')';
+  printType(this);
+  std::cerr << '\n';
 
   for (auto &&field : fieldInitializers)
-    field->dump(level + 1);
+    field->dump(ctx, level + 1);
 }
 
 bool UninferredType::operator==(const Type &b) const {
@@ -182,7 +214,7 @@ std::string UninferredType::asString() const {
 }
 
 void UninferredType::dump() const {
-  std::cerr << "UninferredType: " << asString();
+  std::cerr << "UninferredType " << asString() << '\n';
 }
 
 bool BuiltinType::operator==(const Type &b) const {
@@ -195,7 +227,9 @@ std::string BuiltinType::asString() const {
   return kind == BuiltinType::Kind::Number ? "number" : "void";
 }
 
-void BuiltinType::dump() const { std::cerr << "BuiltinType: " << asString(); }
+void BuiltinType::dump() const {
+  std::cerr << "BuiltinType " << asString() << '\n';
+}
 
 bool StructType::operator==(const Type &b) const {
   const auto *st = dynamic_cast<const StructType *>(&b);
@@ -205,7 +239,9 @@ bool StructType::operator==(const Type &b) const {
 
 std::string StructType::asString() const { return decl->identifier; }
 
-void StructType::dump() const { std::cerr << "StructType: " << asString(); }
+void StructType::dump() const {
+  std::cerr << "StructType " << asString() << '\n';
+}
 
 bool FunctionType::operator==(const Type &b) const {
   const auto *function = dynamic_cast<const FunctionType *>(&b);
@@ -235,7 +271,9 @@ std::string FunctionType::asString() const {
   return ss.str();
 }
 
-void FunctionType::dump() const { std::cerr << "FunctionType: " << asString(); }
+void FunctionType::dump() const {
+  std::cerr << "FunctionType " << asString() << '\n';
+}
 
 void Context::replace(const Type *t1, const Type *t2) {
   for (auto &m : environment)
@@ -305,24 +343,11 @@ bool Context::unify(const Type *t1, const Type *t2) {
 }
 
 void Context::dump() {
-  std::cerr << "Context\n";
-  std::cerr << "==========================\n";
-  for (auto &&type : types) {
-    type->dump();
-    std::cerr << '\n';
-  }
+  for (auto &&decl : structs)
+    decl->dump(*this, 0);
 
-  std::cerr << "--------------------------\n";
-  for (auto &&[node, type] : environment) {
-
-    if (const auto *e = std::get_if<const res::Expr *>(&node); e)
-      (*e)->dump(0);
-    if (const auto *d = std::get_if<const res::Decl *>(&node); d)
-      (*d)->dump(0);
-    std::cerr << "->\n";
-    type->dump();
-    std::cerr << "\n--------------------------\n";
-  }
+  for (auto &&decl : functions)
+    decl->dump(*this, 0);
 }
 } // namespace res
 } // namespace yl

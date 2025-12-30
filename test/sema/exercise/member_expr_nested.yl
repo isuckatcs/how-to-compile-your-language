@@ -13,29 +13,29 @@ fn main(): void {
 
   let x = s.n.x;
 }
-// CHECK: StructDecl: @({{.*}}) S:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT:   FieldDecl: @({{.*}}) n
-// CHECK-NEXT: StructDecl: @({{.*}}) S2:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT: FunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) n:
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) n {S2}
+// CHECK-NEXT: StructDecl @({{.*}}) S2 {S2}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) s:
-// CHECK-NEXT:         StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:             NumberLiteral: '0'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) s {S}
+// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {S}
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) n
-// CHECK-NEXT:             StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:               FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:                 NumberLiteral: '1'
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) n
+// CHECK-NEXT:             StructInstantiationExpr @({{.*}}) {S2}
+// CHECK-NEXT:               FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:                 NumberLiteral '1' {number}
 // CHECK-NEXT:                 | value: 1
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) x:
-// CHECK-NEXT:         MemberExpr: @({{.*}}) x
-// CHECK-NEXT:           MemberExpr: @({{.*}}) n
-// CHECK-NEXT:             DeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {number}
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           MemberExpr @({{.*}}) n {S2}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}

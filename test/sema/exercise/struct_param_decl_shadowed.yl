@@ -5,10 +5,10 @@ struct S {
 
 fn foo(S: S): void {
   let x = S.x;
-  // CHECK: DeclStmt:
-  // CHECK-NEXT:   VarDecl: @({{.*}}) x:
-  // CHECK-NEXT:     MemberExpr: @({{.*}}) x
-  // CHECK-NEXT:       DeclRefExpr: @({{.*}}) S
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
+  // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
 }
 
 fn main(): void {

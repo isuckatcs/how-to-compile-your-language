@@ -7,29 +7,29 @@ fn main(): void {}
 
 struct S { x: number, y:number }
 struct S2 { x: number, y:number }
-// CHECK: StructDecl: @({{.*}}) S:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT:   FieldDecl: @({{.*}}) y
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
-// CHECK-NEXT: StructDecl: @({{.*}}) S2:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT:   FieldDecl: @({{.*}}) y
+// CHECK-NEXT: StructDecl @({{.*}}) S2 {S2}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
-// CHECK-NEXT: FunctionDecl: @({{.*}}) println:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) n:
+// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
 
-// CHECK-NEXT: FunctionDecl: @({{.*}}) foo:
-// CHECK-NEXT:   ParamDecl: @({{.*}}) s:
+// CHECK-NEXT: FunctionDecl @({{.*}}) foo {(S) -> S2}
+// CHECK-NEXT:   ParamDecl @({{.*}}) s {S}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:           MemberExpr: @({{.*}}) x
-// CHECK-NEXT:             DeclRefExpr: @({{.*}}) s
-// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           MemberExpr: @({{.*}}) y
-// CHECK-NEXT:             DeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:       StructInstantiationExpr @({{.*}}) {S2}
+// CHECK-NEXT:         FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
+// CHECK-NEXT:         FieldInitStmt @({{.*}}) y
+// CHECK-NEXT:           MemberExpr @({{.*}}) y {number}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
 
-// CHECK-NEXT: FunctionDecl: @({{.*}}) main:
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block

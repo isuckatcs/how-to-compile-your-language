@@ -10,6 +10,8 @@
 
 namespace yl {
 namespace res {
+class Context;
+
 struct Stmt {
   SourceLocation location;
 
@@ -18,7 +20,7 @@ struct Stmt {
 
   virtual ~Stmt() = default;
 
-  virtual void dump(size_t level = 0) const = 0;
+  virtual void dump(Context &ctx, size_t level = 0) const = 0;
 };
 
 struct Expr : public ConstantValueContainer<double>, public Stmt {
@@ -54,7 +56,7 @@ struct Decl {
   bool isParamDecl() const { return kind == Kind::ParamDecl; }
   bool isVarDecl() const { return kind == Kind::VarDecl; }
 
-  virtual void dump(size_t level = 0) const = 0;
+  virtual void dump(Context &ctx, size_t level = 0) const = 0;
 };
 
 struct TypeDecl : public Decl {
@@ -81,7 +83,7 @@ struct Block {
       : location(location),
         statements(std::move(statements)) {}
 
-  void dump(size_t level = 0) const;
+  void dump(Context &ctx, size_t level = 0) const;
 };
 
 struct IfStmt : public Stmt {
@@ -98,7 +100,7 @@ struct IfStmt : public Stmt {
         trueBlock(trueBlock),
         falseBlock(falseBlock) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct WhileStmt : public Stmt {
@@ -110,7 +112,7 @@ struct WhileStmt : public Stmt {
         condition(condition),
         body(body) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct ParamDecl : public ValueDecl {
@@ -119,7 +121,7 @@ struct ParamDecl : public ValueDecl {
             location, std::move(identifier), Decl::Kind::ParamDecl, isMutable) {
   }
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct FieldDecl : public ValueDecl {
@@ -130,7 +132,7 @@ struct FieldDecl : public ValueDecl {
             location, std::move(identifier), Decl::Kind::FieldDecl, false),
         index(index) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct VarDecl : public ValueDecl {
@@ -144,7 +146,7 @@ struct VarDecl : public ValueDecl {
             location, std::move(identifier), Decl::Kind::VarDecl, isMutable),
         initializer(initializer) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct FunctionDecl : public ValueDecl {
@@ -161,7 +163,7 @@ struct FunctionDecl : public ValueDecl {
 
   void setBody(Block *body);
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct StructDecl : public TypeDecl {
@@ -173,7 +175,7 @@ struct StructDecl : public TypeDecl {
 
   void setFields(std::vector<FieldDecl *> fields);
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct NumberLiteral : public Expr {
@@ -183,7 +185,7 @@ struct NumberLiteral : public Expr {
       : Expr(location, Expr::Kind::Rvalue),
         value(value) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct CallExpr : public Expr {
@@ -195,7 +197,7 @@ struct CallExpr : public Expr {
         callee(callee),
         arguments(std::move(arguments)) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct DeclRefExpr : public Expr {
@@ -205,7 +207,7 @@ struct DeclRefExpr : public Expr {
       : Expr(location, kind),
         decl(&decl) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct MemberExpr : public Expr {
@@ -217,7 +219,7 @@ struct MemberExpr : public Expr {
         base(base),
         field(field) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct GroupingExpr : public Expr {
@@ -227,7 +229,7 @@ struct GroupingExpr : public Expr {
       : Expr(location, expr->kind),
         expr(expr) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct BinaryOperator : public Expr {
@@ -241,7 +243,7 @@ struct BinaryOperator : public Expr {
         lhs(lhs),
         rhs(rhs) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct UnaryOperator : public Expr {
@@ -253,7 +255,7 @@ struct UnaryOperator : public Expr {
         op(op),
         operand(operand) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct DeclStmt : public Stmt {
@@ -263,7 +265,7 @@ struct DeclStmt : public Stmt {
       : Stmt(location),
         varDecl(varDecl) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct Assignment : public Stmt {
@@ -275,7 +277,7 @@ struct Assignment : public Stmt {
         assignee(assignee),
         expr(expr) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct ReturnStmt : public Stmt {
@@ -285,7 +287,7 @@ struct ReturnStmt : public Stmt {
       : Stmt(location),
         expr(expr) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct FieldInitStmt : public Stmt {
@@ -297,7 +299,7 @@ struct FieldInitStmt : public Stmt {
         field(field),
         initializer(initializer) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct StructInstantiationExpr : public Expr {
@@ -311,7 +313,7 @@ struct StructInstantiationExpr : public Expr {
         structDecl(structDecl),
         fieldInitializers(std::move(fieldInitializers)) {}
 
-  void dump(size_t level = 0) const override;
+  void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct Type {

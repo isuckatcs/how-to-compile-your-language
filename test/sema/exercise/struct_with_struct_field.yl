@@ -3,9 +3,9 @@ struct Point {
   x: number,
   y: number,
 }
-// CHECK: StructDecl: @({{.*}}) Point:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) x
-// CHECK-NEXT:   FieldDecl: @({{.*}}) y
+// CHECK: StructDecl @({{.*}}) Point {Point}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
 struct Color {
   r: number,
@@ -13,11 +13,11 @@ struct Color {
   b: number,
   p: Point,
 }
-// CHECK: StructDecl: @({{.*}}) Color:
-// CHECK-NEXT:   FieldDecl: @({{.*}}) r
-// CHECK-NEXT:   FieldDecl: @({{.*}}) g
-// CHECK-NEXT:   FieldDecl: @({{.*}}) b
-// CHECK-NEXT:   FieldDecl: @({{.*}}) p
+// CHECK: StructDecl @({{.*}}) Color {Color}
+// CHECK-NEXT:   FieldDecl @({{.*}}) r {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) g {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) b {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) p {Point}
 
 fn main(): void {
   let x = Color { 
@@ -27,29 +27,29 @@ fn main(): void {
     p: Point { x: 3 + 4, y: 4 * 9 },
   };
 }
-// CHECK: FunctionDecl: @({{.*}}) main:
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: @({{.*}}) x:
-// CHECK-NEXT:         StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) r
-// CHECK-NEXT:             NumberLiteral: '0'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {Color}
+// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {Color}
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) r
+// CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) g
-// CHECK-NEXT:             NumberLiteral: '1'
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) g
+// CHECK-NEXT:             NumberLiteral '1' {number}
 // CHECK-NEXT:             | value: 1
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) b
-// CHECK-NEXT:             NumberLiteral: '2'
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) b
+// CHECK-NEXT:             NumberLiteral '2' {number}
 // CHECK-NEXT:             | value: 2
-// CHECK-NEXT:           FieldInitStmt: @({{.*}}) p
-// CHECK-NEXT:             StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:               FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:                 BinaryOperator: '+'
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) p
+// CHECK-NEXT:             StructInstantiationExpr @({{.*}}) {Point}
+// CHECK-NEXT:               FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:                 BinaryOperator '+' {number}
 // CHECK-NEXT:                 | value: 7
-// CHECK-NEXT:                   NumberLiteral: '3'
-// CHECK-NEXT:                   NumberLiteral: '4'
-// CHECK-NEXT:               FieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:                 BinaryOperator: '*'
+// CHECK-NEXT:                   NumberLiteral '3' {number}
+// CHECK-NEXT:                   NumberLiteral '4' {number}
+// CHECK-NEXT:               FieldInitStmt @({{.*}}) y
+// CHECK-NEXT:                 BinaryOperator '*' {number}
 // CHECK-NEXT:                 | value: 36
-// CHECK-NEXT:                   NumberLiteral: '4'
-// CHECK-NEXT:                   NumberLiteral: '9'
+// CHECK-NEXT:                   NumberLiteral '4' {number}
+// CHECK-NEXT:                   NumberLiteral '9' {number}

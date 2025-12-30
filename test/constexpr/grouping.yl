@@ -5,9 +5,9 @@ fn foo(): number {
 
     return (10.0 * (x + 4.0)) && (!(y == x) || x < y);
 }
-// CHECK:    ReturnStmt
-// CHECK-NEXT:      BinaryOperator: '&&'
-// CHECK-NEXT:      | value: 1
+// CHECK: ReturnStmt
+// CHECK-NEXT:   BinaryOperator '&&' {number}
+// CHECK-NEXT:   | value: 1
 
 fn bar(): number {
     let x: number = 2.1;
@@ -15,8 +15,8 @@ fn bar(): number {
     return (x);
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   GroupingExpr:
+// CHECK-NEXT:   GroupingExpr {number}
 // CHECK-NEXT:   | value: 2.1
-// CHECK-NEXT:     DeclRefExpr: @({{.*}}) x
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 
 fn main(): void {}

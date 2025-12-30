@@ -115,13 +115,8 @@ int main(int argc, const char **argv) {
   auto resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
-    if (resolvedTree.has_value()) {
-      for (auto &&decl : resolvedTree->getStructs())
-        decl->dump();
-
-      for (auto &&decl : resolvedTree->getFunctions())
-        decl->dump();
-    }
+    if (resolvedTree.has_value())
+      resolvedTree->dump();
 
     return 0;
   }
