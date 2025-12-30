@@ -31,9 +31,77 @@ void CFG::dump() const {
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
+    std::unordered_map<const res::Stmt *, std::string> stmtToRef;
+
     const auto &statements = basicBlocks[i].statements;
-    for (auto it = statements.rbegin(); it != statements.rend(); ++it)
-      (*it)->dump(1);
+    for (auto it = statements.rbegin(); it != statements.rend(); ++it) {
+      std::cerr << ' ' << ' ' << stmtToRef.size() + 1 << ':' << ' ';
+
+      if (auto *ifStmt = dynamic_cast<const res::IfStmt *>(*it)) {
+        std::cerr << "if " << stmtToRef[ifStmt->condition];
+      } else if (auto *whileStmt = dynamic_cast<const res::WhileStmt *>(*it)) {
+        std::cerr << "while " << stmtToRef[whileStmt->condition];
+      } else if (auto *assignment =
+                     dynamic_cast<const res::Assignment *>(*it)) {
+        std::cerr << stmtToRef[assignment->assignee] << " = "
+                  << stmtToRef[assignment->expr];
+      } else if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(*it)) {
+        std::cerr << (declStmt->varDecl->isMutable ? "var " : "let ")
+                  << declStmt->varDecl->identifier;
+
+        if (const auto *init = declStmt->varDecl->initializer)
+          std::cerr << " = " << stmtToRef[init];
+      } else if (auto *retStmt = dynamic_cast<const res::ReturnStmt *>(*it)) {
+        std::cerr << "return " << stmtToRef[retStmt->expr];
+      } else if (auto *fi = dynamic_cast<const res::FieldInitStmt *>(*it)) {
+        std::cerr << fi->field->identifier << ": "
+                  << stmtToRef[fi->initializer];
+      } else if (const auto *number =
+                     dynamic_cast<const res::NumberLiteral *>(*it)) {
+        std::cerr << number->value;
+      } else if (const auto *callExpr =
+                     dynamic_cast<const res::CallExpr *>(*it)) {
+        std::cerr << stmtToRef[callExpr->callee] << ' ' << '(';
+        for (int i = 0; i < callExpr->arguments.size(); ++i) {
+          std::cerr << stmtToRef[callExpr->arguments[i]];
+
+          if (i != callExpr->arguments.size() - 1)
+            std::cerr << ',' << ' ';
+        }
+        std::cerr << ')';
+      } else if (const auto *grouping =
+                     dynamic_cast<const res::GroupingExpr *>(*it)) {
+        std::cerr << '(' << stmtToRef[grouping->expr] << ')';
+      } else if (const auto *binop =
+                     dynamic_cast<const res::BinaryOperator *>(*it)) {
+        std::cerr << stmtToRef[binop->lhs] << ' ' << getOpStr(binop->op) << ' '
+                  << stmtToRef[binop->rhs];
+      } else if (const auto *unop =
+                     dynamic_cast<const res::UnaryOperator *>(*it)) {
+        std::cerr << getOpStr(unop->op) << stmtToRef[unop->operand];
+      } else if (const auto *si =
+                     dynamic_cast<const res::StructInstantiationExpr *>(*it)) {
+        std::cerr << si->structDecl->identifier << ' ' << '{';
+        for (int i = 0; i < si->fieldInitializers.size(); ++i) {
+          std::cerr << stmtToRef[si->fieldInitializers[i]];
+
+          if (i != si->fieldInitializers.size() - 1)
+            std::cerr << ',' << ' ';
+        }
+        std::cerr << '}';
+      } else if (const auto *dre =
+                     dynamic_cast<const res::DeclRefExpr *>(*it)) {
+        std::cerr << dre->decl->identifier;
+      } else if (const auto *memberExpr =
+                     dynamic_cast<const res::MemberExpr *>(*it)) {
+        std::cerr << stmtToRef[memberExpr->base] << '.'
+                  << memberExpr->field->identifier;
+      }
+
+      stmtToRef[*it] = '[' + std::to_string(i) + '.' +
+                       std::to_string(stmtToRef.size() + 1) + ']';
+      std::cerr << '\n';
+    }
     std::cerr << '\n';
   }
 }
@@ -103,8 +171,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
   cfg.insertStmt(&expr, block);
 
   if (const auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
+    block = insertExpr(*call->callee, block);
     for (auto it = call->arguments.rbegin(); it != call->arguments.rend(); ++it)
-      insertExpr(**it, block);
+      block = insertExpr(**it, block);
     return block;
   }
 
@@ -150,8 +219,10 @@ int CFGBuilder::insertStmt(const res::Stmt &stmt, int block) {
   if (auto *returnStmt = dynamic_cast<const res::ReturnStmt *>(&stmt))
     return insertReturnStmt(*returnStmt, block);
 
-  if (auto *fieldInit = dynamic_cast<const res::FieldInitStmt *>(&stmt))
+  if (auto *fieldInit = dynamic_cast<const res::FieldInitStmt *>(&stmt)) {
+    cfg.insertStmt(fieldInit, block);
     return insertExpr(*fieldInit->initializer, block);
+  }
 
   llvm_unreachable("unexpected expression");
 }

@@ -21,45 +21,18 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   NumberLiteral: '0'
-// CHECK-NEXT:   | value: 0
-// CHECK-NEXT:   NumberLiteral: '1'
-// CHECK-NEXT:   | value: 1
-// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     FieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:       NumberLiteral: '1'
-// CHECK-NEXT:       | value: 1
-// CHECK-NEXT:   StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:     FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:       NumberLiteral: '0'
-// CHECK-NEXT:       | value: 0
-// CHECK-NEXT:     FieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         FieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:           NumberLiteral: '1'
-// CHECK-NEXT:           | value: 1
-// CHECK-NEXT:   DeclStmt:
-// CHECK-NEXT:     VarDecl: @({{.*}}) s:
-// CHECK-NEXT:       StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:         FieldInitStmt: @({{.*}}) x
-// CHECK-NEXT:           NumberLiteral: '0'
-// CHECK-NEXT:           | value: 0
-// CHECK-NEXT:         FieldInitStmt: @({{.*}}) s2
-// CHECK-NEXT:           StructInstantiationExpr: @({{.*}})
-// CHECK-NEXT:             FieldInitStmt: @({{.*}}) y
-// CHECK-NEXT:               NumberLiteral: '1'
-// CHECK-NEXT:               | value: 1
-// CHECK-NEXT:   DeclRefExpr: @({{.*}}) s
-// CHECK-NEXT:   MemberExpr: @({{.*}}) s2
-// CHECK-NEXT:     DeclRefExpr: @({{.*}}) s
-// CHECK-NEXT:   MemberExpr: @({{.*}}) y
-// CHECK-NEXT:     MemberExpr: @({{.*}}) s2
-// CHECK-NEXT:       DeclRefExpr: @({{.*}}) s
-// CHECK-NEXT:   DeclStmt:
-// CHECK-NEXT:     VarDecl: @({{.*}}) n:
-// CHECK-NEXT:       MemberExpr: @({{.*}}) y
-// CHECK-NEXT:         MemberExpr: @({{.*}}) s2
-// CHECK-NEXT:           DeclRefExpr: @({{.*}}) s
+// CHECK-NEXT:   1: 0
+// CHECK-NEXT:   2: x: [1.1]
+// CHECK-NEXT:   3: 1
+// CHECK-NEXT:   4: y: [1.3]
+// CHECK-NEXT:   5: S2 {[1.4]}
+// CHECK-NEXT:   6: s2: [1.5]
+// CHECK-NEXT:   7: S {[1.2], [1.6]}
+// CHECK-NEXT:   8: let s = [1.7]
+// CHECK-NEXT:   9: s
+// CHECK-NEXT:   10: [1.9].s2
+// CHECK-NEXT:   11: [1.10].y
+// CHECK-NEXT:   12: let n = [1.11]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 

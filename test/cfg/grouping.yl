@@ -1,12 +1,6 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
 fn main(): void {
-    var x: number;
-
-    x = 2.0;
-
-    x = 3.0;
-
-    x = x + 1.0;
+  let x = ((((((1))))));
 }
 // CHECK: main:
 // CHECK-NEXT: [2 (entry)]
@@ -16,16 +10,15 @@ fn main(): void {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: var x
-// CHECK-NEXT:   2: 2
-// CHECK-NEXT:   3:  = [1.2]
-// CHECK-NEXT:   5: 3
-// CHECK-NEXT:   6:  = [1.5]
-// CHECK-NEXT:   8: x
-// CHECK-NEXT:   9: 1
-// CHECK-NEXT:   10: [1.8] + [1.9]
-// CHECK-NEXT:   11:  = [1.10]
+// CHECK-NEXT:   1: 1
+// CHECK-NEXT:   2: ([1.1])
+// CHECK-NEXT:   3: ([1.2])
+// CHECK-NEXT:   4: ([1.3])
+// CHECK-NEXT:   5: ([1.4])
+// CHECK-NEXT:   6: ([1.5])
+// CHECK-NEXT:   7: ([1.6])
+// CHECK-NEXT:   8: let x = [1.7]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
