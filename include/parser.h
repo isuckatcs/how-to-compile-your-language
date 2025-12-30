@@ -74,9 +74,6 @@ class Parser {
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
 
   std::unique_ptr<ast::Type> parseType();
-  std::unique_ptr<ast::BuiltinType> parseBuiltinType();
-  std::unique_ptr<ast::UserDefinedType> parseUserDefinedType();
-  std::unique_ptr<ast::FunctionType> parseFunctionType();
 
   // helper methods
   template <typename T, typename F>

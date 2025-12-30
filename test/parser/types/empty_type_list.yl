@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:10: error: expected type parameter declaration
+struct S<>{}
+
+// CHECK: [[# @LINE + 1 ]]:11: error: expected type parameter declaration
+struct S2<<>>{}
+
+// CHECK: [[# @LINE + 1 ]]:8: error: expected type parameter declaration
+fn foo<>(){}
+
+// CHECK-NOT: {{.*error.*}}

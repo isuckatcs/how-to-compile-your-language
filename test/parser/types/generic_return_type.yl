@@ -1,0 +1,28 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn foo(): S<number> {}
+// CHECK: FunctionDecl: foo
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   Block
+
+fn bar(): S<userDefined> {}
+// CHECK-NEXT: FunctionDecl: bar
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:     UserDefinedType: userDefined
+// CHECK-NEXT:   Block
+
+fn baz(): S<S<S<S<deep>>>> {}
+// CHECK-NEXT: FunctionDecl: baz
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:     UserDefinedType: S
+// CHECK-NEXT:       UserDefinedType: S
+// CHECK-NEXT:         UserDefinedType: S
+// CHECK-NEXT:           UserDefinedType: deep
+// CHECK-NEXT:   Block
+
+fn main(): void {}
+// CHECK-NEXT: FunctionDecl: main
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+
+// CHECK-NOT: {{.*}}

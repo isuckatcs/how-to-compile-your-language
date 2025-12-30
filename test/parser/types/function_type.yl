@@ -1,0 +1,60 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:14: error: expected '->'
+fn err(): () {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: expected type specifier
+fn err2(): () -> {}
+
+fn foo(): () -> number {}
+// CHECK: FunctionDecl: foo
+// CHECK-NEXT:   FunctionType
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   Block
+
+fn bar(x: () -> number): void {}
+// CHECK-NEXT: FunctionDecl: bar
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   ParamDecl: x
+// CHECK-NEXT:     FunctionType
+// CHECK-NEXT:       BuiltinType: number
+// CHECK-NEXT:   Block
+
+fn baz(): void {
+  let x: (number) -> number;
+
+  let y: (number,) -> number;
+
+  let z: (number, number) -> void = foo;
+}
+// CHECK-NEXT: FunctionDecl: baz
+// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: x
+// CHECK-NEXT:         FunctionType
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: y
+// CHECK-NEXT:         FunctionType
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: z
+// CHECK-NEXT:         FunctionType
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:           BuiltinType: void
+// CHECK-NEXT:         DeclRefExpr: foo
+
+fn nested(): () -> (S<number>) -> () -> number {}
+// CHECK-NEXT: FunctionDecl: nested
+// CHECK-NEXT:   FunctionType
+// CHECK-NEXT:     FunctionType
+// CHECK-NEXT:       UserDefinedType: S
+// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:       FunctionType
+// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:   Block
+
+// CHECK-NOT: {{.*}}

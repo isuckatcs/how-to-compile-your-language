@@ -641,81 +641,61 @@ Parser::parseListWithTrailingComma(
 
 // <type>
 //  ::= <builtinType>
-//  |   <structType>
+//  |   <userDefinedType>
 //  |   <functionType>
-std::unique_ptr<ast::Type> Parser::parseType() {
-
-  if (nextToken.kind == TokenKind::Identifier)
-    return parseUserDefinedType();
-
-  if (nextToken.kind == TokenKind::Lpar)
-    return parseFunctionType();
-
-  if (nextToken.kind == TokenKind::KwNumber ||
-      nextToken.kind == TokenKind::KwVoid)
-    return parseBuiltinType();
-
-  return report(nextToken.location, "expected type specifier");
-};
-
+//
 // <builtinType>
 //  ::= 'number'
 //  |   'void'
-std::unique_ptr<ast::BuiltinType> Parser::parseBuiltinType() {
-  SourceLocation location = nextToken.location;
-
-  if (nextToken.kind == TokenKind::KwNumber) {
-    eatNextToken(); // eat 'number'
-    return std::make_unique<ast::BuiltinType>(location,
-                                              ast::BuiltinType::Kind::Number);
-  }
-
-  if (nextToken.kind == TokenKind::KwVoid) {
-    eatNextToken(); // eat 'void'
-    return std::make_unique<ast::BuiltinType>(location,
-                                              ast::BuiltinType::Kind::Void);
-  }
-
-  return report(nextToken.location, "expected 'void' or 'number'");
-};
-
+//
 // <userDefinedType>
 //     ::= <identifier> <typeList>?
-std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
-  SourceLocation location = nextToken.location;
-
-  if (nextToken.kind != TokenKind::Identifier)
-    return report(location, "expected identifier");
-
-  assert(nextToken.value && "identifier without value");
-  std::string identifier = *nextToken.value;
-  eatNextToken(); // eat identifier
-
-  std::vector<std::unique_ptr<ast::Type>> types;
-  if (nextToken.kind == TokenKind::Lt) {
-    varOrReturn(typeArguments, parseTypeList());
-    types = std::move(*typeArguments);
-  }
-
-  return std::make_unique<ast::UserDefinedType>(location, std::move(identifier),
-                                                std::move(types));
-}
-
+//
 // <functionType>
 //  ::= '(' <type> (',' <type>)* ','? ')' -> type
-std::unique_ptr<ast::FunctionType> Parser::parseFunctionType() {
+std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
-  auto argumentList = parseListWithTrailingComma<ast::Type>(
-      {TokenKind::Lpar, "expected '('"}, &Parser::parseType,
-      {TokenKind::Rpar, "expected ')'"});
 
-  matchOrReturn(TokenKind::Arrow, "expected '->'");
-  eatNextToken(); // eat '->'
+  if (nextToken.kind == TokenKind::KwNumber ||
+      nextToken.kind == TokenKind::KwVoid) {
+    auto kind = nextToken.kind == TokenKind::KwNumber
+                    ? ast::BuiltinType::Kind::Number
+                    : ast::BuiltinType::Kind::Void;
+    eatNextToken(); // eat 'number' or 'void'
+    return std::make_unique<ast::BuiltinType>(location, kind);
+  }
 
-  varOrReturn(returnType, parseType());
-  return std::make_unique<ast::FunctionType>(location, std::move(*argumentList),
-                                             std::move(returnType));
-}
+  if (nextToken.kind == TokenKind::Identifier) {
+    assert(nextToken.value && "identifier without value");
+    std::string identifier = *nextToken.value;
+    eatNextToken(); // eat identifier
+
+    std::vector<std::unique_ptr<ast::Type>> types;
+    if (nextToken.kind == TokenKind::Lt) {
+      varOrReturn(typeArguments, parseTypeList());
+      types = std::move(*typeArguments);
+    }
+
+    return std::make_unique<ast::UserDefinedType>(
+        location, std::move(identifier), std::move(types));
+  }
+
+  if (nextToken.kind == TokenKind::Lpar) {
+    SourceLocation location = nextToken.location;
+    auto argumentList = parseListWithTrailingComma<ast::Type>(
+        {TokenKind::Lpar, "expected '('"}, &Parser::parseType,
+        {TokenKind::Rpar, "expected ')'"});
+
+    matchOrReturn(TokenKind::Arrow, "expected '->'");
+    eatNextToken(); // eat '->'
+
+    varOrReturn(returnType, parseType());
+    return std::make_unique<ast::FunctionType>(
+        location, std::move(*argumentList), std::move(returnType));
+  }
+
+  return report(nextToken.location, "expected type specifier");
+};
 
 // <sourceFile>
 //     ::= (<structDecl> | <functionDecl>)* EOF
