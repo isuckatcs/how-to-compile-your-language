@@ -18,14 +18,8 @@ report(SourceLocation location, std::string_view message, bool isWarning) {
   std::string_view bufferView = file->buffer;
   size_t pos = 0;
 
-  for (int i = 1; i < line; ++i) {
-    pos = bufferView.find('\n', pos);
-
-    if (pos == std::string_view::npos)
-      break;
-
-    ++pos;
-  }
+  for (int i = 1; i < line; ++i)
+    pos = bufferView.find('\n', pos) + 1;
 
   std::cerr << line << ' ' << '|' << ' '
             << bufferView.substr(pos, bufferView.find('\n', pos) - pos) << '\n';
