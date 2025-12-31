@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(): number {
+  return 0;
+}
+
+fn bar(): (number) -> number {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '() -> number' from a function returning '(number) -> number'
+  return foo;
+}
+
+fn main(): void { 
+  // CHECK: [[# @LINE + 1 ]]:26: error: an expression of type '(number) -> number' cannot be used to initialize a variable of type '() -> void'
+  let f: () -> void = bar();
+}
+
+// CHECK-NOT: {{.*error.*}}

@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn main(): void { 
+  var x;
+  var y;
+
+  y = x;
+  y = 2;
+
+  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  x = S { x: 1 };
+  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  y = S { x: 1 };
+}
+
+// CHECK-NOT: {{.*error.*}}

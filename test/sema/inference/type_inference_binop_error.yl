@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn main(): void { 
+  var s;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: type of LHS to binary operator is unknown
+  s = s + 1;
+
+  // CHECK: [[# @LINE + 1 ]]:11: error: type of RHS to binary operator is unknown
+  s = 1 + s;
+}
+
+// CHECK-NOT: {{.*error.*}}

@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  x: number
+}
+
+fn foo(x: number): void {
+  let s;
+
+  if x == 1 {
+    s = 0;
+  } else {
+    // CHECK: [[# @LINE + 1 ]]:11: error: expected to assign 'number' but received 'S' instead
+    s = S { x: 1 };
+  }
+}
+
+fn main(): void {}
+
+// CHECK-NOT: {{.*error.*}}

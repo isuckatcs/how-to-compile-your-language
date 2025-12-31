@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// XFAIL: true
+
+fn main(): void { 
+  // FIXME: catch this
+  // CHECK: [[# @LINE + 1 ]]:7: error: type of 'n' is unknown
+  let n;
+}
+
+// CHECK-NOT: {{.*error.*}}

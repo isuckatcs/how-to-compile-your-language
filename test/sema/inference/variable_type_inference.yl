@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main(): void { 
+  let s;
+  s = 0;
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) s {number}
+// CHECK-NEXT:     Assignment
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) s {number}
+// CHECK-NEXT:       NumberLiteral '0' {number}
+// CHECK-NEXT:       | value: 0

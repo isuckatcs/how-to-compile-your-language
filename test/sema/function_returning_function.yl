@@ -1,0 +1,32 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(): number {
+  return 0;
+}
+// CHECK: FunctionDecl @({{.*}}) foo {() -> number}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       NumberLiteral '0' {number}
+// CHECK-NEXT:       | value: 0
+
+fn bar(): () -> number {
+  return foo;
+}
+// CHECK: FunctionDecl @({{.*}}) bar {() -> () -> number}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> number}
+
+fn main(): void { 
+  let f: () -> number = bar();
+  f();
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) f {() -> number}
+// CHECK-NEXT:         CallExpr {() -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) bar {() -> () -> number}
+// CHECK-NEXT:     CallExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> number}
+
+// CHECK-NOT: {{.*error.*}}
