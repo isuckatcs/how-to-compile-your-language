@@ -1,10 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> { x: T }
 // CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 
 fn box<T, U>(x: T, y: T, z: U): void {}
 // CHECK: FunctionDecl @({{.*}}) box {(T,T,U) -> void}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {T}
 // CHECK-NEXT:   ParamDecl @({{.*}}) z {U}

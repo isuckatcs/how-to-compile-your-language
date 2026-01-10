@@ -61,6 +61,9 @@ void FunctionDecl::dump(Context &ctx, size_t level) const {
             << (!isComplete ? " [incomplete]" : "") << " {"
             << ctx.getType(this)->getName() << '}' << '\n';
 
+  for (auto &&typeArg : typeArguments)
+    typeArg->dump(ctx, level + 1);
+
   for (auto &&param : params)
     param->dump(ctx, level + 1);
 
@@ -80,9 +83,11 @@ void StructDecl::dump(Context &ctx, size_t level) const {
             << (!isComplete ? " [incomplete]" : "") << " {"
             << ctx.getType(this)->getName() << '}' << '\n';
 
-  if (isComplete)
-    for (auto &&field : fields)
-      field->dump(ctx, level + 1);
+  for (auto &&typeArg : typeArguments)
+    typeArg->dump(ctx, level + 1);
+
+  for (auto &&field : fields)
+    field->dump(ctx, level + 1);
 }
 
 void TypeArgumentDecl::dump(Context &ctx, size_t level) const {

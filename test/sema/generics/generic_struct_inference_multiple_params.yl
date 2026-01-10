@@ -1,6 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T, U> { x: T, y: T, z: U }
 // CHECK-NEXT: StructDecl @({{.*}}) S {S<T,U>}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) U
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 // CHECK-NEXT:   FieldDecl @({{.*}}) y {T}
 // CHECK-NEXT:   FieldDecl @({{.*}}) z {U}
