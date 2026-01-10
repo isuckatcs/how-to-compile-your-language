@@ -5,10 +5,6 @@
 #include "res.h"
 #include "utils.h"
 
-#define printType(node)                                                        \
-  if (auto *ty = ctx.getType(node))                                            \
-    std::cerr << ' ' << '{' << ty->asString() << '}';
-
 namespace yl {
 namespace res {
 void Block::dump(Context &ctx, size_t level) const {
@@ -35,21 +31,18 @@ void WhileStmt::dump(Context &ctx, size_t level) const {
 }
 
 void ParamDecl::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "ParamDecl @(" << this << ") " << identifier;
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "ParamDecl @(" << this << ") " << identifier
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 }
 
 void FieldDecl::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "FieldDecl @(" << this << ") " << identifier;
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "FieldDecl @(" << this << ") " << identifier
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 }
 
 void VarDecl::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "VarDecl @(" << this << ") " << identifier;
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "VarDecl @(" << this << ") " << identifier
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   if (initializer)
     initializer->dump(ctx, level + 1);
@@ -65,9 +58,8 @@ void FunctionDecl::setBody(Block *body) {
 
 void FunctionDecl::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "FunctionDecl @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "");
-  printType(this);
-  std::cerr << '\n';
+            << (!isComplete ? " [incomplete]" : "") << " {"
+            << ctx.getType(this)->getName() << '}' << '\n';
 
   for (auto &&param : params)
     param->dump(ctx, level + 1);
@@ -85,18 +77,22 @@ void StructDecl::setFields(std::vector<FieldDecl *> fields) {
 
 void StructDecl::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "StructDecl @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "");
-  printType(this);
-  std::cerr << '\n';
+            << (!isComplete ? " [incomplete]" : "") << " {"
+            << ctx.getType(this)->getName() << '}' << '\n';
 
-  for (auto &&field : fields)
-    field->dump(ctx, level + 1);
+  if (isComplete)
+    for (auto &&field : fields)
+      field->dump(ctx, level + 1);
+}
+
+void TypeArgumentDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "TypeArgumentDecl @(" << this << ") "
+            << identifier << '\n';
 }
 
 void NumberLiteral::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "NumberLiteral '" << value << '\'';
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "NumberLiteral '" << value << "' {"
+            << ctx.getType(this)->getName() << '}' << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
@@ -104,18 +100,16 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
 
 void DeclRefExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
-            << decl->identifier;
-  printType(this);
-  std::cerr << '\n';
+            << decl->identifier << " {" << ctx.getType(this)->getName() << '}'
+            << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
 void CallExpr::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "CallExpr";
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "CallExpr"
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   callee->dump(ctx, level + 1);
 
@@ -125,17 +119,15 @@ void CallExpr::dump(Context &ctx, size_t level) const {
 
 void MemberExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "MemberExpr @(" << field << ')' << ' '
-            << field->identifier;
-  printType(this);
-  std::cerr << '\n';
+            << field->identifier << " {" << ctx.getType(this)->getName() << '}'
+            << '\n';
 
   base->dump(ctx, level + 1);
 }
 
 void GroupingExpr::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "GroupingExpr";
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "GroupingExpr"
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
@@ -144,9 +136,8 @@ void GroupingExpr::dump(Context &ctx, size_t level) const {
 }
 
 void BinaryOperator::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\'';
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\''
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
@@ -156,9 +147,8 @@ void BinaryOperator::dump(Context &ctx, size_t level) const {
 }
 
 void UnaryOperator::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\'';
-  printType(this);
-  std::cerr << '\n';
+  std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\''
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';
@@ -195,151 +185,193 @@ void FieldInitStmt::dump(Context &ctx, size_t level) const {
 
 void StructInstantiationExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "StructInstantiationExpr @(" << structDecl
-            << ')';
-  printType(this);
-  std::cerr << '\n';
+            << ')' << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   for (auto &&field : fieldInitializers)
     field->dump(ctx, level + 1);
 }
 
-bool UninferredType::operator==(const Type &b) const {
-  const auto *uninferred = dynamic_cast<const UninferredType *>(&b);
-
-  return uninferred && uninferred->id == id;
-}
-
-std::string UninferredType::asString() const {
-  return "T" + std::to_string(id);
-}
-
-void UninferredType::dump() const {
-  std::cerr << "UninferredType " << asString() << '\n';
-}
-
-bool BuiltinType::operator==(const Type &b) const {
-  const auto *builtin = dynamic_cast<const BuiltinType *>(&b);
-
-  return builtin && builtin->kind == kind;
-}
-
-std::string BuiltinType::asString() const {
-  return kind == BuiltinType::Kind::Number ? "number" : "void";
-}
-
-void BuiltinType::dump() const {
-  std::cerr << "BuiltinType " << asString() << '\n';
-}
-
-bool StructType::operator==(const Type &b) const {
-  const auto *st = dynamic_cast<const StructType *>(&b);
-
-  return st && st->decl == decl;
-}
-
-std::string StructType::asString() const { return decl->identifier; }
-
-void StructType::dump() const {
-  std::cerr << "StructType " << asString() << '\n';
-}
-
-bool FunctionType::operator==(const Type &b) const {
-  const auto *function = dynamic_cast<const FunctionType *>(&b);
-
-  if (!function || function->args.size() != args.size() || function->ret != ret)
-    return false;
-
-  for (size_t i = 0; i < args.size(); ++i) {
-    if (function->args[i] != args[i])
-      return false;
-  }
-
-  return true;
-}
-
-std::string FunctionType::asString() const {
+std::string FunctionType::getName() const {
   std::stringstream ss;
   ss << '(';
   for (int i = 0; i < args.size(); ++i) {
-    ss << args[i]->asString();
+    ss << args[i]->getRootType()->getName();
 
     if (i < args.size() - 1)
       ss << ',';
   }
-  ss << ") -> " << ret->asString();
+  ss << ") -> " << ret->getRootType()->getName();
 
   return ss.str();
 }
 
-void FunctionType::dump() const {
-  std::cerr << "FunctionType " << asString() << '\n';
-}
+std::string StructType::getName() const {
+  std::stringstream ss;
+  ss << decl->identifier;
 
-void Context::replace(const Type *t1, const Type *t2) {
-  for (auto &m : environment)
-    if (m.second == t1)
-      m.second = t2;
+  if (!typeArgs.empty()) {
+    ss << '<';
+    for (int i = 0; i < typeArgs.size(); ++i) {
+      ss << typeArgs[i]->getName();
 
-  for (auto &type : types) {
-    if (auto *fn = dynamic_cast<FunctionType *>(type.get())) {
-      for (int i = 0; i < fn->args.size(); ++i)
-        if (fn->args[i] == t1)
-          fn->args[i] = t2;
-
-      if (fn->ret == t1)
-        fn->ret = t2;
+      if (i < typeArgs.size() - 1)
+        ss << ',';
     }
+    ss << '>';
   }
 
-  auto it = types.begin();
-  while (it != types.end() && it->get() != t1)
-    ++it;
-  if (it != types.end())
-    types.erase(it);
+  return ss.str();
 }
 
-const Type *Context::getNewUninferredType() {
-  return getType<UninferredType>(uninferredTypeIdx++);
+UninferredType *Context::getNewUninferredType() {
+  return typeVariables
+      .emplace_back(std::unique_ptr<UninferredType>(
+          new UninferredType(typeVariables.size())))
+      .get();
 }
 
-const Type *Context::getBuiltinType(const BuiltinType::Kind kind) {
-  return getType<BuiltinType>(kind);
+BuiltinType *Context::getBuiltinType(const BuiltinType::Kind kind) {
+  switch (kind) {
+  case BuiltinType::Kind::Void:
+    return voidTy.get();
+  case BuiltinType::Kind::Number:
+    return numberTy.get();
+  }
 }
 
-const Type *Context::getFunctionType(std::vector<const Type *> args,
-                                     const Type *ret) {
-  return getType<FunctionType>(std::move(args), ret);
+FunctionType *Context::getUninferredFunctionType(size_t argCount) {
+  std::vector<Type *> args;
+  for (size_t i = 0; i < argCount; ++i)
+    args.emplace_back(getNewUninferredType());
+
+  return functionTys
+      .emplace_back(std::unique_ptr<FunctionType>(
+          new FunctionType(args, getNewUninferredType())))
+      .get();
 }
 
-const Type *Context::getStructType(const res::StructDecl &decl) {
-  return getType<StructType>(decl);
+StructType *Context::getUninferredStructType(const res::StructDecl &decl) {
+  std::vector<Type *> types;
+  for (size_t i = 0; i < decl.typeArguments.size(); ++i)
+    types.emplace_back(getNewUninferredType());
+
+  return structTys
+      .emplace_back(
+          std::unique_ptr<StructType>(new StructType(decl, std::move(types))))
+      .get();
 }
 
-bool Context::unify(const Type *t1, const Type *t2) {
-  if (dynamic_cast<const UninferredType *>(t1)) {
-    replace(t1, t2);
+TypeArgumentType *Context::getTypeArgumentType(const TypeArgumentDecl &decl) {
+  return typeArgTys
+      .try_emplace(
+          &decl, std::unique_ptr<TypeArgumentType>(new TypeArgumentType(decl)))
+      .first->second.get();
+}
+
+bool Context::unify(Type *t1, Type *t2) {
+  t1 = t1->getRootType();
+  t2 = t2->getRootType();
+
+  if (t1->isUninferredType()) {
+    static_cast<UninferredType *>(t1)->infer(t2);
     return true;
   }
 
-  if (dynamic_cast<const UninferredType *>(t2))
+  if (t2->isUninferredType())
     return unify(t2, t1);
 
-  if (const auto *fn1 = dynamic_cast<const FunctionType *>(t1)) {
-    const auto *fn2 = dynamic_cast<const FunctionType *>(t2);
+  // FIXME: is there a way to unify these similar to HM monotypes?
+  if (auto *fn1 = dynamic_cast<FunctionType *>(t1)) {
+    auto *fn2 = dynamic_cast<FunctionType *>(t2);
     if (!fn2)
       return false;
 
-    if (fn1->args.size() != fn2->args.size())
+    if (fn1->getArgCount() != fn2->getArgCount())
       return false;
 
-    for (int i = 0; i < fn1->args.size(); ++i)
-      if (!unify(fn1->args[i], fn2->args[i]))
+    for (int i = 0; i < fn1->getArgCount(); ++i)
+      if (!unify(fn1->getArgType(i), fn2->getArgType(i)))
         return false;
 
-    return unify(fn1->ret, fn2->ret);
+    return unify(fn1->getReturnType(), fn2->getReturnType());
+  }
+
+  if (auto *s1 = dynamic_cast<StructType *>(t1)) {
+    auto *s2 = dynamic_cast<StructType *>(t2);
+    if (!s2)
+      return false;
+
+    if (s1->decl != s2->decl)
+      return false;
+
+    if (s1->typeArgs.size() != s2->typeArgs.size())
+      return false;
+
+    for (size_t i = 0; i < s1->typeArgs.size(); ++i)
+      if (!unify(s1->typeArgs[i], s2->typeArgs[i]))
+        return false;
+
+    return true;
   }
 
   return t1 == t2;
+}
+
+Type *Context::getFieldType(StructType *s, const FieldDecl *field) {
+  Type *fieldTy = getType(field);
+  if (!fieldTy->isTypeArgumentType())
+    return fieldTy;
+
+  auto *typeArgTy = static_cast<TypeArgumentType *>(fieldTy);
+  return s->getTypeArg(typeArgTy->decl->index);
+}
+
+std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
+  size_t typeArgsCnt = 0;
+  if (decl->isFunctionDecl())
+    typeArgsCnt = static_cast<const FunctionDecl *>(decl)->typeArguments.size();
+
+  if (decl->isStructDecl())
+    typeArgsCnt = static_cast<const StructDecl *>(decl)->typeArguments.size();
+
+  std::vector<res::Type *> instantiation(typeArgsCnt);
+  for (size_t i = 0; i < typeArgsCnt; ++i)
+    instantiation[i] = getNewUninferredType();
+
+  return instantiation;
+}
+
+Type *Context::instantiate(Type *t, std::vector<res::Type *> &instantiation) {
+  t = t->getRootType();
+
+  if (t->isFunctionType()) {
+    auto *ty = static_cast<FunctionType *>(t);
+    auto *instantiatedTy = getUninferredFunctionType(ty->getArgCount());
+
+    for (size_t i = 0; i < ty->getArgCount(); ++i)
+      unify(instantiatedTy->getArgType(i),
+            instantiate(ty->getArgType(i), instantiation));
+
+    unify(instantiatedTy->getReturnType(),
+          instantiate(ty->getReturnType(), instantiation));
+    return instantiatedTy;
+  }
+
+  if (t->isStructType()) {
+    auto *ty = static_cast<StructType *>(t);
+    auto *instantiatedTy = getUninferredStructType(*ty->getDecl());
+
+    for (size_t i = 0; i < ty->getTypeArgCount(); ++i)
+      unify(instantiatedTy->typeArgs[i],
+            instantiate(ty->typeArgs[i], instantiation));
+
+    return instantiatedTy;
+  }
+
+  if (t->isTypeArgumentType())
+    return instantiation[static_cast<TypeArgumentType *>(t)->decl->index];
+
+  return t;
 }
 
 void Context::dump() {

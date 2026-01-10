@@ -37,8 +37,16 @@ struct Expr : public ConstantValueContainer<double>, public Stmt {
   virtual ~Expr() = default;
 };
 
+// FIXME: revisit layout
 struct Decl {
-  enum class Kind { StructDecl, FieldDecl, FunctionDecl, ParamDecl, VarDecl };
+  enum class Kind {
+    StructDecl,
+    TypeArgumentDecl,
+    FieldDecl,
+    FunctionDecl,
+    ParamDecl,
+    VarDecl
+  };
 
   SourceLocation location;
   std::string identifier;
@@ -51,10 +59,12 @@ struct Decl {
   virtual ~Decl() = default;
 
   bool isStructDecl() const { return kind == Kind::StructDecl; }
+  bool isTypeArgumentDecl() const { return kind == Kind::TypeArgumentDecl; }
   bool isFieldDecl() const { return kind == Kind::FieldDecl; }
   bool isFunctionDecl() const { return kind == Kind::FunctionDecl; }
   bool isParamDecl() const { return kind == Kind::ParamDecl; }
   bool isVarDecl() const { return kind == Kind::VarDecl; }
+  virtual bool isGeneric() const { return false; }
 
   virtual void dump(Context &ctx, size_t level = 0) const = 0;
 };
@@ -124,6 +134,18 @@ struct ParamDecl : public ValueDecl {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+struct TypeArgumentDecl : public TypeDecl {
+  unsigned index;
+
+  TypeArgumentDecl(SourceLocation location,
+                   std::string identifier,
+                   unsigned index)
+      : TypeDecl(location, std::move(identifier), Decl::Kind::TypeArgumentDecl),
+        index(index) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
 struct FieldDecl : public ValueDecl {
   unsigned index;
 
@@ -150,30 +172,39 @@ struct VarDecl : public ValueDecl {
 };
 
 struct FunctionDecl : public ValueDecl {
+  std::vector<TypeArgumentDecl *> typeArguments;
   std::vector<ParamDecl *> params;
   Block *body = nullptr;
   bool isComplete = false;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
+               std::vector<TypeArgumentDecl *> typeArguments,
                std::vector<ParamDecl *> params)
       : ValueDecl(
             location, std::move(identifier), Decl::Kind::FunctionDecl, false),
+        typeArguments(std::move(typeArguments)),
         params(std::move(params)) {}
 
   void setBody(Block *body);
+  bool isGeneric() const override { return !typeArguments.empty(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct StructDecl : public TypeDecl {
+  std::vector<TypeArgumentDecl *> typeArguments;
   std::vector<FieldDecl *> fields;
   bool isComplete = false;
 
-  StructDecl(SourceLocation location, std::string identifier)
-      : TypeDecl(location, std::move(identifier), Decl::Kind::StructDecl) {}
+  StructDecl(SourceLocation location,
+             std::string identifier,
+             std::vector<TypeArgumentDecl *> typeArguments)
+      : TypeDecl(location, std::move(identifier), Decl::Kind::StructDecl),
+        typeArguments(std::move(typeArguments)) {}
 
   void setFields(std::vector<FieldDecl *> fields);
+  bool isGeneric() const override { return !typeArguments.empty(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -303,11 +334,11 @@ struct FieldInitStmt : public Stmt {
 };
 
 struct StructInstantiationExpr : public Expr {
-  StructDecl *structDecl;
+  const StructDecl *structDecl;
   std::vector<FieldInitStmt *> fieldInitializers;
 
   StructInstantiationExpr(SourceLocation location,
-                          StructDecl *structDecl,
+                          const StructDecl *structDecl,
                           std::vector<FieldInitStmt *> fieldInitializers)
       : Expr(location, Expr::Kind::Lvalue),
         structDecl(structDecl),
@@ -316,75 +347,144 @@ struct StructInstantiationExpr : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
-struct Type {
-  virtual bool isKnown() const { return true; }
+class Type {
+public:
+  virtual bool isUninferredType() const { return false; }
   virtual bool isBuiltinVoid() const { return false; }
   virtual bool isBuiltinNumber() const { return false; }
   virtual bool isFunctionType() const { return false; }
   virtual bool isStructType() const { return false; }
+  virtual bool isTypeArgumentType() const { return false; }
 
-  virtual bool operator==(const Type &b) const = 0;
-  virtual std::string asString() const = 0;
-  virtual void dump() const = 0;
+  virtual Type *getRootType() { return this; }
+  virtual const Type *getRootType() const { return this; }
 
+  virtual std::string getName() const = 0;
   virtual ~Type() = default;
+
+protected:
+  Type() {}
+
+  friend class Context;
 };
 
-struct UninferredType : public Type {
+class UninferredType : public Type {
+  Type *parent;
   size_t id;
 
   UninferredType(size_t id)
-      : id(id){};
+      : parent(nullptr),
+        id(id){};
 
-  bool isKnown() const override { return false; }
+  void infer(Type *t) {
+    assert(!parent && "already inferred");
+    parent = t;
+  }
 
-  bool operator==(const Type &b) const override;
-  std::string asString() const override;
-  void dump() const override;
+public:
+  Type *getRootType() override {
+    return const_cast<Type *>(
+        const_cast<const UninferredType *>(this)->getRootType());
+  }
+
+  const Type *getRootType() const override {
+    if (parent)
+      return parent->getRootType();
+    return this;
+  }
+
+  bool isUninferredType() const override { return true; }
+  std::string getName() const override {
+    if (parent)
+      return parent->getName();
+    return "t" + std::to_string(id);
+  };
+
+  friend class Context;
 };
 
-struct BuiltinType : public Type {
+class BuiltinType : public Type {
+public:
   enum class Kind { Void, Number };
 
+private:
   Kind kind;
 
   BuiltinType(Kind kind)
       : kind(kind){};
 
+public:
   bool isBuiltinVoid() const override { return kind == Kind::Void; }
   bool isBuiltinNumber() const override { return kind == Kind::Number; }
+  std::string getName() const override {
+    return isBuiltinVoid() ? "void" : "number";
+  };
 
-  bool operator==(const Type &b) const override;
-  std::string asString() const override;
-  void dump() const override;
+  friend class Context;
 };
 
-struct StructType : public Type {
-  const StructDecl *decl;
+class TypeArgumentType : public Type {
+public:
+  const TypeArgumentDecl *decl;
 
-  StructType(const StructDecl &decl)
+  bool isTypeArgumentType() const override { return true; }
+  std::string getName() const override { return decl->identifier; };
+
+private:
+  TypeArgumentType(const TypeArgumentDecl &decl)
       : decl(&decl){};
 
-  bool isStructType() const override { return true; }
-
-  bool operator==(const Type &b) const override;
-  std::string asString() const override;
-  void dump() const override;
+  friend class Context;
 };
 
-struct FunctionType : public Type {
-  std::vector<const Type *> args;
-  const Type *ret;
+class FunctionType : public Type {
+  std::vector<Type *> args;
+  Type *ret;
 
-  FunctionType(std::vector<const Type *> args, const Type *ret)
+  FunctionType(std::vector<Type *> args, Type *ret)
       : args(std::move(args)),
         ret(ret){};
 
-  bool isFunctionType() const override { return true; }
+public:
+  size_t getArgCount() const { return args.size(); }
 
-  bool operator==(const Type &b) const override;
-  std::string asString() const override;
-  void dump() const override;
+  const Type *getArgType(size_t idx) const { return args[idx]->getRootType(); }
+  Type *getArgType(size_t idx) { return args[idx]->getRootType(); }
+
+  const Type *getReturnType() const { return ret->getRootType(); }
+  Type *getReturnType() { return ret->getRootType(); }
+
+  bool isFunctionType() const override { return true; }
+  std::string getName() const override;
+
+  friend class Context;
+};
+
+class StructType : public Type {
+private:
+  std::vector<Type *> typeArgs;
+  const StructDecl *decl;
+
+  StructType(const StructDecl &decl, std::vector<Type *> typeArgs)
+      : decl(&decl),
+        typeArgs(std::move(typeArgs)) {
+    assert(decl.typeArguments.size() == this->typeArgs.size() &&
+           "mismatching type argument size for struct");
+  };
+
+public:
+  const StructDecl *getDecl() const { return decl; }
+  size_t getTypeArgCount() const { return typeArgs.size(); }
+
+  const Type *getTypeArg(size_t idx) const {
+    return typeArgs[idx]->getRootType();
+  }
+  Type *getTypeArg(size_t idx) { return typeArgs[idx]->getRootType(); }
+
+  bool isStructType() const override { return true; }
+  std::string getName() const override;
+
+  friend class Context;
 };
 
 class Context {
@@ -399,29 +499,32 @@ class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
-  std::vector<std::unique_ptr<Type>> types;
 
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
 
+  std::unique_ptr<BuiltinType> numberTy =
+      std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Number));
+  std::unique_ptr<BuiltinType> voidTy =
+      std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Void));
+  std::unordered_map<const TypeArgumentDecl *,
+                     std::unique_ptr<TypeArgumentType>>
+      typeArgTys;
+  std::vector<std::unique_ptr<UninferredType>> typeVariables;
+  std::vector<std::unique_ptr<StructType>> structTys;
+  std::vector<std::unique_ptr<FunctionType>> functionTys;
+
   using EnvKeyTy = std::variant<const Expr *, const Decl *>;
-  std::unordered_map<EnvKeyTy, const Type *> environment;
-  size_t uninferredTypeIdx = 0;
+  std::unordered_map<EnvKeyTy, Type *> environment;
 
   Context() = default;
-
-  template <typename T, typename... Args> const Type *getType(Args &&...args) {
-    auto typeToGet = std::make_unique<T>(std::forward<Args>(args)...);
-
-    for (auto &&type : types)
-      if (*type == *typeToGet)
-        return type.get();
-
-    return types.emplace_back(std::move(typeToGet)).get();
-  }
-  void replace(const Type *t1, const Type *t2);
+  Context(const Context &) = delete;
+  Context &operator=(const Context &) = delete;
 
 public:
+  Context(Context &&) = default;
+  Context &operator=(Context &&) = delete;
+
   static Context createEmptyContext() { return Context{}; }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
@@ -430,12 +533,18 @@ public:
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
   std::vector<FunctionDecl *> &getFunctions() { return functions; }
 
-  const Type *getNewUninferredType();
-  const Type *getBuiltinType(const BuiltinType::Kind kind);
-  const Type *getFunctionType(std::vector<const Type *> args, const Type *ret);
-  const Type *getStructType(const StructDecl &decl);
+  UninferredType *getNewUninferredType();
+  BuiltinType *getBuiltinType(const BuiltinType::Kind kind);
+  FunctionType *getUninferredFunctionType(size_t argCount);
+  StructType *getUninferredStructType(const StructDecl &decl);
+  TypeArgumentType *getTypeArgumentType(const TypeArgumentDecl &decl);
 
-  bool unify(const Type *t1, const Type *t2);
+  Type *getFieldType(StructType *s, const FieldDecl *field);
+
+  std::vector<res::Type *> createInstantiation(const Decl *decl);
+  Type *instantiate(Type *t, std::vector<res::Type *> &instantiation);
+
+  bool unify(Type *t1, Type *t2);
 
   void dump();
 
@@ -463,7 +572,7 @@ public:
     return raw;
   }
 
-  template <typename T> T *bind(T *node, const Type *type) {
+  template <typename T> T *bind(T *node, Type *type) {
     static_assert(is_env_key<T>(), "");
     environment[node] = type;
     return node;
@@ -474,7 +583,11 @@ public:
     if (environment.count(node) == 0)
       return nullptr;
 
-    return environment.at(node);
+    return environment.find(node)->second->getRootType();
+  }
+
+  template <typename T> Type *getType(T *node) {
+    return const_cast<Type *>(const_cast<const Context *>(this)->getType(node));
   }
 };
 } // namespace res
