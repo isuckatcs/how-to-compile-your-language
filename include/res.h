@@ -360,11 +360,11 @@ struct FieldInitStmt : public Stmt {
 };
 
 struct StructInstantiationExpr : public Expr {
-  const StructDecl *structDecl;
+  const DeclRefExpr *structDecl;
   std::vector<FieldInitStmt *> fieldInitializers;
 
   StructInstantiationExpr(SourceLocation location,
-                          const StructDecl *structDecl,
+                          const DeclRefExpr *structDecl,
                           std::vector<FieldInitStmt *> fieldInitializers)
       : Expr(location, Expr::Kind::Lvalue),
         structDecl(structDecl),

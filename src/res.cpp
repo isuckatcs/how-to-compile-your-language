@@ -200,8 +200,10 @@ void FieldInitStmt::dump(Context &ctx, size_t level) const {
 }
 
 void StructInstantiationExpr::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "StructInstantiationExpr @(" << structDecl
-            << ')' << " {" << ctx.getType(this)->getName() << '}' << '\n';
+  std::cerr << indent(level) << "StructInstantiationExpr"
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
+
+  structDecl->dump(ctx, level + 1);
 
   for (auto &&field : fieldInitializers)
     field->dump(ctx, level + 1);

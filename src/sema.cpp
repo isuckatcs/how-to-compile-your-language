@@ -140,6 +140,8 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
         }
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
+          // FIXME: consider doing this eagerly (e.g.: after an instantiation,
+          // or a call)
           for (auto &&typeArg : dre->typeArgList) {
             if (typeArg->isUninferredType())
               pendingErrors.emplace_back(
@@ -494,8 +496,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     return nullptr;
 
   return ctx.bind(
-      ctx.create<res::StructInstantiationExpr>(structInstantiation.location, sd,
-                                               std::move(resolvedFieldInits)),
+      ctx.create<res::StructInstantiationExpr>(
+          structInstantiation.location, dre, std::move(resolvedFieldInits)),
       structTy);
 }
 

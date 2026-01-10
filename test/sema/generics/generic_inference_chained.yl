@@ -18,7 +18,8 @@ fn main(): void {
   let s = S { x: 1 };
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
-  // CHECK-NEXT:     StructInstantiationExpr @({{.*}}) {S<number>}
+  // CHECK-NEXT:     StructInstantiationExpr {S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S<number> {S<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:         NumberLiteral '1' {number}
   // CHECK-NEXT:         | value: 1

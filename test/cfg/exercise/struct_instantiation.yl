@@ -23,24 +23,28 @@ fn main(): void {
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   1: 1
 // CHECK-NEXT:   2: y: [1.1]
-// CHECK-NEXT:   3: S2 {[1.2]}
-// CHECK-NEXT:   4: s2: [1.3]
-// CHECK-NEXT:   5: 0
-// CHECK-NEXT:   6: x: [1.5]
-// CHECK-NEXT:   7: 2
-// CHECK-NEXT:   8: y: [1.7]
-// CHECK-NEXT:   9: S {[1.4], [1.6], [1.8]}
-// CHECK-NEXT:   10: let s = [1.9]
-// CHECK-NEXT:   11: 3
-// CHECK-NEXT:   12: x: [1.11]
-// CHECK-NEXT:   13: 4
-// CHECK-NEXT:   14: y: [1.13]
-// CHECK-NEXT:   15: S2 {[1.14]}
-// CHECK-NEXT:   16: s2: [1.15]
-// CHECK-NEXT:   17: 5
-// CHECK-NEXT:   18: y: [1.17]
-// CHECK-NEXT:   19: S {[1.12], [1.16], [1.18]}
-// CHECK-NEXT:   20: let s2 = [1.19]
+// CHECK-NEXT:   3: S2
+// CHECK-NEXT:   4: [1.3] {[1.2]}
+// CHECK-NEXT:   5: s2: [1.4]
+// CHECK-NEXT:   6: 0
+// CHECK-NEXT:   7: x: [1.6]
+// CHECK-NEXT:   8: 2
+// CHECK-NEXT:   9: y: [1.8]
+// CHECK-NEXT:   10: S
+// CHECK-NEXT:   11: [1.10] {[1.5], [1.7], [1.9]}
+// CHECK-NEXT:   12: let s = [1.11]
+// CHECK-NEXT:   13: 3
+// CHECK-NEXT:   14: x: [1.13]
+// CHECK-NEXT:   15: 4
+// CHECK-NEXT:   16: y: [1.15]
+// CHECK-NEXT:   17: S2
+// CHECK-NEXT:   18: [1.17] {[1.16]}
+// CHECK-NEXT:   19: s2: [1.18]
+// CHECK-NEXT:   20: 5
+// CHECK-NEXT:   21: y: [1.20]
+// CHECK-NEXT:   22: S
+// CHECK-NEXT:   23: [1.22] {[1.14], [1.19], [1.21]}
+// CHECK-NEXT:   24: let s2 = [1.23]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 

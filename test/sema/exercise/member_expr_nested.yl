@@ -25,12 +25,14 @@ fn main(): void {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
-// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {S}
+// CHECK-NEXT:         StructInstantiationExpr {S}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) n
-// CHECK-NEXT:             StructInstantiationExpr @({{.*}}) {S2}
+// CHECK-NEXT:             StructInstantiationExpr {S2}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) S2 {S2}
 // CHECK-NEXT:               FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:                 NumberLiteral '1' {number}
 // CHECK-NEXT:                 | value: 1

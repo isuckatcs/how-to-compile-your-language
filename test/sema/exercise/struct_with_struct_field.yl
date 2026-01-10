@@ -31,7 +31,8 @@ fn main(): void {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {Color}
-// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {Color}
+// CHECK-NEXT:         StructInstantiationExpr {Color}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) Color {Color}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) r
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
@@ -42,7 +43,8 @@ fn main(): void {
 // CHECK-NEXT:             NumberLiteral '2' {number}
 // CHECK-NEXT:             | value: 2
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) p
-// CHECK-NEXT:             StructInstantiationExpr @({{.*}}) {Point}
+// CHECK-NEXT:             StructInstantiationExpr {Point}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) Point {Point}
 // CHECK-NEXT:               FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:                 BinaryOperator '+' {number}
 // CHECK-NEXT:                 | value: 7

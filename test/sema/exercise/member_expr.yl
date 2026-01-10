@@ -17,7 +17,8 @@ fn main(): void {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
-// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {S}
+// CHECK-NEXT:         StructInstantiationExpr {S}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0

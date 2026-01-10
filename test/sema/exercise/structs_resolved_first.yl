@@ -23,7 +23,8 @@ struct S2 { x: number, y:number }
 // CHECK-NEXT:   ParamDecl @({{.*}}) s {S}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       StructInstantiationExpr @({{.*}}) {S2}
+// CHECK-NEXT:       StructInstantiationExpr {S2}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S2 {S2}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}

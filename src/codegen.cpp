@@ -175,16 +175,19 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr,
 
 llvm::Value *
 Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  const res::Type *structType = resolvedTree->getType(sie.structDecl);
-  llvm::Value *tmp = allocateStackVariable(sie.structDecl->identifier + ".tmp",
-                                           generateType(structType));
+  const res::Type *ty = resolvedTree->getType(sie.structDecl);
+  assert(ty->isStructType());
+  const res::StructType *structType = static_cast<const res::StructType *>(ty);
+
+  llvm::Value *tmp = allocateStackVariable(
+      structType->getDecl()->identifier + ".tmp", generateType(structType));
 
   std::map<const res::FieldDecl *, llvm::Value *> initializerVals;
   for (auto &&initStmt : sie.fieldInitializers)
     initializerVals[initStmt->field] = generateExpr(*initStmt->initializer);
 
   size_t idx = 0;
-  for (auto &&field : sie.structDecl->fields) {
+  for (auto &&field : structType->getDecl()->fields) {
     llvm::Value *dst =
         builder.CreateStructGEP(generateType(structType), tmp, idx++);
     storeValue(initializerVals[field], dst,

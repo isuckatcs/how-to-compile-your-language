@@ -81,7 +81,7 @@ void CFG::dump() const {
         std::cerr << getOpStr(unop->op) << stmtToRef[unop->operand];
       } else if (const auto *si =
                      dynamic_cast<const res::StructInstantiationExpr *>(*it)) {
-        std::cerr << si->structDecl->identifier << ' ' << '{';
+        std::cerr << stmtToRef[si->structDecl] << ' ' << '{';
         for (int i = 0; i < si->fieldInitializers.size(); ++i) {
           std::cerr << stmtToRef[si->fieldInitializers[i]];
 
@@ -191,9 +191,10 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (const auto *structInst =
           dynamic_cast<const res::StructInstantiationExpr *>(&expr)) {
+    block = insertStmt(*structInst->structDecl, block);
     for (auto it = structInst->fieldInitializers.rbegin();
          it != structInst->fieldInitializers.rend(); ++it)
-      insertStmt(**it, block);
+      block = insertStmt(**it, block);
     return block;
   }
 
