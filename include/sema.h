@@ -1,7 +1,6 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_SEMA_H
 
-#include <memory>
 #include <vector>
 
 #include "ast.h"
@@ -29,7 +28,7 @@ class Sema {
     ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 
-  const res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
+  res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
 
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
                                            const ast::UnaryOperator &unary);
@@ -69,6 +68,10 @@ class Sema {
                                      const ast::StructDecl &structDecl);
   res::StructDecl *resolveStructFields(res::Context &ctx,
                                        const ast::StructDecl &structDecl);
+
+  std::vector<res::TypeArgumentDecl *> resolveTypeParameters(
+      res::Context &ctx,
+      const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
   template <typename T> std::pair<T *, int> lookupDecl(const std::string id);

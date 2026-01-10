@@ -24,7 +24,9 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
                                  const CFG &cfg) {
   const auto *type = ctx.getType(&fn);
   assert(type && type->isFunctionType());
-  if (static_cast<const res::FunctionType *>(type)->ret->isBuiltinVoid())
+  if (static_cast<const res::FunctionType *>(type)
+          ->getReturnType()
+          ->isBuiltinVoid())
     return false;
 
   int returnCount = 0;
@@ -198,19 +200,23 @@ std::pair<T *, int> Sema::lookupDecl(const std::string id) {
 res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
-  const auto *numTy = ctx.getBuiltinType(res::BuiltinType::Kind::Number);
-  const auto *voidTy = ctx.getBuiltinType(res::BuiltinType::Kind::Void);
-  const auto *fnTy = ctx.getFunctionType({numTy}, voidTy);
+  auto *numTy = ctx.getBuiltinType(res::BuiltinType::Kind::Number);
+  auto *fnTy = ctx.getUninferredFunctionType(1);
+
+  ctx.unify(fnTy->getArgType(0), numTy);
+  ctx.unify(fnTy->getReturnType(),
+            ctx.getBuiltinType(res::BuiltinType::Kind::Void));
 
   auto *param = ctx.bind(ctx.create<res::ParamDecl>(loc, "n", false), numTy);
-  auto *fn = ctx.create<res::FunctionDecl>(loc, "println", std::vector{param});
+  auto *fn = ctx.create<res::FunctionDecl>(
+      loc, "println", std::vector<res::TypeArgumentDecl *>{},
+      std::vector{param});
   fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
   return ctx.bind(fn, fnTy);
 };
 
-const res::Type *Sema::resolveType(res::Context &ctx,
-                                   const ast::Type &parsedType) {
+res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
@@ -228,25 +234,44 @@ const res::Type *Sema::resolveType(res::Context &ctx,
       return report(udt->location,
                     "failed to resolve type '" + udt->identifier + "'");
 
-    if (const auto *sd = dynamic_cast<const res::StructDecl *>(decl))
-      return ctx.getStructType(*sd);
+    if (const auto *sd = dynamic_cast<const res::StructDecl *>(decl)) {
+      if (sd->typeArguments.size() != udt->typeArguments.size()) {
+        // FIXME: change argument/arguments based on number
+        return report(udt->location,
+                      "expected '" + std::to_string(sd->typeArguments.size()) +
+                          "' type arguments but received '" +
+                          std::to_string(udt->typeArguments.size()) + '\'');
+      }
+
+      res::StructType *structTy = ctx.getUninferredStructType(*sd);
+      for (size_t i = 0; i < udt->typeArguments.size(); ++i) {
+        varOrReturn(resolvedType, resolveType(ctx, *udt->typeArguments[i]));
+        ctx.unify(structTy->getTypeArg(i), resolvedType);
+      }
+
+      return structTy;
+    }
+
+    if (const auto *tad = dynamic_cast<const res::TypeArgumentDecl *>(decl))
+      return ctx.getTypeArgumentType(*tad);
 
     llvm_unreachable("unexpected value type encountered");
   }
 
   if (const auto *function =
           dynamic_cast<const ast::FunctionType *>(&parsedType)) {
-    std::vector<const res::Type *> args;
-    for (auto &&arg : function->args) {
-      varOrReturn(type, resolveType(ctx, *arg));
-      if (type->isBuiltinVoid())
-        return report(arg->location,
+    auto *fnTy = ctx.getUninferredFunctionType(function->args.size());
+
+    for (size_t i = 0; i < function->args.size(); ++i) {
+      auto *argTy = resolveType(ctx, *function->args[i]);
+      if (argTy->isBuiltinVoid())
+        return report(function->args[i]->location,
                       "function type with 'void' argument is not allowed");
-      args.emplace_back(type);
+      ctx.unify(fnTy->getArgType(i), argTy);
     }
 
-    varOrReturn(ret, resolveType(ctx, *function->ret));
-    return ctx.getFunctionType(std::move(args), ret);
+    ctx.unify(fnTy->getReturnType(), resolveType(ctx, *function->ret));
+    return fnTy;
   }
 
   llvm_unreachable("ast type encountered");
@@ -256,14 +281,14 @@ res::UnaryOperator *
 Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
-  const auto *rhsTy = ctx.getType(rhs);
-  if (!rhsTy->isKnown())
+  auto *rhsTy = ctx.getType(rhs);
+  if (rhsTy->isUninferredType())
     return report(rhs->location,
                   "type of operand to unary operator is unknown");
 
   const auto &loc = unary.location;
   if (!rhsTy->isBuiltinNumber())
-    return report(loc, '\'' + rhsTy->asString() +
+    return report(loc, '\'' + rhsTy->getName() +
                            "' cannot be used as an operand to unary operator");
 
   return ctx.bind(ctx.create<res::UnaryOperator>(loc, unary.op, rhs), rhsTy);
@@ -275,18 +300,19 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   varOrReturn(lhs, resolveExpr(ctx, *binop.lhs));
   varOrReturn(rhs, resolveExpr(ctx, *binop.rhs));
 
-  const auto *lhsTy = ctx.getType(lhs);
-  const auto *rhsTy = ctx.getType(rhs);
+  auto *lhsTy = ctx.getType(lhs);
+  auto *rhsTy = ctx.getType(rhs);
 
-  if (!lhsTy->isKnown() || !rhsTy->isKnown())
-    return report((!lhsTy->isKnown() ? lhs : rhs)->location,
-                  "type of " + std::string(!lhsTy->isKnown() ? "LHS" : "RHS") +
+  if (lhsTy->isUninferredType() || rhsTy->isUninferredType())
+    return report((lhsTy->isUninferredType() ? lhs : rhs)->location,
+                  "type of " +
+                      std::string(lhsTy->isUninferredType() ? "LHS" : "RHS") +
                       " to binary operator is unknown");
 
   const auto &loc = binop.location;
   if (lhsTy != rhsTy || !lhsTy->isBuiltinNumber())
     return report(loc, "incompatible operands to binary operator ('" +
-                           lhsTy->asString() + "' and '" + rhsTy->asString() +
+                           lhsTy->getName() + "' and '" + rhsTy->getName() +
                            "')");
 
   return ctx.bind(ctx.create<res::BinaryOperator>(loc, binop.op, lhs, rhs),
@@ -313,23 +339,35 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
                              ? res::Expr::Kind::Rvalue
                              : res::Expr::Kind::Lvalue;
 
-  // FIXME: handle templates
+  auto *declTy = ctx.getType(decl);
+  std::vector<res::Type *> instantiation = ctx.createInstantiation(decl);
+
+  if (declRefExpr.typeArgumentList) {
+    size_t i = 0;
+    for (auto &&typeArg : declRefExpr.typeArgumentList->args) {
+      varOrReturn(resolvedTypeArg, resolveType(ctx, *typeArg));
+      instantiation[i++] = resolvedTypeArg;
+    }
+  }
+
+  if (decl->isGeneric())
+    declTy = ctx.instantiate(ctx.getType(decl), instantiation);
+
   return ctx.bind(
-      ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl, kind),
-      ctx.getType(decl));
+      ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl, kind), declTy);
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
   varOrReturn(callee, resolveExpr(ctx, *call.callee));
 
-  const auto *calleeTy = ctx.getType(callee);
+  auto *calleeTy = ctx.getType(callee);
   if (!calleeTy->isFunctionType())
     return report(call.location,
-                  "calling expression of type '" + calleeTy->asString() + '\'');
+                  "calling expression of type '" + calleeTy->getName() + '\'');
 
-  const auto *fnType = static_cast<const res::FunctionType *>(calleeTy);
-  if (call.arguments.size() != fnType->args.size())
+  auto *fnType = static_cast<res::FunctionType *>(calleeTy);
+  if (call.arguments.size() != fnType->getArgCount())
     return report(call.location, "argument count mismatch in function call");
 
   std::vector<res::Expr *> args;
@@ -337,11 +375,11 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   for (auto &&argument : call.arguments) {
     varOrReturn(arg, resolveExpr(ctx, *argument));
 
-    if (!ctx.unify(fnType->args[idx], ctx.getType(arg)))
+    if (!ctx.unify(fnType->getArgType(idx), ctx.getType(arg)))
       return report(arg->location, "expected '" +
-                                       fnType->args[idx]->asString() +
+                                       fnType->getArgType(idx)->getName() +
                                        "' argument, but received '" +
-                                       ctx.getType(arg)->asString() + "'");
+                                       ctx.getType(arg)->getName() + "'");
 
     arg->setConstantValue(cee.evaluate(*arg, false));
     args.emplace_back(arg);
@@ -350,7 +388,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
   return ctx.bind(
       ctx.create<res::CallExpr>(call.location, callee, std::move(args)),
-      fnType->ret);
+      fnType->getReturnType());
 }
 
 res::StructInstantiationExpr *Sema::resolveStructInstantiation(
@@ -362,7 +400,10 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   if (!dre->decl->isStructDecl())
     return report(dre->location, "expected struct declaration to instantiate");
 
-  auto *sd = static_cast<res::StructDecl *>(dre->decl);
+  res::Type *ty = ctx.getType(dre);
+  assert(ty->isStructType() && "struct decl doesn't have struct type");
+  res::StructType *structTy = static_cast<res::StructType *>(ty);
+  auto *sd = structTy->getDecl();
 
   std::vector<res::FieldInitStmt *> resolvedFieldInits;
   std::map<std::string_view, res::FieldInitStmt *> inits;
@@ -396,12 +437,14 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    if (!ctx.unify(ctx.getType(fieldDecl), ctx.getType(resolvedInitExpr))) {
+    res::Type *initTy = ctx.getType(resolvedInitExpr);
+    res::Type *fieldTy = ctx.getFieldType(structTy, fieldDecl);
+
+    if (!ctx.unify(fieldTy, initTy)) {
       report(resolvedInitExpr->location,
-             "an expression of type '" +
-                 ctx.getType(resolvedInitExpr)->asString() +
+             "an expression of type '" + initTy->getName() +
                  "' cannot be assigned to a variable of type '" +
-                 ctx.getType(fieldDecl)->asString() + "'");
+                 fieldTy->getName() + "'");
       error = true;
       continue;
     }
@@ -429,20 +472,20 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   return ctx.bind(
       ctx.create<res::StructInstantiationExpr>(structInstantiation.location, sd,
                                                std::move(resolvedFieldInits)),
-      ctx.getType(sd));
+      structTy);
 }
 
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                                          const ast::MemberExpr &memberExpr) {
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
-  const auto *baseTy = ctx.getType(base);
+  auto *baseTy = ctx.getType(base);
   if (!baseTy->isStructType())
     return report(memberExpr.base->location,
-                  "cannot access field of '" + baseTy->asString() + '\'');
+                  "cannot access field of '" + baseTy->getName() + '\'');
 
-  const auto *sd = static_cast<const res::StructType *>(baseTy)->decl;
-  assert(sd && "struct type without decl");
+  auto *structTy = static_cast<res::StructType *>(baseTy);
+  const auto *sd = structTy->getDecl();
 
   res::FieldDecl *fieldDecl = nullptr;
   for (auto &&field : sd->fields)
@@ -454,9 +497,11 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                   '\'' + sd->identifier + "' has no field called '" +
                       memberExpr.member->identifier + '\'');
 
+  res::Type *fieldTy = ctx.getFieldType(structTy, fieldDecl);
+
   return ctx.bind(
       ctx.create<res::MemberExpr>(memberExpr.location, base, fieldDecl),
-      ctx.getType(fieldDecl));
+      fieldTy);
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -533,16 +578,16 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   if (!lhs->isLvalue())
     return report(lhs->location, "expression is not assignable");
 
-  const auto *lhsTy = ctx.getType(lhs);
-  const auto *rhsTy = ctx.getType(rhs);
+  auto *lhsTy = ctx.getType(lhs);
+  auto *rhsTy = ctx.getType(rhs);
 
   if (rhsTy->isBuiltinVoid())
     return report(rhs->location,
                   "'void' expression is not allowed inside assignment");
 
   if (!ctx.unify(lhsTy, rhsTy))
-    return report(rhs->location, "expected to assign '" + lhsTy->asString() +
-                                     "' but received '" + rhsTy->asString() +
+    return report(rhs->location, "expected to assign '" + lhsTy->getName() +
+                                     "' but received '" + rhsTy->getName() +
                                      "' instead");
   rhs->setConstantValue(cee.evaluate(*rhs, false));
 
@@ -553,16 +598,16 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                          const ast::ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
-  const auto *ty = ctx.getType(currentFunction);
+  auto *ty = ctx.getType(currentFunction);
   assert(ty->isFunctionType() && "function decl is not of function type");
-  const auto *fnTy = static_cast<const res::FunctionType *>(ty);
+  auto *fnTy = static_cast<res::FunctionType *>(ty);
 
-  const auto *retTy = fnTy->ret;
+  auto *retTy = fnTy->getReturnType();
   if (retTy->isBuiltinVoid() && returnStmt.expr)
     return report(returnStmt.location,
                   "unexpected return value in 'void' function");
 
-  if (retTy->isKnown() && !retTy->isBuiltinVoid() && !returnStmt.expr)
+  if (!retTy->isUninferredType() && !retTy->isBuiltinVoid() && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
 
   res::Expr *expr = nullptr;
@@ -571,14 +616,14 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    const res::Type *exprTy = ctx.getType(expr);
+    res::Type *exprTy = ctx.getType(expr);
     if (!ctx.unify(retTy, exprTy)) {
       exprTy = ctx.getType(expr);
-      retTy = fnTy->ret;
+      retTy = fnTy->getReturnType();
 
-      return report(expr->location, "cannot return '" + exprTy->asString() +
+      return report(expr->location, "cannot return '" + exprTy->getName() +
                                         "' from a function returning '" +
-                                        retTy->asString() + "'");
+                                        retTy->getName() + "'");
     }
 
     expr->setConstantValue(cee.evaluate(*expr, false));
@@ -659,7 +704,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
 
 res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
                                        const ast::ParamDecl &param) {
-  const auto *type = resolveType(ctx, *param.type);
+  auto *type = resolveType(ctx, *param.type);
 
   if (!type || type->isBuiltinVoid())
     return report(param.location,
@@ -689,18 +734,22 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     ctx.unify(ctx.getType(decl), type);
   }
 
+  // FIXME: consider passing down the type to the initializer
+  // let s: S<T> = S { x: 1 };
+  //                 ^ 'S<number>' != 'S<T>' <- currently reported
+  //                      ^ number != T <- would be reported after the change
   if (initializer) {
-    const auto *declTy = ctx.getType(decl);
-    const auto *initTy = ctx.getType(initializer);
+    auto *declTy = ctx.getType(decl);
+    auto *initTy = ctx.getType(initializer);
 
     if (!ctx.unify(declTy, initTy)) {
       declTy = ctx.getType(decl);
       initTy = ctx.getType(initializer);
 
       return report(decl->initializer->location,
-                    "an expression of type '" + initTy->asString() +
+                    "an expression of type '" + initTy->getName() +
                         "' cannot be used to initialize a variable of type '" +
-                        declTy->asString() + "'");
+                        declTy->getName() + "'");
     }
 
     initializer->setConstantValue(cee.evaluate(*initializer, false));
@@ -708,14 +757,37 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
 
   const auto *declTy = ctx.getType(decl);
   if (declTy->isBuiltinVoid())
-    return report(decl->location, "a variable of '" + declTy->asString() +
+    return report(decl->location, "a variable of '" + declTy->getName() +
                                       "' type is not allowed");
   return decl;
+}
+
+std::vector<res::TypeArgumentDecl *> Sema::resolveTypeParameters(
+    res::Context &ctx,
+    const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls) {
+  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments;
+  for (auto &&typeArg : typeParamDecls) {
+    auto *resolvedTypeArg = ctx.create<res::TypeArgumentDecl>(
+        typeArg->location, typeArg->identifier, resolvedTypeArguments.size());
+
+    resolvedTypeArguments.emplace_back(
+        ctx.bind(resolvedTypeArg, ctx.getTypeArgumentType(*resolvedTypeArg)));
+  }
+
+  return resolvedTypeArguments;
 }
 
 res::FunctionDecl *
 Sema::resolveFunctionDecl(res::Context &ctx,
                           const ast::FunctionDecl &function) {
+  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments =
+      resolveTypeParameters(ctx, function.typeParameters);
+
+  ScopeRAII typeArgScope(this);
+  for (auto &&typeArgDecl : resolvedTypeArguments)
+    if (!insertDeclToCurrentScope(typeArgDecl))
+      return nullptr;
+
   varOrReturn(retTy, resolveType(ctx, *function.type));
 
   if (function.identifier == "main") {
@@ -733,31 +805,47 @@ Sema::resolveFunctionDecl(res::Context &ctx,
   }
 
   std::vector<res::ParamDecl *> resolvedParams;
-  std::vector<const res::Type *> paramTypes;
+  auto *fnTy = ctx.getUninferredFunctionType(function.params.size());
 
   // FIXME: how to avoid doing this twice?
   ScopeRAII paramScope(this);
-  for (auto &&param : function.params) {
-    auto *resolvedParam = resolveParamDecl(ctx, *param);
+  for (size_t i = 0; i < function.params.size(); ++i) {
+    auto *resolvedParam = resolveParamDecl(ctx, *function.params[i]);
 
     if (!resolvedParam || !insertDeclToCurrentScope(resolvedParam))
       return nullptr;
 
-    paramTypes.emplace_back(ctx.getType(resolvedParam));
+    ctx.unify(fnTy->getArgType(i), ctx.getType(resolvedParam));
     resolvedParams.emplace_back(std::move(resolvedParam));
   }
 
-  return ctx.bind(ctx.create<res::FunctionDecl>(function.location,
-                                                function.identifier,
-                                                std::move(resolvedParams)),
-                  ctx.getFunctionType(std::move(paramTypes), retTy));
+  ctx.unify(fnTy->getReturnType(), retTy);
+  return ctx.bind(
+      ctx.create<res::FunctionDecl>(function.location, function.identifier,
+                                    std::move(resolvedTypeArguments),
+                                    std::move(resolvedParams)),
+      fnTy);
 };
 
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &structDecl) {
+  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments =
+      resolveTypeParameters(ctx, structDecl.typeParameters);
   auto *resolvedStruct =
-      ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier);
-  return ctx.bind(resolvedStruct, ctx.getStructType(*resolvedStruct));
+      ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier,
+                                  std::move(resolvedTypeArguments));
+
+  res::StructType *structTy = ctx.getUninferredStructType(*resolvedStruct);
+  ScopeRAII typeArgScope(this);
+  for (size_t i = 0; i < structTy->getTypeArgCount(); ++i) {
+    res::Decl *typeArgDecl = resolvedStruct->typeArguments[i];
+    if (!insertDeclToCurrentScope(typeArgDecl))
+      return nullptr;
+
+    ctx.unify(structTy->getTypeArg(i), ctx.getType(typeArgDecl));
+  }
+
+  return ctx.bind(resolvedStruct, structTy);
 }
 
 res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
@@ -765,6 +853,10 @@ res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
   // FIXME: should empty structs be allowed?
   res::StructDecl *decl = lookupDecl<res::StructDecl>(astDecl.identifier).first;
   assert(decl && !decl->isComplete);
+
+  ScopeRAII typeArgScope(this);
+  for (auto &&typeArgDecl : decl->typeArguments)
+    insertDeclToCurrentScope(typeArgDecl);
 
   bool error = false;
   std::set<std::string_view> identifiers;
@@ -825,9 +917,13 @@ std::optional<res::Context> Sema::resolveAST() {
     return std::nullopt;
 
   for (auto &&fn : ast->functions) {
-    ScopeRAII paramScope(this);
-
     currentFunction = lookupDecl<res::FunctionDecl>(fn->identifier).first;
+
+    ScopeRAII typeArgScope(this);
+    for (auto &&typeArg : currentFunction->typeArguments)
+      insertDeclToCurrentScope(typeArg);
+
+    ScopeRAII paramScope(this);
     for (auto &&param : currentFunction->params)
       insertDeclToCurrentScope(param);
 
@@ -869,7 +965,7 @@ bool Sema::checkSelfContainingStructs(const res::Context &ctx) {
         if (!type->isStructType())
           continue;
 
-        worklist.emplace(static_cast<const res::StructType *>(type)->decl);
+        worklist.emplace(static_cast<const res::StructType *>(type)->getDecl());
       }
     }
   }

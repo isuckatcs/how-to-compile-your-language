@@ -30,6 +30,7 @@ enum class TokenKind : char {
 
   KwFn,
   KwNumber,
+  // FIXME: Replace void with unit for better generic support?
   KwVoid,
   KwIf,
   KwElse,
