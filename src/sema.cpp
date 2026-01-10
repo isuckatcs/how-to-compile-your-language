@@ -1,6 +1,7 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <sstream>
 #include <stack>
 
 #include "cfg.h"
@@ -242,13 +243,9 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
                     "failed to resolve type '" + udt->identifier + "'");
 
     if (const auto *sd = dynamic_cast<const res::StructDecl *>(decl)) {
-      if (sd->typeArguments.size() != udt->typeArguments.size()) {
-        // FIXME: change argument/arguments based on number
-        return report(udt->location,
-                      "expected '" + std::to_string(sd->typeArguments.size()) +
-                          "' type arguments but received '" +
-                          std::to_string(udt->typeArguments.size()) + '\'');
-      }
+      varOrReturn(res, checkTypeParameterCount(udt->location,
+                                               udt->typeArguments.size(),
+                                               sd->typeArguments.size()));
 
       res::StructType *structTy = ctx.getUninferredStructType(*sd);
       for (size_t i = 0; i < udt->typeArguments.size(); ++i) {
@@ -349,11 +346,20 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
   auto *declTy = ctx.getType(decl);
   std::vector<res::Type *> instantiation = ctx.createInstantiation(decl);
 
-  if (declRefExpr.typeArgumentList) {
+  const auto &typeArgList = declRefExpr.typeArgumentList.get();
+  if (typeArgList) {
+    if (!decl->isGeneric())
+      return report(typeArgList->location,
+                    "'" + decl->identifier + "' is not a generic");
+
+    varOrReturn(res, checkTypeParameterCount(typeArgList->location,
+                                             typeArgList->args.size(),
+                                             instantiation.size()));
+
     size_t i = 0;
-    for (auto &&typeArg : declRefExpr.typeArgumentList->args) {
+    for (auto &&typeArg : typeArgList->args) {
       varOrReturn(resolvedTypeArg, resolveType(ctx, *typeArg));
-      instantiation[i++] = resolvedTypeArg;
+      ctx.unify(instantiation[i++], resolvedTypeArg);
     }
   }
 
@@ -741,10 +747,6 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     ctx.unify(ctx.getType(decl), type);
   }
 
-  // FIXME: consider passing down the type to the initializer
-  // let s: S<T> = S { x: 1 };
-  //                 ^ 'S<number>' != 'S<T>' <- currently reported
-  //                      ^ number != T <- would be reported after the change
   if (initializer) {
     auto *declTy = ctx.getType(decl);
     auto *initTy = ctx.getType(initializer);
@@ -767,6 +769,23 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     return report(decl->location, "a variable of '" + declTy->getName() +
                                       "' type is not allowed");
   return decl;
+}
+
+bool Sema::checkTypeParameterCount(SourceLocation loc,
+                                   size_t received,
+                                   size_t expected) const {
+  if (received != expected) {
+    std::stringstream msg;
+    msg << "expected '" << expected << "' type argument";
+    if (expected != 1)
+      msg << 's';
+    msg << " but received '" << received << '\'';
+
+    report(loc, msg.str());
+    return false;
+  }
+
+  return true;
 }
 
 std::vector<res::TypeArgumentDecl *> Sema::resolveTypeParameters(

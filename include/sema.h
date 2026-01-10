@@ -69,6 +69,9 @@ class Sema {
   res::StructDecl *resolveStructFields(res::Context &ctx,
                                        const ast::StructDecl &structDecl);
 
+  bool checkTypeParameterCount(SourceLocation loc,
+                               size_t received,
+                               size_t expected) const;
   std::vector<res::TypeArgumentDecl *> resolveTypeParameters(
       res::Context &ctx,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
