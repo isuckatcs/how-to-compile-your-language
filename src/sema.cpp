@@ -631,7 +631,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     return report(returnStmt.location,
                   "unexpected return value in 'void' function");
 
-  if (!retTy->isUninferredType() && !retTy->isBuiltinVoid() && !returnStmt.expr)
+  if (!retTy->isBuiltinVoid() && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
 
   res::Expr *expr = nullptr;
