@@ -1,0 +1,22 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: T }
+// CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
+
+fn box<U>(x: S<U>): S<U> {
+  return x;
+}
+// CHECK: FunctionDecl @({{.*}}) box {(S<U>) -> S<U>}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {S<U>}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
+
+fn main(): void {
+  let f: (S<number>) -> S<number> = box;
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) f {(S<number>) -> S<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) box {(S<number>) -> S<number>}

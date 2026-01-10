@@ -1,0 +1,28 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: T }
+// CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
+
+fn box<T, U>(x: T, y: T, z: U): void {}
+// CHECK: FunctionDecl @({{.*}}) box {(T,T,U) -> void}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
+// CHECK-NEXT:   ParamDecl @({{.*}}) y {T}
+// CHECK-NEXT:   ParamDecl @({{.*}}) z {U}
+// CHECK-NEXT:   Block
+
+fn main(): void {
+  box(S{ x: 1 }, S{ x: 2 }, main);
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) box {(S<number>,S<number>,() -> void) -> void}
+// CHECK-NEXT:       StructInstantiationExpr @({{.*}}) {S<number>}
+// CHECK-NEXT:         FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:           NumberLiteral '1' {number}
+// CHECK-NEXT:           | value: 1
+// CHECK-NEXT:       StructInstantiationExpr @({{.*}}) {S<number>}
+// CHECK-NEXT:         FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:           NumberLiteral '2' {number}
+// CHECK-NEXT:           | value: 2
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) main {() -> void}

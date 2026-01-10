@@ -1,0 +1,31 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: T }
+// CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
+
+fn box<U>(x: S<U>): S<U> {
+  return x;
+}
+// CHECK: FunctionDecl @({{.*}}) box {(S<U>) -> S<U>}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {S<U>}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
+
+fn main(): void {
+  let s = S { x: 1 };
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
+  // CHECK-NEXT:     StructInstantiationExpr @({{.*}}) {S<number>}
+  // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:         NumberLiteral '1' {number}
+  // CHECK-NEXT:         | value: 1
+
+  let x = box(s).x;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
+  // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
+  // CHECK-NEXT:       CallExpr {S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) box {(S<number>) -> S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
+}

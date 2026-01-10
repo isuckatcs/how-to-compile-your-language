@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: T }
+// CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
+
+fn main(): void {
+  let s = S { x: 1 };
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number>}
+// CHECK-NEXT:         StructInstantiationExpr @({{.*}}) {S<number>}
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:             NumberLiteral '1' {number}
+// CHECK-NEXT:             | value: 1

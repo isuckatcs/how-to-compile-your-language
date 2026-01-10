@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:11: error: redeclaration of 'T'
+fn foo<T, T>(): void {}
+
+fn main(): void {}
+
+// CHECK-NOT: {{.*error.*}}

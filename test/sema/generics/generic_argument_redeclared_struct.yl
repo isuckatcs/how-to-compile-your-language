@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:13: error: redeclaration of 'T'
+struct S<T, T> { x: number }
+
+fn main(): void {}
+
+// CHECK-NOT: {{.*error.*}}

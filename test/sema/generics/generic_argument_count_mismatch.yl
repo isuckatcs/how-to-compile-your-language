@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: number }
+
+fn foo<T, U>(): void {}
+
+fn main(): void {
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected '1' type argument but received '2'
+  S@<number, number>{ x: 1 };
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: expected '2' type arguments but received '1'
+  foo@<void>();
+}
+
+// CHECK-NOT: {{.*error.*}}

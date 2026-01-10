@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: T }
+
+fn foo<T>(x: T): void {}
+
+fn main(): void {
+  // CHECK: [[# @LINE + 2 ]]:16: error: a field of type 'void' cannot be initialized with an expression of type 'number'
+  // CHECK: [[# @LINE + 1 ]]:11: error: field 'x' is not initialized
+  S@<void>{ x: 1 };
+
+  // CHECK: [[# @LINE + 1 ]]:17: error: expected 'S<void>' argument, but received 'number'
+  foo@<S<void>>(1);
+}
+
+// CHECK-NOT: {{.*error.*}}
+
