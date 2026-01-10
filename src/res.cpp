@@ -105,8 +105,19 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
 
 void DeclRefExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
-            << decl->identifier << " {" << ctx.getType(this)->getName() << '}'
-            << '\n';
+            << decl->identifier;
+  if (!typeArgList.empty()) {
+    std::cerr << '<';
+    for (int i = 0; i < typeArgList.size(); ++i) {
+      std::cerr << typeArgList[i]->getRootType()->getName();
+
+      if (i < typeArgList.size() - 1)
+        std::cerr << ',';
+    }
+    std::cerr << '>';
+  }
+
+  std::cerr << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   if (auto val = getConstantValue())
     std::cerr << indent(level) << "| value: " << *val << '\n';

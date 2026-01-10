@@ -68,6 +68,8 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
   return exitReached || returnCount == 0;
 }
 
+// FIXME: this function is actually doing liveness analysis and checking
+// multiple things
 bool Sema::checkVariableInitialization(const res::Context &ctx,
                                        const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
@@ -138,6 +140,14 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
         }
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
+          for (auto &&typeArg : dre->typeArgList) {
+            if (typeArg->isUninferredType())
+              pendingErrors.emplace_back(
+                  dre->location,
+                  "explicit type annotations needed to infer the type of '" +
+                      dre->decl->identifier + "'");
+          }
+
           const auto *var = dynamic_cast<const res::VarDecl *>(dre->decl);
 
           if (var && tmp[var] != State::Assigned) {
@@ -366,8 +376,9 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
   if (decl->isGeneric())
     declTy = ctx.instantiate(ctx.getType(decl), instantiation);
 
-  return ctx.bind(
-      ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl, kind), declTy);
+  return ctx.bind(ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl,
+                                               kind, std::move(instantiation)),
+                  declTy);
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
@@ -455,9 +466,9 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     if (!ctx.unify(fieldTy, initTy)) {
       report(resolvedInitExpr->location,
-             "an expression of type '" + initTy->getName() +
-                 "' cannot be assigned to a variable of type '" +
-                 fieldTy->getName() + "'");
+             "a field of type '" + fieldTy->getName() +
+                 "' cannot be initialized with an expression of type '" +
+                 initTy->getName() + "'");
       error = true;
       continue;
     }

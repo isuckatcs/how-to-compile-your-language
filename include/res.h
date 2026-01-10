@@ -12,6 +12,27 @@ namespace yl {
 namespace res {
 class Context;
 
+class Type {
+public:
+  virtual bool isUninferredType() const { return false; }
+  virtual bool isBuiltinVoid() const { return false; }
+  virtual bool isBuiltinNumber() const { return false; }
+  virtual bool isFunctionType() const { return false; }
+  virtual bool isStructType() const { return false; }
+  virtual bool isTypeArgumentType() const { return false; }
+
+  virtual Type *getRootType() { return this; }
+  virtual const Type *getRootType() const { return this; }
+
+  virtual std::string getName() const = 0;
+  virtual ~Type() = default;
+
+protected:
+  Type() {}
+
+  friend class Context;
+};
+
 struct Stmt {
   SourceLocation location;
 
@@ -233,10 +254,15 @@ struct CallExpr : public Expr {
 
 struct DeclRefExpr : public Expr {
   Decl *decl;
+  std::vector<Type *> typeArgList;
 
-  DeclRefExpr(SourceLocation location, Decl &decl, Expr::Kind kind)
+  DeclRefExpr(SourceLocation location,
+              Decl &decl,
+              Expr::Kind kind,
+              std::vector<Type *> typeArgList)
       : Expr(location, kind),
-        decl(&decl) {}
+        decl(&decl),
+        typeArgList(std::move(typeArgList)) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -347,27 +373,6 @@ struct StructInstantiationExpr : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
-class Type {
-public:
-  virtual bool isUninferredType() const { return false; }
-  virtual bool isBuiltinVoid() const { return false; }
-  virtual bool isBuiltinNumber() const { return false; }
-  virtual bool isFunctionType() const { return false; }
-  virtual bool isStructType() const { return false; }
-  virtual bool isTypeArgumentType() const { return false; }
-
-  virtual Type *getRootType() { return this; }
-  virtual const Type *getRootType() const { return this; }
-
-  virtual std::string getName() const = 0;
-  virtual ~Type() = default;
-
-protected:
-  Type() {}
-
-  friend class Context;
-};
-
 class UninferredType : public Type {
   Type *parent;
   size_t id;
@@ -393,8 +398,24 @@ public:
     return this;
   }
 
-  bool isUninferredType() const override { return true; }
+  bool isUninferredType() const override {
+    if (parent)
+      return parent->isUninferredType();
+    return true;
+  }
+
   std::string getName() const override {
+    // FIXME: hide this in error messages
+    // fn bar(): void {}
+
+    // fn foo<T>(x: () -> T): T {
+    //   return x();
+    // }
+
+    // fn main(): void {
+    //   foo(1);
+    //       ^ error: expected '() -> t7' argument, but received 'number'
+    // }
     if (parent)
       return parent->getName();
     return "t" + std::to_string(id);

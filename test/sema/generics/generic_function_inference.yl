@@ -21,4 +21,4 @@ fn main(): void {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {(S<number>) -> S<number>}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) box {(S<number>) -> S<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) box<number> {(S<number>) -> S<number>}

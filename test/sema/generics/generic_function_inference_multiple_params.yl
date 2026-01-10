@@ -19,7 +19,7 @@ fn main(): void {
 // CHECK: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) box {(S<number>,S<number>,() -> void) -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) box<S<number>,() -> void> {(S<number>,S<number>,() -> void) -> void}
 // CHECK-NEXT:       StructInstantiationExpr @({{.*}}) {S<number>}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           NumberLiteral '1' {number}

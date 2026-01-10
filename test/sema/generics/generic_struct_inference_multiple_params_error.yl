@@ -2,7 +2,7 @@
 struct S<T, U> { x: T, y: T, z: U }
 
 fn main(): void {
-  // CHECK: [[# @LINE + 2 ]]:24: error: an expression of type '() -> void' cannot be assigned to a variable of type 'number'
+  // CHECK: [[# @LINE + 2 ]]:24: error: a field of type 'number' cannot be initialized with an expression of type '() -> void'
   // CHECK: [[# @LINE + 1 ]]:13: error: field 'y' is not initialized
   let s = S { x: 1, y: main, z: 3 };
 }

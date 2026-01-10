@@ -28,6 +28,6 @@ fn main(): void {
   // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:       CallExpr {S<number>}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) box {(S<number>) -> S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) box<number> {(S<number>) -> S<number>}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 }
