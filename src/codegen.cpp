@@ -23,7 +23,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   // FIXME: handle generics
   if (type->isStructType()) {
     auto structId =
-        static_cast<const res::StructType *>(type)->decl->identifier;
+        static_cast<const res::StructType *>(type)->getDecl()->identifier;
     return llvm::StructType::getTypeByName(context, "struct." + structId);
   }
 
@@ -34,16 +34,17 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     llvm::Type *res;
     std::vector<llvm::Type *> args;
 
-    if (fnTy->ret->isStructType()) {
+    if (fnTy->getReturnType()->isStructType()) {
       args.emplace_back(llvm::PointerType::get(context, 0));
       res = builder.getVoidTy();
-    } else if (fnTy->ret->isFunctionType()) {
+    } else if (fnTy->getReturnType()->isFunctionType()) {
       res = llvm::PointerType::get(context, 0);
     } else {
-      res = generateType(fnTy->ret);
+      res = generateType(fnTy->getReturnType());
     }
 
-    for (auto &&arg : fnTy->args) {
+    for (size_t i = 0; i < fnTy->getArgCount(); ++i) {
+      const auto &arg = fnTy->getArgType(i);
       if (arg->isStructType() || arg->isFunctionType())
         args.emplace_back(llvm::PointerType::get(context, 0));
       else
@@ -451,9 +452,9 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *fn) {
 
   const auto *fnTy =
       static_cast<const res::FunctionType *>(resolvedTree->getType(fn));
-  if (fnTy->ret->isStructType()) {
+  if (fnTy->getReturnType()->isStructType()) {
     llvm::AttrBuilder retAttrs(context);
-    retAttrs.addStructRetAttr(generateType(fnTy->ret));
+    retAttrs.addStructRetAttr(generateType(fnTy->getReturnType()));
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
   }
 
