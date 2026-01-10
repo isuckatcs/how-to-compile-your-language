@@ -81,7 +81,7 @@ class Sema {
   bool checkReturnOnAllPaths(res::Context &ctx,
                              const res::FunctionDecl &fn,
                              const CFG &cfg);
-  bool checkVariableInitialization(const CFG &cfg);
+  bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
   bool checkSelfContainingStructs(const res::Context &ctx);
 
 public:

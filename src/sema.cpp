@@ -14,7 +14,7 @@ bool Sema::runFlowSensitiveChecks(res::Context &ctx,
 
   bool error = false;
   error |= checkReturnOnAllPaths(ctx, fn, cfg);
-  error |= checkVariableInitialization(cfg);
+  error |= checkVariableInitialization(ctx, cfg);
 
   return error;
 };
@@ -67,7 +67,8 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
   return exitReached || returnCount == 0;
 }
 
-bool Sema::checkVariableInitialization(const CFG &cfg) {
+bool Sema::checkVariableInitialization(const res::Context &ctx,
+                                       const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
   using Lattice = std::map<const res::Decl *, State>;
@@ -152,6 +153,12 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         changed = true;
       }
     }
+  }
+
+  for (auto &&[d, s] : curLattices[cfg.exit + 1]) {
+    if (s == State::Unassigned && ctx.getType(d)->isUninferredType())
+      pendingErrors.emplace_back(d->location, "the type of '" + d->identifier +
+                                                  "' is unknown");
   }
 
   for (auto &&[loc, msg] : pendingErrors)
