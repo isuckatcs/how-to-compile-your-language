@@ -1,0 +1,35 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> { x: number }
+// CHECK: StructDecl @({{.*}}) S {S<T>}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+
+fn foo<T>(x: S<T>, n: T): void {}
+// CHECK: FunctionDecl @({{.*}}) foo {(S<T>,T) -> void}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {S<T>}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {T}
+// CHECK-NEXT:   Block
+
+fn main(): void {
+  let x = S{ x: 1 };
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) x {S<number>}
+  // CHECK-NEXT:     StructInstantiationExpr {S<number>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S<number> {S<number>}
+  // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:         NumberLiteral '1' {number}
+  // CHECK-NEXT:         | value: 1
+
+  // 'x' is S<t0> at this point
+  // 't0' is inferred to be 'number' during the function call
+
+  foo(x, 1);
+  // CHECK: CallExpr {void}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo<number> {(S<number>,number) -> void}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {S<number>}
+  // CHECK-NEXT:   NumberLiteral '1' {number}
+  // CHECK-NEXT:   | value: 1
+}
+
+// CHECK-NOT: {{.*error.*}}
