@@ -2,9 +2,75 @@
 #include <llvm/IR/Module.h>
 #include <llvm/TargetParser/Host.h>
 
+#include <sstream>
+
 #include "codegen.h"
 
 namespace yl {
+namespace {
+class Mangling {
+  static std::string mangleType(const res::Type *type) {
+    type = type->getRootType();
+
+    std::stringstream mangledName;
+    if (type->isBuiltinVoid()) {
+      mangledName << 'v';
+    } else if (type->isBuiltinNumber()) {
+      mangledName << 'n';
+    } else if (type->isStructType()) {
+      const auto *s = static_cast<const res::StructType *>(type);
+      const auto &id = s->getDecl()->identifier;
+      mangledName << 'S' << id.size() << id;
+
+      size_t typeArgCnt = s->getTypeArgCount();
+      if (typeArgCnt > 0) {
+        std::vector<const res::Type *> genericArgs;
+        for (size_t i = 0; i < typeArgCnt; ++i)
+          genericArgs.emplace_back(s->getTypeArg(i));
+        mangledName << mangleGenericArgs(genericArgs);
+      }
+    } else if (type->isFunctionType()) {
+      const auto *f = static_cast<const res::FunctionType *>(type);
+      mangledName << 'F';
+      for (size_t i = 0; i < f->getArgCount(); ++i)
+        mangledName << mangleType(f->getArgType(i));
+      mangledName << 'R' << mangleType(f->getReturnType());
+    } else {
+      llvm_unreachable("unexpected type in mangling");
+    }
+
+    return mangledName.str();
+  }
+
+  static std::string
+  mangleGenericArgs(const std::vector<const res::Type *> &genericArgs) {
+    std::stringstream mangledName;
+
+    mangledName << 'G';
+    for (auto &&type : genericArgs)
+      mangledName << mangleType(type);
+    mangledName << 'E';
+
+    return mangledName.str();
+  }
+
+public:
+  static std::string mangleSymbol(const res::Decl *decl,
+                                  const std::vector<res::Type *> &genericArgs) {
+    std::stringstream mangledName;
+
+    const auto &identifier = decl->identifier;
+    mangledName << '_' << 'Y' << 'l' << identifier.size() << identifier;
+
+    if (!genericArgs.empty())
+      mangledName << mangleGenericArgs(std::vector<const res::Type *>(
+          genericArgs.begin(), genericArgs.end()));
+
+    return mangledName.str();
+  }
+};
+} // namespace
+
 Codegen::Codegen(const res::Context &resolvedCtx, std::string_view sourcePath)
     : resolvedTree(&resolvedCtx),
       builder(context),
