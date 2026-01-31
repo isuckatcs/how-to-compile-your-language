@@ -140,8 +140,8 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
         }
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
-          for (auto &&typeArg : dre->typeArgList) {
-            if (typeArg->isUninferredType())
+          for (size_t i = 0; i < dre->getTypeArgCount(); ++i) {
+            if (dre->getTypeArg(i)->isUninferredType())
               pendingErrors.emplace_back(
                   dre->location,
                   "explicit type annotations needed to infer the type of '" +

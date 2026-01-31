@@ -253,16 +253,27 @@ struct CallExpr : public Expr {
 };
 
 struct DeclRefExpr : public Expr {
+private:
+  std::vector<Type *> typeArgs;
+
+public:
   Decl *decl;
-  std::vector<Type *> typeArgList;
 
   DeclRefExpr(SourceLocation location,
               Decl &decl,
               Expr::Kind kind,
-              std::vector<Type *> typeArgList)
+              std::vector<Type *> typeArgs)
       : Expr(location, kind),
         decl(&decl),
-        typeArgList(std::move(typeArgList)) {}
+        typeArgs(std::move(typeArgs)) {}
+
+  // FIXME: reconsider this interface, const Type * is needed for codegen.
+  size_t getTypeArgCount() const { return typeArgs.size(); }
+
+  const Type *getTypeArg(size_t idx) const {
+    return typeArgs[idx]->getRootType();
+  }
+  Type *getTypeArg(size_t idx) { return typeArgs[idx]->getRootType(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
