@@ -1,0 +1,22 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct A<T> {
+  x: T
+}
+
+struct B<T> {
+  a: A<T>
+}
+
+fn main(): void {
+  let b = B{a: A{x: 1}};
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) b {B<number>}
+  // CHECK-NEXT:     StructInstantiationExpr {B<number>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) B<number> {B<number>}
+  // CHECK-NEXT:       FieldInitStmt @({{.*}}) a
+  // CHECK-NEXT:         StructInstantiationExpr {A<number>}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) A<number> {A<number>}
+  // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:             NumberLiteral '1' {number}
+  // CHECK-NEXT:             | value: 1
+}

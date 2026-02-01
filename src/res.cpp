@@ -335,15 +335,6 @@ bool Context::unify(Type *t1, Type *t2) {
   return t1 == t2;
 }
 
-Type *Context::getFieldType(StructType *s, const FieldDecl *field) {
-  Type *fieldTy = getType(field);
-  if (!fieldTy->isTypeArgumentType())
-    return fieldTy;
-
-  auto *typeArgTy = static_cast<TypeArgumentType *>(fieldTy);
-  return s->getTypeArg(typeArgTy->decl->index);
-}
-
 std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
   size_t typeArgsCnt = 0;
   if (decl->isFunctionDecl())
@@ -359,7 +350,8 @@ std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
   return instantiation;
 }
 
-Type *Context::instantiate(Type *t, std::vector<res::Type *> &instantiation) {
+Type *Context::instantiate(Type *t,
+                           const std::vector<res::Type *> &instantiation) {
   t = t->getRootType();
 
   if (t->isFunctionType()) {

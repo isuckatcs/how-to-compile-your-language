@@ -465,7 +465,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     }
 
     res::Type *initTy = ctx.getType(resolvedInitExpr);
-    res::Type *fieldTy = ctx.getFieldType(structTy, fieldDecl);
+    res::Type *fieldTy =
+        ctx.instantiate(ctx.getType(fieldDecl), structTy->getTypeArgs());
 
     if (!ctx.unify(fieldTy, initTy)) {
       report(resolvedInitExpr->location,
@@ -524,11 +525,9 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                   '\'' + sd->identifier + "' has no field called '" +
                       memberExpr.member->identifier + '\'');
 
-  res::Type *fieldTy = ctx.getFieldType(structTy, fieldDecl);
-
   return ctx.bind(
       ctx.create<res::MemberExpr>(memberExpr.location, base, fieldDecl),
-      fieldTy);
+      ctx.instantiate(ctx.getType(fieldDecl), structTy->getTypeArgs()));
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {

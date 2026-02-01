@@ -513,6 +513,11 @@ public:
   }
   Type *getTypeArg(size_t idx) { return typeArgs[idx]->getRootType(); }
 
+  std::vector<Type *> getTypeArgs() { return typeArgs; }
+  std::vector<const Type *> getTypeArgs() const {
+    return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
+  }
+
   bool isStructType() const override { return true; }
   std::string getName() const override;
 
@@ -571,10 +576,8 @@ public:
   StructType *getUninferredStructType(const StructDecl &decl);
   TypeArgumentType *getTypeArgumentType(const TypeArgumentDecl &decl);
 
-  Type *getFieldType(StructType *s, const FieldDecl *field);
-
   std::vector<res::Type *> createInstantiation(const Decl *decl);
-  Type *instantiate(Type *t, std::vector<res::Type *> &instantiation);
+  Type *instantiate(Type *t, const std::vector<res::Type *> &instantiation);
 
   bool unify(Type *t1, Type *t2);
 
