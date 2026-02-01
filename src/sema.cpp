@@ -349,6 +349,9 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
+  if (decl->isTypeArgumentDecl())
+    return report(declRefExpr.location, "expected value, found type parameter");
+
   res::Expr::Kind kind = decl->isFunctionDecl() || decl->isStructDecl()
                              ? res::Expr::Kind::Rvalue
                              : res::Expr::Kind::Lvalue;

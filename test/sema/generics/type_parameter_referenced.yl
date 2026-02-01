@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn box<T>(x: T): T {
+  let x: T = T;
+  // CHECK: [[# @LINE - 1 ]]:14: error: expected value, found type parameter
+
+  return T;
+  // CHECK: [[# @LINE - 1 ]]:10: error: expected value, found type parameter
+}
+
+fn main(): void {}
