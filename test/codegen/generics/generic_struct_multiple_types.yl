@@ -1,0 +1,27 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o generic_struct_multiple_types && ./generic_struct_multiple_types | grep -Plzx '1\n1\n2\n2\n3\n3\n'
+
+// CHECK: %struct.SGFRnE = type { ptr }
+// CHECK-NEXT: %struct.SGnE = type { double }
+// CHECK-NEXT: %struct.SGS1SGnEE = type { %struct.SGnE }
+
+// CHECK-NOT: {{^%struct.}}
+
+struct S<T> {
+  x: T
+}
+
+fn returnOne(): number {
+  return 1;
+}
+
+fn main(): void {
+  println(S{x: returnOne}.x());
+  println(S{x: returnOne}.x());
+
+  println(S{x: 2}.x);
+  println(S{x: 2}.x);
+  
+  println(S{x: S{x: 3}}.x.x);
+  println(S{x: S{x: 3}}.x.x);
+}

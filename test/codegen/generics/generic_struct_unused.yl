@@ -1,0 +1,7 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+struct Unused<T> {
+  x: T
+}
+// CHECK-NOT: {{.*Unused.*}}
+
+fn main(): void {}

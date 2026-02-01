@@ -1,0 +1,34 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o generic_function_multiple_uses && ./generic_function_multiple_uses | grep -Plzx '1\n2\n3\n'
+fn box<T>(x: T): T {
+  return x;
+}
+
+fn main(): void {
+  println(box(1));
+  println(box@<number>(2));
+  println(box(3));
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = call double @boxGnE(double 1.000000e+00)
+// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   %1 = call double @boxGnE(double 2.000000e+00)
+// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   %2 = call double @boxGnE(double 3.000000e+00)
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define double @boxGnE(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   store double %x, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+// CHECK-NOT: {{define.*box.*}}

@@ -6,6 +6,7 @@
 #include <llvm/IR/Module.h>
 
 #include <map>
+#include <stack>
 
 #include "res.h"
 
@@ -13,6 +14,23 @@ namespace yl {
 class Codegen {
   const res::Context *resolvedTree;
   std::map<const res::Decl *, llvm::Value *> declarations;
+
+  using InstantiationTy = std::vector<const res::Type *>;
+  std::stack<InstantiationTy> instantiationContexts;
+  std::vector<std::pair<const res::FunctionDecl *, InstantiationTy>>
+      functionsToProcess;
+
+  class InstantiationContextRAII {
+    Codegen *codegen;
+
+  public:
+    explicit InstantiationContextRAII(Codegen *codegen,
+                                      InstantiationTy instantiation)
+        : codegen(codegen) {
+      codegen->instantiationContexts.emplace(instantiation);
+    }
+    ~InstantiationContextRAII() { codegen->instantiationContexts.pop(); }
+  };
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
@@ -23,6 +41,7 @@ class Codegen {
   llvm::Module module;
 
   llvm::Type *generateType(const res::Type *type);
+  llvm::FunctionType *generateFunctionType(const res::FunctionType *type);
 
   llvm::Value *generateStmt(const res::Stmt &stmt);
   llvm::Value *generateIfStmt(const res::IfStmt &stmt);
@@ -45,6 +64,7 @@ class Codegen {
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
 
+  llvm::Value *getDeclVal(const res::DeclRefExpr &dre);
   llvm::Value *loadValue(llvm::Value *val, llvm::Type *type);
   llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type);
   llvm::Value *doubleToBool(llvm::Value *v);
@@ -54,13 +74,15 @@ class Codegen {
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
                                           llvm::Type *type);
-  llvm::AttributeList constructAttrList(const res::FunctionDecl *fn);
+  llvm::AttributeList constructAttrList(const res::FunctionDecl *decl,
+                                        const res::FunctionType *ty);
 
   void generateBlock(const res::Block &block);
+  llvm::Function *generateFunctionDecl(const res::FunctionDecl &functionDecl,
+                                       const res::FunctionType *functionType);
   void generateFunctionBody(const res::FunctionDecl &functionDecl);
-  void generateFunctionDecl(const res::FunctionDecl &functionDecl);
-  void generateStructDecl(const res::StructDecl &structDecl);
-  void generateStructDefinition(const res::StructDecl &structDecl);
+
+  llvm::StructType *generateStruct(const res::StructType *resolvedStructTy);
 
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();

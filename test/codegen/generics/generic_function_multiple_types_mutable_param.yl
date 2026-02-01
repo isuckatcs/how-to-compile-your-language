@@ -1,0 +1,94 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o generic_function_multiple_types_mutable_param && ./generic_function_multiple_types_mutable_param | grep -Plzx '1\n2\n3\n'
+struct S {
+  x: number
+}
+
+fn box<T>(var x: T): T {
+  return x;
+}
+
+fn returnOne(): number {
+  return 1;
+}
+
+fn main(): void {
+  let x = box(returnOne)();
+  let y = box(2);
+  let z = box(S{ x: 3 }).x;
+
+  println(x);
+  println(y);
+  println(z);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %x = alloca double, align 8
+// CHECK-NEXT:   %y = alloca double, align 8
+// CHECK-NEXT:   %z = alloca double, align 8
+// CHECK-NEXT:   %struct.ret.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.arg.tmp = alloca %struct.S, align 8
+
+// CHECK-NEXT:   %0 = call ptr @boxGFRnE(ptr @returnOne)
+// CHECK-NEXT:   %1 = call double %0()
+// CHECK-NEXT:   store double %1, ptr %x, align 8
+
+// CHECK-NEXT:   %2 = call double @boxGnE(double 2.000000e+00)
+// CHECK-NEXT:   store double %2, ptr %y, align 8
+
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double 3.000000e+00, ptr %3, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   call void @boxGS1SE(ptr sret(%struct.S) %struct.ret.tmp, ptr byval(%struct.S) %struct.arg.tmp)
+// CHECK-NEXT:   %4 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp, i32 0, i32 0
+// CHECK-NEXT:   %5 = load double, ptr %4, align 8
+// CHECK-NEXT:   store double %5, ptr %z, align 8
+
+// CHECK-NEXT:   %6 = load double, ptr %x, align 8
+// CHECK-NEXT:   call void @println(double %6)
+// CHECK-NEXT:   %7 = load double, ptr %y, align 8
+// CHECK-NEXT:   call void @println(double %7)
+// CHECK-NEXT:   %8 = load double, ptr %z, align 8
+// CHECK-NEXT:   call void @println(double %8)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define ptr @boxGFRnE(ptr %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca ptr, align 8
+// CHECK-NEXT:   %x1 = alloca ptr, align 8
+// CHECK-NEXT:   store ptr %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load ptr, ptr %x1, align 8
+// CHECK-NEXT:   store ptr %0, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %1 = load ptr, ptr %retval, align 8
+// CHECK-NEXT:   ret ptr %1
+// CHECK-NEXT: }
+
+// CHECK: define double @boxGnE(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
+// CHECK-NEXT:   store double %0, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %1 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %1
+// CHECK-NEXT: }
+
+// CHECK: define void @boxGS1SE(ptr sret(%struct.S) %ret, ptr byval(%struct.S) %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 8, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK-NOT: {{define.*box.*}}
