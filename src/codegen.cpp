@@ -686,10 +686,6 @@ Codegen::generateStruct(const res::StructType *resolvedStructTy) {
 llvm::Module *Codegen::generateIR() {
   InstantiationContextRAII emptyContext(this, {});
 
-  for (auto &&sd : resolvedTree->getStructs())
-    if (!sd->isGeneric())
-      generateStruct(resolvedTree->getType(sd)->getAs<res::StructType>());
-
   for (auto &&fn : resolvedTree->getFunctions())
     if (!fn->isGeneric())
       generateFunctionDecl(
