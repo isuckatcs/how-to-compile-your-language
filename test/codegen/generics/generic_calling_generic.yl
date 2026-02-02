@@ -1,0 +1,14 @@
+// RUN: compiler %s -o generic_calling_generic && ./generic_calling_generic | grep -Plzx '20\n'
+
+fn box<T>(x: T): T {
+  return x;
+}
+
+fn foo<U>(x: (U) -> U, y: U): U {
+  return x(y);
+}
+
+fn main(): void {
+  let x = foo(box, 20);
+  println(x);
+}

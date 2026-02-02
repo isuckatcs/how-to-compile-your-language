@@ -1,0 +1,40 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn box<T>(x: T): T {
+  return x;
+}
+// CHECK: FunctionDecl @({{.*}}) box {(T) -> T}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {T}
+
+fn foo<U>(x: (U) -> U, y: U): U {
+  return x(y);
+}
+// CHECK: FunctionDecl @({{.*}}) foo {((U) -> U,U) -> U}
+// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) U
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {(U) -> U}
+// CHECK-NEXT:   ParamDecl @({{.*}}) y {U}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       CallExpr {U}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {(U) -> U}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) y {U}
+
+fn main(): void {
+  let x = foo(box, 20);
+  println(x);
+}
+// CHECK: FunctionDecl @{{.*}}) main {() -> void}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {number}
+// CHECK-NEXT:         CallExpr {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo<number> {((number) -> number,number) -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) box<number> {(number) -> number}
+// CHECK-NEXT:           NumberLiteral '20' {number}
+// CHECK-NEXT:           | value: 20
+// CHECK-NEXT:     CallExpr {void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}

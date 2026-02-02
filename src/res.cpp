@@ -300,6 +300,9 @@ bool Context::unify(Type *t1, Type *t2) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
 
+  if (t1 == t2)
+    return true;
+
   if (auto *u = t1->getAs<UninferredType>()) {
     u->infer(t2);
     return true;
@@ -342,7 +345,7 @@ bool Context::unify(Type *t1, Type *t2) {
     return true;
   }
 
-  return t1 == t2;
+  return false;
 }
 
 std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
