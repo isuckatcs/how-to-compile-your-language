@@ -23,9 +23,8 @@ bool Sema::runFlowSensitiveChecks(res::Context &ctx,
 bool Sema::checkReturnOnAllPaths(res::Context &ctx,
                                  const res::FunctionDecl &fn,
                                  const CFG &cfg) {
-  const auto *type = ctx.getType(&fn);
-  assert(type && type->isFunctionType());
-  if (static_cast<const res::FunctionType *>(type)
+  if (ctx.getType(&fn)
+          ->getAs<res::FunctionType>()
           ->getReturnType()
           ->isBuiltinVoid())
     return false;
@@ -141,7 +140,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
           for (auto &&typeArg : dre->getTypeArgs()) {
-            if (typeArg->getRootType()->isUninferredType())
+            if (typeArg->getRootType()->getAs<res::UninferredType>())
               pendingErrors.emplace_back(
                   dre->location,
                   "explicit type annotations needed to infer the type of '" +
@@ -167,7 +166,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
   }
 
   for (auto &&[d, s] : curLattices[cfg.exit + 1]) {
-    if (s == State::Unassigned && ctx.getType(d)->isUninferredType())
+    if (s == State::Unassigned && ctx.getType(d)->getAs<res::UninferredType>())
       pendingErrors.emplace_back(d->location, "the type of '" + d->identifier +
                                                   "' is unknown");
   }
@@ -296,7 +295,7 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
   auto *rhsTy = ctx.getType(rhs);
-  if (rhsTy->isUninferredType())
+  if (rhsTy->getAs<res::UninferredType>())
     return report(rhs->location,
                   "type of operand to unary operator is unknown");
 
@@ -317,14 +316,14 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   auto *lhsTy = ctx.getType(lhs);
   auto *rhsTy = ctx.getType(rhs);
 
-  if (lhsTy->isUninferredType() || rhsTy->isUninferredType())
-    return report((lhsTy->isUninferredType() ? lhs : rhs)->location,
-                  "type of " +
-                      std::string(lhsTy->isUninferredType() ? "LHS" : "RHS") +
+  if (auto *uninferredLHS = lhsTy->getAs<res::UninferredType>();
+      uninferredLHS || rhsTy->getAs<res::UninferredType>())
+    return report((uninferredLHS ? lhs : rhs)->location,
+                  "type of " + std::string(uninferredLHS ? "LHS" : "RHS") +
                       " to binary operator is unknown");
 
   const auto &loc = binop.location;
-  if (lhsTy != rhsTy || !lhsTy->isBuiltinNumber())
+  if (!ctx.unify(lhsTy, rhsTy) || !lhsTy->isBuiltinNumber())
     return report(loc, "incompatible operands to binary operator ('" +
                            lhsTy->getName() + "' and '" + rhsTy->getName() +
                            "')");
@@ -389,11 +388,12 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   varOrReturn(callee, resolveExpr(ctx, *call.callee));
 
   auto *calleeTy = ctx.getType(callee);
-  if (!calleeTy->isFunctionType())
+  auto *fnType = calleeTy->getAs<res::FunctionType>();
+
+  if (!fnType)
     return report(call.location,
                   "calling expression of type '" + calleeTy->getName() + '\'');
 
-  auto *fnType = static_cast<res::FunctionType *>(calleeTy);
   if (call.arguments.size() != fnType->getArgCount())
     return report(call.location, "argument count mismatch in function call");
 
@@ -427,9 +427,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   if (!dre->decl->isStructDecl())
     return report(dre->location, "expected struct declaration to instantiate");
 
-  res::Type *ty = ctx.getType(dre);
-  assert(ty->isStructType() && "struct decl doesn't have struct type");
-  res::StructType *structTy = static_cast<res::StructType *>(ty);
+  auto *structTy = ctx.getType(dre)->getAs<res::StructType>();
   auto *sd = structTy->getDecl();
 
   std::vector<res::FieldInitStmt *> resolvedFieldInits;
@@ -508,13 +506,12 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
   auto *baseTy = ctx.getType(base);
-  if (!baseTy->isStructType())
+  auto *structTy = baseTy->getAs<res::StructType>();
+  if (!structTy)
     return report(memberExpr.base->location,
                   "cannot access field of '" + baseTy->getName() + '\'');
 
-  auto *structTy = static_cast<res::StructType *>(baseTy);
   const auto *sd = structTy->getDecl();
-
   res::FieldDecl *fieldDecl = nullptr;
   for (auto &&field : sd->fields)
     if (field->identifier == memberExpr.member->identifier)
@@ -624,9 +621,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                          const ast::ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
-  auto *ty = ctx.getType(currentFunction);
-  assert(ty->isFunctionType() && "function decl is not of function type");
-  auto *fnTy = static_cast<res::FunctionType *>(ty);
+  auto *fnTy = ctx.getType(currentFunction)->getAs<res::FunctionType>();
 
   auto *retTy = fnTy->getReturnType();
   if (retTy->isBuiltinVoid() && returnStmt.expr)
@@ -1000,13 +995,9 @@ bool Sema::checkSelfContainingStructs(const res::Context &ctx) {
         continue;
       }
 
-      for (auto &&field : decl->fields) {
-        const auto *type = ctx.getType(field);
-        if (!type->isStructType())
-          continue;
-
-        worklist.emplace(static_cast<const res::StructType *>(type)->getDecl());
-      }
+      for (auto &&field : decl->fields)
+        if (const auto *structTy = ctx.getType(field)->getAs<res::StructType>())
+          worklist.emplace(structTy->getDecl());
     }
   }
 

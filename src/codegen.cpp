@@ -17,13 +17,11 @@ class Mangling {
       mangledName << 'v';
     } else if (type->isBuiltinNumber()) {
       mangledName << 'n';
-    } else if (type->isStructType()) {
-      const auto *s = static_cast<const res::StructType *>(type);
+    } else if (const auto *s = type->getAs<res::StructType>()) {
       const auto &id = s->getDecl()->identifier;
       mangledName << 'S' << id.size() << id
                   << mangleGenericArgs(s->getTypeArgs());
-    } else if (type->isFunctionType()) {
-      const auto *f = static_cast<const res::FunctionType *>(type);
+    } else if (const auto *f = type->getAs<res::FunctionType>()) {
       mangledName << 'F';
       for (size_t i = 0; i < f->getArgCount(); ++i)
         mangledName << mangleType(f->getArgType(i));
@@ -82,14 +80,13 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (type->isBuiltinVoid())
     return builder.getVoidTy();
 
-  if (type->isStructType())
-    return generateStruct(static_cast<const res::StructType *>(type));
+  if (const auto *s = type->getAs<res::StructType>())
+    return generateStruct(s);
 
-  if (type->isFunctionType())
+  if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
 
-  if (type->isTypeArgumentType()) {
-    const auto *typeArgTy = static_cast<const res::TypeArgumentType *>(type);
+  if (const auto *typeArgTy = type->getAs<res::TypeArgumentType>()) {
     size_t idx = typeArgTy->decl->index;
 
     const InstantiationTy &currentInstantiation = instantiationContexts.top();
@@ -107,7 +104,7 @@ Codegen::generateFunctionType(const res::FunctionType *type) {
   llvm::Type *res;
   std::vector<llvm::Type *> args;
 
-  if (type->getReturnType()->isStructType()) {
+  if (type->getReturnType()->getAs<res::StructType>()) {
     args.emplace_back(llvm::PointerType::get(context, 0));
     res = builder.getVoidTy();
   } else {
@@ -116,7 +113,7 @@ Codegen::generateFunctionType(const res::FunctionType *type) {
 
   for (size_t i = 0; i < type->getArgCount(); ++i) {
     const auto &arg = type->getArgType(i);
-    if (arg->isStructType())
+    if (arg->getAs<res::StructType>())
       args.emplace_back(llvm::PointerType::get(context, 0));
     else
       args.emplace_back(generateType(arg));
@@ -243,10 +240,8 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr,
 
 llvm::Value *
 Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  const res::Type *ty = resolvedTree->getType(sie.structDecl);
-  assert(ty->isStructType());
-  const res::StructType *structType = static_cast<const res::StructType *>(ty);
-
+  const auto *structType =
+      resolvedTree->getType(sie.structDecl)->getAs<res::StructType>();
   llvm::Value *tmp = allocateStackVariable(
       structType->getDecl()->identifier + ".tmp", generateType(structType));
 
@@ -299,7 +294,7 @@ llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
   InstantiationContextRAII context(this, dre.getTypeArgs());
   return generateFunctionDecl(
       *static_cast<const res::FunctionDecl *>(decl),
-      static_cast<const res::FunctionType *>(resolvedTree->getType(&dre)));
+      resolvedTree->getType(&dre)->getAs<res::FunctionType>());
 }
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre,
@@ -324,7 +319,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     calledFunction = module.getFunction(callee->getName());
 
   const res::Type *resultTy = resolvedTree->getType(&call);
-  bool isReturningStruct = resultTy->isStructType();
+  bool isReturningStruct = resultTy->getAs<res::StructType>();
 
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
@@ -351,8 +346,8 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  const auto *resFnTy = static_cast<const res::FunctionType *>(
-      resolvedTree->getType(call.callee));
+  const auto *resFnTy =
+      resolvedTree->getType(call.callee)->getAs<res::FunctionType>();
   llvm::CallInst *callInst =
       builder.CreateCall(generateFunctionType(resFnTy), callee, args);
   callInst->setAttributes(calledFunction ? calledFunction->getAttributes()
@@ -520,7 +515,7 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *decl,
                                                const res::FunctionType *ty) {
   std::vector<llvm::AttributeSet> argsAttrSets;
 
-  if (ty->getReturnType()->isStructType()) {
+  if (ty->getReturnType()->getAs<res::StructType>()) {
     llvm::AttrBuilder retAttrs(context);
     retAttrs.addStructRetAttr(generateType(ty->getReturnType()));
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
@@ -529,7 +524,7 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *decl,
   for (size_t i = 0; i < ty->getArgCount(); ++i) {
     const auto &argTy = ty->getArgType(i);
     llvm::AttrBuilder paramAttrs(context);
-    if (argTy->isStructType()) {
+    if (argTy->getAs<res::StructType>()) {
       if (decl && decl->params[i]->isMutable)
         paramAttrs.addByValAttr(generateType(argTy));
       else
@@ -665,10 +660,8 @@ Codegen::generateStruct(const res::StructType *resolvedStructTy) {
   std::vector<const res::Type *> typeArgs;
   for (const res::Type *argTy : resolvedStructTy->getTypeArgs()) {
     argTy = argTy->getRootType();
-    if (argTy->isTypeArgumentType()) {
-      const auto *typeArgTy = static_cast<const res::TypeArgumentType *>(argTy);
+    if (const auto *typeArgTy = argTy->getAs<res::TypeArgumentType>())
       argTy = instantiationContexts.top()[typeArgTy->decl->index];
-    }
     typeArgs.emplace_back(argTy);
   }
 
@@ -695,13 +688,12 @@ llvm::Module *Codegen::generateIR() {
 
   for (auto &&sd : resolvedTree->getStructs())
     if (!sd->isGeneric())
-      generateStruct(
-          static_cast<const res::StructType *>(resolvedTree->getType(sd)));
+      generateStruct(resolvedTree->getType(sd)->getAs<res::StructType>());
 
   for (auto &&fn : resolvedTree->getFunctions())
     if (!fn->isGeneric())
-      generateFunctionDecl(*fn, static_cast<const res::FunctionType *>(
-                                    resolvedTree->getType(fn)));
+      generateFunctionDecl(
+          *fn, resolvedTree->getType(fn)->getAs<res::FunctionType>());
 
   while (!functionsToProcess.empty()) {
     auto [decl, instantiation] = functionsToProcess.back();

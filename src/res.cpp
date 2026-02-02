@@ -7,6 +7,16 @@
 
 namespace yl {
 namespace res {
+bool Type::isBuiltinVoid() const {
+  auto *builtinTy = getAs<BuiltinType>();
+  return builtinTy && builtinTy->isVoid();
+}
+
+bool Type::isBuiltinNumber() const {
+  auto *builtinTy = getAs<BuiltinType>();
+  return builtinTy && builtinTy->isNumber();
+}
+
 void Block::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
@@ -290,17 +300,17 @@ bool Context::unify(Type *t1, Type *t2) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
 
-  if (t1->isUninferredType()) {
-    static_cast<UninferredType *>(t1)->infer(t2);
+  if (auto *u = t1->getAs<UninferredType>()) {
+    u->infer(t2);
     return true;
   }
 
-  if (t2->isUninferredType())
+  if (t2->getAs<UninferredType>())
     return unify(t2, t1);
 
   // FIXME: is there a way to unify these similar to HM monotypes?
-  if (auto *fn1 = dynamic_cast<FunctionType *>(t1)) {
-    auto *fn2 = dynamic_cast<FunctionType *>(t2);
+  if (auto *fn1 = t1->getAs<FunctionType>()) {
+    auto *fn2 = t2->getAs<FunctionType>();
     if (!fn2)
       return false;
 
@@ -314,8 +324,8 @@ bool Context::unify(Type *t1, Type *t2) {
     return unify(fn1->getReturnType(), fn2->getReturnType());
   }
 
-  if (auto *s1 = dynamic_cast<StructType *>(t1)) {
-    auto *s2 = dynamic_cast<StructType *>(t2);
+  if (auto *s1 = t1->getAs<StructType>()) {
+    auto *s2 = t2->getAs<StructType>();
     if (!s2)
       return false;
 
@@ -354,24 +364,22 @@ Type *Context::instantiate(Type *t,
                            const std::vector<res::Type *> &instantiation) {
   t = t->getRootType();
 
-  if (t->isFunctionType()) {
-    auto *ty = static_cast<FunctionType *>(t);
-    auto *instantiatedTy = getUninferredFunctionType(ty->getArgCount());
+  if (auto *fnTy = t->getAs<FunctionType>()) {
+    auto *instantiatedTy = getUninferredFunctionType(fnTy->getArgCount());
 
-    for (size_t i = 0; i < ty->getArgCount(); ++i)
+    for (size_t i = 0; i < fnTy->getArgCount(); ++i)
       unify(instantiatedTy->getArgType(i),
-            instantiate(ty->getArgType(i), instantiation));
+            instantiate(fnTy->getArgType(i), instantiation));
 
     unify(instantiatedTy->getReturnType(),
-          instantiate(ty->getReturnType(), instantiation));
+          instantiate(fnTy->getReturnType(), instantiation));
     return instantiatedTy;
   }
 
-  if (t->isStructType()) {
-    auto *ty = static_cast<StructType *>(t);
-    std::vector<Type *> tyArgs = ty->getTypeArgs();
+  if (auto *structTy = t->getAs<StructType>()) {
+    std::vector<Type *> tyArgs = structTy->getTypeArgs();
 
-    auto *instantiatedTy = getUninferredStructType(*ty->getDecl());
+    auto *instantiatedTy = getUninferredStructType(*structTy->getDecl());
     std::vector<Type *> instantiatedTyArgs = instantiatedTy->getTypeArgs();
 
     for (size_t i = 0; i < tyArgs.size(); ++i)
@@ -380,8 +388,8 @@ Type *Context::instantiate(Type *t,
     return instantiatedTy;
   }
 
-  if (t->isTypeArgumentType())
-    return instantiation[static_cast<TypeArgumentType *>(t)->decl->index];
+  if (auto *typeArgTy = t->getAs<TypeArgumentType>())
+    return instantiation[typeArgTy->decl->index];
 
   return t;
 }

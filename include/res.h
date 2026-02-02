@@ -12,23 +12,29 @@ namespace yl {
 namespace res {
 class Context;
 
-class Type {
-public:
-  virtual bool isUninferredType() const { return false; }
-  virtual bool isBuiltinVoid() const { return false; }
-  virtual bool isBuiltinNumber() const { return false; }
-  virtual bool isFunctionType() const { return false; }
-  virtual bool isStructType() const { return false; }
-  virtual bool isTypeArgumentType() const { return false; }
+struct Type {
+  bool isBuiltinVoid() const;
+  bool isBuiltinNumber() const;
 
-  virtual Type *getRootType() { return this; }
+  template <typename T> T *getAs() {
+    return const_cast<T *>(const_cast<const Type *>(this)->getAs<T>());
+  }
+
+  template <typename T> const T *getAs() const {
+    static_assert(std::is_base_of_v<Type, T>, "expected type");
+    return dynamic_cast<const T *>(this);
+  }
+
+  Type *getRootType() {
+    return const_cast<Type *>(const_cast<const Type *>(this)->getRootType());
+  }
   virtual const Type *getRootType() const { return this; }
 
   virtual std::string getName() const = 0;
   virtual ~Type() = default;
 
 protected:
-  Type() {}
+  Type() = default;
 
   friend class Context;
 };
@@ -395,21 +401,10 @@ class UninferredType : public Type {
   }
 
 public:
-  Type *getRootType() override {
-    return const_cast<Type *>(
-        const_cast<const UninferredType *>(this)->getRootType());
-  }
-
   const Type *getRootType() const override {
     if (parent)
       return parent->getRootType();
     return this;
-  }
-
-  bool isUninferredType() const override {
-    if (parent)
-      return parent->isUninferredType();
-    return true;
   }
 
   std::string getName() const override {
@@ -443,11 +438,9 @@ private:
       : kind(kind){};
 
 public:
-  bool isBuiltinVoid() const override { return kind == Kind::Void; }
-  bool isBuiltinNumber() const override { return kind == Kind::Number; }
-  std::string getName() const override {
-    return isBuiltinVoid() ? "void" : "number";
-  };
+  bool isVoid() const { return kind == Kind::Void; }
+  bool isNumber() const { return kind == Kind::Number; }
+  std::string getName() const override { return isVoid() ? "void" : "number"; };
 
   friend class Context;
 };
@@ -456,7 +449,6 @@ class TypeArgumentType : public Type {
 public:
   const TypeArgumentDecl *decl;
 
-  bool isTypeArgumentType() const override { return true; }
   std::string getName() const override { return decl->identifier; };
 
 private:
@@ -483,7 +475,6 @@ public:
   const Type *getReturnType() const { return ret->getRootType(); }
   Type *getReturnType() { return ret->getRootType(); }
 
-  bool isFunctionType() const override { return true; }
   std::string getName() const override;
 
   friend class Context;
@@ -509,7 +500,6 @@ public:
     return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
   }
 
-  bool isStructType() const override { return true; }
   std::string getName() const override;
 
   friend class Context;
