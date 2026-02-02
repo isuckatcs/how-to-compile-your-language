@@ -140,8 +140,8 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
         }
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
-          for (size_t i = 0; i < dre->getTypeArgCount(); ++i) {
-            if (dre->getTypeArg(i)->isUninferredType())
+          for (auto &&typeArg : dre->getTypeArgs()) {
+            if (typeArg->getRootType()->isUninferredType())
               pendingErrors.emplace_back(
                   dre->location,
                   "explicit type annotations needed to infer the type of '" +
@@ -260,7 +260,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       res::StructType *structTy = ctx.getUninferredStructType(*sd);
       for (size_t i = 0; i < udt->typeArguments.size(); ++i) {
         varOrReturn(resolvedType, resolveType(ctx, *udt->typeArguments[i]));
-        ctx.unify(structTy->getTypeArg(i), resolvedType);
+        ctx.unify(structTy->getTypeArgs()[i], resolvedType);
       }
 
       return structTy;
@@ -876,12 +876,13 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
 
   res::StructType *structTy = ctx.getUninferredStructType(*resolvedStruct);
   ScopeRAII typeArgScope(this);
-  for (size_t i = 0; i < structTy->getTypeArgCount(); ++i) {
-    res::Decl *typeArgDecl = resolvedStruct->typeArguments[i];
+
+  for (auto &&typeArgDecl : resolvedStruct->typeArguments) {
     if (!insertDeclToCurrentScope(typeArgDecl))
       return nullptr;
 
-    ctx.unify(structTy->getTypeArg(i), ctx.getType(typeArgDecl));
+    ctx.unify(structTy->getTypeArgs()[typeArgDecl->index],
+              ctx.getType(typeArgDecl));
   }
 
   return ctx.bind(resolvedStruct, structTy);

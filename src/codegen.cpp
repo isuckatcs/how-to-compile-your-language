@@ -20,15 +20,8 @@ class Mangling {
     } else if (type->isStructType()) {
       const auto *s = static_cast<const res::StructType *>(type);
       const auto &id = s->getDecl()->identifier;
-      mangledName << 'S' << id.size() << id;
-
-      size_t typeArgCnt = s->getTypeArgCount();
-      if (typeArgCnt > 0) {
-        std::vector<const res::Type *> genericArgs;
-        for (size_t i = 0; i < typeArgCnt; ++i)
-          genericArgs.emplace_back(s->getTypeArg(i));
-        mangledName << mangleGenericArgs(genericArgs);
-      }
+      mangledName << 'S' << id.size() << id
+                  << mangleGenericArgs(s->getTypeArgs());
     } else if (type->isFunctionType()) {
       const auto *f = static_cast<const res::FunctionType *>(type);
       mangledName << 'F';
@@ -44,6 +37,9 @@ class Mangling {
 
   static std::string
   mangleGenericArgs(const std::vector<const res::Type *> &genericArgs) {
+    if (genericArgs.empty())
+      return "";
+
     std::stringstream mangledName;
 
     mangledName << 'G';
@@ -63,12 +59,7 @@ public:
     const auto &identifier = decl->identifier;
     // FIXME: add the prefix
     // mangledName << '_' << 'Y' << 'l' << identifier.size();
-    mangledName << identifier;
-
-    if (!genericArgs.empty())
-      mangledName << mangleGenericArgs(std::vector<const res::Type *>(
-          genericArgs.begin(), genericArgs.end()));
-
+    mangledName << identifier << mangleGenericArgs(genericArgs);
     return mangledName.str();
   }
 };
@@ -305,11 +296,7 @@ llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
   if (!decl->isFunctionDecl())
     return declarations[decl];
 
-  std::vector<const res::Type *> instantiation;
-  for (size_t i = 0; i < dre.getTypeArgCount(); ++i)
-    instantiation.emplace_back(dre.getTypeArg(i));
-
-  InstantiationContextRAII context(this, instantiation);
+  InstantiationContextRAII context(this, dre.getTypeArgs());
   return generateFunctionDecl(
       *static_cast<const res::FunctionDecl *>(decl),
       static_cast<const res::FunctionType *>(resolvedTree->getType(&dre)));
@@ -676,8 +663,8 @@ llvm::StructType *
 Codegen::generateStruct(const res::StructType *resolvedStructTy) {
   // FIXME: find a better way to figure out the type for nested structs
   std::vector<const res::Type *> typeArgs;
-  for (size_t i = 0; i < resolvedStructTy->getTypeArgCount(); ++i) {
-    const res::Type *argTy = resolvedStructTy->getTypeArg(i);
+  for (const res::Type *argTy : resolvedStructTy->getTypeArgs()) {
+    argTy = argTy->getRootType();
     if (argTy->isTypeArgumentType()) {
       const auto *typeArgTy = static_cast<const res::TypeArgumentType *>(argTy);
       argTy = instantiationContexts.top()[typeArgTy->decl->index];

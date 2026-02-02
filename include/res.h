@@ -267,13 +267,10 @@ public:
         decl(&decl),
         typeArgs(std::move(typeArgs)) {}
 
-  // FIXME: reconsider this interface, const Type * is needed for codegen.
-  size_t getTypeArgCount() const { return typeArgs.size(); }
-
-  const Type *getTypeArg(size_t idx) const {
-    return typeArgs[idx]->getRootType();
+  std::vector<Type *> getTypeArgs() { return typeArgs; }
+  std::vector<const Type *> getTypeArgs() const {
+    return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
   }
-  Type *getTypeArg(size_t idx) { return typeArgs[idx]->getRootType(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -506,12 +503,6 @@ private:
 
 public:
   const StructDecl *getDecl() const { return decl; }
-  size_t getTypeArgCount() const { return typeArgs.size(); }
-
-  const Type *getTypeArg(size_t idx) const {
-    return typeArgs[idx]->getRootType();
-  }
-  Type *getTypeArg(size_t idx) { return typeArgs[idx]->getRootType(); }
 
   std::vector<Type *> getTypeArgs() { return typeArgs; }
   std::vector<const Type *> getTypeArgs() const {

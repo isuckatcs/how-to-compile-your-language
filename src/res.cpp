@@ -369,11 +369,13 @@ Type *Context::instantiate(Type *t,
 
   if (t->isStructType()) {
     auto *ty = static_cast<StructType *>(t);
-    auto *instantiatedTy = getUninferredStructType(*ty->getDecl());
+    std::vector<Type *> tyArgs = ty->getTypeArgs();
 
-    for (size_t i = 0; i < ty->getTypeArgCount(); ++i)
-      unify(instantiatedTy->typeArgs[i],
-            instantiate(ty->typeArgs[i], instantiation));
+    auto *instantiatedTy = getUninferredStructType(*ty->getDecl());
+    std::vector<Type *> instantiatedTyArgs = instantiatedTy->getTypeArgs();
+
+    for (size_t i = 0; i < tyArgs.size(); ++i)
+      unify(instantiatedTyArgs[i], instantiate(tyArgs[i], instantiation));
 
     return instantiatedTy;
   }
