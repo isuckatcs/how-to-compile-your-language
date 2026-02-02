@@ -99,7 +99,7 @@ std::optional<double>
 ConstantExpressionEvaluator::evaluateDeclRefExpr(const res::DeclRefExpr &dre,
                                                  bool allowSideEffects) {
   // We only care about reference to immutable variables with an initializer.
-  const auto *rvd = dynamic_cast<const res::VarDecl *>(dre.decl);
+  const auto *rvd = dre.decl->getAs<res::VarDecl>();
   if (!rvd || rvd->isMutable || !rvd->initializer)
     return std::nullopt;
 

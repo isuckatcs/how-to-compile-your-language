@@ -127,7 +127,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
             continue;
 
           // FIXME: what if this is a type?
-          const auto *decl = dynamic_cast<const res::ValueDecl *>(dre->decl);
+          const auto *decl = dre->decl->getAs<res::ValueDecl>();
 
           if (!decl->isMutable && tmp[decl] != State::Unassigned) {
             std::string msg = '\'' + decl->identifier + "' cannot be mutated";
@@ -147,7 +147,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
                       dre->decl->identifier + "'");
           }
 
-          const auto *var = dynamic_cast<const res::VarDecl *>(dre->decl);
+          const auto *var = dre->decl->getAs<res::VarDecl>();
 
           if (var && tmp[var] != State::Assigned) {
             std::string msg = '\'' + var->identifier + "' is not initialized";
@@ -251,7 +251,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return report(udt->location,
                     "failed to resolve type '" + udt->identifier + "'");
 
-    if (const auto *sd = dynamic_cast<const res::StructDecl *>(decl)) {
+    if (const auto *sd = decl->getAs<res::StructDecl>()) {
       varOrReturn(res, checkTypeParameterCount(udt->location,
                                                udt->typeArguments.size(),
                                                sd->typeArguments.size()));
@@ -265,7 +265,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return structTy;
     }
 
-    if (const auto *tad = dynamic_cast<const res::TypeArgumentDecl *>(decl))
+    if (const auto *tad = decl->getAs<res::TypeArgumentDecl>())
       return ctx.getTypeArgumentType(*tad);
 
     llvm_unreachable("unexpected value type encountered");
@@ -348,12 +348,13 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
-  if (decl->isTypeArgumentDecl())
+  if (decl->getAs<res::TypeArgumentDecl>())
     return report(declRefExpr.location, "expected value, found type parameter");
 
-  res::Expr::Kind kind = decl->isFunctionDecl() || decl->isStructDecl()
-                             ? res::Expr::Kind::Rvalue
-                             : res::Expr::Kind::Lvalue;
+  res::Expr::Kind kind =
+      decl->getAs<res::FunctionDecl>() || decl->getAs<res::StructDecl>()
+          ? res::Expr::Kind::Rvalue
+          : res::Expr::Kind::Lvalue;
 
   auto *declTy = ctx.getType(decl);
   std::vector<res::Type *> instantiation = ctx.createInstantiation(decl);
@@ -424,7 +425,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
   varOrReturn(dre, resolveDeclRefExpr(ctx, *structInstantiation.structRef));
 
-  if (!dre->decl->isStructDecl())
+  if (!dre->decl->getAs<res::StructDecl>())
     return report(dre->location, "expected struct declaration to instantiate");
 
   auto *structTy = ctx.getType(dre)->getAs<res::StructType>();
@@ -681,7 +682,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
   if (const auto *declRefExpr = dynamic_cast<const ast::DeclRefExpr *>(&expr)) {
     varOrReturn(dre, resolveDeclRefExpr(ctx, *declRefExpr));
 
-    if (dre->decl->isStructDecl())
+    if (dre->decl->getAs<res::StructDecl>())
       return report(declRefExpr->location, "expected an instance of '" +
                                                declRefExpr->identifier + '\'');
 

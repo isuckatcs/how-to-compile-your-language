@@ -64,51 +64,39 @@ struct Expr : public ConstantValueContainer<double>, public Stmt {
   virtual ~Expr() = default;
 };
 
-// FIXME: revisit layout
 struct Decl {
-  enum class Kind {
-    StructDecl,
-    TypeArgumentDecl,
-    FieldDecl,
-    FunctionDecl,
-    ParamDecl,
-    VarDecl
-  };
-
   SourceLocation location;
   std::string identifier;
-  Kind kind;
 
-  Decl(SourceLocation location, std::string identifier, Kind kind)
+  Decl(SourceLocation location, std::string identifier)
       : location(location),
-        identifier(std::move(identifier)),
-        kind(kind) {}
+        identifier(std::move(identifier)) {}
   virtual ~Decl() = default;
 
-  bool isStructDecl() const { return kind == Kind::StructDecl; }
-  bool isTypeArgumentDecl() const { return kind == Kind::TypeArgumentDecl; }
-  bool isFieldDecl() const { return kind == Kind::FieldDecl; }
-  bool isFunctionDecl() const { return kind == Kind::FunctionDecl; }
-  bool isParamDecl() const { return kind == Kind::ParamDecl; }
-  bool isVarDecl() const { return kind == Kind::VarDecl; }
+  template <typename T> T *getAs() {
+    return const_cast<T *>(const_cast<const Decl *>(this)->getAs<T>());
+  }
+
+  template <typename T> const T *getAs() const {
+    static_assert(std::is_base_of_v<Decl, T>, "expected decl");
+    return dynamic_cast<const T *>(this);
+  }
+
   virtual bool isGeneric() const { return false; }
 
   virtual void dump(Context &ctx, size_t level = 0) const = 0;
 };
 
 struct TypeDecl : public Decl {
-  TypeDecl(SourceLocation location, std::string identifier, Kind kind)
-      : Decl(location, std::move(identifier), kind) {}
+  TypeDecl(SourceLocation location, std::string identifier)
+      : Decl(location, std::move(identifier)) {}
 };
 
 struct ValueDecl : public Decl {
   bool isMutable;
 
-  ValueDecl(SourceLocation location,
-            std::string identifier,
-            Kind kind,
-            bool isMutable)
-      : Decl(location, std::move(identifier), kind),
+  ValueDecl(SourceLocation location, std::string identifier, bool isMutable)
+      : Decl(location, std::move(identifier)),
         isMutable(isMutable) {}
 };
 
@@ -154,9 +142,7 @@ struct WhileStmt : public Stmt {
 
 struct ParamDecl : public ValueDecl {
   ParamDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : ValueDecl(
-            location, std::move(identifier), Decl::Kind::ParamDecl, isMutable) {
-  }
+      : ValueDecl(location, std::move(identifier), isMutable) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -167,7 +153,7 @@ struct TypeArgumentDecl : public TypeDecl {
   TypeArgumentDecl(SourceLocation location,
                    std::string identifier,
                    unsigned index)
-      : TypeDecl(location, std::move(identifier), Decl::Kind::TypeArgumentDecl),
+      : TypeDecl(location, std::move(identifier)),
         index(index) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
@@ -177,8 +163,7 @@ struct FieldDecl : public ValueDecl {
   unsigned index;
 
   FieldDecl(SourceLocation location, std::string identifier, unsigned index)
-      : ValueDecl(
-            location, std::move(identifier), Decl::Kind::FieldDecl, false),
+      : ValueDecl(location, std::move(identifier), false),
         index(index) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
@@ -191,8 +176,7 @@ struct VarDecl : public ValueDecl {
           std::string identifier,
           bool isMutable,
           Expr *initializer = nullptr)
-      : ValueDecl(
-            location, std::move(identifier), Decl::Kind::VarDecl, isMutable),
+      : ValueDecl(location, std::move(identifier), isMutable),
         initializer(initializer) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
@@ -208,8 +192,7 @@ struct FunctionDecl : public ValueDecl {
                std::string identifier,
                std::vector<TypeArgumentDecl *> typeArguments,
                std::vector<ParamDecl *> params)
-      : ValueDecl(
-            location, std::move(identifier), Decl::Kind::FunctionDecl, false),
+      : ValueDecl(location, std::move(identifier), false),
         typeArguments(std::move(typeArguments)),
         params(std::move(params)) {}
 
@@ -227,7 +210,7 @@ struct StructDecl : public TypeDecl {
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<TypeArgumentDecl *> typeArguments)
-      : TypeDecl(location, std::move(identifier), Decl::Kind::StructDecl),
+      : TypeDecl(location, std::move(identifier)),
         typeArguments(std::move(typeArguments)) {}
 
   void setFields(std::vector<FieldDecl *> fields);

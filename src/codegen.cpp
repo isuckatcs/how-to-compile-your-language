@@ -287,27 +287,25 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr, bool keepPointer) {
 }
 
 llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
-  const res::Decl *decl = dre.decl;
-  if (!decl->isFunctionDecl())
-    return declarations[decl];
+  const res::FunctionDecl *fnDecl = dre.decl->getAs<res::FunctionDecl>();
+  if (!fnDecl)
+    return declarations[dre.decl];
 
   InstantiationContextRAII context(this, dre.getTypeArgs());
   return generateFunctionDecl(
-      *static_cast<const res::FunctionDecl *>(decl),
-      resolvedTree->getType(&dre)->getAs<res::FunctionType>());
+      *fnDecl, resolvedTree->getType(&dre)->getAs<res::FunctionType>());
 }
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre,
                                           bool keepPointer) {
-  const res::Decl *decl = dre.decl;
   auto *type = generateType(resolvedTree->getType(&dre));
   llvm::Value *val = getDeclVal(dre);
 
+  const auto *paramDecl = dre.decl->getAs<res::ParamDecl>();
   // FIXME: revisit
-  keepPointer |= decl->isParamDecl() &&
-                 !static_cast<const res::ParamDecl *>(decl)->isMutable;
+  keepPointer |= paramDecl && !paramDecl->isMutable;
   keepPointer |= type->isStructTy();
-  keepPointer |= decl->isFunctionDecl();
+  keepPointer |= !!dre.decl->getAs<res::FunctionDecl>();
 
   return keepPointer ? val : loadValue(val, type);
 }

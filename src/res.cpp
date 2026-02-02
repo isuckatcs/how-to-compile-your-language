@@ -347,11 +347,11 @@ bool Context::unify(Type *t1, Type *t2) {
 
 std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
   size_t typeArgsCnt = 0;
-  if (decl->isFunctionDecl())
-    typeArgsCnt = static_cast<const FunctionDecl *>(decl)->typeArguments.size();
+  if (auto *fnDecl = decl->getAs<FunctionDecl>())
+    typeArgsCnt = fnDecl->typeArguments.size();
 
-  if (decl->isStructDecl())
-    typeArgsCnt = static_cast<const StructDecl *>(decl)->typeArguments.size();
+  if (auto *structDecl = decl->getAs<StructDecl>())
+    typeArgsCnt = structDecl->typeArguments.size();
 
   std::vector<res::Type *> instantiation(typeArgsCnt);
   for (size_t i = 0; i < typeArgsCnt; ++i)
