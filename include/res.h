@@ -147,12 +147,10 @@ struct ParamDecl : public ValueDecl {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
-struct TypeArgumentDecl : public TypeDecl {
+struct TypeParamDecl : public TypeDecl {
   unsigned index;
 
-  TypeArgumentDecl(SourceLocation location,
-                   std::string identifier,
-                   unsigned index)
+  TypeParamDecl(SourceLocation location, std::string identifier, unsigned index)
       : TypeDecl(location, std::move(identifier)),
         index(index) {}
 
@@ -183,38 +181,38 @@ struct VarDecl : public ValueDecl {
 };
 
 struct FunctionDecl : public ValueDecl {
-  std::vector<TypeArgumentDecl *> typeArguments;
+  std::vector<TypeParamDecl *> typeParams;
   std::vector<ParamDecl *> params;
   Block *body = nullptr;
   bool isComplete = false;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
-               std::vector<TypeArgumentDecl *> typeArguments,
+               std::vector<TypeParamDecl *> typeParams,
                std::vector<ParamDecl *> params)
       : ValueDecl(location, std::move(identifier), false),
-        typeArguments(std::move(typeArguments)),
+        typeParams(std::move(typeParams)),
         params(std::move(params)) {}
 
   void setBody(Block *body);
-  bool isGeneric() const override { return !typeArguments.empty(); }
+  bool isGeneric() const override { return !typeParams.empty(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
 struct StructDecl : public TypeDecl {
-  std::vector<TypeArgumentDecl *> typeArguments;
+  std::vector<TypeParamDecl *> typeParams;
   std::vector<FieldDecl *> fields;
   bool isComplete = false;
 
   StructDecl(SourceLocation location,
              std::string identifier,
-             std::vector<TypeArgumentDecl *> typeArguments)
+             std::vector<TypeParamDecl *> typeParams)
       : TypeDecl(location, std::move(identifier)),
-        typeArguments(std::move(typeArguments)) {}
+        typeParams(std::move(typeParams)) {}
 
   void setFields(std::vector<FieldDecl *> fields);
-  bool isGeneric() const override { return !typeArguments.empty(); }
+  bool isGeneric() const override { return !typeParams.empty(); }
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -428,14 +426,14 @@ public:
   friend class Context;
 };
 
-class TypeArgumentType : public Type {
+class TypeParamType : public Type {
 public:
-  const TypeArgumentDecl *decl;
+  const TypeParamDecl *decl;
 
   std::string getName() const override { return decl->identifier; };
 
 private:
-  TypeArgumentType(const TypeArgumentDecl &decl)
+  TypeParamType(const TypeParamDecl &decl)
       : decl(&decl){};
 
   friend class Context;
@@ -471,7 +469,7 @@ private:
   StructType(const StructDecl &decl, std::vector<Type *> typeArgs)
       : decl(&decl),
         typeArgs(std::move(typeArgs)) {
-    assert(decl.typeArguments.size() == this->typeArgs.size() &&
+    assert(decl.typeParams.size() == this->typeArgs.size() &&
            "mismatching type argument size for struct");
   };
 
@@ -508,9 +506,8 @@ class Context {
       std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Number));
   std::unique_ptr<BuiltinType> voidTy =
       std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Void));
-  std::unordered_map<const TypeArgumentDecl *,
-                     std::unique_ptr<TypeArgumentType>>
-      typeArgTys;
+  std::unordered_map<const TypeParamDecl *, std::unique_ptr<TypeParamType>>
+      typeParamTys;
   std::vector<std::unique_ptr<UninferredType>> typeVariables;
   std::vector<std::unique_ptr<StructType>> structTys;
   std::vector<std::unique_ptr<FunctionType>> functionTys;
@@ -538,7 +535,7 @@ public:
   BuiltinType *getBuiltinType(const BuiltinType::Kind kind);
   FunctionType *getUninferredFunctionType(size_t argCount);
   StructType *getUninferredStructType(const StructDecl &decl);
-  TypeArgumentType *getTypeArgumentType(const TypeArgumentDecl &decl);
+  TypeParamType *getTypeParamType(const TypeParamDecl &decl);
 
   std::vector<res::Type *> createInstantiation(const Decl *decl);
   Type *instantiate(Type *t, const std::vector<res::Type *> &instantiation);

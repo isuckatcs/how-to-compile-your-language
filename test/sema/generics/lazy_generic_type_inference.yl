@@ -1,12 +1,12 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> { x: number }
 // CHECK: StructDecl @({{.*}}) S {S<T>}
-// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 
 fn foo<T>(x: S<T>, n: T): void {}
 // CHECK: FunctionDecl @({{.*}}) foo {(S<T>,T) -> void}
-// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {S<T>}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {T}
 // CHECK-NEXT:   Block

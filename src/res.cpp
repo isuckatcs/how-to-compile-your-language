@@ -71,8 +71,8 @@ void FunctionDecl::dump(Context &ctx, size_t level) const {
             << (!isComplete ? " [incomplete]" : "") << " {"
             << ctx.getType(this)->getName() << '}' << '\n';
 
-  for (auto &&typeArg : typeArguments)
-    typeArg->dump(ctx, level + 1);
+  for (auto &&typeParam : typeParams)
+    typeParam->dump(ctx, level + 1);
 
   for (auto &&param : params)
     param->dump(ctx, level + 1);
@@ -93,16 +93,16 @@ void StructDecl::dump(Context &ctx, size_t level) const {
             << (!isComplete ? " [incomplete]" : "") << " {"
             << ctx.getType(this)->getName() << '}' << '\n';
 
-  for (auto &&typeArg : typeArguments)
-    typeArg->dump(ctx, level + 1);
+  for (auto &&typeParam : typeParams)
+    typeParam->dump(ctx, level + 1);
 
   for (auto &&field : fields)
     field->dump(ctx, level + 1);
 }
 
-void TypeArgumentDecl::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "TypeArgumentDecl @(" << this << ") "
-            << identifier << '\n';
+void TypeParamDecl::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "TypeParamDecl @(" << this << ") " << identifier
+            << '\n';
 }
 
 void NumberLiteral::dump(Context &ctx, size_t level) const {
@@ -280,7 +280,7 @@ FunctionType *Context::getUninferredFunctionType(size_t argCount) {
 
 StructType *Context::getUninferredStructType(const res::StructDecl &decl) {
   std::vector<Type *> types;
-  for (size_t i = 0; i < decl.typeArguments.size(); ++i)
+  for (size_t i = 0; i < decl.typeParams.size(); ++i)
     types.emplace_back(getNewUninferredType());
 
   return structTys
@@ -289,10 +289,10 @@ StructType *Context::getUninferredStructType(const res::StructDecl &decl) {
       .get();
 }
 
-TypeArgumentType *Context::getTypeArgumentType(const TypeArgumentDecl &decl) {
-  return typeArgTys
-      .try_emplace(
-          &decl, std::unique_ptr<TypeArgumentType>(new TypeArgumentType(decl)))
+TypeParamType *Context::getTypeParamType(const TypeParamDecl &decl) {
+  return typeParamTys
+      .try_emplace(&decl,
+                   std::unique_ptr<TypeParamType>(new TypeParamType(decl)))
       .first->second.get();
 }
 
@@ -349,15 +349,15 @@ bool Context::unify(Type *t1, Type *t2) {
 }
 
 std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
-  size_t typeArgsCnt = 0;
+  size_t typeParamCnt = 0;
   if (auto *fnDecl = decl->getAs<FunctionDecl>())
-    typeArgsCnt = fnDecl->typeArguments.size();
+    typeParamCnt = fnDecl->typeParams.size();
 
   if (auto *structDecl = decl->getAs<StructDecl>())
-    typeArgsCnt = structDecl->typeArguments.size();
+    typeParamCnt = structDecl->typeParams.size();
 
-  std::vector<res::Type *> instantiation(typeArgsCnt);
-  for (size_t i = 0; i < typeArgsCnt; ++i)
+  std::vector<res::Type *> instantiation(typeParamCnt);
+  for (size_t i = 0; i < typeParamCnt; ++i)
     instantiation[i] = getNewUninferredType();
 
   return instantiation;
@@ -391,8 +391,8 @@ Type *Context::instantiate(Type *t,
     return instantiatedTy;
   }
 
-  if (auto *typeArgTy = t->getAs<TypeArgumentType>())
-    return instantiation[typeArgTy->decl->index];
+  if (auto *typeParamTy = t->getAs<TypeParamType>())
+    return instantiation[typeParamTy->decl->index];
 
   return t;
 }

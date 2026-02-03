@@ -226,8 +226,7 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
 
   auto *param = ctx.bind(ctx.create<res::ParamDecl>(loc, "n", false), numTy);
   auto *fn = ctx.create<res::FunctionDecl>(
-      loc, "println", std::vector<res::TypeArgumentDecl *>{},
-      std::vector{param});
+      loc, "println", std::vector<res::TypeParamDecl *>{}, std::vector{param});
   fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
   return ctx.bind(fn, fnTy);
@@ -254,7 +253,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     if (const auto *sd = decl->getAs<res::StructDecl>()) {
       varOrReturn(res, checkTypeParameterCount(udt->location,
                                                udt->typeArguments.size(),
-                                               sd->typeArguments.size()));
+                                               sd->typeParams.size()));
 
       res::StructType *structTy = ctx.getUninferredStructType(*sd);
       for (size_t i = 0; i < udt->typeArguments.size(); ++i) {
@@ -265,8 +264,8 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return structTy;
     }
 
-    if (const auto *tad = decl->getAs<res::TypeArgumentDecl>())
-      return ctx.getTypeArgumentType(*tad);
+    if (const auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
+      return ctx.getTypeParamType(*typeParamDecl);
 
     llvm_unreachable("unexpected value type encountered");
   }
@@ -348,7 +347,7 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
     return report(declRefExpr.location,
                   "symbol '" + declRefExpr.identifier + "' not found");
 
-  if (decl->getAs<res::TypeArgumentDecl>())
+  if (decl->getAs<res::TypeParamDecl>())
     return report(declRefExpr.location, "expected value, found type parameter");
 
   res::Expr::Kind kind =
@@ -797,30 +796,30 @@ bool Sema::checkTypeParameterCount(SourceLocation loc,
   return true;
 }
 
-std::vector<res::TypeArgumentDecl *> Sema::resolveTypeParameters(
+std::vector<res::TypeParamDecl *> Sema::resolveTypeParameters(
     res::Context &ctx,
     const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls) {
-  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments;
-  for (auto &&typeArg : typeParamDecls) {
-    auto *resolvedTypeArg = ctx.create<res::TypeArgumentDecl>(
-        typeArg->location, typeArg->identifier, resolvedTypeArguments.size());
+  std::vector<res::TypeParamDecl *> resolvedTypeParams;
+  for (auto &&typeParam : typeParamDecls) {
+    auto *resolvedTypeParam = ctx.create<res::TypeParamDecl>(
+        typeParam->location, typeParam->identifier, resolvedTypeParams.size());
 
-    resolvedTypeArguments.emplace_back(
-        ctx.bind(resolvedTypeArg, ctx.getTypeArgumentType(*resolvedTypeArg)));
+    resolvedTypeParams.emplace_back(
+        ctx.bind(resolvedTypeParam, ctx.getTypeParamType(*resolvedTypeParam)));
   }
 
-  return resolvedTypeArguments;
+  return resolvedTypeParams;
 }
 
 res::FunctionDecl *
 Sema::resolveFunctionDecl(res::Context &ctx,
                           const ast::FunctionDecl &function) {
-  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments =
+  std::vector<res::TypeParamDecl *> resolvedTypeParams =
       resolveTypeParameters(ctx, function.typeParameters);
 
-  ScopeRAII typeArgScope(this);
-  for (auto &&typeArgDecl : resolvedTypeArguments)
-    if (!insertDeclToCurrentScope(typeArgDecl))
+  ScopeRAII typeParamScope(this);
+  for (auto &&typeParamDecl : resolvedTypeParams)
+    if (!insertDeclToCurrentScope(typeParamDecl))
       return nullptr;
 
   varOrReturn(retTy, resolveType(ctx, *function.type));
@@ -855,30 +854,29 @@ Sema::resolveFunctionDecl(res::Context &ctx,
   }
 
   ctx.unify(fnTy->getReturnType(), retTy);
-  return ctx.bind(
-      ctx.create<res::FunctionDecl>(function.location, function.identifier,
-                                    std::move(resolvedTypeArguments),
-                                    std::move(resolvedParams)),
-      fnTy);
+  return ctx.bind(ctx.create<res::FunctionDecl>(
+                      function.location, function.identifier,
+                      std::move(resolvedTypeParams), std::move(resolvedParams)),
+                  fnTy);
 };
 
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &structDecl) {
-  std::vector<res::TypeArgumentDecl *> resolvedTypeArguments =
+  std::vector<res::TypeParamDecl *> resolvedTypeParams =
       resolveTypeParameters(ctx, structDecl.typeParameters);
   auto *resolvedStruct =
       ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier,
-                                  std::move(resolvedTypeArguments));
+                                  std::move(resolvedTypeParams));
 
   res::StructType *structTy = ctx.getUninferredStructType(*resolvedStruct);
-  ScopeRAII typeArgScope(this);
+  ScopeRAII typeParamScope(this);
 
-  for (auto &&typeArgDecl : resolvedStruct->typeArguments) {
-    if (!insertDeclToCurrentScope(typeArgDecl))
+  for (auto &&typeParamDecl : resolvedStruct->typeParams) {
+    if (!insertDeclToCurrentScope(typeParamDecl))
       return nullptr;
 
-    ctx.unify(structTy->getTypeArgs()[typeArgDecl->index],
-              ctx.getType(typeArgDecl));
+    ctx.unify(structTy->getTypeArgs()[typeParamDecl->index],
+              ctx.getType(typeParamDecl));
   }
 
   return ctx.bind(resolvedStruct, structTy);
@@ -890,9 +888,9 @@ res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
   res::StructDecl *decl = lookupDecl<res::StructDecl>(astDecl.identifier).first;
   assert(decl && !decl->isComplete);
 
-  ScopeRAII typeArgScope(this);
-  for (auto &&typeArgDecl : decl->typeArguments)
-    insertDeclToCurrentScope(typeArgDecl);
+  ScopeRAII typeParamScope(this);
+  for (auto &&typeParamDecl : decl->typeParams)
+    insertDeclToCurrentScope(typeParamDecl);
 
   bool error = false;
   std::set<std::string_view> identifiers;
@@ -955,9 +953,9 @@ std::optional<res::Context> Sema::resolveAST() {
   for (auto &&fn : ast->functions) {
     currentFunction = lookupDecl<res::FunctionDecl>(fn->identifier).first;
 
-    ScopeRAII typeArgScope(this);
-    for (auto &&typeArg : currentFunction->typeArguments)
-      insertDeclToCurrentScope(typeArg);
+    ScopeRAII typeParamScope(this);
+    for (auto &&typeParam : currentFunction->typeParams)
+      insertDeclToCurrentScope(typeParam);
 
     ScopeRAII paramScope(this);
     for (auto &&param : currentFunction->params)

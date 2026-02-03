@@ -72,7 +72,7 @@ class Sema {
   bool checkTypeParameterCount(SourceLocation loc,
                                size_t received,
                                size_t expected) const;
-  std::vector<res::TypeArgumentDecl *> resolveTypeParameters(
+  std::vector<res::TypeParamDecl *> resolveTypeParameters(
       res::Context &ctx,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
 

@@ -3,7 +3,7 @@ fn box<T>(x: T): T {
   return x;
 }
 // CHECK: FunctionDecl @({{.*}}) box {(T) -> T}
-// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) T
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
@@ -13,7 +13,7 @@ fn foo<U>(x: (U) -> U, y: U): U {
   return x(y);
 }
 // CHECK: FunctionDecl @({{.*}}) foo {((U) -> U,U) -> U}
-// CHECK-NEXT:   TypeArgumentDecl @({{.*}}) U
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {(U) -> U}
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {U}
 // CHECK-NEXT:   Block

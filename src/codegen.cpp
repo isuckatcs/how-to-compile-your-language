@@ -86,8 +86,8 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
 
-  if (const auto *typeArgTy = type->getAs<res::TypeArgumentType>()) {
-    size_t idx = typeArgTy->decl->index;
+  if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
+    size_t idx = typeParamTy->decl->index;
 
     const InstantiationTy &currentInstantiation = instantiationContexts.top();
     if (idx >= currentInstantiation.size())
@@ -658,8 +658,8 @@ Codegen::generateStruct(const res::StructType *resolvedStructTy) {
   std::vector<const res::Type *> typeArgs;
   for (const res::Type *argTy : resolvedStructTy->getTypeArgs()) {
     argTy = argTy->getRootType();
-    if (const auto *typeArgTy = argTy->getAs<res::TypeArgumentType>())
-      argTy = instantiationContexts.top()[typeArgTy->decl->index];
+    if (const auto *typeParamTy = argTy->getAs<res::TypeParamType>())
+      argTy = instantiationContexts.top()[typeParamTy->decl->index];
     typeArgs.emplace_back(argTy);
   }
 
