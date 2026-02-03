@@ -7,16 +7,6 @@
 
 namespace yl {
 namespace res {
-bool Type::isBuiltinVoid() const {
-  auto *builtinTy = getAs<BuiltinType>();
-  return builtinTy && builtinTy->isVoid();
-}
-
-bool Type::isBuiltinNumber() const {
-  auto *builtinTy = getAs<BuiltinType>();
-  return builtinTy && builtinTy->isNumber();
-}
-
 void Block::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
@@ -222,13 +212,14 @@ void StructInstantiationExpr::dump(Context &ctx, size_t level) const {
 std::string FunctionType::getName() const {
   std::stringstream ss;
   ss << '(';
-  for (int i = 0; i < args.size(); ++i) {
+  for (int i = 0; i < args.size() - 1; ++i) {
     ss << args[i]->getRootType()->getName();
 
-    if (i < args.size() - 1)
+    if (i < args.size() - 2)
+      // FIXME: inspert a space here
       ss << ',';
   }
-  ss << ") -> " << ret->getRootType()->getName();
+  ss << ") -> " << getReturnType()->getName();
 
   return ss.str();
 }
@@ -237,12 +228,13 @@ std::string StructType::getName() const {
   std::stringstream ss;
   ss << decl->identifier;
 
-  if (!typeArgs.empty()) {
+  if (!args.empty()) {
     ss << '<';
-    for (int i = 0; i < typeArgs.size(); ++i) {
-      ss << typeArgs[i]->getName();
+    for (int i = 0; i < args.size(); ++i) {
+      ss << args[i]->getName();
 
-      if (i < typeArgs.size() - 1)
+      if (i < args.size() - 1)
+        // FIXME: inspert a space here
         ss << ',';
     }
     ss << '>';
@@ -252,41 +244,24 @@ std::string StructType::getName() const {
 }
 
 UninferredType *Context::getNewUninferredType() {
-  return typeVariables
-      .emplace_back(std::unique_ptr<UninferredType>(
-          new UninferredType(typeVariables.size())))
-      .get();
+  auto *typeVariable =
+      new UninferredType("t" + std::to_string(typeVariableCount++));
+  types.emplace_back(std::unique_ptr<UninferredType>());
+  return typeVariable;
 }
 
-BuiltinType *Context::getBuiltinType(const BuiltinType::Kind kind) {
-  switch (kind) {
-  case BuiltinType::Kind::Void:
-    return voidTy.get();
-  case BuiltinType::Kind::Number:
-    return numberTy.get();
-  }
+FunctionType *Context::getFunctionType(std::vector<Type *> args, Type *ret) {
+  args.emplace_back(ret);
+  auto *fnTy = new FunctionType(std::move(args));
+  types.emplace_back(std::unique_ptr<FunctionType>(fnTy));
+  return fnTy;
 }
 
-FunctionType *Context::getUninferredFunctionType(size_t argCount) {
-  std::vector<Type *> args;
-  for (size_t i = 0; i < argCount; ++i)
-    args.emplace_back(getNewUninferredType());
-
-  return functionTys
-      .emplace_back(std::unique_ptr<FunctionType>(
-          new FunctionType(args, getNewUninferredType())))
-      .get();
-}
-
-StructType *Context::getUninferredStructType(const res::StructDecl &decl) {
-  std::vector<Type *> types;
-  for (size_t i = 0; i < decl.typeParams.size(); ++i)
-    types.emplace_back(getNewUninferredType());
-
-  return structTys
-      .emplace_back(
-          std::unique_ptr<StructType>(new StructType(decl, std::move(types))))
-      .get();
+StructType *Context::getStructType(const res::StructDecl &decl,
+                                   std::vector<Type *> typeArgs) {
+  auto *structTy = new StructType(decl, std::move(typeArgs));
+  types.emplace_back(std::unique_ptr<StructType>(structTy));
+  return structTy;
 }
 
 TypeParamType *Context::getTypeParamType(const TypeParamDecl &decl) {
@@ -311,44 +286,17 @@ bool Context::unify(Type *t1, Type *t2) {
   if (t2->getAs<UninferredType>())
     return unify(t2, t1);
 
-  // FIXME: is there a way to unify these similar to HM monotypes?
-  if (auto *fn1 = t1->getAs<FunctionType>()) {
-    auto *fn2 = t2->getAs<FunctionType>();
-    if (!fn2)
+  if (t1->name != t2->name || t1->args.size() != t2->args.size())
+    return false;
+
+  for (size_t i = 0; i < t1->args.size(); ++i)
+    if (!unify(t1->args[i], t2->args[i]))
       return false;
 
-    if (fn1->getArgCount() != fn2->getArgCount())
-      return false;
-
-    for (int i = 0; i < fn1->getArgCount(); ++i)
-      if (!unify(fn1->getArgType(i), fn2->getArgType(i)))
-        return false;
-
-    return unify(fn1->getReturnType(), fn2->getReturnType());
-  }
-
-  if (auto *s1 = t1->getAs<StructType>()) {
-    auto *s2 = t2->getAs<StructType>();
-    if (!s2)
-      return false;
-
-    if (s1->decl != s2->decl)
-      return false;
-
-    if (s1->typeArgs.size() != s2->typeArgs.size())
-      return false;
-
-    for (size_t i = 0; i < s1->typeArgs.size(); ++i)
-      if (!unify(s1->typeArgs[i], s2->typeArgs[i]))
-        return false;
-
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
-std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
+Context::SubstitutionTy Context::createSubstitution(const Decl *decl) {
   size_t typeParamCnt = 0;
   if (auto *fnDecl = decl->getAs<FunctionDecl>())
     typeParamCnt = fnDecl->typeParams.size();
@@ -356,45 +304,28 @@ std::vector<res::Type *> Context::createInstantiation(const Decl *decl) {
   if (auto *structDecl = decl->getAs<StructDecl>())
     typeParamCnt = structDecl->typeParams.size();
 
-  std::vector<res::Type *> instantiation(typeParamCnt);
+  std::vector<res::Type *> substitution(typeParamCnt);
   for (size_t i = 0; i < typeParamCnt; ++i)
-    instantiation[i] = getNewUninferredType();
+    substitution[i] = getNewUninferredType();
 
-  return instantiation;
+  return substitution;
 }
 
-Type *Context::instantiate(Type *t,
-                           const std::vector<res::Type *> &instantiation) {
-  t = t->getRootType();
-
-  if (auto *fnTy = t->getAs<FunctionType>()) {
-    auto *instantiatedTy = getUninferredFunctionType(fnTy->getArgCount());
-
-    for (size_t i = 0; i < fnTy->getArgCount(); ++i)
-      unify(instantiatedTy->getArgType(i),
-            instantiate(fnTy->getArgType(i), instantiation));
-
-    unify(instantiatedTy->getReturnType(),
-          instantiate(fnTy->getReturnType(), instantiation));
-    return instantiatedTy;
-  }
-
-  if (auto *structTy = t->getAs<StructType>()) {
-    std::vector<Type *> tyArgs = structTy->getTypeArgs();
-
-    auto *instantiatedTy = getUninferredStructType(*structTy->getDecl());
-    std::vector<Type *> instantiatedTyArgs = instantiatedTy->getTypeArgs();
-
-    for (size_t i = 0; i < tyArgs.size(); ++i)
-      unify(instantiatedTyArgs[i], instantiate(tyArgs[i], instantiation));
-
-    return instantiatedTy;
-  }
-
+Type *Context::instantiate(Type *t, const SubstitutionTy &substitution) {
   if (auto *typeParamTy = t->getAs<TypeParamType>())
-    return instantiation[typeParamTy->decl->index];
+    return substitution[typeParamTy->decl->index];
 
-  return t;
+  Type *instTy = t;
+  if (auto *fnTy = t->getAs<FunctionType>())
+    instTy = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
+
+  if (auto *s = t->getAs<StructType>())
+    instTy = getStructType(*s->getDecl(), s->getTypeArgs());
+
+  for (auto &arg : instTy->args)
+    arg = instantiate(arg, substitution);
+
+  return instTy;
 }
 
 void Context::dump() {

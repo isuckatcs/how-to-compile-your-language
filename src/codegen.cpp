@@ -13,9 +13,9 @@ class Mangling {
     type = type->getRootType();
 
     std::stringstream mangledName;
-    if (type->isBuiltinVoid()) {
+    if (type->getAs<res::BuiltinVoidType>()) {
       mangledName << 'v';
-    } else if (type->isBuiltinNumber()) {
+    } else if (type->getAs<res::BuiltinNumberType>()) {
       mangledName << 'n';
     } else if (const auto *s = type->getAs<res::StructType>()) {
       const auto &id = s->getDecl()->identifier;
@@ -23,8 +23,8 @@ class Mangling {
                   << mangleGenericArgs(s->getTypeArgs());
     } else if (const auto *f = type->getAs<res::FunctionType>()) {
       mangledName << 'F';
-      for (size_t i = 0; i < f->getArgCount(); ++i)
-        mangledName << mangleType(f->getArgType(i));
+      for (auto &&arg : f->getArgs())
+        mangledName << mangleType(arg);
       mangledName << 'R' << mangleType(f->getReturnType());
     } else {
       llvm_unreachable("unexpected type in mangling");
@@ -74,10 +74,10 @@ Codegen::Codegen(const res::Context &resolvedCtx, std::string_view sourcePath)
 llvm::Type *Codegen::generateType(const res::Type *type) {
   type = type->getRootType();
 
-  if (type->isBuiltinNumber())
+  if (type->getAs<res::BuiltinNumberType>())
     return builder.getDoubleTy();
 
-  if (type->isBuiltinVoid())
+  if (type->getAs<res::BuiltinVoidType>())
     return builder.getVoidTy();
 
   if (const auto *s = type->getAs<res::StructType>())
@@ -111,8 +111,7 @@ Codegen::generateFunctionType(const res::FunctionType *type) {
     res = generateType(type->getReturnType());
   }
 
-  for (size_t i = 0; i < type->getArgCount(); ++i) {
-    const auto &arg = type->getArgType(i);
+  for (auto &&arg : type->getArgs()) {
     if (arg->getAs<res::StructType>())
       args.emplace_back(llvm::PointerType::get(context, 0));
     else
@@ -519,16 +518,19 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *decl,
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
   }
 
-  for (size_t i = 0; i < ty->getArgCount(); ++i) {
-    const auto &argTy = ty->getArgType(i);
+  size_t i = 0;
+  for (auto &&argTy : ty->getArgs()) {
     llvm::AttrBuilder paramAttrs(context);
+
     if (argTy->getAs<res::StructType>()) {
       if (decl && decl->params[i]->isMutable)
         paramAttrs.addByValAttr(generateType(argTy));
       else
         paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
     }
+
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
+    ++i;
   }
 
   return llvm::AttributeList::get(context, llvm::AttributeSet{},

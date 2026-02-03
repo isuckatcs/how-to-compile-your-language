@@ -13,28 +13,30 @@ namespace res {
 class Context;
 
 struct Type {
-  bool isBuiltinVoid() const;
-  bool isBuiltinNumber() const;
-
   template <typename T> T *getAs() {
     return const_cast<T *>(const_cast<const Type *>(this)->getAs<T>());
   }
 
   template <typename T> const T *getAs() const {
     static_assert(std::is_base_of_v<Type, T>, "expected type");
-    return dynamic_cast<const T *>(this);
+    return dynamic_cast<const T *>(getRootType());
   }
 
   Type *getRootType() {
     return const_cast<Type *>(const_cast<const Type *>(this)->getRootType());
   }
-  virtual const Type *getRootType() const { return this; }
 
-  virtual std::string getName() const = 0;
+  virtual const Type *getRootType() const { return this; }
+  virtual std::string getName() const { return name; };
   virtual ~Type() = default;
 
 protected:
-  Type() = default;
+  std::string name;
+  std::vector<Type *> args;
+
+  Type(std::string identifier, std::vector<Type *> args)
+      : name(std::move(identifier)),
+        args(std::move(args)){};
 
   friend class Context;
 };
@@ -369,12 +371,10 @@ struct StructInstantiationExpr : public Expr {
 };
 
 class UninferredType : public Type {
-  Type *parent;
-  size_t id;
+  Type *parent = nullptr;
 
-  UninferredType(size_t id)
-      : parent(nullptr),
-        id(id){};
+  UninferredType(std::string name)
+      : Type(name, {}){};
 
   void infer(Type *t) {
     assert(!parent && "already inferred");
@@ -402,59 +402,49 @@ public:
     // }
     if (parent)
       return parent->getName();
-    return "t" + std::to_string(id);
+    return name;
   };
 
   friend class Context;
 };
 
-class BuiltinType : public Type {
-public:
-  enum class Kind { Void, Number };
+class BuiltinVoidType : public Type {
+  BuiltinVoidType()
+      : Type("void", {}){};
 
-private:
-  Kind kind;
+  friend class Context;
+};
 
-  BuiltinType(Kind kind)
-      : kind(kind){};
-
-public:
-  bool isVoid() const { return kind == Kind::Void; }
-  bool isNumber() const { return kind == Kind::Number; }
-  std::string getName() const override { return isVoid() ? "void" : "number"; };
+class BuiltinNumberType : public Type {
+  BuiltinNumberType()
+      : Type("number", {}){};
 
   friend class Context;
 };
 
 class TypeParamType : public Type {
-public:
-  const TypeParamDecl *decl;
-
-  std::string getName() const override { return decl->identifier; };
-
-private:
   TypeParamType(const TypeParamDecl &decl)
-      : decl(&decl){};
+      : Type(decl.identifier, {}),
+        decl(&decl){};
 
   friend class Context;
+
+public:
+  const TypeParamDecl *decl;
 };
 
 class FunctionType : public Type {
-  std::vector<Type *> args;
-  Type *ret;
-
-  FunctionType(std::vector<Type *> args, Type *ret)
-      : args(std::move(args)),
-        ret(ret){};
+  FunctionType(std::vector<Type *> args)
+      : Type("fn", std::move(args)){};
 
 public:
-  size_t getArgCount() const { return args.size(); }
+  std::vector<Type *> getArgs() { return {args.begin(), --args.end()}; }
+  std::vector<const Type *> getArgs() const {
+    return {args.begin(), --args.end()};
+  }
 
-  const Type *getArgType(size_t idx) const { return args[idx]->getRootType(); }
-  Type *getArgType(size_t idx) { return args[idx]->getRootType(); }
-
-  const Type *getReturnType() const { return ret->getRootType(); }
-  Type *getReturnType() { return ret->getRootType(); }
+  Type *getReturnType() { return args.back()->getRootType(); }
+  const Type *getReturnType() const { return args.back()->getRootType(); }
 
   std::string getName() const override;
 
@@ -462,23 +452,21 @@ public:
 };
 
 class StructType : public Type {
-private:
-  std::vector<Type *> typeArgs;
   const StructDecl *decl;
 
   StructType(const StructDecl &decl, std::vector<Type *> typeArgs)
-      : decl(&decl),
-        typeArgs(std::move(typeArgs)) {
-    assert(decl.typeParams.size() == this->typeArgs.size() &&
+      : Type(decl.identifier, std::move(typeArgs)),
+        decl(&decl) {
+    assert(decl.typeParams.size() == this->args.size() &&
            "mismatching type argument size for struct");
   };
 
 public:
   const StructDecl *getDecl() const { return decl; }
 
-  std::vector<Type *> getTypeArgs() { return typeArgs; }
+  std::vector<Type *> getTypeArgs() { return args; }
   std::vector<const Type *> getTypeArgs() const {
-    return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
+    return std::vector<const Type *>(args.begin(), args.end());
   }
 
   std::string getName() const override;
@@ -502,16 +490,15 @@ class Context {
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
 
-  std::unique_ptr<BuiltinType> numberTy =
-      std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Number));
-  std::unique_ptr<BuiltinType> voidTy =
-      std::unique_ptr<BuiltinType>(new BuiltinType(BuiltinType::Kind::Void));
+  BuiltinVoidType voidType = BuiltinVoidType();
+  BuiltinNumberType numberType = BuiltinNumberType();
   std::unordered_map<const TypeParamDecl *, std::unique_ptr<TypeParamType>>
       typeParamTys;
-  std::vector<std::unique_ptr<UninferredType>> typeVariables;
-  std::vector<std::unique_ptr<StructType>> structTys;
-  std::vector<std::unique_ptr<FunctionType>> functionTys;
+  size_t typeVariableCount = 0;
+  std::vector<std::unique_ptr<Type>> types;
 
+  // FIXME: Extract type environment into a separate class. That will allow
+  // codegen to instantiate types, but keep the resolved tree constant.
   using EnvKeyTy = std::variant<const Expr *, const Decl *>;
   std::unordered_map<EnvKeyTy, Type *> environment;
 
@@ -520,9 +507,6 @@ class Context {
   Context &operator=(const Context &) = delete;
 
 public:
-  Context(Context &&) = default;
-  Context &operator=(Context &&) = delete;
-
   static Context createEmptyContext() { return Context{}; }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
@@ -532,13 +516,16 @@ public:
   std::vector<FunctionDecl *> &getFunctions() { return functions; }
 
   UninferredType *getNewUninferredType();
-  BuiltinType *getBuiltinType(const BuiltinType::Kind kind);
-  FunctionType *getUninferredFunctionType(size_t argCount);
-  StructType *getUninferredStructType(const StructDecl &decl);
+  BuiltinVoidType *getBuiltinVoidType() { return &voidType; };
+  BuiltinNumberType *getBuiltinNumberType() { return &numberType; };
+  FunctionType *getFunctionType(std::vector<Type *> args, Type *ret);
+  StructType *getStructType(const StructDecl &decl,
+                            std::vector<Type *> typeArgs);
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
 
-  std::vector<res::Type *> createInstantiation(const Decl *decl);
-  Type *instantiate(Type *t, const std::vector<res::Type *> &instantiation);
+  using SubstitutionTy = std::vector<res::Type *>;
+  SubstitutionTy createSubstitution(const Decl *decl);
+  Type *instantiate(Type *t, const SubstitutionTy &substitution);
 
   bool unify(Type *t1, Type *t2);
 

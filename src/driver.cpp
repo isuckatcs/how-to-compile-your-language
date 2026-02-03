@@ -112,17 +112,17 @@ int main(int argc, const char **argv) {
     return 1;
 
   Sema sema(std::move(ast));
-  auto resolvedTree = sema.resolveAST();
+  auto *resolvedTree = sema.resolveAST();
 
   if (options.resDump) {
-    if (resolvedTree.has_value())
+    if (resolvedTree)
       resolvedTree->dump();
 
     return 0;
   }
 
   if (options.cfgDump) {
-    if (resolvedTree.has_value()) {
+    if (resolvedTree) {
       for (auto &&fn : resolvedTree->getFunctions()) {
         std::cerr << fn->identifier << ':' << '\n';
         CFGBuilder().build(*fn).dump();
@@ -131,7 +131,7 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  if (!resolvedTree.has_value())
+  if (!resolvedTree)
     return 1;
 
   Codegen codegen(*resolvedTree, options.source.c_str());

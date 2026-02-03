@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main(): void {
+    // CHECK: [[# @LINE + 1 ]]:18: error: failed to resolve type 'A'
+    let x: () -> A;
+    
+    // CHECK: [[# @LINE + 1 ]]:13: error: failed to resolve type 'A'
+    let y: (A) -> void;
+    
+    // CHECK: [[# @LINE + 1 ]]:21: error: failed to resolve type 'A'
+    let z: (number, A) -> void;
+}

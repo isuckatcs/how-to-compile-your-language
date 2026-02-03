@@ -13,8 +13,9 @@ class Sema {
   // FIXME: dependency injection
   ConstantExpressionEvaluator cee;
   const ast::Context *ast;
-  std::vector<std::vector<res::Decl *>> scopes;
 
+  res::Context ctx;
+  std::vector<std::vector<res::Decl *>> scopes;
   res::FunctionDecl *currentFunction;
 
   class ScopeRAII {
@@ -89,9 +90,10 @@ class Sema {
 
 public:
   explicit Sema(const ast::Context &ast)
-      : ast(&ast) {}
+      : ast(&ast),
+        ctx(res::Context::createEmptyContext()) {}
 
-  std::optional<res::Context> resolveAST();
+  res::Context *resolveAST();
 };
 } // namespace yl
 
