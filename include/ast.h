@@ -383,7 +383,6 @@ struct Assignment : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-// FIXME: support incremental parsing
 struct Context {
   std::vector<std::unique_ptr<ast::Decl>> decls;
 
