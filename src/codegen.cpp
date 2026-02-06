@@ -229,7 +229,6 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
 
 llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr,
                                          bool keepPointer) {
-  // FIXME: isn't this more complicated than it should be?
   llvm::Value *base = generateExpr(*memberExpr.base, true);
   llvm::Type *baseTy = generateType(resolvedTree->getType(memberExpr.base));
 
