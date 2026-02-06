@@ -728,9 +728,13 @@ res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
                                        const ast::ParamDecl &param) {
   auto *type = resolveType(ctx, *param.type);
 
-  if (!type || type->getAs<res::BuiltinVoidType>())
+  if (!type)
     return report(param.location,
                   "parameter '" + param.identifier + "' has invalid type");
+
+  if (type->getAs<res::BuiltinVoidType>())
+    return report(param.location, "parameter '" + param.identifier +
+                                      "' of 'void' type is not allowed");
 
   return ctx.bind(ctx.create<res::ParamDecl>(param.location, param.identifier,
                                              param.isMutable),

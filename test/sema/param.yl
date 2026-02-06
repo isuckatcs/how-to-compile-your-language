@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 
-// CHECK: [[# @LINE + 1 ]]:8: error: parameter 'x' has invalid type
+// CHECK: [[# @LINE + 1 ]]:8: error: parameter 'x' of 'void' type is not allowed
 fn foo(x: void, y: customType): void {}
 
 // CHECK: [[# @LINE + 1 ]]:19: error: parameter 'y' has invalid type
