@@ -12,10 +12,10 @@ fn main(): void {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) b {B<number>}
   // CHECK-NEXT:     StructInstantiationExpr {B<number>}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) B<number> {B<number>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) B {B<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) a
   // CHECK-NEXT:         StructInstantiationExpr {A<number>}
-  // CHECK-NEXT:           DeclRefExpr @({{.*}}) A<number> {A<number>}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) A {A<number>}
   // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:             NumberLiteral '1' {number}
   // CHECK-NEXT:             | value: 1

@@ -12,7 +12,7 @@ fn box<T>(x: T): T {
 fn foo<U>(x: (U) -> U, y: U): U {
   return x(y);
 }
-// CHECK: FunctionDecl @({{.*}}) foo {((U) -> U,U) -> U}
+// CHECK: FunctionDecl @({{.*}}) foo {((U) -> U, U) -> U}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {(U) -> U}
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {U}
@@ -31,8 +31,8 @@ fn main(): void {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {number}
 // CHECK-NEXT:         CallExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo<number> {((number) -> number,number) -> number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) box<number> {(number) -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {((number) -> number, number) -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) box {(number) -> number}
 // CHECK-NEXT:           NumberLiteral '20' {number}
 // CHECK-NEXT:           | value: 20
 // CHECK-NEXT:     CallExpr {void}

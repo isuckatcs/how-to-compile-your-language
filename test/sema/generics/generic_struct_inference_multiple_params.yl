@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T, U> { x: T, y: T, z: U }
-// CHECK-NEXT: StructDecl @({{.*}}) S {S<T,U>}
+// CHECK-NEXT: StructDecl @({{.*}}) S {S<T, U>}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
@@ -13,9 +13,9 @@ fn main(): void {
 // CHECK: FunctionDecl @({{.*}}) main {() -> void}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
-// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number,() -> void>}
-// CHECK-NEXT:         StructInstantiationExpr {S<number,() -> void>}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S<number,() -> void> {S<number,() -> void>}
+// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number, () -> void>}
+// CHECK-NEXT:         StructInstantiationExpr {S<number, () -> void>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number, () -> void>}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '1' {number}
 // CHECK-NEXT:             | value: 1

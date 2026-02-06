@@ -106,16 +106,6 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
 void DeclRefExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
             << decl->identifier;
-  if (!typeArgs.empty()) {
-    std::cerr << '<';
-    for (int i = 0; i < typeArgs.size(); ++i) {
-      std::cerr << typeArgs[i]->getRootType()->getName();
-
-      if (i < typeArgs.size() - 1)
-        std::cerr << ',';
-    }
-    std::cerr << '>';
-  }
 
   std::cerr << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
@@ -216,8 +206,7 @@ std::string FunctionType::getName() const {
     ss << args[i]->getRootType()->getName();
 
     if (i < args.size() - 2)
-      // FIXME: inspert a space here
-      ss << ',';
+      ss << ',' << ' ';
   }
   ss << ") -> " << getReturnType()->getName();
 
@@ -234,8 +223,7 @@ std::string StructType::getName() const {
       ss << args[i]->getName();
 
       if (i < args.size() - 1)
-        // FIXME: inspert a space here
-        ss << ',';
+        ss << ',' << ' ';
     }
     ss << '>';
   }
