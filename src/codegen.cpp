@@ -204,7 +204,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
       decl->identifier, generateType(resolvedTree->getType(decl)));
 
   if (const auto &init = decl->initializer)
-    storeValue(generateExpr(*init), var,
+    storeValue(generateExprAndLoadValue(*init), var,
                generateType(resolvedTree->getType(init)));
 
   declarations[decl] = var;
@@ -212,14 +212,14 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
 }
 
 llvm::Value *Codegen::generateAssignment(const res::Assignment &stmt) {
-  llvm::Value *val = generateExpr(*stmt.expr);
-  return storeValue(val, generateExpr(*stmt.assignee, true),
+  llvm::Value *val = generateExprAndLoadValue(*stmt.expr);
+  return storeValue(val, generateExpr(*stmt.assignee),
                     generateType(resolvedTree->getType(stmt.assignee)));
 }
 
 llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
   if (stmt.expr)
-    storeValue(generateExpr(*stmt.expr), retVal,
+    storeValue(generateExprAndLoadValue(*stmt.expr), retVal,
                generateType(resolvedTree->getType(stmt.expr)));
 
   assert(retBB && "function with return stmt doesn't have a return block");
@@ -227,16 +227,11 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
   return nullptr;
 }
 
-llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr,
-                                         bool keepPointer) {
-  llvm::Value *base = generateExpr(*memberExpr.base, true);
+llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
+  llvm::Value *base = generateExpr(*memberExpr.base);
   llvm::Type *baseTy = generateType(resolvedTree->getType(memberExpr.base));
 
-  llvm::Value *field =
-      builder.CreateStructGEP(baseTy, base, memberExpr.field->index);
-  llvm::Type *fieldTy = generateType(resolvedTree->getType(&memberExpr));
-
-  return keepPointer ? field : loadValue(field, fieldTy);
+  return builder.CreateStructGEP(baseTy, base, memberExpr.field->index);
 }
 
 llvm::Value *
@@ -249,14 +244,14 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
   for (auto &&initStmt : sie.fieldInitializers) {
     llvm::Value *dst = builder.CreateStructGEP(generateType(structType), tmp,
                                                initStmt->field->index);
-    storeValue(generateExpr(*initStmt->initializer), dst,
+    storeValue(generateExprAndLoadValue(*initStmt->initializer), dst,
                generateType(resolvedTree->getType(initStmt->initializer)));
   }
 
   return tmp;
 }
 
-llvm::Value *Codegen::generateExpr(const res::Expr &expr, bool keepPointer) {
+llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *number = dynamic_cast<const res::NumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
 
@@ -264,7 +259,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr, bool keepPointer) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
-    return generateDeclRefExpr(*dre, keepPointer);
+    return generateDeclRefExpr(*dre);
 
   if (auto *call = dynamic_cast<const res::CallExpr *>(&expr))
     return generateCallExpr(*call);
@@ -279,7 +274,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr, bool keepPointer) {
     return generateUnaryOperator(*unop);
 
   if (auto *me = dynamic_cast<const res::MemberExpr *>(&expr))
-    return generateMemberExpr(*me, keepPointer);
+    return generateMemberExpr(*me);
 
   if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(&expr))
     return generateTemporaryStruct(*sie);
@@ -287,7 +282,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr, bool keepPointer) {
   llvm_unreachable("unexpected expression");
 }
 
-llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
+llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   const res::FunctionDecl *fnDecl = dre.decl->getAs<res::FunctionDecl>();
   if (!fnDecl)
     return declarations[dre.decl];
@@ -297,22 +292,8 @@ llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
       dre.getTypeArgs());
 }
 
-llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre,
-                                          bool keepPointer) {
-  auto *type = generateType(resolvedTree->getType(&dre));
-  llvm::Value *val = getDeclVal(dre);
-
-  const auto *paramDecl = dre.decl->getAs<res::ParamDecl>();
-  // FIXME: revisit
-  keepPointer |= paramDecl && !paramDecl->isMutable;
-  keepPointer |= type->isStructTy();
-  keepPointer |= !!dre.decl->getAs<res::FunctionDecl>();
-
-  return keepPointer ? val : loadValue(val, type);
-}
-
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
-  llvm::Value *callee = generateExpr(*call.callee);
+  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   llvm::Function *calledFunction = nullptr;
   if (callee->hasName())
     calledFunction = module.getFunction(callee->getName());
@@ -330,7 +311,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   size_t argIdx = 0;
   for (auto &&arg : call.arguments) {
     const res::Type *argTy = resolvedTree->getType(arg);
-    llvm::Value *val = generateExpr(*arg);
+    llvm::Value *val = generateExprAndLoadValue(*arg);
 
     if (calledFunction &&
         calledFunction->getArg(argIdx + isReturningStruct)->hasByValAttr()) {
@@ -355,7 +336,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
-  llvm::Value *rhs = generateExpr(*unop.operand);
+  llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 
   if (unop.op == TokenKind::Excl)
     return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
@@ -414,7 +395,7 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
     generateConditionalOperator(*binop.lhs, trueBB, falseBB);
 
     builder.SetInsertPoint(rhsBB);
-    llvm::Value *rhs = doubleToBool(generateExpr(*binop.rhs));
+    llvm::Value *rhs = doubleToBool(generateExprAndLoadValue(*binop.rhs));
 
     assert(!builder.GetInsertBlock()->getTerminator() &&
            "a binop terminated the current block");
@@ -434,8 +415,8 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
     return boolToDouble(phi);
   }
 
-  llvm::Value *lhs = generateExpr(*binop.lhs);
-  llvm::Value *rhs = generateExpr(*binop.rhs);
+  llvm::Value *lhs = generateExprAndLoadValue(*binop.lhs);
+  llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
   if (op == TokenKind::Lt)
     return boolToDouble(builder.CreateFCmpOLT(lhs, rhs));
@@ -461,8 +442,14 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
   llvm_unreachable("unexpected binary operator");
 }
 
-llvm::Value *Codegen::loadValue(llvm::Value *v, llvm::Type *type) {
-  return builder.CreateLoad(type, v);
+llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
+  llvm::Value *val = generateExpr(expr);
+  llvm::Type *type = generateType(resolvedTree->getType(&expr));
+
+  if (!expr.isLvalue() || type->isStructTy() || llvm::isa<llvm::Argument>(val))
+    return val;
+
+  return builder.CreateLoad(type, val);
 }
 
 llvm::Value *
@@ -609,7 +596,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   if (returnTy->isVoidTy())
     builder.CreateRetVoid();
   else
-    builder.CreateRet(loadValue(retVal, returnTy));
+    builder.CreateRet(builder.CreateLoad(returnTy, retVal));
 }
 
 void Codegen::generateBuiltinPrintlnBody(const res::FunctionDecl &println) {

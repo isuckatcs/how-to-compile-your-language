@@ -59,22 +59,19 @@ class Codegen {
   llvm::Value *generateAssignment(const res::Assignment &stmt);
   llvm::Value *generateReturnStmt(const res::ReturnStmt &stmt);
 
-  llvm::Value *generateExpr(const res::Expr &expr, bool keepPointer = false);
-  llvm::Value *generateDeclRefExpr(const res::DeclRefExpr &dre,
-                                   bool keepPointer = false);
+  llvm::Value *generateExpr(const res::Expr &expr);
+  llvm::Value *generateDeclRefExpr(const res::DeclRefExpr &dre);
   llvm::Value *generateCallExpr(const res::CallExpr &call);
   llvm::Value *generateBinaryOperator(const res::BinaryOperator &binop);
   llvm::Value *generateUnaryOperator(const res::UnaryOperator &unop);
-  llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr,
-                                  bool keepPointer = false);
+  llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr);
   llvm::Value *generateTemporaryStruct(const res::StructInstantiationExpr &sie);
 
   void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
 
-  llvm::Value *getDeclVal(const res::DeclRefExpr &dre);
-  llvm::Value *loadValue(llvm::Value *val, llvm::Type *type);
+  llvm::Value *generateExprAndLoadValue(const res::Expr &expr);
   llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type);
   llvm::Value *doubleToBool(llvm::Value *v);
   llvm::Value *boolToDouble(llvm::Value *v);

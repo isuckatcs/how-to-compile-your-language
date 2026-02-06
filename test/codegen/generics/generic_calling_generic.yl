@@ -10,5 +10,32 @@ fn foo<U>(x: (U) -> U, y: U): U {
 
 fn main(): void {
   let x = foo(box, 20);
+  // CHECK: %0 = call double @_Y3fooGnE(ptr @_Y3boxGnE, double 2.000000e+01)
+
   println(x);
 }
+
+// CHECK: define double @_Y3fooGnE(ptr %x, double %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %0 = call double %x(double %y)
+// CHECK-NEXT:   store double %0, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %1 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %1
+// CHECK-NEXT: }
+
+// CHECK: define double @_Y3boxGnE(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   store double %x, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+// CHECK-NOT: {{define.*box.*}}
