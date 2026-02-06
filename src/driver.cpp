@@ -111,7 +111,8 @@ int main(int argc, const char **argv) {
   if (!success)
     return 1;
 
-  Sema sema(std::move(ast));
+  ConstantExpressionEvaluator cee;
+  Sema sema(cee, ast);
   auto *resolvedTree = sema.resolveAST();
 
   if (options.resDump) {

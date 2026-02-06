@@ -10,8 +10,7 @@
 
 namespace yl {
 class Sema {
-  // FIXME: dependency injection
-  ConstantExpressionEvaluator cee;
+  ConstantExpressionEvaluator *cee;
   const ast::Context *ast;
 
   res::Context ctx;
@@ -89,8 +88,9 @@ class Sema {
   bool checkSelfContainingStructs(const res::Context &ctx);
 
 public:
-  explicit Sema(const ast::Context &ast)
-      : ast(&ast) {}
+  explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)
+      : cee(&cee),
+        ast(&ast) {}
 
   res::Context *resolveAST();
 };

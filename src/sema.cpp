@@ -411,7 +411,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                        "' argument, but received '" +
                                        actualTy->getName() + "'");
 
-    arg->setConstantValue(cee.evaluate(*arg, false));
+    arg->setConstantValue(cee->evaluate(*arg, false));
     resolvedArgs.emplace_back(arg);
     ++idx;
   }
@@ -492,7 +492,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     auto &initStmt = inits[fieldDecl->identifier];
     initStmt->initializer->setConstantValue(
-        cee.evaluate(*initStmt->initializer, false));
+        cee->evaluate(*initStmt->initializer, false));
   }
 
   if (error)
@@ -566,7 +566,7 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
       return nullptr;
   }
 
-  cond->setConstantValue(cee.evaluate(*cond, false));
+  cond->setConstantValue(cee->evaluate(*cond, false));
 
   return ctx.create<res::IfStmt>(ifStmt.location, cond, trueBlock, falseBlock);
 }
@@ -579,7 +579,7 @@ res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
-  cond->setConstantValue(cee.evaluate(*cond, false));
+  cond->setConstantValue(cee->evaluate(*cond, false));
 
   return ctx.create<res::WhileStmt>(whileStmt.location, cond, body);
 }
@@ -613,7 +613,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return report(rhs->location, "expected to assign '" + lhsTy->getName() +
                                      "' but received '" + rhsTy->getName() +
                                      "' instead");
-  rhs->setConstantValue(cee.evaluate(*rhs, false));
+  rhs->setConstantValue(cee->evaluate(*rhs, false));
 
   return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
 }
@@ -648,7 +648,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                         retTy->getName() + "'");
     }
 
-    expr->setConstantValue(cee.evaluate(*expr, false));
+    expr->setConstantValue(cee->evaluate(*expr, false));
   }
 
   return ctx.create<res::ReturnStmt>(returnStmt.location, expr);
@@ -774,7 +774,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                         declTy->getName() + "'");
     }
 
-    initializer->setConstantValue(cee.evaluate(*initializer, false));
+    initializer->setConstantValue(cee->evaluate(*initializer, false));
   }
 
   const auto *declTy = ctx.getType(decl);
