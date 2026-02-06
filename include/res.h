@@ -28,6 +28,7 @@ struct Type {
 
   virtual const Type *getRootType() const { return this; }
   virtual std::string getName() const { return name; };
+  virtual std::string getDebugName() const { return getName(); };
   virtual ~Type() = default;
 
 protected:
@@ -389,21 +390,16 @@ public:
   }
 
   std::string getName() const override {
-    // FIXME: hide this in error messages
-    // fn bar(): void {}
-
-    // fn foo<T>(x: () -> T): T {
-    //   return x();
-    // }
-
-    // fn main(): void {
-    //   foo(1);
-    //       ^ error: expected '() -> t7' argument, but received 'number'
-    // }
     if (parent)
       return parent->getName();
-    return name;
+    return "_";
   };
+
+  std::string getDebugName() const override {
+    if (parent)
+      return parent->getDebugName();
+    return name;
+  }
 
   friend class Context;
 };

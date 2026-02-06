@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo<T>(f: (T) -> T): (T) -> T {
+  return f;
+}
+
+fn main(): void {
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected '(_) -> _' argument, but received 'number'
+  foo(1);
+}
