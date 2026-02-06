@@ -475,14 +475,6 @@ public:
 };
 
 class Context {
-  template <typename T>
-  using is_env_key = std::bool_constant<std::is_base_of_v<Expr, T> ||
-                                        std::is_base_of_v<Decl, T>>;
-  template <typename T>
-  using is_res_node = std::bool_constant<std::is_base_of_v<Stmt, T> ||
-                                         std::is_base_of_v<Decl, T> ||
-                                         std::is_base_of_v<Block, T>>;
-
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
@@ -497,17 +489,29 @@ class Context {
   size_t typeVariableCount = 0;
   std::vector<std::unique_ptr<Type>> types;
 
-  // FIXME: Extract type environment into a separate class. That will allow
-  // codegen to instantiate types, but keep the resolved tree constant.
-  using EnvKeyTy = std::variant<const Expr *, const Decl *>;
-  std::unordered_map<EnvKeyTy, Type *> environment;
-
-  Context() = default;
-  Context(const Context &) = delete;
-  Context &operator=(const Context &) = delete;
+  std::unordered_map<std::variant<const Expr *, const Decl *>, Type *> env;
 
 public:
-  static Context createEmptyContext() { return Context{}; }
+  template <typename T, typename... Args> T *create(Args &&...args) {
+    auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
+    T *raw = static_cast<T *>(ptr.get());
+
+    if constexpr (std::is_base_of_v<Stmt, T>)
+      statements.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<Decl, T>)
+      decls.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<Block, T>)
+      blocks.emplace_back(std::move(ptr));
+    else
+      llvm_unreachable("can only create statements, declarations and blocks");
+
+    if constexpr (std::is_base_of_v<StructDecl, T>)
+      structs.emplace_back(raw);
+    else if constexpr (std::is_base_of_v<FunctionDecl, T>)
+      functions.emplace_back(raw);
+
+    return raw;
+  }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }
@@ -529,49 +533,23 @@ public:
 
   bool unify(Type *t1, Type *t2);
 
-  void dump();
-
-  template <typename T, typename... Args> T *create(Args &&...args) {
-    static_assert(is_res_node<T>::value,
-                  "can only create statements, declarations and blocks");
-
-    auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
-    T *raw = static_cast<T *>(ptr.get());
-
-    if constexpr (std::is_base_of_v<Stmt, T>)
-      statements.emplace_back(std::move(ptr));
-    else if constexpr (std::is_base_of_v<Decl, T>)
-      decls.emplace_back(std::move(ptr));
-    else if constexpr (std::is_base_of_v<Block, T>)
-      blocks.emplace_back(std::move(ptr));
-    else
-      llvm_unreachable("created unexpected node");
-
-    if constexpr (std::is_base_of_v<StructDecl, T>)
-      structs.emplace_back(raw);
-    else if constexpr (std::is_base_of_v<FunctionDecl, T>)
-      functions.emplace_back(raw);
-
-    return raw;
-  }
-
   template <typename T> T *bind(T *node, Type *type) {
-    static_assert(is_env_key<T>(), "");
-    environment[node] = type;
+    env[node] = type;
     return node;
   }
 
   template <typename T> const Type *getType(T *node) const {
-    static_assert(is_env_key<T>(), "");
-    if (environment.count(node) == 0)
+    if (env.count(node) == 0)
       return nullptr;
 
-    return environment.find(node)->second->getRootType();
+    return env.find(node)->second->getRootType();
   }
 
   template <typename T> Type *getType(T *node) {
     return const_cast<Type *>(const_cast<const Context *>(this)->getType(node));
   }
+
+  void dump();
 };
 } // namespace res
 } // namespace yl

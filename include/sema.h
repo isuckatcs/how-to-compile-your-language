@@ -90,8 +90,7 @@ class Sema {
 
 public:
   explicit Sema(const ast::Context &ast)
-      : ast(&ast),
-        ctx(res::Context::createEmptyContext()) {}
+      : ast(&ast) {}
 
   res::Context *resolveAST();
 };
