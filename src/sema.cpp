@@ -885,7 +885,6 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
 
 res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
                                            const ast::StructDecl &astDecl) {
-  // FIXME: should empty structs be allowed?
   res::StructDecl *decl = lookupDecl<res::StructDecl>(astDecl.identifier).first;
   assert(decl && !decl->isComplete);
 
