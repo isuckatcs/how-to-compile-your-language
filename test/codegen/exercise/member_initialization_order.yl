@@ -32,37 +32,37 @@ fn main(): void {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %Color.tmp = alloca %struct.Color, align 8
-// CHECK-NEXT:   %Color.tmp1 = alloca %struct.Color, align 8
-// CHECK-NEXT:   %Color.tmp2 = alloca %struct.Color, align 8
+// CHECK-NEXT:   %Color.tmp = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %Color.tmp1 = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %Color.tmp2 = alloca { double, double, double }, align 8
 
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 0
 // CHECK-NEXT:   %1 = call double @printAndReturn(double 1.000000e+00)
 // CHECK-NEXT:   store double %1, ptr %0, align 8
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp, i32 0, i32 1
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 1
 // CHECK-NEXT:   %3 = call double @printAndReturn(double 2.000000e+00)
 // CHECK-NEXT:   store double %3, ptr %2, align 8
-// CHECK-NEXT:   %4 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp, i32 0, i32 2
+// CHECK-NEXT:   %4 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 2
 // CHECK-NEXT:   %5 = call double @printAndReturn(double 3.000000e+00)
 // CHECK-NEXT:   store double %5, ptr %4, align 8
 
-// CHECK-NEXT:   %6 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %6 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 1
 // CHECK-NEXT:   %7 = call double @printAndReturn(double 2.000000e+00)
 // CHECK-NEXT:   store double %7, ptr %6, align 8
-// CHECK-NEXT:   %8 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp1, i32 0, i32 0
+// CHECK-NEXT:   %8 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 0
 // CHECK-NEXT:   %9 = call double @printAndReturn(double 1.000000e+00)
 // CHECK-NEXT:   store double %9, ptr %8, align 8
-// CHECK-NEXT:   %10 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp1, i32 0, i32 2
+// CHECK-NEXT:   %10 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 2
 // CHECK-NEXT:   %11 = call double @printAndReturn(double 3.000000e+00)
 // CHECK-NEXT:   store double %11, ptr %10, align 8
 
-// CHECK-NEXT:   %12 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp2, i32 0, i32 2
+// CHECK-NEXT:   %12 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 2
 // CHECK-NEXT:   %13 = call double @printAndReturn(double 3.000000e+00)
 // CHECK-NEXT:   store double %13, ptr %12, align 8
-// CHECK-NEXT:   %14 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp2, i32 0, i32 1
+// CHECK-NEXT:   %14 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 1
 // CHECK-NEXT:   %15 = call double @printAndReturn(double 2.000000e+00)
 // CHECK-NEXT:   store double %15, ptr %14, align 8
-// CHECK-NEXT:   %16 = getelementptr inbounds nuw %struct.Color, ptr %Color.tmp2, i32 0, i32 0
+// CHECK-NEXT:   %16 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 0
 // CHECK-NEXT:   %17 = call double @printAndReturn(double 1.000000e+00)
 // CHECK-NEXT:   store double %17, ptr %16, align 8
 

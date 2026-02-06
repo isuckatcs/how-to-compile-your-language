@@ -20,17 +20,17 @@ fn foo(var x: number): Small {
   let s = Small { x: x, y: x + 5 };
   return s;
 }
-// CHECK: define void @foo(ptr sret(%struct.Small) %ret, double %x) {
+// CHECK: define void @foo(ptr sret({ double, double }) %ret, double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
-// CHECK-NEXT:   %s = alloca %struct.Small, align 8
-// CHECK-NEXT:   %Small.tmp = alloca %struct.Small, align 8
+// CHECK-NEXT:   %s = alloca { double, double }, align 8
+// CHECK-NEXT:   %Small.tmp = alloca { double, double }, align 8
 // CHECK-NEXT:   store double %x, ptr %x1, align 8
 
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.Small, ptr %Small.tmp, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double }, ptr %Small.tmp, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %x1, align 8
 // CHECK-NEXT:   store double %1, ptr %0, align 8
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.Small, ptr %Small.tmp, i32 0, i32 1
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double }, ptr %Small.tmp, i32 0, i32 1
 // CHECK-NEXT:   %3 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %4 = fadd double %3, 5.000000e+00
 // CHECK-NEXT:   store double %4, ptr %2, align 8
@@ -47,18 +47,18 @@ fn foo(var x: number): Small {
 fn bar(): S {
   return S { x: 0, s2: S2 { x: 1, y: 2, z: 3 } };
 }
-// CHECK: define void @bar(ptr sret(%struct.S) %ret) {
+// CHECK: define void @bar(ptr sret({ double, { double, double, double } }) %ret) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
-// CHECK-NEXT:   %S2.tmp = alloca %struct.S2, align 8
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   %S.tmp = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %S2.tmp = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 0.000000e+00, ptr %0, align 8
-// CHECK-NEXT:   %1 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 1
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %S.tmp, i32 0, i32 1
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %2, align 8
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, ptr %3, align 8
-// CHECK-NEXT:   %4 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   %4 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, ptr %4, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %S2.tmp, i64 24, i1 false)
 
@@ -81,43 +81,43 @@ fn main(): void {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %struct.ret.tmp = alloca %struct.S, align 8
-// CHECK-NEXT:   %struct.ret.tmp1 = alloca %struct.S, align 8
-// CHECK-NEXT:   %struct.ret.tmp2 = alloca %struct.S, align 8
-// CHECK-NEXT:   %struct.ret.tmp3 = alloca %struct.S, align 8
-// CHECK-NEXT:   %struct.ret.tmp4 = alloca %struct.Small, align 8
-// CHECK-NEXT:   %struct.ret.tmp5 = alloca %struct.Small, align 8
+// CHECK-NEXT:   %struct.ret.tmp = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %struct.ret.tmp1 = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %struct.ret.tmp2 = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %struct.ret.tmp3 = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %struct.ret.tmp4 = alloca { double, double }, align 8
+// CHECK-NEXT:   %struct.ret.tmp5 = alloca { double, double }, align 8
 
-// CHECK-NEXT:   call void @bar(ptr sret(%struct.S) %struct.ret.tmp)
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp, i32 0, i32 0
+// CHECK-NEXT:   call void @bar(ptr sret({ double, { double, double, double } }) %struct.ret.tmp)
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
 // CHECK-NEXT:   call void @println(double %1)
 
-// CHECK-NEXT:   call void @bar(ptr sret(%struct.S) %struct.ret.tmp1)
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp1, i32 0, i32 1
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S2, ptr %2, i32 0, i32 0
+// CHECK-NEXT:   call void @bar(ptr sret({ double, { double, double, double } }) %struct.ret.tmp1)
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %struct.ret.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { double, double, double }, ptr %2, i32 0, i32 0
 // CHECK-NEXT:   %4 = load double, ptr %3, align 8
 // CHECK-NEXT:   call void @println(double %4)
 
-// CHECK-NEXT:   call void @bar(ptr sret(%struct.S) %struct.ret.tmp2)
-// CHECK-NEXT:   %5 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp2, i32 0, i32 1
-// CHECK-NEXT:   %6 = getelementptr inbounds nuw %struct.S2, ptr %5, i32 0, i32 1
+// CHECK-NEXT:   call void @bar(ptr sret({ double, { double, double, double } }) %struct.ret.tmp2)
+// CHECK-NEXT:   %5 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %struct.ret.tmp2, i32 0, i32 1
+// CHECK-NEXT:   %6 = getelementptr inbounds nuw { double, double, double }, ptr %5, i32 0, i32 1
 // CHECK-NEXT:   %7 = load double, ptr %6, align 8
 // CHECK-NEXT:   call void @println(double %7)
 
-// CHECK-NEXT:   call void @bar(ptr sret(%struct.S) %struct.ret.tmp3)
-// CHECK-NEXT:   %8 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp3, i32 0, i32 1
-// CHECK-NEXT:   %9 = getelementptr inbounds nuw %struct.S2, ptr %8, i32 0, i32 2
+// CHECK-NEXT:   call void @bar(ptr sret({ double, { double, double, double } }) %struct.ret.tmp3)
+// CHECK-NEXT:   %8 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %struct.ret.tmp3, i32 0, i32 1
+// CHECK-NEXT:   %9 = getelementptr inbounds nuw { double, double, double }, ptr %8, i32 0, i32 2
 // CHECK-NEXT:   %10 = load double, ptr %9, align 8
 // CHECK-NEXT:   call void @println(double %10)
 
-// CHECK-NEXT:   call void @foo(ptr sret(%struct.Small) %struct.ret.tmp4, double 1.000000e+01)
-// CHECK-NEXT:   %11 = getelementptr inbounds nuw %struct.Small, ptr %struct.ret.tmp4, i32 0, i32 0
+// CHECK-NEXT:   call void @foo(ptr sret({ double, double }) %struct.ret.tmp4, double 1.000000e+01)
+// CHECK-NEXT:   %11 = getelementptr inbounds nuw { double, double }, ptr %struct.ret.tmp4, i32 0, i32 0
 // CHECK-NEXT:   %12 = load double, ptr %11, align 8
 // CHECK-NEXT:   call void @println(double %12)
 
-// CHECK-NEXT:   call void @foo(ptr sret(%struct.Small) %struct.ret.tmp5, double 1.000000e+01)
-// CHECK-NEXT:   %13 = getelementptr inbounds nuw %struct.Small, ptr %struct.ret.tmp5, i32 0, i32 1
+// CHECK-NEXT:   call void @foo(ptr sret({ double, double }) %struct.ret.tmp5, double 1.000000e+01)
+// CHECK-NEXT:   %13 = getelementptr inbounds nuw { double, double }, ptr %struct.ret.tmp5, i32 0, i32 1
 // CHECK-NEXT:   %14 = load double, ptr %13, align 8
 // CHECK-NEXT:   call void @println(double %14)
 

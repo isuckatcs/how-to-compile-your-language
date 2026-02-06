@@ -26,9 +26,9 @@ fn main(): void {
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   %y = alloca double, align 8
 // CHECK-NEXT:   %z = alloca double, align 8
-// CHECK-NEXT:   %struct.ret.tmp = alloca %struct.S, align 8
-// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
-// CHECK-NEXT:   %struct.arg.tmp = alloca %struct.S, align 8
+// CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %S.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
 
 // CHECK-NEXT:   %0 = call ptr @boxGFRnE(ptr @returnOne)
 // CHECK-NEXT:   %1 = call double %0()
@@ -37,11 +37,11 @@ fn main(): void {
 // CHECK-NEXT:   %2 = call double @boxGnE(double 2.000000e+00)
 // CHECK-NEXT:   store double %2, ptr %y, align 8
 
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 3.000000e+00, ptr %3, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %S.tmp, i64 8, i1 false)
-// CHECK-NEXT:   call void @boxGS1SE(ptr sret(%struct.S) %struct.ret.tmp, ptr byval(%struct.S) %struct.arg.tmp)
-// CHECK-NEXT:   %4 = getelementptr inbounds nuw %struct.S, ptr %struct.ret.tmp, i32 0, i32 0
+// CHECK-NEXT:   call void @boxGS1SE(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
+// CHECK-NEXT:   %4 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %5 = load double, ptr %4, align 8
 // CHECK-NEXT:   store double %5, ptr %z, align 8
 
@@ -82,7 +82,7 @@ fn main(): void {
 // CHECK-NEXT:   ret double %1
 // CHECK-NEXT: }
 
-// CHECK: define void @boxGS1SE(ptr sret(%struct.S) %ret, ptr byval(%struct.S) %x) {
+// CHECK: define void @boxGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 8, i1 false)
 // CHECK-NEXT:   br label %return

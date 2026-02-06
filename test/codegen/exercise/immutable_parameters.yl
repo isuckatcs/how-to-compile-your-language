@@ -11,7 +11,7 @@ fn foo(s: S, y: number): number {
 // CHECK: define double @foo(ptr readonly %s, double %y) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.S, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
 // CHECK-NEXT:   %2 = fneg double %y
 // CHECK-NEXT:   %3 = fmul double %1, %2

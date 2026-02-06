@@ -1,12 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o generic_struct_multiple_types && ./generic_struct_multiple_types | grep -Plzx '1\n1\n2\n2\n3\n3\n'
 
-// CHECK: %struct.SGFRnE = type { ptr }
-// CHECK-NEXT: %struct.SGnE = type { double }
-// CHECK-NEXT: %struct.SGS1SGnEE = type { %struct.SGnE }
-
-// CHECK-NOT: {{^%struct.}}
-
 struct S<T> {
   x: T
 }
@@ -17,11 +11,52 @@ fn returnOne(): number {
 
 fn main(): void {
   println(S{x: returnOne}.x());
+  // CHECK: %0 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @returnOne, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: %2 = load ptr, ptr %1, align 8
+  // CHECK-NEXT: %3 = call double %2()
+  // CHECK-NEXT: call void @println(double %3)
+
   println(S{x: returnOne}.x());
+  // CHECK: %4 = getelementptr inbounds nuw { ptr }, ptr %S.tmp1, i32 0, i32 0
+  // CHECK-NEXT: store ptr @returnOne, ptr %4, align 8
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { ptr }, ptr %S.tmp1, i32 0, i32 0
+  // CHECK-NEXT: %6 = load ptr, ptr %5, align 8
+  // CHECK-NEXT: %7 = call double %6()
+  // CHECK-NEXT: call void @println(double %7)
 
   println(S{x: 2}.x);
+  // CHECK: %8 = getelementptr inbounds nuw { double }, ptr %S.tmp2, i32 0, i32 0
+  // CHECK-NEXT: store double 2.000000e+00, ptr %8, align 8
+  // CHECK-NEXT: %9 = getelementptr inbounds nuw { double }, ptr %S.tmp2, i32 0, i32 0
+  // CHECK-NEXT: %10 = load double, ptr %9, align 8
+  // CHECK-NEXT: call void @println(double %10)
+  
   println(S{x: 2}.x);
+  // CHECK: %11 = getelementptr inbounds nuw { double }, ptr %S.tmp3, i32 0, i32 0
+  // CHECK-NEXT: store double 2.000000e+00, ptr %11, align 8
+  // CHECK-NEXT: %12 = getelementptr inbounds nuw { double }, ptr %S.tmp3, i32 0, i32 0
+  // CHECK-NEXT: %13 = load double, ptr %12, align 8
+  // CHECK-NEXT: call void @println(double %13)
   
   println(S{x: S{x: 3}}.x.x);
+  // CHECK: %14 = getelementptr inbounds nuw { { double } }, ptr %S.tmp4, i32 0, i32 0
+  // CHECK-NEXT: %15 = getelementptr inbounds nuw { double }, ptr %S.tmp5, i32 0, i32 0
+  // CHECK-NEXT: store double 3.000000e+00, ptr %15, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %14, ptr align 8 %S.tmp5, i64 8, i1 false)
+  // CHECK-NEXT: %16 = getelementptr inbounds nuw { { double } }, ptr %S.tmp4, i32 0, i32 0
+  // CHECK-NEXT: %17 = getelementptr inbounds nuw { double }, ptr %16, i32 0, i32 0
+  // CHECK-NEXT: %18 = load double, ptr %17, align 8
+  // CHECK-NEXT: call void @println(double %18)
+
   println(S{x: S{x: 3}}.x.x);
+  // CHECK: %19 = getelementptr inbounds nuw { { double } }, ptr %S.tmp6, i32 0, i32 0
+  // CHECK-NEXT: %20 = getelementptr inbounds nuw { double }, ptr %S.tmp7, i32 0, i32 0
+  // CHECK-NEXT: store double 3.000000e+00, ptr %20, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %19, ptr align 8 %S.tmp7, i64 8, i1 false)
+  // CHECK-NEXT: %21 = getelementptr inbounds nuw { { double } }, ptr %S.tmp6, i32 0, i32 0
+  // CHECK-NEXT: %22 = getelementptr inbounds nuw { double }, ptr %21, i32 0, i32 0
+  // CHECK-NEXT: %23 = load double, ptr %22, align 8
+  // CHECK-NEXT: call void @println(double %23)
 }

@@ -17,33 +17,33 @@ fn foo(): void {
 }
 // CHECK: define void @foo() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %S2.tmp = alloca %struct.S2, align 8
-// CHECK-NEXT:   %S.tmp = alloca %struct.S, align 8
-// CHECK-NEXT:   %S2.tmp1 = alloca %struct.S2, align 8
+// CHECK-NEXT:   %S2.tmp = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %S.tmp = alloca { double, { double, double, double } }, align 8
+// CHECK-NEXT:   %S2.tmp1 = alloca { double, double, double }, align 8
 
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %0, align 8
-// CHECK-NEXT:   %1 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, ptr %1, align 8
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, ptr %2, align 8
 
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 2
 // CHECK-NEXT:   %4 = load double, ptr %3, align 8
 // CHECK-NEXT:   call void @println(double %4)
-// CHECK-NEXT:   %5 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   %5 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %5, align 8
-// CHECK-NEXT:   %6 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 1
-// CHECK-NEXT:   %7 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 0
+// CHECK-NEXT:   %6 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %S.tmp, i32 0, i32 1
+// CHECK-NEXT:   %7 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 0
 // CHECK-NEXT:   store double 2.000000e+00, ptr %7, align 8
-// CHECK-NEXT:   %8 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %8 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 1
 // CHECK-NEXT:   store double 3.000000e+00, ptr %8, align 8
-// CHECK-NEXT:   %9 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 2
+// CHECK-NEXT:   %9 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 2
 // CHECK-NEXT:   store double 4.000000e+00, ptr %9, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %6, ptr align 8 %S2.tmp1, i64 24, i1 false)
 
-// CHECK-NEXT:   %10 = getelementptr inbounds nuw %struct.S, ptr %S.tmp, i32 0, i32 1
-// CHECK-NEXT:   %11 = getelementptr inbounds nuw %struct.S2, ptr %10, i32 0, i32 1
+// CHECK-NEXT:   %10 = getelementptr inbounds nuw { double, { double, double, double } }, ptr %S.tmp, i32 0, i32 1
+// CHECK-NEXT:   %11 = getelementptr inbounds nuw { double, double, double }, ptr %10, i32 0, i32 1
 // CHECK-NEXT:   %12 = load double, ptr %11, align 8
 // CHECK-NEXT:   call void @println(double %12)
 
@@ -57,40 +57,40 @@ fn bar(): void {
 }
 // CHECK: define void @bar() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %S2.tmp = alloca %struct.S2, align 8
-// CHECK-NEXT:   %S2.tmp1 = alloca %struct.S2, align 8
-// CHECK-NEXT:   %S2.tmp2 = alloca %struct.S2, align 8
+// CHECK-NEXT:   %S2.tmp = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %S2.tmp1 = alloca { double, double, double }, align 8
+// CHECK-NEXT:   %S2.tmp2 = alloca { double, double, double }, align 8
 
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %0, align 8
-// CHECK-NEXT:   %1 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 1
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, ptr %1, align 8
-// CHECK-NEXT:   %2 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 2
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, ptr %2, align 8
 
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp, i32 0, i32 0
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp, i32 0, i32 0
 // CHECK-NEXT:   %4 = load double, ptr %3, align 8
 // CHECK-NEXT:   call void @println(double %4)
 
-// CHECK-NEXT:   %5 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 0
+// CHECK-NEXT:   %5 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %5, align 8
-// CHECK-NEXT:   %6 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %6 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, ptr %6, align 8
-// CHECK-NEXT:   %7 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 2
+// CHECK-NEXT:   %7 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, ptr %7, align 8
 
-// CHECK-NEXT:   %8 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp1, i32 0, i32 1
+// CHECK-NEXT:   %8 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp1, i32 0, i32 1
 // CHECK-NEXT:   %9 = load double, ptr %8, align 8
 // CHECK-NEXT:   call void @println(double %9)
 
-// CHECK-NEXT:   %10 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp2, i32 0, i32 0
+// CHECK-NEXT:   %10 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp2, i32 0, i32 0
 // CHECK-NEXT:   store double 1.000000e+00, ptr %10, align 8
-// CHECK-NEXT:   %11 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp2, i32 0, i32 1
+// CHECK-NEXT:   %11 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp2, i32 0, i32 1
 // CHECK-NEXT:   store double 2.000000e+00, ptr %11, align 8
-// CHECK-NEXT:   %12 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp2, i32 0, i32 2
+// CHECK-NEXT:   %12 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp2, i32 0, i32 2
 // CHECK-NEXT:   store double 3.000000e+00, ptr %12, align 8
 
-// CHECK-NEXT:   %13 = getelementptr inbounds nuw %struct.S2, ptr %S2.tmp2, i32 0, i32 2
+// CHECK-NEXT:   %13 = getelementptr inbounds nuw { double, double, double }, ptr %S2.tmp2, i32 0, i32 2
 // CHECK-NEXT:   %14 = load double, ptr %13, align 8
 // CHECK-NEXT:   call void @println(double %14)
 

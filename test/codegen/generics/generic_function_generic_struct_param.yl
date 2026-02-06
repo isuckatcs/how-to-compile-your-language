@@ -1,15 +1,11 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o generic_function_generic_struct_param && ./generic_function_generic_struct_param | grep -Plzx '11\n12\n'
 
-// CHECK: %struct.SGnE = type { double }
-
-// CHECK-NOT: {{^%struct.}}
-
 struct S<U> {
   x: U
 }
 
-// CHECK: define void @genericStructParamGnE(ptr sret(%struct.SGnE) %ret, ptr byval(%struct.SGnE) %s, double %x)
+// CHECK: define void @genericStructParamGnE(ptr sret({ double }) %ret, ptr byval({ double }) %s, double %x)
 fn genericStructParam<T>(var s: S<T>, x: T): S<T> {
   s.x = x;
   return s;

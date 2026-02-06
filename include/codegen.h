@@ -6,30 +6,39 @@
 #include <llvm/IR/Module.h>
 
 #include <map>
+#include <queue>
 #include <stack>
 
 #include "res.h"
 
 namespace yl {
 class Codegen {
+  struct PendingFunctionDescriptor {
+    std::vector<const res::Type *> typeArgs;
+    std::string mangledName;
+    const res::FunctionDecl *decl;
+  };
+
   const res::Context *resolvedTree;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
-  using InstantiationTy = std::vector<const res::Type *>;
-  std::stack<InstantiationTy> instantiationContexts;
-  std::vector<std::pair<const res::FunctionDecl *, InstantiationTy>>
-      functionsToProcess;
+  std::queue<PendingFunctionDescriptor> pendingFunctions;
+  std::stack<std::vector<llvm::Type *>> instantiations;
 
-  class InstantiationContextRAII {
+  class EnterInstantiationRAII {
     Codegen *codegen;
 
   public:
-    explicit InstantiationContextRAII(Codegen *codegen,
-                                      InstantiationTy instantiation)
+    EnterInstantiationRAII(Codegen *codegen,
+                           std::vector<const res::Type *> typeArgs)
         : codegen(codegen) {
-      codegen->instantiationContexts.emplace(instantiation);
+      std::vector<llvm::Type *> instantiation;
+      for (auto &&arg : typeArgs)
+        instantiation.emplace_back(codegen->generateType(arg));
+
+      codegen->instantiations.emplace(std::move(instantiation));
     }
-    ~InstantiationContextRAII() { codegen->instantiationContexts.pop(); }
+    ~EnterInstantiationRAII() { codegen->instantiations.pop(); }
   };
 
   llvm::Value *retVal = nullptr;
@@ -78,11 +87,13 @@ class Codegen {
                                         const res::FunctionType *ty);
 
   void generateBlock(const res::Block &block);
-  llvm::Function *generateFunctionDecl(const res::FunctionDecl &functionDecl,
-                                       const res::FunctionType *functionType);
-  void generateFunctionBody(const res::FunctionDecl &functionDecl);
+  llvm::Function *
+  generateFunctionDecl(const res::FunctionDecl &decl,
+                       const res::FunctionType *type,
+                       const std::vector<const res::Type *> &typeArgs);
+  void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
-  llvm::StructType *generateStruct(const res::StructType *resolvedStructTy);
+  llvm::StructType *generateStruct(const res::StructType *structTy);
 
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();

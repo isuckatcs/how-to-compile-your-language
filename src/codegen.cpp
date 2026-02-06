@@ -87,13 +87,16 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return llvm::PointerType::get(context, 0);
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
+    if (instantiations.empty())
+      assert(false && "type param found outside an instantiation");
+
     size_t idx = typeParamTy->decl->index;
 
-    const InstantiationTy &currentInstantiation = instantiationContexts.top();
+    const auto &currentInstantiation = instantiations.top();
     if (idx >= currentInstantiation.size())
       assert(false && "type argument is not in the current instantiation");
 
-    return generateType(currentInstantiation[idx]);
+    return currentInstantiation[idx];
   }
 
   llvm_unreachable("unexpected type encountered");
@@ -290,9 +293,9 @@ llvm::Value *Codegen::getDeclVal(const res::DeclRefExpr &dre) {
   if (!fnDecl)
     return declarations[dre.decl];
 
-  InstantiationContextRAII context(this, dre.getTypeArgs());
   return generateFunctionDecl(
-      *fnDecl, resolvedTree->getType(&dre)->getAs<res::FunctionType>());
+      *fnDecl, resolvedTree->getType(&dre)->getAs<res::FunctionType>(),
+      dre.getTypeArgs());
 }
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre,
@@ -548,10 +551,11 @@ void Codegen::generateBlock(const res::Block &block) {
   }
 }
 
-void Codegen::generateFunctionBody(const res::FunctionDecl &functionDecl) {
-  // FIXME: mangling is done twice
-  llvm::Function *function = module.getFunction(
-      Mangling::mangleSymbol(&functionDecl, instantiationContexts.top()));
+void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
+  auto [instantiation, mangledName, functionDecl] = fn;
+  EnterInstantiationRAII fnInstantiation(this, instantiation);
+
+  llvm::Function *function = module.getFunction(mangledName);
   llvm::FunctionType *functionTy = function->getFunctionType();
   llvm::Type *returnTy = functionTy->getReturnType();
 
@@ -575,7 +579,7 @@ void Codegen::generateFunctionBody(const res::FunctionDecl &functionDecl) {
       continue;
     }
 
-    const res::ParamDecl *paramDecl = functionDecl.params[idx];
+    const res::ParamDecl *paramDecl = functionDecl->params[idx];
     arg.setName(paramDecl->identifier);
 
     llvm::Value *argVal;
@@ -590,10 +594,10 @@ void Codegen::generateFunctionBody(const res::FunctionDecl &functionDecl) {
     ++idx;
   }
 
-  if (functionDecl.identifier == "println")
-    generateBuiltinPrintlnBody(functionDecl);
+  if (functionDecl->identifier == "println")
+    generateBuiltinPrintlnBody(*functionDecl);
   else
-    generateBlock(*functionDecl.body);
+    generateBlock(*functionDecl->body);
 
   if (retBB->hasNPredecessorsOrMore(1)) {
     breakIntoBB(retBB);
@@ -638,65 +642,43 @@ void Codegen::generateMainWrapper() {
 }
 
 llvm::Function *
-Codegen::generateFunctionDecl(const res::FunctionDecl &functionDecl,
-                              const res::FunctionType *functionType) {
-  std::string name =
-      Mangling::mangleSymbol(&functionDecl, instantiationContexts.top());
-  if (auto *fn = module.getFunction(name); fn)
-    return fn;
+Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
+                              const res::FunctionType *type,
+                              const std::vector<const res::Type *> &typeArgs) {
+  std::string name = Mangling::mangleSymbol(&fn, typeArgs);
+  if (auto *function = module.getFunction(name))
+    return function;
 
-  llvm::FunctionType *type = generateFunctionType(functionType);
-  auto *fn = llvm::Function::Create(type, llvm::Function::ExternalLinkage, name,
-                                    module);
-  fn->setAttributes(constructAttrList(&functionDecl, functionType));
+  EnterInstantiationRAII fnInstantiation(this, typeArgs);
 
-  functionsToProcess.emplace_back(&functionDecl, instantiationContexts.top());
-  return fn;
+  llvm::FunctionType *fnTy = generateFunctionType(type);
+  auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                          name, module);
+  function->setAttributes(constructAttrList(&fn, type));
+
+  pendingFunctions.push({typeArgs, name, &fn});
+  return function;
 }
 
-llvm::StructType *
-Codegen::generateStruct(const res::StructType *resolvedStructTy) {
-  // FIXME: find a better way to figure out the type for nested structs
-  std::vector<const res::Type *> typeArgs;
-  for (const res::Type *argTy : resolvedStructTy->getTypeArgs()) {
-    argTy = argTy->getRootType();
-    if (const auto *typeParamTy = argTy->getAs<res::TypeParamType>())
-      argTy = instantiationContexts.top()[typeParamTy->decl->index];
-    typeArgs.emplace_back(argTy);
-  }
-
-  InstantiationContextRAII structInstantiationCtx(this, typeArgs);
-  std::string name =
-      "struct." + Mangling::mangleSymbol(resolvedStructTy->getDecl(),
-                                         instantiationContexts.top());
-
-  if (auto *ty = llvm::StructType::getTypeByName(context, name); ty)
-    return ty;
-
-  auto *structType = llvm::StructType::create(context, name);
+llvm::StructType *Codegen::generateStruct(const res::StructType *structTy) {
+  EnterInstantiationRAII structInstantiation(this, structTy->getTypeArgs());
 
   std::vector<llvm::Type *> fieldTypes;
-  for (auto &&field : resolvedStructTy->getDecl()->fields)
+  for (auto &&field : structTy->getDecl()->fields)
     fieldTypes.emplace_back(generateType(resolvedTree->getType(field)));
 
-  structType->setBody(fieldTypes);
-  return structType;
+  return llvm::StructType::get(context, fieldTypes);
 }
 
 llvm::Module *Codegen::generateIR() {
-  InstantiationContextRAII emptyContext(this, {});
-
   for (auto &&fn : resolvedTree->getFunctions())
     if (!fn->isGeneric())
       generateFunctionDecl(
-          *fn, resolvedTree->getType(fn)->getAs<res::FunctionType>());
+          *fn, resolvedTree->getType(fn)->getAs<res::FunctionType>(), {});
 
-  while (!functionsToProcess.empty()) {
-    auto [decl, instantiation] = functionsToProcess.back();
-    functionsToProcess.pop_back();
-
-    InstantiationContextRAII functionInstantiationContext(this, instantiation);
-    generateFunctionBody(*decl);
+  while (!pendingFunctions.empty()) {
+    generateFunctionBody(pendingFunctions.front());
+    pendingFunctions.pop();
   }
 
   generateMainWrapper();
