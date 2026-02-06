@@ -5,7 +5,7 @@ struct S<U> {
   x: U
 }
 
-// CHECK: define void @genericStructParamGnE(ptr sret({ double }) %ret, ptr byval({ double }) %s, double %x)
+// CHECK: define void @_Y18genericStructParamGnE(ptr sret({ double }) %ret, ptr byval({ double }) %s, double %x)
 fn genericStructParam<T>(var s: S<T>, x: T): S<T> {
   s.x = x;
   return s;

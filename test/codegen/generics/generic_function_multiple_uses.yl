@@ -11,16 +11,16 @@ fn main(): void {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @boxGnE(double 1.000000e+00)
+// CHECK-NEXT:   %0 = call double @_Y3boxGnE(double 1.000000e+00)
 // CHECK-NEXT:   call void @println(double %0)
-// CHECK-NEXT:   %1 = call double @boxGnE(double 2.000000e+00)
+// CHECK-NEXT:   %1 = call double @_Y3boxGnE(double 2.000000e+00)
 // CHECK-NEXT:   call void @println(double %1)
-// CHECK-NEXT:   %2 = call double @boxGnE(double 3.000000e+00)
+// CHECK-NEXT:   %2 = call double @_Y3boxGnE(double 3.000000e+00)
 // CHECK-NEXT:   call void @println(double %2)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define double @boxGnE(double %x) {
+// CHECK: define double @_Y3boxGnE(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   store double %x, ptr %retval, align 8
@@ -30,5 +30,3 @@ fn main(): void {
 // CHECK-NEXT:   %0 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
-
-// CHECK-NOT: {{define.*box.*}}

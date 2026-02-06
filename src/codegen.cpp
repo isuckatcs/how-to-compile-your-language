@@ -50,13 +50,13 @@ class Mangling {
 
 public:
   static std::string
-  mangleSymbol(const res::Decl *decl,
-               const std::vector<const res::Type *> &genericArgs) {
+  mangleFunction(const res::FunctionDecl *fn,
+                 const std::vector<const res::Type *> &genericArgs) {
     std::stringstream mangledName;
 
-    const auto &identifier = decl->identifier;
-    // FIXME: add the prefix
-    // mangledName << '_' << 'Y' << 'l' << identifier.size();
+    const auto &identifier = fn->identifier;
+    if (fn->isGeneric())
+      mangledName << '_' << 'Y' << identifier.size();
     mangledName << identifier << mangleGenericArgs(genericArgs);
     return mangledName.str();
   }
@@ -645,7 +645,7 @@ llvm::Function *
 Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
                               const res::FunctionType *type,
                               const std::vector<const res::Type *> &typeArgs) {
-  std::string name = Mangling::mangleSymbol(&fn, typeArgs);
+  std::string name = Mangling::mangleFunction(&fn, typeArgs);
   if (auto *function = module.getFunction(name))
     return function;
 
