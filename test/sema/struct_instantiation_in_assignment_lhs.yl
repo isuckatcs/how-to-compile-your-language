@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S { x: number }
+
+fn main(): void {
+  // CHECK: [[# @LINE + 1 ]]:4: error: expression is not assignable
+  S{x: 1} = S{x: 2};
+}

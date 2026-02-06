@@ -364,7 +364,7 @@ struct StructInstantiationExpr : public Expr {
   StructInstantiationExpr(SourceLocation location,
                           const DeclRefExpr *structDecl,
                           std::vector<FieldInitStmt *> fieldInitializers)
-      : Expr(location, Expr::Kind::Lvalue),
+      : Expr(location, Expr::Kind::Rvalue),
         structDecl(structDecl),
         fieldInitializers(std::move(fieldInitializers)) {}
 
