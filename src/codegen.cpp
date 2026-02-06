@@ -333,7 +333,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     const res::Type *argTy = resolvedTree->getType(arg);
     llvm::Value *val = generateExpr(*arg);
 
-    // FIXME: keep this optimization?
     if (calledFunction &&
         calledFunction->getArg(argIdx + isReturningStruct)->hasByValAttr()) {
       llvm::Value *tmpVar =
