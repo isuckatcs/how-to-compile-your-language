@@ -393,8 +393,10 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   std::vector<res::Type *> argTypes = fnType->getArgs();
 
   if (call.arguments.size() != argTypes.size())
-    // FIXME: more expressive error message
-    return report(call.location, "argument count mismatch in function call");
+    return report(call.location,
+                  "wrong number of arguments in function call, expected " +
+                      std::to_string(argTypes.size()) + ", but received " +
+                      std::to_string(call.arguments.size()));
 
   std::vector<res::Expr *> resolvedArgs;
   size_t idx = 0;

@@ -15,7 +15,7 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:6: error: calling expression of type 'number'
     0();
 
-    // CHECK: [[# @LINE + 1 ]]:8: error: argument count mismatch in function call
+    // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 0, but received 1
     foo(x);
 
     // CHECK: [[# @LINE + 1 ]]:12: error: expected 'number' argument, but received 'void'
@@ -24,10 +24,10 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:17: error: expected 'number' argument, but received 'void'
     bar(1.0, foo());
     
-    // CHECK: [[# @LINE + 1 ]]:8: error: argument count mismatch in function call
+    // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 2, but received 0
     bar();
 
-    // CHECK: [[# @LINE + 1 ]]:8: error: argument count mismatch in function call
+    // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 2, but received 3
     bar(1.0, 2.0, 3.0);
 
     bar(1.0, 2.0);
