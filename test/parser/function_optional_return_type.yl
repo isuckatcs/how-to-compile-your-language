@@ -1,0 +1,7 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn f() {}
+
+// CHECK: [[# @LINE + 1 ]]:8: error: expected ':' or '{'
+fn f() error {}
+
+fn main() {}

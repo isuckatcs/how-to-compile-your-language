@@ -20,7 +20,7 @@
     ::= <identifier> ':' <type>
 
 <functionDecl> 
-    ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type> <block>
+    ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type>? <block>
 
 <parameterList>
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'

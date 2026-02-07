@@ -171,7 +171,8 @@ void FunctionDecl::dump(size_t level) const {
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
 
-  type->dump(level + 1);
+  if (type)
+    type->dump(level + 1);
 
   for (auto &&param : params)
     param->dump(level + 1);

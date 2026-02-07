@@ -24,6 +24,6 @@ fn main(): void {
         return;
     }
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: unexpected return value in 'void' function
+    // CHECK: [[# @LINE + 1 ]]:12: error: unexpected return value in 'void' function
     return 1.0;
 }

@@ -156,7 +156,7 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
 }
 
 // <functionDecl>
-//  ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type> <block>
+//  ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type>? <block>
 //
 // <parameterList>
 //  ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
@@ -177,10 +177,18 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
                   {TokenKind::Lpar, "expected '('"}, &Parser::parseParamDecl,
                   {TokenKind::Rpar, "expected ')'"}));
 
-  matchOrReturn(TokenKind::Colon, "expected ':'");
-  eatNextToken(); // eat ':'
+  TokenKind nextTokenKind = nextToken.kind;
+  if (nextTokenKind != TokenKind::Colon && nextTokenKind != TokenKind::Lbrace)
+    return report(nextToken.location, "expected ':' or '{'");
 
-  varOrReturn(type, parseType());
+  std::unique_ptr<ast::Type> type;
+  if (nextTokenKind == TokenKind::Colon) {
+    eatNextToken(); // eat ':'
+
+    type = parseType();
+    if (!type)
+      return nullptr;
+  }
 
   matchOrReturn(TokenKind::Lbrace, "expected function body");
   varOrReturn(block, parseBlock());

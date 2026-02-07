@@ -284,7 +284,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     return ctx.getFunctionType(std::move(args), retTy);
   }
 
-  llvm_unreachable("ast type encountered");
+  llvm_unreachable("unexpected ast type encountered");
 }
 
 res::UnaryOperator *
@@ -628,7 +628,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
   auto *retTy = fnTy->getReturnType();
   if (retTy->getAs<res::BuiltinVoidType>() && returnStmt.expr)
-    return report(returnStmt.location,
+    return report(returnStmt.expr->location,
                   "unexpected return value in 'void' function");
 
   if (!retTy->getAs<res::BuiltinVoidType>() && !returnStmt.expr)
@@ -813,9 +813,9 @@ Sema::resolveFunctionDecl(res::Context &ctx,
     if (!insertDeclToCurrentScope(typeParamDecl))
       error = true;
 
-  res::Type *retTy = resolveType(ctx, *function.type);
-  if (!retTy)
-    error = true;
+  res::Type *retTy = function.type ? resolveType(ctx, *function.type)
+                                   : ctx.getBuiltinVoidType();
+  error |= !retTy;
 
   if (function.identifier == "main") {
     if (!retTy || !retTy->getAs<res::BuiltinVoidType>())
