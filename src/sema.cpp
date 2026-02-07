@@ -67,8 +67,6 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
   return exitReached || returnCount == 0;
 }
 
-// FIXME: this function is actually doing liveness analysis and checking
-// multiple things
 bool Sema::checkVariableInitialization(const res::Context &ctx,
                                        const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
@@ -107,28 +105,33 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
       for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
         const res::Stmt *stmt = *it;
 
-        if (auto *decl = dynamic_cast<const res::DeclStmt *>(stmt)) {
-          tmp[decl->varDecl] =
-              decl->varDecl->initializer ? State::Assigned : State::Unassigned;
+        if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(stmt)) {
+          const res::VarDecl *decl = declStmt->varDecl;
+          tmp[decl] = decl->initializer ? State::Assigned : State::Unassigned;
           continue;
         }
 
         if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
           const res::Expr *base = assignment->assignee;
-          while (const auto *member =
-                     dynamic_cast<const res::MemberExpr *>(base))
-            base = member->base;
+          while (true) {
+            if (const auto *me = dynamic_cast<const res::MemberExpr *>(base)) {
+              base = me->base;
+              continue;
+            }
+
+            if (const auto *g = dynamic_cast<const res::GroupingExpr *>(base)) {
+              base = g->expr;
+              continue;
+            }
+
+            break;
+          }
 
           const auto *dre = dynamic_cast<const res::DeclRefExpr *>(base);
-
-          // The base of the expression is not a variable, but a temporary,
-          // which can be mutated.
           if (!dre)
             continue;
 
-          // FIXME: what if this is a type?
           const auto *decl = dre->decl->getAs<res::ValueDecl>();
-
           if (!decl->isMutable && tmp[decl] != State::Unassigned) {
             std::string msg = '\'' + decl->identifier + "' cannot be mutated";
             pendingErrors.emplace_back(assignment->location, std::move(msg));
@@ -140,15 +143,16 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 
         if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
           for (auto &&typeArg : dre->getTypeArgs()) {
-            if (typeArg->getRootType()->getAs<res::UninferredType>())
-              pendingErrors.emplace_back(
-                  dre->location,
-                  "explicit type annotations needed to infer the type of '" +
-                      dre->decl->identifier + "'");
+            if (!typeArg->getRootType()->getAs<res::UninferredType>())
+              continue;
+
+            std::string msg =
+                "explicit type annotations are needed to infer the type of '" +
+                dre->decl->identifier + "'";
+            pendingErrors.emplace_back(dre->location, std::move(msg));
           }
 
           const auto *var = dre->decl->getAs<res::VarDecl>();
-
           if (var && tmp[var] != State::Assigned) {
             std::string msg = '\'' + var->identifier + "' is not initialized";
             pendingErrors.emplace_back(dre->location, std::move(msg));
@@ -165,11 +169,9 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
     }
   }
 
-  for (auto &&[d, s] : curLattices[cfg.exit + 1]) {
+  for (auto &&[d, s] : curLattices[cfg.exit + 1])
     if (s == State::Unassigned && ctx.getType(d)->getAs<res::UninferredType>())
-      pendingErrors.emplace_back(d->location, "the type of '" + d->identifier +
-                                                  "' is unknown");
-  }
+      report(d->location, "the type of '" + d->identifier + "' is unknown");
 
   for (auto &&[loc, msg] : pendingErrors)
     report(loc, msg);

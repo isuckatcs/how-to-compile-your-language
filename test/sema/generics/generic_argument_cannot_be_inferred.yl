@@ -6,13 +6,13 @@ fn foo<T>(): void {}
 fn bar<T, U>(x: T): void {}
 
 fn main(): void {
-  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations needed to infer the type of 'S'
+  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations are needed to infer the type of 'S'
   S{ x: 1 };
   
-  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations needed to infer the type of 'foo'
+  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations are needed to infer the type of 'foo'
   foo();
   
-  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations needed to infer the type of 'bar'
+  // CHECK: [[# @LINE + 1 ]]:3: error: explicit type annotations are needed to infer the type of 'bar'
   bar(1);
 }
 
