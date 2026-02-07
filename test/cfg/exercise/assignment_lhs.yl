@@ -5,7 +5,7 @@ struct S {
 }
 
 fn main(): void {
-  var s = S { y: 2, x: 1 };
+  mut s = S { y: 2, x: 1 };
 
   s.x = 0;
 }
@@ -23,7 +23,7 @@ fn main(): void {
 // CHECK-NEXT:   4: x: [1.3]
 // CHECK-NEXT:   5: S
 // CHECK-NEXT:   6: [1.5] {[1.2], [1.4]}
-// CHECK-NEXT:   7: var s = [1.6]
+// CHECK-NEXT:   7: mut s = [1.6]
 // CHECK-NEXT:   8: 0
 // CHECK-NEXT:   9: s
 // CHECK-NEXT:   10: [1.9].x

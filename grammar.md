@@ -26,7 +26,7 @@
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= 'var'? <identifier> ':' <type>
+    ::= 'mut'? <identifier> ':' <type>
 
 <varDecl>
     ::= <identifier> (':' <type>)? ('=' <expr>)?
@@ -49,7 +49,7 @@
     ::= 'if' <expr> <block> ('else' (<ifStatement> | <block>))?
 
 <declStmt>
-    ::= ('let' | 'var') <varDecl> ';'
+    ::= ('let' | 'mut') <varDecl> ';'
 
 <assignment>
     ::= <expr> '=' <expr> ';'

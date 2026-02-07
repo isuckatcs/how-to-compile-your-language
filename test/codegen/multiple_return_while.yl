@@ -1,7 +1,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o multiple_return_while && ./multiple_return_while | grep -Plzx '0\n5\n3\n'
-fn foo(var x: number): number {
-    var n: number = x;
+fn foo(mut x: number): number {
+    mut n: number = x;
     while n > 10.0 {
         n = n - 1.0;
         

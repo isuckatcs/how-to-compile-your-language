@@ -8,7 +8,7 @@ struct S2 {
 }
 
 fn main(): void {
-  var s = S {x: 0};
+  mut s = S {x: 0};
   let s2 = S2 {x: 0};
 
   s = s;

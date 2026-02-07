@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 
-fn mutableParam(var n: number): void {
+fn mutableParam(mut n: number): void {
   n = 1;
 }
 

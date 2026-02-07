@@ -41,7 +41,7 @@ fn uninitOneBranch(): void {
 }
 
 fn initEveryBranch(): void {
-    var x: number;
+    mut x: number;
     
     if 1.0 {
         x = 1.0;
@@ -54,7 +54,7 @@ fn initEveryBranch(): void {
 }
 
 fn initConditionVar(): void {
-    var x: number;
+    mut x: number;
     
     // CHECK: [[# @LINE + 1 ]]:15: error: 'x' is not initialized
     if 1.0 || x {
@@ -72,7 +72,7 @@ fn initConditionVar(): void {
 
 fn loop(): void {
     let x: number;
-    var y: number;
+    mut y: number;
     
     while 1.0 {
         // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
@@ -118,7 +118,7 @@ fn shadowInitialized(): void {
 }
 
 fn nestedInLoop(param: number): void {
-    var x: number;
+    mut x: number;
 
     if param {
         while param {
@@ -127,7 +127,7 @@ fn nestedInLoop(param: number): void {
             }
 
             // CHECK: [[# @LINE + 1 ]]:29: error: 'x' is not initialized
-            var y: number = x;
+            mut y: number = x;
         }
     } else {
         while param {
@@ -136,7 +136,7 @@ fn nestedInLoop(param: number): void {
             }
 
             // CHECK: [[# @LINE + 1 ]]:29: error: 'x' is not initialized
-            var y: number = x;
+            mut y: number = x;
         }
     }
 

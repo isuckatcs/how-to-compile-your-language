@@ -4,8 +4,8 @@ struct S {
 }
 
 fn main(): void { 
-  var x;
-  var y;
+  mut x;
+  mut y;
 
   y = x;
   y = 2;

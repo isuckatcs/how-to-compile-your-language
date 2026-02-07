@@ -2,7 +2,7 @@
 fn foo(): void {}
 
 fn main(): void {
-    var x: number = 1.0;
+    mut x: number = 1.0;
 
     foo;
     

@@ -96,12 +96,12 @@ fn main(): void {
 
 ### Immutability
 
-Immutable and mutable variables declared with the `let` and `var` keywords.
+Immutable and mutable variables declared with the `let` and `mut` keywords.
 
 ```
 fn main(): void {
     let immutable = 1;
-    var mutable = 2;
+    mut mutable = 2;
 
     while mutable > 2 {
       immutable = 0;

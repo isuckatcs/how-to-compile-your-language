@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o while_empty_exit && ./while_empty_exit | ( ! grep ^ )
-fn foo(var x: number): void {
+fn foo(mut x: number): void {
     while x > 1.0 {
         return;
     }

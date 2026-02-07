@@ -7,7 +7,7 @@ fn fib(n: number): number {
 }
 
 fn main(): void {
-    var i = 0;
+    mut i = 0;
     while i < 20 {
         println(fib(i));
         i = i + 1;

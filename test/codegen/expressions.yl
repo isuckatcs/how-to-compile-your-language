@@ -8,7 +8,7 @@ fn foo(x: number): number {
 
     let x: number = 2.0 + 3.0;
     
-    var y: number = !x;
+    mut y: number = !x;
     
     y = 3.0 * !y / (1.5 + 1.5);
 

@@ -28,7 +28,7 @@ fn err(): number {
 // CHECK-NEXT:     NumberLiteral '10' {number}
 
 fn err2(): number {
-    var x: number = 2.0;
+    mut x: number = 2.0;
     return x * 10.0;
 }
 // CHECK: ReturnStmt

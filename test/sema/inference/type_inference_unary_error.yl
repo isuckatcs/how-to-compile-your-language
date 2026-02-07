@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main(): void { 
-  var s;
+  mut s;
 
   // CHECK: [[# @LINE + 1 ]]:4: error: type of operand to unary operator is unknown
   !s;

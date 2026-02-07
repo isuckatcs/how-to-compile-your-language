@@ -4,7 +4,7 @@ fn main(): void {
     let x: number = 0.0 |;
 
     // CHECK: [[# @LINE + 1 ]]:9: error: expected identifier
-    var ;
+    mut ;
 
     // CHECK: [[# @LINE + 1 ]]:11: error: expected type specifier
     let x:;
@@ -12,7 +12,7 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:20: error: expected expression
     let x: number =;
 
-    var x;
+    mut x;
     // CHECK: DeclStmt:
     // CHECK-NEXT:   VarDecl: x
 
@@ -21,7 +21,7 @@ fn main(): void {
     // CHECK-NEXT:   VarDecl: x
     // CHECK-NEXT:     BuiltinType: number
     
-    var x: number = 1.0;
+    mut x: number = 1.0;
     // CHECK: DeclStmt:
     // CHECK-NEXT:   VarDecl: x
     // CHECK-NEXT:     BuiltinType: number

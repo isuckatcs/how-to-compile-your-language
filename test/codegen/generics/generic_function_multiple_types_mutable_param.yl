@@ -4,7 +4,7 @@ struct S {
   x: number
 }
 
-fn box<T>(var x: T): T {
+fn box<T>(mut x: T): T {
   return x;
 }
 

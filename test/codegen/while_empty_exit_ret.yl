@@ -1,7 +1,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o while_empty_exit_ret && ./while_empty_exit_ret | grep -Plzx '2\n'
-fn foo(var x: number): void {
-    var i: number = x;
+fn foo(mut x: number): void {
+    mut i: number = x;
 
     while i > 1.0 {
         println(i);

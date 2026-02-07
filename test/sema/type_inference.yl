@@ -5,10 +5,10 @@ fn foo(): number {
 
 fn main(): void {
     let x = 1.0;
-    var y = foo() + 1.0;
+    mut y = foo() + 1.0;
 
     let x2: number;
-    var y2: number;
+    mut y2: number;
 }
 // CHECK: DeclStmt
 // CHECK-NEXT:   VarDecl @({{.*}}) x {number}

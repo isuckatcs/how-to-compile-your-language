@@ -20,7 +20,7 @@ fn foo(s: S): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn bar(var s: S): S {
+fn bar(mut s: S): S {
   return s;
 }
 // CHECK: define void @bar(ptr sret({ double, double }) %ret, ptr byval({ double, double }) %s) {
@@ -33,7 +33,7 @@ fn bar(var s: S): S {
 // CHECK-NEXT: }
 
 fn main(): void {
-  var s = S { x: 1, y: 2 };
+  mut s = S { x: 1, y: 2 };
   foo(s);
   s = bar(s);
 }

@@ -4,11 +4,11 @@ fn main(): void {
     let x = main();
     
     // CHECK: [[# @LINE + 1 ]]:9: error: a variable of 'void' type is not allowed
-    var y = main();
+    mut y = main();
 
     let x2;
     
-    var y2;
+    mut y2;
 
     x2 = 0.0;
     

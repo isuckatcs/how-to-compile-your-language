@@ -4,12 +4,12 @@ struct S {
   y: number,
 }
 
-fn foo(var s: S): void {
+fn foo(mut s: S): void {
   s.x = 6;
   println(s.x);
 }
 
-fn bar(var s: S): S {
+fn bar(mut s: S): S {
   s.y = 8;
   return s;
 }

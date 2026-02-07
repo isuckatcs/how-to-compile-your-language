@@ -7,8 +7,8 @@ fn foo(): S {
 }
 
 fn main(): void {
-  var s = S { x: 0 };
-  var s2 = S2 { x: 0 };
+  mut s = S { x: 0 };
+  mut s2 = S2 { x: 0 };
 
   s.x = 1;
   s2.x = s2;

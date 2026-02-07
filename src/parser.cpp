@@ -191,13 +191,13 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
 }
 
 // <paramDecl>
-//  ::= 'var'? <identifier> ':' <type>
+//  ::= 'mut'? <identifier> ':' <type>
 std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   SourceLocation location = nextToken.location;
 
-  bool isVar = nextToken.kind == TokenKind::KwVar;
-  if (isVar)
-    eatNextToken(); // eat 'var'
+  bool isMut = nextToken.kind == TokenKind::KwMut;
+  if (isMut)
+    eatNextToken(); // eat 'mut'
 
   matchOrReturn(TokenKind::Identifier, "expected parameter declaration");
   assert(nextToken.value && "identifier token without value");
@@ -211,7 +211,7 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   varOrReturn(type, parseType());
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
-                                          std::move(type), isVar);
+                                          std::move(type), isMut);
 }
 
 // <varDecl>
@@ -328,10 +328,10 @@ std::unique_ptr<ast::WhileStmt> Parser::parseWhileStmt() {
 }
 
 // <declStmt>
-//  ::= ('let'|'var') <varDecl>  ';'
+//  ::= ('let'|'mut') <varDecl>  ';'
 std::unique_ptr<ast::DeclStmt> Parser::parseDeclStmt() {
   Token tok = nextToken;
-  eatNextToken(); // eat 'let' | 'var'
+  eatNextToken(); // eat 'let' | 'mut'
 
   matchOrReturn(TokenKind::Identifier, "expected identifier");
   varOrReturn(varDecl, parseVarDecl(tok.kind == TokenKind::KwLet));
@@ -399,7 +399,7 @@ std::unique_ptr<ast::Stmt> Parser::parseStmt() {
   if (nextToken.kind == TokenKind::KwReturn)
     return parseReturnStmt();
 
-  if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwVar)
+  if (nextToken.kind == TokenKind::KwLet || nextToken.kind == TokenKind::KwMut)
     return parseDeclStmt();
 
   return parseAssignmentOrExpr();

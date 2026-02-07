@@ -46,7 +46,7 @@ void CFG::dump() const {
         std::cerr << stmtToRef[assignment->assignee] << " = "
                   << stmtToRef[assignment->expr];
       } else if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(*it)) {
-        std::cerr << (declStmt->varDecl->isMutable ? "var " : "let ")
+        std::cerr << (declStmt->varDecl->isMutable ? "mut " : "let ")
                   << declStmt->varDecl->identifier;
 
         if (const auto *init = declStmt->varDecl->initializer)

@@ -4,7 +4,7 @@ struct S {
 }
 
 fn main(): void { 
-  var s;
+  mut s;
 
   // CHECK: [[# @LINE + 1 ]]:7: error: type of LHS to binary operator is unknown
   s = s + 1;

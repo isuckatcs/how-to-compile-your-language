@@ -5,7 +5,7 @@ struct State {
     pc: number,
 }
 
-fn inc(var state: State, r: number, j: number): State {
+fn inc(mut state: State, r: number, j: number): State {
     if r == 1 {
         state.r1 = state.r1 + 1;
     } else {
@@ -16,7 +16,7 @@ fn inc(var state: State, r: number, j: number): State {
     return state;
 }
 
-fn decjz(var state: State, r: number, z: number, nz: number): State {
+fn decjz(mut state: State, r: number, z: number, nz: number): State {
     let cmp: number;
 
     if r == 1 {
@@ -39,7 +39,7 @@ fn decjz(var state: State, r: number, z: number, nz: number): State {
     return state;
 }
 
-fn halt(var state: State): State {
+fn halt(mut state: State): State {
     state.pc = 0;
     return state;
 }
@@ -47,7 +47,7 @@ fn halt(var state: State): State {
 // R2 = R1 * 2
 //
 // https://en.wikipedia.org/wiki/Structured_program_theorem
-fn R1x2(var state: State): State {
+fn R1x2(mut state: State): State {
     while state.pc > 0 {
         if state.pc == 1 {
             state = decjz(state, 1, 5, 2);

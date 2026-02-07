@@ -1,5 +1,5 @@
 fn divides(n: number, divisor: number): number {
-    var i = 1;
+    mut i = 1;
     while !(i > n) {
         let d = divisor * i;
 
@@ -18,7 +18,7 @@ fn isPrime(x: number): number {
         return 0;
     }
 
-    var i = 2;
+    mut i = 2;
     while !(i > x / 2) {
         if divides(x, i) {
             return 0;
@@ -31,8 +31,8 @@ fn isPrime(x: number): number {
 }
 
 fn main(): void {
-    var n = 1;
-    var cnt = 0;
+    mut n = 1;
+    mut cnt = 0;
 
     while cnt < 10 {
         if isPrime(n) {

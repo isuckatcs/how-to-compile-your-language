@@ -4,7 +4,7 @@ fn foo(): void {}
 fn bar(): number { return 1.0; }
 
 fn main(): void {
-    var x: number = 1.0;
+    mut x: number = 1.0;
 
     // CHECK: [[# @LINE + 1 ]]:12: error: 'void' expression is not allowed inside assignment
     x = foo();

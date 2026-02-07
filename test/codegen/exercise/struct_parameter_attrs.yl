@@ -4,7 +4,7 @@ struct S {
   x: number,
 }
 
-fn foo(a: number, b: S, var c: number, var d: S): void {
+fn foo(a: number, b: S, mut c: number, mut d: S): void {
   println(a);
   println(b.x);
   println(c);

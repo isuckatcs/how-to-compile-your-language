@@ -4,10 +4,10 @@ fn bar(): number { return 1.0; }
 
 fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:9: error: a variable of 'void' type is not allowed
-    var x: void;
+    mut x: void;
 
     // CHECK: [[# @LINE + 1 ]]:13: error: failed to resolve type 'customType'
-    var x2: customType;
+    mut x2: customType;
     
     // CHECK: [[# @LINE + 1 ]]:25: error: an expression of type 'void' cannot be used to initialize a variable of type 'number'
     let x3: number = foo();
