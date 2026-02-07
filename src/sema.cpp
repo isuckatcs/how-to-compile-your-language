@@ -724,23 +724,6 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
-                                       const ast::ParamDecl &param) {
-  auto *type = resolveType(ctx, *param.type);
-
-  if (!type)
-    return report(param.location,
-                  "parameter '" + param.identifier + "' has invalid type");
-
-  if (type->getAs<res::BuiltinVoidType>())
-    return report(param.location, "parameter '" + param.identifier +
-                                      "' of 'void' type is not allowed");
-
-  return ctx.bind(ctx.create<res::ParamDecl>(param.location, param.identifier,
-                                             param.isMutable),
-                  type);
-}
-
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                                    const ast::VarDecl &varDecl) {
   res::Expr *initializer = nullptr;
@@ -822,15 +805,18 @@ Sema::resolveFunctionDecl(res::Context &ctx,
   std::vector<res::TypeParamDecl *> resolvedTypeParams =
       resolveTypeParameters(ctx, function.typeParameters);
 
+  bool error = false;
   ScopeRAII typeParamScope(this);
   for (auto &&typeParamDecl : resolvedTypeParams)
     if (!insertDeclToCurrentScope(typeParamDecl))
-      return nullptr;
+      error = true;
 
-  varOrReturn(retTy, resolveType(ctx, *function.type));
+  res::Type *retTy = resolveType(ctx, *function.type);
+  if (!retTy)
+    error = true;
 
   if (function.identifier == "main") {
-    if (!retTy->getAs<res::BuiltinVoidType>())
+    if (!retTy || !retTy->getAs<res::BuiltinVoidType>())
       return report(function.location,
                     "'main' function is expected to return 'void'");
 
@@ -846,17 +832,30 @@ Sema::resolveFunctionDecl(res::Context &ctx,
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
-  // FIXME: how to avoid doing this twice?
   ScopeRAII paramScope(this);
-  for (size_t i = 0; i < function.params.size(); ++i) {
-    auto *resolvedParam = resolveParamDecl(ctx, *function.params[i]);
+  for (auto &&param : function.params) {
+    auto *resolvedParam =
+        resolvedParams.emplace_back(ctx.create<res::ParamDecl>(
+            param->location, param->identifier, param->isMutable));
+    error |= !insertDeclToCurrentScope(resolvedParam);
 
-    if (!resolvedParam || !insertDeclToCurrentScope(resolvedParam))
-      return nullptr;
+    auto *type = paramTypes.emplace_back(resolveType(ctx, *param->type));
+    error |= !type;
 
-    paramTypes.emplace_back(ctx.getType(resolvedParam));
-    resolvedParams.emplace_back(std::move(resolvedParam));
+    if (error)
+      continue;
+
+    if (type->getAs<res::BuiltinVoidType>()) {
+      report(param->location, "parameter '" + param->identifier +
+                                  "' of 'void' type is not allowed");
+      error = true;
+    }
+
+    ctx.bind(resolvedParam, type);
   }
+
+  if (error)
+    return nullptr;
 
   auto *fnDecl = ctx.create<res::FunctionDecl>(
       function.location, function.identifier, std::move(resolvedTypeParams),
@@ -873,34 +872,33 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
       ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier,
                                   std::move(resolvedTypeParams));
 
-  ScopeRAII typeParamScope(this);
-
   std::vector<res::Type *> typeParamTypes;
-  for (auto &&typeParamDecl : resolvedStruct->typeParams) {
-    if (!insertDeclToCurrentScope(typeParamDecl))
-      return nullptr;
-
+  for (auto &&typeParamDecl : resolvedStruct->typeParams)
     typeParamTypes.emplace_back(ctx.getType(typeParamDecl));
-  }
 
   return ctx.bind(resolvedStruct, ctx.getStructType(*resolvedStruct,
                                                     std::move(typeParamTypes)));
 }
 
-res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
-                                           const ast::StructDecl &astDecl) {
-  res::StructDecl *decl = lookupDecl<res::StructDecl>(astDecl.identifier).first;
-  assert(decl && !decl->isComplete);
-
-  ScopeRAII typeParamScope(this);
-  for (auto &&typeParamDecl : decl->typeParams)
-    insertDeclToCurrentScope(typeParamDecl);
+bool Sema::resolveStructFields(res::Context &ctx,
+                               res::StructDecl &decl,
+                               const ast::StructDecl &astDecl) {
+  assert(!decl.isComplete);
 
   bool error = false;
+  ScopeRAII typeParamScope(this);
+  for (auto &&typeParamDecl : decl.typeParams)
+    error |= !insertDeclToCurrentScope(typeParamDecl);
+
   std::set<std::string_view> identifiers;
   std::vector<res::FieldDecl *> resolvedFields;
+
   for (auto &&field : astDecl.fields) {
-    varOrReturn(fieldTy, resolveType(ctx, *field->type));
+    res::Type *fieldTy = resolveType(ctx, *field->type);
+    if (!fieldTy) {
+      error = true;
+      continue;
+    }
 
     auto loc = field->location;
     if (fieldTy->getAs<res::BuiltinVoidType>()) {
@@ -919,38 +917,29 @@ res::StructDecl *Sema::resolveStructFields(res::Context &ctx,
     resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
   }
 
-  if (error)
-    return nullptr;
-
-  decl->setFields(std::move(resolvedFields));
-  return decl;
+  decl.setFields(std::move(resolvedFields));
+  return !error;
 }
 
 res::Context *Sema::resolveAST() {
   ScopeRAII globalScope(this);
   bool error = false;
 
-  // Resolve every struct first so that functions have access to them in their
-  // signatures.
-  for (auto &&st : ast->structs)
-    error |= !insertDeclToCurrentScope(resolveStructDecl(ctx, *st));
-  if (error)
-    return nullptr;
+  std::vector<res::StructDecl *> resolvedStructs;
+  for (auto &&st : ast->structs) {
+    resolvedStructs.emplace_back(resolveStructDecl(ctx, *st));
+    error |= !insertDeclToCurrentScope(resolvedStructs.back());
+  }
 
-  // Insert println first to be able to detect a possible redeclaration.
+  for (size_t i = 0; i < resolvedStructs.size(); ++i)
+    error |= !resolveStructFields(ctx, *resolvedStructs[i], *ast->structs[i]);
+  error |= hasSelfContainingStructs(ctx);
+
   insertDeclToCurrentScope(createBuiltinPrintln(ctx));
 
   for (auto &&fn : ast->functions)
     error |= !insertDeclToCurrentScope(resolveFunctionDecl(ctx, *fn));
   if (error)
-    return nullptr;
-
-  for (auto &&st : ast->structs)
-    error |= !resolveStructFields(ctx, *st);
-  if (error)
-    return nullptr;
-
-  if (!checkSelfContainingStructs(ctx))
     return nullptr;
 
   for (auto &&fn : ast->functions) {
@@ -980,7 +969,7 @@ res::Context *Sema::resolveAST() {
   return &ctx;
 }
 
-bool Sema::checkSelfContainingStructs(const res::Context &ctx) {
+bool Sema::hasSelfContainingStructs(const res::Context &ctx) {
   std::stack<const res::StructDecl *> worklist;
   std::set<const res::StructDecl *> selfContaining;
 
@@ -1006,6 +995,6 @@ bool Sema::checkSelfContainingStructs(const res::Context &ctx) {
   for (auto &&sd : selfContaining)
     report(sd->location, "struct '" + sd->identifier + "' contains itself");
 
-  return selfContaining.empty();
+  return !selfContaining.empty();
 }
 } // namespace yl

@@ -59,15 +59,14 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  res::ParamDecl *resolveParamDecl(res::Context &ctx,
-                                   const ast::ParamDecl &param);
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *resolveFunctionDecl(res::Context &ctx,
                                          const ast::FunctionDecl &function);
   res::StructDecl *resolveStructDecl(res::Context &ctx,
                                      const ast::StructDecl &structDecl);
-  res::StructDecl *resolveStructFields(res::Context &ctx,
-                                       const ast::StructDecl &structDecl);
+  bool resolveStructFields(res::Context &ctx,
+                           res::StructDecl &decl,
+                           const ast::StructDecl &astDecl);
 
   bool checkTypeParameterCount(SourceLocation loc,
                                size_t received,
@@ -85,7 +84,7 @@ class Sema {
                              const res::FunctionDecl &fn,
                              const CFG &cfg);
   bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
-  bool checkSelfContainingStructs(const res::Context &ctx);
+  bool hasSelfContainingStructs(const res::Context &ctx);
 
 public:
   explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)

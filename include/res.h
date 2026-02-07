@@ -452,10 +452,7 @@ class StructType : public Type {
 
   StructType(const StructDecl &decl, std::vector<Type *> typeArgs)
       : Type(decl.identifier, std::move(typeArgs)),
-        decl(&decl) {
-    assert(decl.typeParams.size() == this->args.size() &&
-           "mismatching type argument size for struct");
-  };
+        decl(&decl){};
 
 public:
   const StructDecl *getDecl() const { return decl; }
