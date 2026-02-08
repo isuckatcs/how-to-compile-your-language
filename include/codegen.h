@@ -90,7 +90,7 @@ class Codegen {
                        const std::vector<const res::Type *> &typeArgs);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
-  llvm::StructType *generateStruct(const res::StructType *structTy);
+  llvm::Type *generateStructType(const res::StructType *structTy);
 
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();

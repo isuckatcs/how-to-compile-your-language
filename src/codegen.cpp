@@ -81,7 +81,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return builder.getVoidTy();
 
   if (const auto *s = type->getAs<res::StructType>())
-    return generateStruct(s);
+    return generateStructType(s);
 
   if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
@@ -104,21 +104,21 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
 
 llvm::FunctionType *
 Codegen::generateFunctionType(const res::FunctionType *type) {
-  llvm::Type *res;
   std::vector<llvm::Type *> args;
 
-  if (type->getReturnType()->getAs<res::StructType>()) {
+  llvm::Type *res = generateType(type->getReturnType());
+  if (res->isStructTy()) {
     args.emplace_back(llvm::PointerType::get(context, 0));
     res = builder.getVoidTy();
-  } else {
-    res = generateType(type->getReturnType());
   }
 
   for (auto &&arg : type->getArgs()) {
-    if (arg->getAs<res::StructType>())
-      args.emplace_back(llvm::PointerType::get(context, 0));
-    else if (!arg->getAs<res::BuiltinUnitType>())
-      args.emplace_back(generateType(arg));
+    llvm::Type *argTy = generateType(arg);
+    if (argTy->isVoidTy())
+      continue;
+
+    args.emplace_back(argTy->isStructTy() ? llvm::PointerType::get(context, 0)
+                                          : argTy);
   }
 
   return llvm::FunctionType::get(res, args, false);
@@ -245,10 +245,12 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
 llvm::Value *
 Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  const auto *structType =
-      resolvedTree->getType(sie.structDecl)->getAs<res::StructType>();
-  llvm::Value *tmp = allocateStackVariable(
-      structType->getDecl()->identifier + ".tmp", generateType(structType));
+  llvm::Type *type = generateType(resolvedTree->getType(sie.structDecl));
+  if (type->isVoidTy())
+    return nullptr;
+
+  llvm::Value *tmp =
+      allocateStackVariable(sie.structDecl->decl->identifier + ".tmp", type);
 
   for (auto &&initStmt : sie.fieldInitializers) {
     llvm::Value *init = generateExprAndLoadValue(*initStmt->initializer);
@@ -258,8 +260,8 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
     if (initTy->isVoidTy())
       continue;
 
-    llvm::Value *field = builder.CreateStructGEP(generateType(structType), tmp,
-                                                 initStmt->field->nonUnitIndex);
+    llvm::Value *field =
+        builder.CreateStructGEP(type, tmp, initStmt->field->nonUnitIndex);
     storeValue(init, field, initTy);
   }
 
@@ -316,29 +318,26 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   if (callee->hasName())
     calledFunction = module.getFunction(callee->getName());
 
-  const res::Type *resultTy = resolvedTree->getType(&call);
-  bool isReturningStruct = resultTy->getAs<res::StructType>();
-
+  llvm::Type *retTy = generateType(resolvedTree->getType(&call));
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
+  bool isReturningStruct = retTy->isStructTy();
   if (isReturningStruct)
-    retVal = args.emplace_back(
-        allocateStackVariable("struct.ret.tmp", generateType(resultTy)));
+    retVal = args.emplace_back(allocateStackVariable("struct.ret.tmp", retTy));
 
   size_t argIdx = 0;
   for (auto &&arg : call.arguments) {
-    const res::Type *argTy = resolvedTree->getType(arg);
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
+    llvm::Type *argTy = generateType(resolvedTree->getType(arg));
 
-    if (argTy->getAs<res::BuiltinUnitType>())
+    if (argTy->isVoidTy())
       continue;
 
     if (calledFunction &&
         calledFunction->getArg(argIdx + isReturningStruct)->hasByValAttr()) {
-      llvm::Value *tmpVar =
-          allocateStackVariable("struct.arg.tmp", generateType(argTy));
-      storeValue(argVal, tmpVar, generateType(argTy));
+      llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", argTy);
+      storeValue(argVal, tmpVar, argTy);
       argVal = tmpVar;
     }
 
@@ -590,21 +589,22 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   bool isReturningStruct =
       !function->arg_empty() && function->getArg(0)->hasStructRetAttr();
 
-  unsigned realParamIdx = 0;
+  unsigned nonVoidArgIdx = 0;
   if (isReturningStruct) {
     llvm::Argument *sretArg = function->getArg(0);
 
     sretArg->setName("ret");
     retVal = sretArg;
 
-    ++realParamIdx;
+    ++nonVoidArgIdx;
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    if (resolvedTree->getType(paramDecl)->getAs<res::BuiltinUnitType>())
+    llvm::Type *argTy = generateType(resolvedTree->getType(paramDecl));
+    if (argTy->isVoidTy())
       continue;
 
-    llvm::Argument *arg = function->getArg(realParamIdx);
+    llvm::Argument *arg = function->getArg(nonVoidArgIdx);
     arg->setName(paramDecl->identifier);
 
     llvm::Value *argVal;
@@ -616,7 +616,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
     }
 
     declarations[paramDecl] = argVal;
-    ++realParamIdx;
+    ++nonVoidArgIdx;
   }
 
   if (functionDecl->identifier == "println")
@@ -685,17 +685,20 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
   return function;
 }
 
-llvm::StructType *Codegen::generateStruct(const res::StructType *structTy) {
+llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   EnterInstantiationRAII structInstantiation(this, structTy->getTypeArgs());
 
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structTy->getDecl()->fields) {
-    const res::Type *fieldTy = resolvedTree->getType(field);
-    if (fieldTy->getAs<res::BuiltinUnitType>())
+    llvm::Type *fieldTy = generateType(resolvedTree->getType(field));
+    if (fieldTy->isVoidTy())
       continue;
 
-    fieldTypes.emplace_back(generateType(fieldTy));
+    fieldTypes.emplace_back(fieldTy);
   }
+
+  if (fieldTypes.empty())
+    return builder.getVoidTy();
 
   return llvm::StructType::get(context, fieldTypes);
 }
