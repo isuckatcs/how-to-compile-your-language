@@ -571,7 +571,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     location = nextToken.location;
     auto fieldInitList = parseListWithTrailingComma<ast::FieldInitStmt>(
         {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldInitStmt,
-        {TokenKind::Rbrace, "expected '}'"});
+        {TokenKind::Rbrace, "expected ',' or '}'"});
 
     if (!fieldInitList) {
       synchronizeOn({TokenKind::Rbrace});

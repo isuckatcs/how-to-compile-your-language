@@ -1,0 +1,5 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:10: error: expected ',' or '}'
+  S{x: 1 y: 2};
+}
