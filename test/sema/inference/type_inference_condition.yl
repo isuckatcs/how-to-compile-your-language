@@ -3,7 +3,7 @@ struct S {
   x: number
 }
 
-fn main(): void { 
+fn main(): unit { 
   let s;
 
   // CHECK: [[# @LINE + 1 ]]:6: error: 's' is not initialized

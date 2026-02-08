@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-fn unusedTemplate<T>(): void {}
+fn unusedTemplate<T>(): unit {}
 // CHECK-NOT: {{.*unusedTemplate.*}}
 
-fn main(): void {}
+fn main(): unit {}

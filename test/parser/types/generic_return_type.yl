@@ -20,9 +20,9 @@ fn baz(): S<S<S<S<deep>>>> {}
 // CHECK-NEXT:           UserDefinedType: deep
 // CHECK-NEXT:   Block
 
-fn main(): void {}
+fn main(): unit {}
 // CHECK-NEXT: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 
 // CHECK-NOT: {{.*}}

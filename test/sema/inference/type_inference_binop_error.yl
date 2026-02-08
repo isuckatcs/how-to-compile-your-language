@@ -3,7 +3,7 @@ struct S {
   x: number
 }
 
-fn main(): void { 
+fn main(): unit { 
   mut s;
 
   // CHECK: [[# @LINE + 1 ]]:7: error: type of LHS to binary operator is unknown

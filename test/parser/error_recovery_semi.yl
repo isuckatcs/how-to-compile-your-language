@@ -1,16 +1,16 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn error(): void {
+fn error(): unit {
     // CHECK: [[# @LINE + 1 ]]:20: error: expected expression
     let x: number =;
 
     let y: number = 1.0 + 2.0;
     
     // CHECK: [[# @LINE + 1 ]]:18: error: expected expression
-    let z: void =;
+    let z: unit =;
 }
 
 // CHECK: FunctionDecl: error
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: y

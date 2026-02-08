@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-fn main(): void {
+fn main(): unit {
     5.0;
     while 4.0 {
         3.0;
@@ -41,7 +41,7 @@ fn main(): void {
 // CHECK-NEXT:   preds: 1
 // CHECK-NEXT:   succs:
 
-fn orCondition(): void {
+fn orCondition(): unit {
     5;
     while 4 || 4 || 4 {
         3;
@@ -87,7 +87,7 @@ fn orCondition(): void {
 // CHECK-NEXT:   preds: 1
 // CHECK-NEXT:   succs:
 
-fn andCondition(): void {
+fn andCondition(): unit {
     5;
     while 4 && 4 && 4 {
         3;
@@ -133,7 +133,7 @@ fn andCondition(): void {
 // CHECK-NEXT:   preds: 1
 // CHECK-NEXT:   succs:
 
-fn nestedLoops(): void {
+fn nestedLoops(): unit {
     8.0;
     while 7.0 {
         6.0;
@@ -193,7 +193,7 @@ fn nestedLoops(): void {
 // CHECK-NEXT:   preds: 1
 // CHECK-NEXT:   succs:
 
-fn returnMidloop(): void {
+fn returnMidloop(): unit {
     8.0;
     while 7.0 {
         6.0;
@@ -261,7 +261,7 @@ fn returnMidloop(): void {
 // CHECK-NEXT:   preds: 1 5
 // CHECK-NEXT:   succs:
 
-fn whileOnly(): void {
+fn whileOnly(): unit {
     while 1.0 {
 
     }
@@ -285,7 +285,7 @@ fn whileOnly(): void {
 // CHECK-NEXT:   preds: 2(U)
 // CHECK-NEXT:   succs:
 
-fn whileAfterReturn(): void {
+fn whileAfterReturn(): unit {
     4;
     return;
    
@@ -322,7 +322,7 @@ fn whileAfterReturn(): void {
 // CHECK-NEXT:   preds: 1 4
 // CHECK-NEXT:   succs:
 
-fn whileAfterIf(): void {
+fn whileAfterIf(): unit {
     if 5 {
         4;
     }
@@ -365,7 +365,7 @@ fn whileAfterIf(): void {
 // CHECK-NEXT:   preds: 1
 // CHECK-NEXT:   succs:
 
-fn whileAfterWhile(): void {
+fn whileAfterWhile(): unit {
     while 5 {}
     while 3 {}
     1;

@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo(): void {}
+fn foo(): unit {}
 
-fn bar(x: number, y: number): void {}
+fn bar(x: number, y: number): unit {}
 
-fn main(): void {
+fn main(): unit {
     let x: number = 1.0;
 
     // CHECK: [[# @LINE + 1 ]]:6: error: calling expression of type 'number'
@@ -18,10 +18,10 @@ fn main(): void {
     // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 0, but received 1
     foo(x);
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: expected 'number' argument, but received 'void'
+    // CHECK: [[# @LINE + 1 ]]:12: error: expected 'number' argument, but received 'unit'
     bar(foo(), foo());
 
-    // CHECK: [[# @LINE + 1 ]]:17: error: expected 'number' argument, but received 'void'
+    // CHECK: [[# @LINE + 1 ]]:17: error: expected 'number' argument, but received 'unit'
     bar(1.0, foo());
     
     // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 2, but received 0

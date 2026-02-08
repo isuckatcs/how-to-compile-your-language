@@ -5,7 +5,7 @@ struct Color {
     b: number,
 }
 
-fn main(): void {
+fn main(): unit {
     let err = Color {
         r: 0, 
         +,
@@ -23,7 +23,7 @@ fn main(): void {
 // CHECK-NEXT:   FieldDecl: b
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: x

@@ -4,7 +4,7 @@ fn error(): {
     let y: number = 1.0 + 2.0;
 }
 
-fn main(): void {
+fn main(): unit {
     let y: number = 1.0 + 2.0;
 }
 
@@ -13,7 +13,7 @@ fn error2( {
     let y: number = 1.0 + 2.0;
 }
 
-fn error3(): void {
+fn error3(): unit {
     let y: number =
 
 // CHECK: [[# @LINE + 2 ]]:1: error: expected expression
@@ -23,7 +23,7 @@ fn pass(): number {
 }
 
 // CHECK: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: y

@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn main(): void {
+fn main(): unit {
   s.f = y;
   // CHECK: [[# @LINE - 1 ]]:9: error: symbol 'y' not found
 }

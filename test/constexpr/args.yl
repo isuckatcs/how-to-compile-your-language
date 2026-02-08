@@ -1,28 +1,28 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s --match-full-lines
-fn foo(x: number): void {}
+fn foo(x: number): unit {}
 
-fn bar(x: number): void {
+fn bar(x: number): unit {
     foo(x);
 }
 
-fn main(): void {
+fn main(): unit {
     bar(1.0);
 }
-// CHECK: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK: FunctionDecl @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl @({{.*}}) bar {(number) -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) bar {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) bar {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) bar {(number) -> unit}
 // CHECK-NEXT:       NumberLiteral '1' {number}
 // CHECK-NEXT:       | value: 1

@@ -14,7 +14,7 @@ fn box<U>(x: S<U>): S<U> {
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 1 };
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}

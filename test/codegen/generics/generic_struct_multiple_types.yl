@@ -9,7 +9,7 @@ fn returnOne(): number {
   return 1;
 }
 
-fn main(): void {
+fn main(): unit {
   println(S{x: returnOne}.x());
   // CHECK: %0 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
   // CHECK-NEXT: store ptr @returnOne, ptr %0, align 8
@@ -41,20 +41,20 @@ fn main(): void {
   // CHECK-NEXT: call void @println(double %13)
   
   println(S{x: S{x: 3}}.x.x);
-  // CHECK: %14 = getelementptr inbounds nuw { { double } }, ptr %S.tmp4, i32 0, i32 0
-  // CHECK-NEXT: %15 = getelementptr inbounds nuw { double }, ptr %S.tmp5, i32 0, i32 0
-  // CHECK-NEXT: store double 3.000000e+00, ptr %15, align 8
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %14, ptr align 8 %S.tmp5, i64 8, i1 false)
+  // CHECK: %14 = getelementptr inbounds nuw { double }, ptr %S.tmp5, i32 0, i32 0
+  // CHECK-NEXT: store double 3.000000e+00, ptr %14, align 8
+  // CHECK-NEXT: %15 = getelementptr inbounds nuw { { double } }, ptr %S.tmp4, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %15, ptr align 8 %S.tmp5, i64 8, i1 false)
   // CHECK-NEXT: %16 = getelementptr inbounds nuw { { double } }, ptr %S.tmp4, i32 0, i32 0
   // CHECK-NEXT: %17 = getelementptr inbounds nuw { double }, ptr %16, i32 0, i32 0
   // CHECK-NEXT: %18 = load double, ptr %17, align 8
   // CHECK-NEXT: call void @println(double %18)
 
   println(S{x: S{x: 3}}.x.x);
-  // CHECK: %19 = getelementptr inbounds nuw { { double } }, ptr %S.tmp6, i32 0, i32 0
-  // CHECK-NEXT: %20 = getelementptr inbounds nuw { double }, ptr %S.tmp7, i32 0, i32 0
-  // CHECK-NEXT: store double 3.000000e+00, ptr %20, align 8
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %19, ptr align 8 %S.tmp7, i64 8, i1 false)
+  // CHECK: %19 = getelementptr inbounds nuw { double }, ptr %S.tmp7, i32 0, i32 0
+  // CHECK-NEXT: store double 3.000000e+00, ptr %19, align 8
+  // CHECK-NEXT: %20 = getelementptr inbounds nuw { { double } }, ptr %S.tmp6, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %20, ptr align 8 %S.tmp7, i64 8, i1 false)
   // CHECK-NEXT: %21 = getelementptr inbounds nuw { { double } }, ptr %S.tmp6, i32 0, i32 0
   // CHECK-NEXT: %22 = getelementptr inbounds nuw { double }, ptr %21, i32 0, i32 0
   // CHECK-NEXT: %23 = load double, ptr %22, align 8

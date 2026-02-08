@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn main(): void { 
+fn main(): unit { 
   let s;
   s = 0;
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {number}

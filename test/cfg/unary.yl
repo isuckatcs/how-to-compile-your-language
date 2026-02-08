@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-fn main(): void {
+fn main(): unit {
   let x = -1;
 
   let y = !2;

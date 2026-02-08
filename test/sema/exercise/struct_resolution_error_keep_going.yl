@@ -1,12 +1,12 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-struct S { f: void }
-// CHECK: [[# @LINE - 1 ]]:12: error: struct field cannot be 'void'
+// CHECK: [[# @LINE + 1 ]]:15: error: failed to resolve type 'error'
+struct S { f: error }
 
 struct S2 {}
 
 struct S3 {}
 
-struct S4 { f: void }
-// CHECK: [[# @LINE - 1 ]]:13: error: struct field cannot be 'void'
+// CHECK: [[# @LINE + 1 ]]:16: error: failed to resolve type 'error'
+struct S4 { f: error }
 
-fn main(): void {}
+fn main() {}

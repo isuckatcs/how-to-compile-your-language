@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-fn main(): void {
+fn main(): unit {
     mut x: number;
 
     x = 2.0;

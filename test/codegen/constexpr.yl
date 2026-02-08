@@ -53,7 +53,7 @@ fn nonConstant2(): number {
 // CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
 // CHECK-NEXT:   br i1 %to.bool, label %and.rhs, label %and.merge
 
-fn main(): void {
+fn main(): unit {
     constant();
     constant2();
 

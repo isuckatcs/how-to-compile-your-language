@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o alloca_order && ./alloca_order | grep -Plzx '1\n2\n3\n'
-fn foo(mut x: number, mut y: number, mut z: number): void {
+fn foo(mut x: number, mut y: number, mut z: number): unit {
     let x: number = x;
     let y: number = y;
     let z: number = z;
@@ -35,6 +35,6 @@ fn foo(mut x: number, mut y: number, mut z: number): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
     foo(1.0, 2.0, 3.0);
 }

@@ -3,7 +3,7 @@ struct S<T> {
   x: T
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S{ x: S{ x: 1 } };
   
   // CHECK: [[# @LINE + 1 ]]:15: error: 's' cannot be mutated

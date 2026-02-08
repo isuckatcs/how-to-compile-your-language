@@ -3,6 +3,6 @@
 // CHECK: [[# @LINE + 1 ]]:11: error: failed to resolve type 'userDefinedType'
 fn foo(): userDefinedType {}
 
-fn main(): void {}
+fn main(): unit {}
 
 // CHECK-NOT: {{.*error.*}}

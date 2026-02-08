@@ -10,6 +10,6 @@ fn foo(): number {
   x = S { x: 1 };
 }
 
-fn main(): void {}
+fn main(): unit {}
 
 // CHECK-NOT: {{.*error.*}}

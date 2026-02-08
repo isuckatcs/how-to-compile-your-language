@@ -8,7 +8,7 @@ struct S2 {
   x: number
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 0, n: S2 { x: 1 } };
 
   let x = s.y.x;

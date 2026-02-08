@@ -9,14 +9,14 @@ struct Color {
 // CHECK-NEXT:   FieldDecl @({{.*}}) g {number}
 // CHECK-NEXT:   FieldDecl @({{.*}}) b {number}
 
-fn main(): void {
+fn main(): unit {
   let x = Color { 
     r: 0,
     g: 1,
     b: 2,
   };
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {Color}

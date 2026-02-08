@@ -2,7 +2,7 @@
 struct S {}
 struct S2 {}
 
-fn main(): void {
+fn main(): unit {
   let x = S {};
 
   if x {}

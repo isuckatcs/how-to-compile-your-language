@@ -11,23 +11,23 @@ fn foo(): () -> number {}
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
 
-fn bar(x: () -> number): void {}
+fn bar(x: () -> number): unit {}
 // CHECK-NEXT: FunctionDecl: bar
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     FunctionType
 // CHECK-NEXT:       BuiltinType: number
 // CHECK-NEXT:   Block
 
-fn baz(): void {
+fn baz(): unit {
   let x: (number) -> number;
 
   let y: (number,) -> number;
 
-  let z: (number, number) -> void = foo;
+  let z: (number, number) -> unit = foo;
 }
 // CHECK-NEXT: FunctionDecl: baz
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: x
@@ -44,7 +44,7 @@ fn baz(): void {
 // CHECK-NEXT:         FunctionType
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:           BuiltinType: void
+// CHECK-NEXT:           BuiltinType: unit
 // CHECK-NEXT:         DeclRefExpr: foo
 
 fn nested(): () -> (S<number>) -> () -> number {}

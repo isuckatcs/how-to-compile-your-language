@@ -4,7 +4,7 @@ struct S {
   y: number,
 }
 
-fn main(): void {
+fn main(): unit {
   let n: number;
 
   let y = S { 

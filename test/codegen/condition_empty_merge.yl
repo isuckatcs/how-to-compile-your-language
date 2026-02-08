@@ -1,12 +1,12 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o condition_empty_merge && ./condition_empty_merge | ( ! grep ^ )
-fn foo(mut x: number): void {
+fn foo(mut x: number): unit {
     if x == 0.0 {
         return;
     }
 }
 
-fn main(): void {
+fn main(): unit {
     foo(2.0);
 }
 // CHECK: define void @foo(double %x) {

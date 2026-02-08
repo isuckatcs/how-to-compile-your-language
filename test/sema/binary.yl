@@ -1,14 +1,14 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo(): void {}
+fn foo(): unit {}
 
-fn main(): void {
-    // CHECK: [[# @LINE + 1 ]]:11: error: incompatible operands to binary operator ('void' and 'number')
+fn main(): unit {
+    // CHECK: [[# @LINE + 1 ]]:11: error: incompatible operands to binary operator ('unit' and 'number')
     foo() + 1.0;
     
-    // CHECK: [[# @LINE + 1 ]]:9: error: incompatible operands to binary operator ('number' and 'void')
+    // CHECK: [[# @LINE + 1 ]]:9: error: incompatible operands to binary operator ('number' and 'unit')
     1.0 + foo();
     
-    // CHECK: [[# @LINE + 1 ]]:11: error: incompatible operands to binary operator ('void' and 'void')
+    // CHECK: [[# @LINE + 1 ]]:11: error: incompatible operands to binary operator ('unit' and 'unit')
     foo() + foo();
 
     1.0 + 3.0;

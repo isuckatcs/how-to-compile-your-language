@@ -5,7 +5,7 @@ struct Color {
   b: number,
 }
 
-fn main(): void {
+fn main(): unit {
   let x = Color {
   // CHECK: [[# @LINE - 1 ]]:17: error: field 'r' is not initialized
   // CHECK: [[# @LINE - 2 ]]:17: error: field 'g' is not initialized

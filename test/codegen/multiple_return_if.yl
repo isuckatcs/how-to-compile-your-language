@@ -51,7 +51,7 @@ fn foo(mut x: number): number {
 // CHECK-NEXT:   ret double %4
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
     println(foo(1.0));
     println(foo(2.0));
     println(foo(3.0));

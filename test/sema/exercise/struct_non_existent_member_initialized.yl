@@ -5,7 +5,7 @@ struct Color {
   b: number,
 }
 
-fn main(): void {
+fn main(): unit {
   let x = Color {
     r: 0,
     rgba: 1,

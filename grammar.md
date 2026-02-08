@@ -91,12 +91,10 @@
     ::= '(' (<expr> (',' <expr>)* ','?)? ')'
 
 <primaryExpression>
-    ::= <numberLiteral>
+    ::= 'unit'
+    |   <numberLiteral>
     |   <declRefExpr> <fieldInitList>?
     |   '(' <expr> ')'
-
-<numberLiteral>
-    ::= <number>
 
 <declRefExpr>
     ::= <identifier> <typeArgumentList>?
@@ -120,7 +118,7 @@
 
 <builtinType>
     ::= 'number'
-    |   'void'
+    |   'unit'
 
 <userDefinedType>
     ::= <identifier> <typeList>?
@@ -131,7 +129,7 @@
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
 
-<number>
+<numberLiteral>
     ::= ('0'..'9')+ ('.' ('0'..'9')+)?
 ```
 # Operators

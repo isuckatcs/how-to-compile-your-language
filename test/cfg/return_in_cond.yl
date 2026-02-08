@@ -27,4 +27,4 @@ fn foo(): number {
 // CHECK-NEXT:   preds: 1 2(U) 
 // CHECK-NEXT:   succs:
 
-fn main(): void {}
+fn main(): unit {}

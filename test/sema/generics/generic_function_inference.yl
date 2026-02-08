@@ -14,10 +14,10 @@ fn box<U>(x: S<U>): S<U> {
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
 
-fn main(): void {
+fn main(): unit {
   let f: (S<number>) -> S<number> = box;
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {(S<number>) -> S<number>}

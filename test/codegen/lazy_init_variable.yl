@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o lazy_init_variable && ./lazy_init_variable | grep -Plzx '1\n2\n'
-fn foo(mut n: number): void {
+fn foo(mut n: number): unit {
     let x: number;
 
     if n > 2 {
@@ -36,7 +36,7 @@ fn foo(mut n: number): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
     foo(3);
     foo(2);
 }

@@ -1,5 +1,5 @@
 // RUN: compiler -ast-dump %s 2>&1
 
-fn main(): void {}
+fn main(): unit {}
 
 // It used to crash, when the comment ended on EOF.

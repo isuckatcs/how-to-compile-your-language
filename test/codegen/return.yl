@@ -1,8 +1,8 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o return && ./return | ( ! grep ^ )
-fn main(): void {}
+fn main(): unit {}
 
-fn noInsertPoint(): void {
+fn noInsertPoint(): unit {
     return;
 }
 // CHECK: define void @noInsertPoint() {
@@ -13,7 +13,7 @@ fn noInsertPoint(): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn insertPointEmptyBlock(): void {
+fn insertPointEmptyBlock(): unit {
     if 1.0 {
         return;
     }
@@ -32,7 +32,7 @@ fn insertPointEmptyBlock(): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn insertPointEmptyBlock2(): void {
+fn insertPointEmptyBlock2(): unit {
     while 1.0 {
         return;
     }
@@ -54,7 +54,7 @@ fn insertPointEmptyBlock2(): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn insertPointNonEmptyBlock(): void {
+fn insertPointNonEmptyBlock(): unit {
     if 1.0 {
         return;
     }
@@ -77,7 +77,7 @@ fn insertPointNonEmptyBlock(): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn insertPointNonEmptyBlock2(): void {
+fn insertPointNonEmptyBlock2(): unit {
     while 1.0 {
         return;
     }

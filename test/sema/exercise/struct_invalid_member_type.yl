@@ -4,4 +4,4 @@ struct S {
   // CHECK: [[# @LINE - 1 ]]:11: error: failed to resolve type 'INVALID'
 }
 
-fn main(): void {}
+fn main(): unit {}

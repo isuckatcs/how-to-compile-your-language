@@ -161,11 +161,11 @@ struct TypeParamDecl : public TypeDecl {
 };
 
 struct FieldDecl : public ValueDecl {
-  unsigned index;
+  unsigned nonUnitIndex;
 
   FieldDecl(SourceLocation location, std::string identifier, unsigned index)
       : ValueDecl(location, std::move(identifier), false),
-        index(index) {}
+        nonUnitIndex(index) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -226,6 +226,14 @@ struct NumberLiteral : public Expr {
   NumberLiteral(SourceLocation location, double value)
       : Expr(location, Expr::Kind::Rvalue),
         value(value) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
+struct UnitLiteral : public Expr {
+
+  UnitLiteral(SourceLocation location)
+      : Expr(location, Expr::Kind::Rvalue) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
 };
@@ -404,9 +412,9 @@ public:
   friend class Context;
 };
 
-class BuiltinVoidType : public Type {
-  BuiltinVoidType()
-      : Type("void", {}){};
+class BuiltinUnitType : public Type {
+  BuiltinUnitType()
+      : Type("unit", {}){};
 
   friend class Context;
 };
@@ -475,7 +483,7 @@ class Context {
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
 
-  BuiltinVoidType voidType = BuiltinVoidType();
+  BuiltinUnitType unitType = BuiltinUnitType();
   BuiltinNumberType numberType = BuiltinNumberType();
   std::unordered_map<const TypeParamDecl *, std::unique_ptr<TypeParamType>>
       typeParamTys;
@@ -513,7 +521,7 @@ public:
   std::vector<FunctionDecl *> &getFunctions() { return functions; }
 
   UninferredType *getNewUninferredType();
-  BuiltinVoidType *getBuiltinVoidType() { return &voidType; };
+  BuiltinUnitType *getBuiltinUnitType() { return &unitType; };
   BuiltinNumberType *getBuiltinNumberType() { return &numberType; };
   FunctionType *getFunctionType(std::vector<Type *> args, Type *ret);
   StructType *getStructType(const StructDecl &decl,

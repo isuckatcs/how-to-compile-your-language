@@ -23,7 +23,7 @@ fn foo(s: S, y: number): number {
 // CHECK-NEXT:   ret double %4
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 5, y: 10 };
   println(foo(s, 10));
 }

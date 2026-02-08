@@ -1,12 +1,11 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo(): void {}
+fn foo(): unit {}
 
 fn bar(): number { return 1.0; }
 
-fn main(): void {
+fn main(): unit {
     mut x: number = 1.0;
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: 'void' expression is not allowed inside assignment
     x = foo();
 
     let y: number = 3.0;
@@ -26,7 +25,7 @@ fn main(): void {
     z = 3.0;
 }
 
-fn assignParam(x: number): void {
+fn assignParam(x: number): unit {
     // CHECK: [[# @LINE + 1 ]]:7: error: 'x' cannot be mutated
     x = 1.0;
 }

@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo(): void {}
+fn foo(): unit {}
 
 fn bar(): number { return 1.0; }
 
-fn main(): void {
+fn main(): unit {
     while bar() {}
 
     // CHECK: [[# @LINE + 1 ]]:14: error: expected number in condition

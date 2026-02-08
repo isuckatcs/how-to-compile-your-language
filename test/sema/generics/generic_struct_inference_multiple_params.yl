@@ -7,15 +7,15 @@ struct S<T, U> { x: T, y: T, z: U }
 // CHECK-NEXT:   FieldDecl @({{.*}}) y {T}
 // CHECK-NEXT:   FieldDecl @({{.*}}) z {U}
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 1, y: 2, z: main };
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
-// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number, () -> void>}
-// CHECK-NEXT:         StructInstantiationExpr {S<number, () -> void>}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number, () -> void>}
+// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number, () -> unit>}
+// CHECK-NEXT:         StructInstantiationExpr {S<number, () -> unit>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number, () -> unit>}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '1' {number}
 // CHECK-NEXT:             | value: 1
@@ -23,4 +23,4 @@ fn main(): void {
 // CHECK-NEXT:             NumberLiteral '2' {number}
 // CHECK-NEXT:             | value: 2
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) z
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) main {() -> void}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) main {() -> unit}

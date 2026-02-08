@@ -526,12 +526,10 @@ std::unique_ptr<ast::Expr> Parser::parsePostfixExpr() {
 }
 
 // <primaryExpression>
-//  ::= <numberLiteral>
+//  ::= 'unit'
+//  |   <numberLiteral>
 //  |   <declRefExpr> <fieldInitList>?
 //  |   '(' <expr> ')'
-//
-// <numberLiteral>
-//  ::= <number>
 //
 // <declRefExpr>
 //  ::= <identifier> <typeArgumentList>?
@@ -550,6 +548,12 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     eatNextToken(); // eat ')'
 
     return std::make_unique<ast::GroupingExpr>(location, std::move(expr));
+  }
+
+  if (nextToken.kind == TokenKind::KwUnit) {
+    auto literal = std::make_unique<ast::UnitLiteral>(location);
+    eatNextToken(); // eat unit
+    return literal;
   }
 
   if (nextToken.kind == TokenKind::Number) {
@@ -654,7 +658,7 @@ Parser::parseListWithTrailingComma(
 //
 // <builtinType>
 //  ::= 'number'
-//  |   'void'
+//  |   'unit'
 //
 // <userDefinedType>
 //     ::= <identifier> <typeList>?
@@ -665,11 +669,11 @@ std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
 
   if (nextToken.kind == TokenKind::KwNumber ||
-      nextToken.kind == TokenKind::KwVoid) {
+      nextToken.kind == TokenKind::KwUnit) {
     auto kind = nextToken.kind == TokenKind::KwNumber
                     ? ast::BuiltinType::Kind::Number
-                    : ast::BuiltinType::Kind::Void;
-    eatNextToken(); // eat 'number' or 'void'
+                    : ast::BuiltinType::Kind::Unit;
+    eatNextToken(); // eat 'number' or 'unit'
     return std::make_unique<ast::BuiltinType>(location, kind);
   }
 

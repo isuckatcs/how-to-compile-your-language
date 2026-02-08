@@ -7,7 +7,7 @@ struct Color {
 
 struct Empty {}
 
-fn main(): void {
+fn main(): unit {
     let empty = Empty {};
     // CHECK: DeclStmt:
     // CHECK-NEXT:   VarDecl: empty

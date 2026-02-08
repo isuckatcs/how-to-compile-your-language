@@ -22,11 +22,11 @@ fn foo<U>(x: (U) -> U, y: U): U {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {(U) -> U}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) y {U}
 
-fn main(): void {
+fn main(): unit {
   let x = foo(box, 20);
   println(x);
 }
-// CHECK: FunctionDecl @{{.*}}) main {() -> void}
+// CHECK: FunctionDecl @{{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {number}
@@ -35,6 +35,6 @@ fn main(): void {
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) box {(number) -> number}
 // CHECK-NEXT:           NumberLiteral '20' {number}
 // CHECK-NEXT:           | value: 20
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}

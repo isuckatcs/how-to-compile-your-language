@@ -7,7 +7,7 @@ fn foo(s: S): number {
   return s.x;
 }
 
-fn main(): void {
+fn main(): unit {
   foo(S);
   // CHECK: [[# @LINE - 1 ]]:7: error: expected an instance of 'S'
 }

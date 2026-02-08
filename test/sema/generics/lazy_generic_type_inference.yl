@@ -4,14 +4,14 @@ struct S<T> { x: number }
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 
-fn foo<T>(x: S<T>, n: T): void {}
-// CHECK: FunctionDecl @({{.*}}) foo {(S<T>, T) -> void}
+fn foo<T>(x: S<T>, n: T): unit {}
+// CHECK: FunctionDecl @({{.*}}) foo {(S<T>, T) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {S<T>}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {T}
 // CHECK-NEXT:   Block
 
-fn main(): void {
+fn main(): unit {
   let x = S{ x: 1 };
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {S<number>}
@@ -25,8 +25,8 @@ fn main(): void {
   // 't0' is inferred to be 'number' during the function call
 
   foo(x, 1);
-  // CHECK: CallExpr {void}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S<number>, number) -> void}
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S<number>, number) -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {S<number>}
   // CHECK-NEXT:   NumberLiteral '1' {number}
   // CHECK-NEXT:   | value: 1

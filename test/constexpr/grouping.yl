@@ -19,4 +19,4 @@ fn bar(): number {
 // CHECK-NEXT:   | value: 2.1
 // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 
-fn main(): void {}
+fn main(): unit {}

@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o multiple_return && ./multiple_return
-fn main(): void {
+fn main(): unit {
     return;
 
     let x: number = 1.0;

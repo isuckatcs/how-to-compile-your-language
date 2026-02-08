@@ -7,7 +7,7 @@ struct B<T> {
   a: A<T>
 }
 
-fn main(): void {
+fn main(): unit {
   let b = B{a: A{x: 1}};
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) b {B<number>}

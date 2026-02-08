@@ -4,8 +4,8 @@ struct S<T> { x: T }
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 
-fn box<T, U>(x: T, y: T, z: U): void {}
-// CHECK: FunctionDecl @({{.*}}) box {(T, T, U) -> void}
+fn box<T, U>(x: T, y: T, z: U): unit {}
+// CHECK: FunctionDecl @({{.*}}) box {(T, T, U) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
@@ -13,13 +13,13 @@ fn box<T, U>(x: T, y: T, z: U): void {}
 // CHECK-NEXT:   ParamDecl @({{.*}}) z {U}
 // CHECK-NEXT:   Block
 
-fn main(): void {
+fn main(): unit {
   box(S{ x: 1 }, S{ x: 2 }, main);
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) box {(S<number>, S<number>, () -> void) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) box {(S<number>, S<number>, () -> unit) -> unit}
 // CHECK-NEXT:       StructInstantiationExpr {S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
@@ -30,4 +30,4 @@ fn main(): void {
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           NumberLiteral '2' {number}
 // CHECK-NEXT:           | value: 2
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) main {() -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) main {() -> unit}

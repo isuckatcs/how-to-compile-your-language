@@ -12,7 +12,7 @@ fn foo(): S {
   return S { x: 1 };
 }
 
-fn bar(structParam: S): void {
+fn bar(structParam: S): unit {
   foo().x = 1;
   S { x: 1 }.x = 2;
 
@@ -27,5 +27,5 @@ fn bar(structParam: S): void {
   // CHECK: [[# @LINE - 1 ]]:17: error: 'structParam' cannot be mutated
 }
 
-fn main(): void {
+fn main(): unit {
 }

@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(): unit {}
+
+fn bar(): (unit) -> unit {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '() -> unit' from a function returning '(unit) -> unit'
+  return foo;
+}
+
+fn main(): unit {}
+
+// CHECK-NOT: {{.*error.*}}

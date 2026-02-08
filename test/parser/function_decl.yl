@@ -12,7 +12,7 @@ fn f(): {}
 fn f(): 1.0 {}
 
 // CHECK: [[# @LINE + 1 ]]:14: error: expected function body
-fn f(): void }
+fn f(): unit }
 
 fn main(): validCustomTypeDuringParsing {}
 // CHECK: FunctionDecl: main

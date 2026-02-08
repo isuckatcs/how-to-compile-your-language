@@ -12,6 +12,6 @@ fn bar(s: S): S {
   // CHECK: [[# @LINE - 1 ]]:13: error: cannot return 'S2' from a function returning 'S'
 }
 
-fn main(): void {
+fn main(): unit {
 }
 

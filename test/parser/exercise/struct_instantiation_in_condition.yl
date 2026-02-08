@@ -1,5 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn main(): void {
+fn main(): unit {
   if (Struct{ field: 0, field: 1 }) {}
   // CHECK: IfStmt
   // CHECK-NEXT:   GroupingExpr:

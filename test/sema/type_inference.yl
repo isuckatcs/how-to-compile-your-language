@@ -3,7 +3,7 @@ fn foo(): number {
     return 1.0;
 }
 
-fn main(): void {
+fn main(): unit {
     let x = 1.0;
     mut y = foo() + 1.0;
 

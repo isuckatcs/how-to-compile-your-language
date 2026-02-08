@@ -1,7 +1,7 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 struct S {}
 
-fn main(): void {
+fn main(): unit {
   S {} = S {};
   // CHECK: Assignment:
   // CHECK-NEXT:   StructInstantiationExpr

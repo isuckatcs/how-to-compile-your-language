@@ -1,209 +1,209 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s --match-full-lines
-fn foo(n: number): void {}
+fn foo(n: number): unit {}
 
-fn prefix(x: number): void {
+fn prefix(x: number): unit {
     foo(!1.0);
     foo(!0.0);
     foo(!x);
     foo(-x);
     foo(-1.23);
 }
-// CHECK: FunctionDecl @({{.*}}) prefix {(number) -> void}
+// CHECK: FunctionDecl @({{.*}}) prefix {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       UnaryOperator '!' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '1' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       UnaryOperator '!' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '0' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       UnaryOperator '!' {number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       UnaryOperator '-' {number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       UnaryOperator '-' {number}
 // CHECK-NEXT:       | value: -1.23
 // CHECK-NEXT:         NumberLiteral '1.23' {number}
 
-fn multiplicative(x: number): void {
+fn multiplicative(x: number): unit {
     foo(5.0 * 3.0);
     foo(20.0 / 4.0);
 
     foo(x * 1.0);
     foo(1.0 * x);
 }
-// CHECK: FunctionDecl @({{.*}}) multiplicative {(number) -> void}
+// CHECK: FunctionDecl @({{.*}}) multiplicative {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '*' {number}
 // CHECK-NEXT:       | value: 15
 // CHECK-NEXT:         NumberLiteral '5' {number}
 // CHECK-NEXT:         NumberLiteral '3' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '/' {number}
 // CHECK-NEXT:       | value: 5
 // CHECK-NEXT:         NumberLiteral '20' {number}
 // CHECK-NEXT:         NumberLiteral '4' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '*' {number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:         NumberLiteral '1' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '*' {number}
 // CHECK-NEXT:         NumberLiteral '1' {number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
 
-fn additive(): void {
+fn additive(): unit {
     foo(5.0 + 3.0);
     foo(20.0 - 4.0);
 }
-// CHECK: FunctionDecl @({{.*}}) additive {() -> void}
+// CHECK: FunctionDecl @({{.*}}) additive {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '+' {number}
 // CHECK-NEXT:       | value: 8
 // CHECK-NEXT:         NumberLiteral '5' {number}
 // CHECK-NEXT:         NumberLiteral '3' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '-' {number}
 // CHECK-NEXT:       | value: 16
 // CHECK-NEXT:         NumberLiteral '20' {number}
 // CHECK-NEXT:         NumberLiteral '4' {number}
 
-fn comparison(): void {
+fn comparison(): unit {
     foo(2.0 < 5.0);
     foo(5.0 < 2.0);
 
     foo(2.0 > 5.0);
     foo(5.0 > 2.0);
 }
-// CHECK: FunctionDecl @({{.*}}) comparison {() -> void}
+// CHECK: FunctionDecl @({{.*}}) comparison {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '<' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '5' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '<' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '5' {number}
 // CHECK-NEXT:         NumberLiteral '2' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '>' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '5' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '>' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '5' {number}
 // CHECK-NEXT:         NumberLiteral '2' {number}
 
-fn equality(): void {
+fn equality(): unit {
     foo(2.0 == 2.0);
     foo(5.0 == 3.0);
 }
-// CHECK: FunctionDecl @({{.*}}) equality {() -> void}
+// CHECK: FunctionDecl @({{.*}}) equality {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '2' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '5' {number}
 // CHECK-NEXT:         NumberLiteral '3' {number}
 
-fn conjunction(): void {
+fn conjunction(): unit {
     foo(2.0 && 3.0);
     foo(0.0 && 1.0);
     foo(1.0 && 0.0);
     foo(0.0 && 0.0);
 }
-// CHECK: FunctionDecl @({{.*}}) conjunction {() -> void}
+// CHECK: FunctionDecl @({{.*}}) conjunction {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '3' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '0' {number}
 // CHECK-NEXT:         NumberLiteral '1' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '1' {number}
 // CHECK-NEXT:         NumberLiteral '0' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '0' {number}
 // CHECK-NEXT:         NumberLiteral '0' {number}
 
-fn disjunction(): void {
+fn disjunction(): unit {
     foo(2.0 || 0.0);
     foo(0.0 || 2.0);
     foo(2.0 || 3.0);
     foo(0.0 || 0.0);
 }
-// CHECK: FunctionDecl @({{.*}}) disjunction {() -> void}
+// CHECK: FunctionDecl @({{.*}}) disjunction {() -> unit}
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '0' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '0' {number}
 // CHECK-NEXT:         NumberLiteral '2' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {number}
 // CHECK-NEXT:       | value: 1
 // CHECK-NEXT:         NumberLiteral '2' {number}
 // CHECK-NEXT:         NumberLiteral '3' {number}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(number) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {number}
 // CHECK-NEXT:       | value: 0
 // CHECK-NEXT:         NumberLiteral '0' {number}
 // CHECK-NEXT:         NumberLiteral '0' {number}
 
-fn main(): void {}
+fn main(): unit {}

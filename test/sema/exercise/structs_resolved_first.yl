@@ -3,7 +3,7 @@ fn foo(s: S): S2 {
   return S2 { x: s.x, y: s.y };
 }
 
-fn main(): void {}
+fn main(): unit {}
 
 struct S { x: number, y:number }
 struct S2 { x: number, y:number }
@@ -15,7 +15,7 @@ struct S2 { x: number, y:number }
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 // CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
-// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
 
@@ -32,5 +32,5 @@ struct S2 { x: number, y:number }
 // CHECK-NEXT:           MemberExpr @({{.*}}) y {number}
 // CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
 
-// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block

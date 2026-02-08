@@ -16,11 +16,11 @@ fn bar(): () -> number {
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> number}
 
-fn main(): void { 
+fn main(): unit { 
   let f: () -> number = bar();
   f();
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {() -> number}

@@ -27,7 +27,7 @@ fn timesNeg3(mut x: number): number {
     // CHECK-NEXT: %7 = fneg double %6
 }
 
-fn main(): void {
+fn main(): unit {
     println(negate(2.34));
     println(null(4.56));
     println(timesNeg3(4));

@@ -19,7 +19,7 @@ struct Color {
 // CHECK-NEXT:   FieldDecl @({{.*}}) b {number}
 // CHECK-NEXT:   FieldDecl @({{.*}}) p {Point}
 
-fn main(): void {
+fn main(): unit {
   let x = Color { 
     r: 0,
     g: 1,
@@ -27,7 +27,7 @@ fn main(): void {
     p: Point { x: 3 + 4, y: 4 * 9 },
   };
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {Color}

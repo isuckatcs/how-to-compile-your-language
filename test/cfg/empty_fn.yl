@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s
-fn main(): void {}
+fn main(): unit {}
 // CHECK: main:
 // CHECK-NEXT: [1 (entry)]
 // CHECK-NEXT:   preds: 

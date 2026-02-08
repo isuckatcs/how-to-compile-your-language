@@ -3,17 +3,17 @@ struct S {
   x: number
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 0 };
 
   let y = s.x;
 }
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
-// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}

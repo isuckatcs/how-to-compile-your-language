@@ -3,7 +3,7 @@ fn foo<T>(f: (T) -> T): (T) -> T {
   return f;
 }
 
-fn main(): void {
+fn main(): unit {
   // CHECK: [[# @LINE + 1 ]]:7: error: expected '(_) -> _' argument, but received 'number'
   foo(1);
 }

@@ -1,5 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn error(x: number): void {
+fn error(x: number): unit {
     
     // CHECK: [[# @LINE + 1 ]]:13: error: expected expression
     if x == {
@@ -17,7 +17,7 @@ fn error(x: number): void {
 }
 
 // CHECK: FunctionDecl: error
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block

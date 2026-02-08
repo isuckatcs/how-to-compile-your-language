@@ -1,12 +1,12 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn error() : void {
+fn error() : unit {
 
 struct S {
 // CHECK: [[# @LINE -1 ]]:1: error: expected '}' at the end of a block
     x: number,
 }
 
-fn error2() : void {
+fn error2() : unit {
     let y: number = 
 
 struct S2 {

@@ -7,7 +7,7 @@ fn foo(): S {
   return S{ x: 10 };
 }
 
-fn main(): void {
+fn main(): unit {
   let s: S;
 
   let y = S{ x: 1 }.x;

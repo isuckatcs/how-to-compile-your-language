@@ -65,7 +65,7 @@ fn R1x2(mut state: State): State {
     return state;
 }
 
-fn main(): void {
+fn main(): unit {
     let input = State { r1: 15, r2: 0, pc: 1 };
     let result = R1x2(input);
 

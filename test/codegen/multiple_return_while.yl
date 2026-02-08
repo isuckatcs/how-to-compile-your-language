@@ -41,7 +41,7 @@ fn foo(mut x: number): number {
 // CHECK-NEXT:   %7 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %7
 
-fn main(): void {
+fn main(): unit {
     println(foo(10.0));
     println(foo(11.0));
     println(foo(15.0));

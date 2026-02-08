@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-fn main(): void {}
+fn main(): unit {}
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   ret void

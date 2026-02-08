@@ -1,12 +1,12 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 
-fn foo(mut x: number): void {
+fn foo(mut x: number): unit {
 }
 // CHECK: FunctionDecl: foo
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
 
-fn main(): void {
+fn main(): unit {
 }

@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-fn main(): void {
+fn main(): unit {
     if 0.0 {}
 }
 // CHECK: main:
@@ -17,7 +17,7 @@ fn main(): void {
 // CHECK-NEXT:   preds: 1(U) 1 
 // CHECK-NEXT:   succs: 
 
-fn body(): void {
+fn body(): unit {
     if 0.0 {
         1.0;
     }
@@ -42,7 +42,7 @@ fn body(): void {
 // CHECK-NEXT:   preds: 1 2 
 // CHECK-NEXT:   succs: 
 
-fn additionalBlockAfterIf(): void {
+fn additionalBlockAfterIf(): unit {
     if 0.0 {
         1.0;
     }
@@ -74,7 +74,7 @@ fn additionalBlockAfterIf(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
-fn multipleBranches(): void {
+fn multipleBranches(): unit {
     if 8 {
         7;
     } else if 6 {
@@ -135,7 +135,7 @@ fn multipleBranches(): void {
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   1: 1
 
-fn nestedIfStatements(): void {
+fn nestedIfStatements(): unit {
     if 5 {
         if 4 {
             3;
@@ -182,7 +182,7 @@ fn nestedIfStatements(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
 
-fn orCondition(): void {
+fn orCondition(): unit {
     5.0;
     if 5.0 || 4.0 || 3.0 {
         2.0;
@@ -220,7 +220,7 @@ fn orCondition(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
 
-fn andCondition(): void {
+fn andCondition(): unit {
     5.0;
     if 5.0 && 4.0 && 3.0 {
         2.0;
@@ -258,7 +258,7 @@ fn andCondition(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
 
-fn ifWhileFirstStmt(p: number): void {
+fn ifWhileFirstStmt(p: number): unit {
     if p {
         while p {}
     } else {
@@ -300,7 +300,7 @@ fn ifWhileFirstStmt(p: number): void {
 // CHECK-NEXT:   preds: 2 4 
 // CHECK-NEXT:   succs:
 
-fn nestedInLoopConditionalOps(): void {
+fn nestedInLoopConditionalOps(): unit {
     if 8 || 8 {
         while 7 {}
     } else if 5 && 5 {

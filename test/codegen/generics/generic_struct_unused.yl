@@ -4,4 +4,4 @@ struct Unused<T> {
 }
 // CHECK-NOT: {{.*Unused.*}}
 
-fn main(): void {}
+fn main(): unit {}

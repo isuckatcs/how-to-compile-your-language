@@ -4,7 +4,7 @@ struct S {
   y: number,
 }
 
-fn foo(mut s: S): void {
+fn foo(mut s: S): unit {
   s.x = 6;
   println(s.x);
 }
@@ -14,7 +14,7 @@ fn bar(mut s: S): S {
   return s;
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 1, y: 2 };
   foo(s);
   println(bar(s).y);

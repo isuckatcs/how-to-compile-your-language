@@ -26,7 +26,7 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
   if (ctx.getType(&fn)
           ->getAs<res::FunctionType>()
           ->getReturnType()
-          ->getAs<res::BuiltinVoidType>())
+          ->getAs<res::BuiltinUnitType>())
     return false;
 
   int returnCount = 0;
@@ -59,9 +59,8 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
 
   if (exitReached || returnCount == 0) {
     report(fn.location,
-           returnCount > 0
-               ? "non-void function doesn't return a value on every path"
-               : "non-void function doesn't return a value");
+           returnCount > 0 ? "expected function to return a value on every path"
+                           : "expected function to return a value");
   }
 
   return exitReached || returnCount == 0;
@@ -226,15 +225,15 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
       loc, "println", std::vector<res::TypeParamDecl *>{}, std::vector{param});
   fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
-  return ctx.bind(fn, ctx.getFunctionType({numTy}, ctx.getBuiltinVoidType()));
+  return ctx.bind(fn, ctx.getFunctionType({numTy}, ctx.getBuiltinUnitType()));
 };
 
 res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
-    case ast::BuiltinType::Kind::Void:
-      return ctx.getBuiltinVoidType();
+    case ast::BuiltinType::Kind::Unit:
+      return ctx.getBuiltinUnitType();
     case ast::BuiltinType::Kind::Number:
       return ctx.getBuiltinNumberType();
     }
@@ -272,11 +271,6 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     std::vector<res::Type *> args;
     for (auto &&astArg : function->args) {
       varOrReturn(argTy, resolveType(ctx, *astArg));
-
-      if (argTy->getAs<res::BuiltinVoidType>())
-        return report(astArg->location,
-                      "function type with 'void' argument is not allowed");
-
       args.emplace_back(argTy);
     }
 
@@ -607,10 +601,6 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   auto *lhsTy = ctx.getType(lhs);
   auto *rhsTy = ctx.getType(rhs);
 
-  if (rhsTy->getAs<res::BuiltinVoidType>())
-    return report(rhs->location,
-                  "'void' expression is not allowed inside assignment");
-
   if (!ctx.unify(lhsTy, rhsTy))
     return report(rhs->location, "expected to assign '" + lhsTy->getName() +
                                      "' but received '" + rhsTy->getName() +
@@ -627,11 +617,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   auto *fnTy = ctx.getType(currentFunction)->getAs<res::FunctionType>();
 
   auto *retTy = fnTy->getReturnType();
-  if (retTy->getAs<res::BuiltinVoidType>() && returnStmt.expr)
-    return report(returnStmt.expr->location,
-                  "unexpected return value in 'void' function");
-
-  if (!retTy->getAs<res::BuiltinVoidType>() && !returnStmt.expr)
+  if (!retTy->getAs<res::BuiltinUnitType>() && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
 
   res::Expr *expr = nullptr;
@@ -657,11 +643,14 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 }
 
 res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
-  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr)) {
+  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr))
     return ctx.bind(ctx.create<res::NumberLiteral>(number->location,
                                                    std::stod(number->value)),
                     ctx.getBuiltinNumberType());
-  }
+
+  if (const auto *unit = dynamic_cast<const ast::UnitLiteral *>(&expr))
+    return ctx.bind(ctx.create<res::UnitLiteral>(unit->location),
+                    ctx.getBuiltinUnitType());
 
   if (const auto *callExpr = dynamic_cast<const ast::CallExpr *>(&expr))
     return resolveCallExpr(ctx, *callExpr);
@@ -762,10 +751,6 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     initializer->setConstantValue(cee->evaluate(*initializer, false));
   }
 
-  const auto *declTy = ctx.getType(decl);
-  if (declTy->getAs<res::BuiltinVoidType>())
-    return report(decl->location, "a variable of '" + declTy->getName() +
-                                      "' type is not allowed");
   return decl;
 }
 
@@ -814,13 +799,13 @@ Sema::resolveFunctionDecl(res::Context &ctx,
       error = true;
 
   res::Type *retTy = function.type ? resolveType(ctx, *function.type)
-                                   : ctx.getBuiltinVoidType();
+                                   : ctx.getBuiltinUnitType();
   error |= !retTy;
 
   if (function.identifier == "main") {
-    if (!retTy || !retTy->getAs<res::BuiltinVoidType>())
+    if (!retTy || !retTy->getAs<res::BuiltinUnitType>())
       return report(function.location,
-                    "'main' function is expected to return 'void'");
+                    "'main' function is expected to return 'unit'");
 
     if (!function.params.empty())
       return report(function.location,
@@ -846,12 +831,6 @@ Sema::resolveFunctionDecl(res::Context &ctx,
 
     if (error)
       continue;
-
-    if (type->getAs<res::BuiltinVoidType>()) {
-      report(param->location, "parameter '" + param->identifier +
-                                  "' of 'void' type is not allowed");
-      error = true;
-    }
 
     ctx.bind(resolvedParam, type);
   }
@@ -895,6 +874,7 @@ bool Sema::resolveStructFields(res::Context &ctx,
   std::set<std::string_view> identifiers;
   std::vector<res::FieldDecl *> resolvedFields;
 
+  unsigned nonUnitFields = 0;
   for (auto &&field : astDecl.fields) {
     res::Type *fieldTy = resolveType(ctx, *field->type);
     if (!fieldTy) {
@@ -903,20 +883,17 @@ bool Sema::resolveStructFields(res::Context &ctx,
     }
 
     auto loc = field->location;
-    if (fieldTy->getAs<res::BuiltinVoidType>()) {
-      report(loc, "struct field cannot be 'void'");
-      error = true;
-    }
-
     if (!identifiers.emplace(field->identifier).second) {
-      report(field->location,
-             "field '" + field->identifier + "' is already declared");
+      report(loc, "field '" + field->identifier + "' is already declared");
       error = true;
     }
 
-    auto *fieldDecl = ctx.create<res::FieldDecl>(loc, field->identifier,
-                                                 resolvedFields.size());
+    auto *fieldDecl =
+        ctx.create<res::FieldDecl>(loc, field->identifier, nonUnitFields);
     resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
+
+    if (!fieldTy->getAs<res::BuiltinUnitType>())
+      ++nonUnitFields;
   }
 
   decl.setFields(std::move(resolvedFields));

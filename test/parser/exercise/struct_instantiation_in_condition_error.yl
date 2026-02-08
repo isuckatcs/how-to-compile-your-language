@@ -1,5 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn main(): void {
+fn main(): unit {
   if Struct{ field: 0, field: 1 } {}
   // CHECK: [[# @LINE -1 ]]:19: error: expected ';' at the end of expression
   // CHECK: [[# @LINE -2 ]]:35: error: expected expression

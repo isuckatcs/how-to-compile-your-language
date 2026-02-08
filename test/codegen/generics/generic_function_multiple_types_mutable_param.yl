@@ -12,7 +12,7 @@ fn returnOne(): number {
   return 1;
 }
 
-fn main(): void {
+fn main(): unit {
   let x = box(returnOne)();
   let y = box(2);
   let z = box(S{ x: 3 }).x;
@@ -25,10 +25,10 @@ fn main(): void {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   %y = alloca double, align 8
-// CHECK-NEXT:   %z = alloca double, align 8
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %z = alloca double, align 8
 
 // CHECK-NEXT:   %0 = call ptr @_Y3boxGFRnE(ptr @returnOne)
 // CHECK-NEXT:   %1 = call double %0()

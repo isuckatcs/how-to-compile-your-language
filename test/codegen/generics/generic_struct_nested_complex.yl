@@ -13,7 +13,7 @@ fn double(n: number): number {
   return n * 2;
 }
 
-fn main(): void {
+fn main(): unit {
   let b = B{a: A{x: double}};
 
   println(b.a.x(123));

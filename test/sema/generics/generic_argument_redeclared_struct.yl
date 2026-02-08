@@ -2,6 +2,6 @@
 // CHECK: [[# @LINE + 1 ]]:13: error: redeclaration of 'T'
 struct S<T, T> { x: number }
 
-fn main(): void {}
+fn main(): unit {}
 
 // CHECK-NOT: {{.*error.*}}

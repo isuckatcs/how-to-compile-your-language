@@ -4,10 +4,10 @@ struct S<T> { x: T }
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 1 };
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S<number>}

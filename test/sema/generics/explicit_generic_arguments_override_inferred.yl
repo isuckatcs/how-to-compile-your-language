@@ -1,15 +1,15 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> { x: T }
 
-fn foo<T>(x: T): void {}
+fn foo<T>(x: T): unit {}
 
-fn main(): void {
-  // CHECK: [[# @LINE + 2 ]]:16: error: a field of type 'void' cannot be initialized with an expression of type 'number'
+fn main(): unit {
+  // CHECK: [[# @LINE + 2 ]]:16: error: a field of type 'unit' cannot be initialized with an expression of type 'number'
   // CHECK: [[# @LINE + 1 ]]:11: error: field 'x' is not initialized
-  S@<void>{ x: 1 };
+  S@<unit>{ x: 1 };
 
-  // CHECK: [[# @LINE + 1 ]]:17: error: expected 'S<void>' argument, but received 'number'
-  foo@<S<void>>(1);
+  // CHECK: [[# @LINE + 1 ]]:17: error: expected 'S<unit>' argument, but received 'number'
+  foo@<S<unit>>(1);
 }
 
 // CHECK-NOT: {{.*error.*}}

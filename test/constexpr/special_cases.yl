@@ -28,7 +28,7 @@ fn ret(): number {
     return 1.0;
 }
 
-fn call(): void {
+fn call(): unit {
     if !ret() {
         return;
     }
@@ -72,4 +72,4 @@ fn lhsUnknownRhsFalseOr(x: number): number {
 // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '0' {number}
 
-fn main(): void {}
+fn main(): unit {}

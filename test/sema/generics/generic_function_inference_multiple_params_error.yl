@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> { x: T }
 
-fn box<T, U>(x: T, y: T, z: U): void {}
+fn box<T, U>(x: T, y: T, z: U): unit {}
 
-fn main(): void {
+fn main(): unit {
   // CHECK: [[# @LINE + 1 ]]:19: error: expected 'S<number>' argument, but received 'S<S<number>>'
   box(S{ x: 1 }, S{ x: S{ x: 1 } }, main);
 }

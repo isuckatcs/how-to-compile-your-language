@@ -1,12 +1,12 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 
-// CHECK: [[# @LINE + 1 ]]:8: error: parameter 'x' of 'void' type is not allowed
-fn foo(x: void, y: customType): void {}
+// CHECK: [[# @LINE + 1 ]]:20: error: failed to resolve type 'customType'
+fn foo(x: unit, y: customType): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:22: error: failed to resolve type 'customType'
-fn bar(x: number, y: customType): void {}
+fn bar(x: number, y: customType): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:31: error: redeclaration of 'x'
-fn redeclaredParam(x: number, x: number): void {}
+fn redeclaredParam(x: number, x: number): unit {}
 
-fn main(): void {}
+fn main(): unit {}

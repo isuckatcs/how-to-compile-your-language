@@ -6,7 +6,7 @@ fn fib(n: number): number {
     return fib(n - 1) + fib(n - 2);
 }
 
-fn main(): void {
+fn main(): unit {
     mut i = 0;
     while i < 20 {
         println(fib(i));

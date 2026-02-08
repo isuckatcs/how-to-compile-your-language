@@ -7,7 +7,7 @@ struct S2 {
   x: number
 }
 
-fn main(): void {
+fn main(): unit {
   mut s = S {x: 0};
   let s2 = S2 {x: 0};
 

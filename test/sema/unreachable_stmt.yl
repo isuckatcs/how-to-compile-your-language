@@ -1,9 +1,9 @@
 // RUN: compiler %s 2>&1 | filecheck %s
-fn singleReturn(): void {
+fn singleReturn(): unit {
     return;
 }
 
-fn multipleReturns(): void {
+fn multipleReturns(): unit {
     1.0;
     return;
 
@@ -15,13 +15,13 @@ fn multipleReturns(): void {
     return;
 }
 
-fn multipleReturnsAfterEachOther(): void {
+fn multipleReturnsAfterEachOther(): unit {
     return;
     // CHECK: [[# @LINE + 1 ]]:5: warning: unreachable statement
     return;
 }
 
-fn branch(x: number): void {
+fn branch(x: number): unit {
     if 1.0 || x {
         1.0;
         return;
@@ -34,7 +34,7 @@ fn branch(x: number): void {
     3.0 + 5.0;
 }
 
-fn loop(x: number): void {
+fn loop(x: number): unit {
     while x {
         return;
         // CHECK: [[# @LINE + 1 ]]:9: warning: unreachable statement
@@ -42,4 +42,4 @@ fn loop(x: number): void {
     }
 }
 
-fn main(): void {}
+fn main(): unit {}

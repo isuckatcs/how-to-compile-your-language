@@ -3,10 +3,10 @@
 // CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of a block
 // CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of a block
 
-fn foo(): void {}
+fn foo(): unit {}
 // CHECK: FunctionDecl: foo
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 
-fn bar(): void {
-fn main(): void {
+fn bar(): unit {
+fn main(): unit {

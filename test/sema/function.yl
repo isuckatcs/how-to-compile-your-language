@@ -4,9 +4,9 @@
 fn foo(): customType {}
 
 // CHECK: [[# @LINE + 1 ]]:1: error: 'main' function is expected to take no arguments
-fn main(x:number): void {}
+fn main(x:number): unit {}
 
-// CHECK: [[# @LINE + 1 ]]:1: error: 'main' function is expected to return 'void'
+// CHECK: [[# @LINE + 1 ]]:1: error: 'main' function is expected to return 'unit'
 fn main(): number {}
 
 // CHECK-NOT: {{.*error.*}}

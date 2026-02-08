@@ -1,7 +1,7 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn bar(): number { return 1.0; }
 
-fn main(): void {
+fn main(): unit {
     // CHECK: [[# @LINE + 1 ]]:11: error: expected ';' at the end of assignment
     a = b = 4.0;
 

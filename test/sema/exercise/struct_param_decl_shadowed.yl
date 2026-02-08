@@ -3,7 +3,7 @@ struct S {
   x: number
 }
 
-fn foo(S: S): void {
+fn foo(S: S): unit {
   let x = S.x;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
@@ -11,5 +11,5 @@ fn foo(S: S): void {
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
 }
 
-fn main(): void {
+fn main(): unit {
 }

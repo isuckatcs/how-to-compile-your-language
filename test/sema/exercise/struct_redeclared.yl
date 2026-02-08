@@ -3,7 +3,7 @@ struct S {
   x: number,
 }
 
-fn S(): void {
+fn S(): unit {
 }
 
 struct S {
@@ -11,5 +11,5 @@ struct S {
   x: number,
 }
 
-fn main(): void {
+fn main(): unit {
 }

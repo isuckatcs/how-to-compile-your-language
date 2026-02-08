@@ -7,7 +7,7 @@ fn boxNum(x: number): number {
   return x;
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S{x: boxNum};
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
@@ -17,8 +17,8 @@ fn main(): void {
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) boxNum {(number) -> number}
 
   println(s.x(10));
-  // CHECK-NEXT: CallExpr {void}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) println {(number) -> void}
+  // CHECK-NEXT: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:   CallExpr {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {(number) -> number}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S<number>}

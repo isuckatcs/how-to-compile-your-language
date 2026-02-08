@@ -1,13 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S {}
 
-fn main(): void {
+fn main(): unit {
   let S = 1;
   let x: S;
 
   println(S);
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) S {number}
@@ -15,7 +15,7 @@ fn main(): void {
 // CHECK-NEXT:         | value: 1
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {S}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> void}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {number}
 // CHECK-NEXT:       | value: 1

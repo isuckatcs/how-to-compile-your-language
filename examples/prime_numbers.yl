@@ -30,7 +30,7 @@ fn isPrime(x: number): number {
     return 1;
 }
 
-fn main(): void {
+fn main(): unit {
     mut n = 1;
     mut cnt = 0;
 

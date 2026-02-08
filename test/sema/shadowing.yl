@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s --implicit-check-not error
 // CHECK: {{.*}}
-fn foo(x: number): void {
+fn foo(x: number): unit {
     let x: number = 1.0;
 
     if 0.0 {
@@ -28,6 +28,6 @@ fn foo(x: number): void {
     }
 }
 
-fn main(): void {
+fn main(): unit {
     foo(0.0);
 }

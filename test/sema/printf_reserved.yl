@@ -5,6 +5,6 @@ fn printf(): number {
   return 12345;
 }
 
-fn main(): void {
+fn main(): unit {
   println(printf());
 }

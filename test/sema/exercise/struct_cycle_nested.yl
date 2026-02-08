@@ -16,4 +16,4 @@ struct S4 {
   nested: S2
 }
 
-fn main(): void {}
+fn main(): unit {}

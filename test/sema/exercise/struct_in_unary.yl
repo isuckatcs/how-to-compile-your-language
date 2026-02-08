@@ -3,7 +3,7 @@ struct S {
   x: number,
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S { x: 1 };
 
   !s;

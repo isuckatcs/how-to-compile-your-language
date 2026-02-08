@@ -1,28 +1,28 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 // CHECK: [[# @LINE + 1 ]]:6: error: expected parameter declaration
-fn f(: void {}
+fn f(: unit {}
 
 // CHECK: [[# @LINE + 1 ]]:7: error: expected ':'
-fn f(x): void {}
+fn f(x): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:8: error: expected type specifier
-fn f(x:): void {}
+fn f(x:): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:9: error: expected type specifier
-fn f(x: 1.0): void {}
+fn f(x: 1.0): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:15: error: expected ')'
-fn f(x: number: void {}
+fn f(x: number: unit {}
 
 // CHECK: [[# @LINE + 1 ]]:17: error: expected parameter declaration
-fn f(x: number, 2): void {}
+fn f(x: number, 2): unit {}
 
 // CHECK: [[# @LINE + 1 ]]:6: error: expected parameter declaration
-fn f(,): void {}
+fn f(,): unit {}
 
-fn trailingComma(x:number,): void {}
+fn trailingComma(x:number,): unit {}
 // CHECK: FunctionDecl: trailingComma
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
@@ -30,22 +30,22 @@ fn trailingComma(x:number,): void {}
 fn trailingComma2(
     x:number, 
     y:number,
-): void {}
+): unit {}
 // CHECK: FunctionDecl: trailingComma2
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   ParamDecl: y
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
 
-fn f(x: number, y: number): void {}
+fn f(x: number, y: number): unit {}
 // CHECK: FunctionDecl: f
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   ParamDecl: x
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   ParamDecl: y
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block
 
-fn main(): void {}
+fn main(): unit {}

@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s
-// CHECK: [[# @LINE + 1 ]]:1: error: 'main' function is expected to return 'void'
+// CHECK: [[# @LINE + 1 ]]:1: error: 'main' function is expected to return 'unit'
 fn main(): number {}
 
 // CHECK-NOT: {{.*error.*}}

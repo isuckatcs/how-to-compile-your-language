@@ -1,5 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
-fn main(): void {
+fn main(): unit {
     let r = s.;
     // CHECK: [[# @LINE -1 ]]:15: error: expected identifier
 

@@ -1,5 +1,5 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-fn main(): void {
+fn main(): unit {
     3.0 || 2.0;
     1.0;
 }
@@ -20,7 +20,7 @@ fn main(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
 
-fn and(): void {
+fn and(): unit {
     3.0 && 2.0;
     1.0;
 }
@@ -41,7 +41,7 @@ fn and(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
-fn multipleOr(): void {
+fn multipleOr(): unit {
     4.0 || 3.0 || 2.0;
     1.0;
 }
@@ -64,7 +64,7 @@ fn multipleOr(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
-fn multipleAnd(): void {
+fn multipleAnd(): unit {
     4.0 && 3.0 && 2.0;
     1.0;
 }
@@ -87,7 +87,7 @@ fn multipleAnd(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
-fn andOr(): void {
+fn andOr(): unit {
     4.0 && 3.0 || 2.0;
     1.0;
 }
@@ -110,7 +110,7 @@ fn andOr(): void {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
-fn orAnd(): void {
+fn orAnd(): unit {
     4.0 || 3.0 && 2.0;
     1.0;
 }

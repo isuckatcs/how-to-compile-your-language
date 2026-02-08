@@ -7,11 +7,11 @@ struct S { x: T, y: S }
 // CHECK: [[# @LINE - 2 ]]:15: error: failed to resolve type 'T'
 // CHECK: [[# @LINE - 3 ]]:21: error: expected '1' type argument but received '0'
 
-fn foo(x: S, x: S): void {}
+fn foo(x: S, x: S): unit {}
 // CHECK: [[# @LINE - 1 ]]:11: error: expected '1' type argument but received '0'
 // CHECK: [[# @LINE - 2 ]]:14: error: redeclaration of 'x'
 // CHECK: [[# @LINE - 3 ]]:17: error: expected '1' type argument but received '0'
 
 fn main(): invalid {}
 // CHECK: [[# @LINE - 1 ]]:12: error: failed to resolve type 'invalid'
-// CHECK: [[# @LINE - 2 ]]:1: error: 'main' function is expected to return 'void'
+// CHECK: [[# @LINE - 2 ]]:1: error: 'main' function is expected to return 'unit'

@@ -11,7 +11,7 @@ fn genericStructParam<T>(mut s: S<T>, x: T): S<T> {
   return s;
 }
 
-fn main(): void {
+fn main(): unit {
   let s = S{x: 12};
   println(genericStructParam(s, 11).x);
   println(s.x);

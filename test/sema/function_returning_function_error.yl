@@ -8,9 +8,9 @@ fn bar(): (number) -> number {
   return foo;
 }
 
-fn main(): void { 
-  // CHECK: [[# @LINE + 1 ]]:26: error: an expression of type '(number) -> number' cannot be used to initialize a variable of type '() -> void'
-  let f: () -> void = bar();
+fn main(): unit { 
+  // CHECK: [[# @LINE + 1 ]]:26: error: an expression of type '(number) -> number' cannot be used to initialize a variable of type '() -> unit'
+  let f: () -> unit = bar();
 }
 
 // CHECK-NOT: {{.*error.*}}

@@ -15,7 +15,7 @@ fn foo(x: number): number {
     return y - 10.0;
 }
 
-fn main(): void {
+fn main(): unit {
     println(foo(6.0));
     println(foo(0.0 - 6.0));
     println(foo(1.0));

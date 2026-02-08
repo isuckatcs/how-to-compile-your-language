@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o while_empty_exit_ret && ./while_empty_exit_ret | grep -Plzx '2\n'
-fn foo(mut x: number): void {
+fn foo(mut x: number): unit {
     mut i: number = x;
 
     while i > 1.0 {
@@ -9,7 +9,7 @@ fn foo(mut x: number): void {
     }
 }
 
-fn main(): void {
+fn main(): unit {
     foo(2.0);
 }
 // CHECK: define void @foo(double %x) {

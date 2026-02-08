@@ -1,7 +1,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o parameter_mutability && ./parameter_mutability | grep -Plzx '3\n2\n1\n1\n'
 
-fn mutableParam(mut n: number): void {
+fn mutableParam(mut n: number): unit {
   n = 3;
   println(n);
 }
@@ -15,7 +15,7 @@ fn mutableParam(mut n: number): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn immutableParam(n: number): void {
+fn immutableParam(n: number): unit {
   println(n);
 }
 // CHECK: define void @immutableParam(double %n) {
@@ -24,7 +24,7 @@ fn immutableParam(n: number): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
   mut n = 2;
   mutableParam(n);
 

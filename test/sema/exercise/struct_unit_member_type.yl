@@ -1,0 +1,8 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  nested: unit,
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) nested {unit}
+
+fn main(): unit {}

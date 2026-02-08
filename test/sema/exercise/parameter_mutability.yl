@@ -1,13 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 
-fn mutableParam(mut n: number): void {
+fn mutableParam(mut n: number): unit {
   n = 1;
 }
 
-fn immutableParam(n: number): void {
+fn immutableParam(n: number): unit {
   n = 1;
   // CHECK: [[# @LINE - 1 ]]:5: error: 'n' cannot be mutated
 }
 
-fn main(): void {
+fn main(): unit {
 }

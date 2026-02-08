@@ -7,9 +7,9 @@ struct S2 {
   x: number
 }
 
-fn foo(s: S): void {}
+fn foo(s: S): unit {}
 
-fn main(): void {
+fn main(): unit {
   foo(S {x: 0});
   foo(S2 {x: 0});
   // CHECK: [[# @LINE - 1 ]]:10: error: expected 'S' argument, but received 'S2'

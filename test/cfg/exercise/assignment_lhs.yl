@@ -4,7 +4,7 @@ struct S {
   y: number
 }
 
-fn main(): void {
+fn main(): unit {
   mut s = S { y: 2, x: 1 };
 
   s.x = 0;

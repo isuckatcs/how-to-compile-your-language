@@ -14,7 +14,7 @@ fn lhs(): S {
   return S { x: 2 };
 }
 
-fn main(): void {
+fn main(): unit {
   lhs().x = rhs();
 }
 // CHECK: define void @__builtin_main() {

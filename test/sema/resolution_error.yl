@@ -2,4 +2,4 @@
 // CHECK: 1
 fn foo(): custom {}
 
-fn main(): void {}
+fn main(): unit {}

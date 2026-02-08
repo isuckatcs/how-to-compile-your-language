@@ -7,4 +7,4 @@ fn box<T>(x: T): T {
   // CHECK: [[# @LINE - 1 ]]:10: error: expected value, found type parameter
 }
 
-fn main(): void {}
+fn main(): unit {}

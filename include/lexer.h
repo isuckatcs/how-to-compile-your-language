@@ -30,8 +30,7 @@ enum class TokenKind : char {
 
   KwFn,
   KwNumber,
-  // FIXME: Replace void with unit for better generic support?
-  KwVoid,
+  KwUnit,
   KwIf,
   KwElse,
   KwLet,
@@ -60,7 +59,7 @@ enum class TokenKind : char {
 std::string_view getOpStr(TokenKind op);
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"void", TokenKind::KwVoid},     {"fn", TokenKind::KwFn},
+    {"unit", TokenKind::KwUnit},     {"fn", TokenKind::KwFn},
     {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
     {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
     {"mut", TokenKind::KwMut},       {"while", TokenKind::KwWhile},

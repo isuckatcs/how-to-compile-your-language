@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-fn foo(mut x: number): void {
+fn foo(mut x: number): unit {
     if x == 1 || x == 2 && x > 3 {
 
     }
@@ -47,4 +47,4 @@ fn foo(mut x: number): void {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn main(): void {}
+fn main(): unit {}

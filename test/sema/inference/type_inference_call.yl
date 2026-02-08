@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S { x: number }
 
-fn bar(x: number): void {}
+fn bar(x: number): unit {}
 
 fn foo(): number {
   let x;
@@ -12,6 +12,6 @@ fn foo(): number {
   x = S { x: 1 };
 }
 
-fn main(): void {}
+fn main(): unit {}
 
 // CHECK-NOT: {{.*error.*}}

@@ -36,4 +36,4 @@ fn err2(): number {
 // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '10' {number}
 
-fn main(): void {}
+fn main(): unit {}

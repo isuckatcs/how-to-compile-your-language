@@ -2,6 +2,6 @@
 // CHECK: [[# @LINE + 1 ]]:1: error: struct 'S' contains itself
 struct S<T> { x: S<T> }
 
-fn main(): void {}
+fn main(): unit {}
 
 // CHECK-NOT: {{.*error.*}}

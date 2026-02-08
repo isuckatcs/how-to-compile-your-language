@@ -5,7 +5,7 @@ struct S {
   y: number,
 }
 
-fn foo(s: S): void {
+fn foo(s: S): unit {
   println(s.x);
   println(s.y);
 }
@@ -32,15 +32,15 @@ fn bar(mut s: S): S {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-fn main(): void {
+fn main(): unit {
   mut s = S { x: 1, y: 2 };
   foo(s);
   s = bar(s);
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %s = alloca { double, double }, align 8
 // CHECK-NEXT:   %S.tmp = alloca { double, double }, align 8
+// CHECK-NEXT:   %s = alloca { double, double }, align 8
 
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double, double }, align 8
 // CHECK-NEXT:   %struct.arg.tmp = alloca { double, double }, align 8

@@ -6,7 +6,7 @@ fn foo(): S {
   return S { x: 1 };
 }
 
-fn main(): void {
+fn main(): unit {
   mut s = S { x: 0 };
   mut s2 = S2 { x: 0 };
 

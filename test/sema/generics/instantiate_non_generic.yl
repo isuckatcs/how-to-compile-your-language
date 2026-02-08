@@ -1,12 +1,12 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S { x: number }
 
-fn main(): void {
+fn main(): unit {
   // CHECK: [[# @LINE + 1 ]]:4: error: 'S' is not a generic
   S@<number>{ x: 1 };
 
   // CHECK: [[# @LINE + 1 ]]:7: error: 'main' is not a generic
-  main@<void>();
+  main@<unit>();
 }
 
 // CHECK-NOT: {{.*error.*}}

@@ -8,8 +8,8 @@ namespace yl {
 namespace ast {
 void BuiltinType::dump(size_t level) const {
   std::cerr << indent(level) << "BuiltinType: ";
-  if (kind == Kind::Void)
-    std::cerr << "void";
+  if (kind == Kind::Unit)
+    std::cerr << "unit";
   else if (kind == Kind::Number)
     std::cerr << "number";
 
@@ -77,6 +77,10 @@ void StructInstantiationExpr::dump(size_t level) const {
 
 void NumberLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+}
+
+void UnitLiteral::dump(size_t level) const {
+  std::cerr << indent(level) << "UnitLiteral\n";
 }
 
 void DeclRefExpr::dump(size_t level) const {

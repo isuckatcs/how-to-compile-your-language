@@ -103,6 +103,11 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
     std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
+void UnitLiteral::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "UnitLiteral {" << ctx.getType(this)->getName()
+            << '}' << '\n';
+}
+
 void DeclRefExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
             << decl->identifier;

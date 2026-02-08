@@ -17,25 +17,25 @@ struct Box<T{}
 struct Box<T,{}
 // CHECK: [[# @LINE - 1 ]]:14: error: expected type parameter declaration
 
-fn box<T>(): void {}
+fn box<T>(): unit {}
 
-fn box2<T,>(): void {}
+fn box2<T,>(): unit {}
 
-fn box3<T,U>(): void {}
+fn box3<T,U>(): unit {}
 
-fn box<>(): void {}
+fn box<>(): unit {}
 // CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
 
-fn box<(): void {}
+fn box<(): unit {}
 // CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
 
-fn box<T(): void {}
+fn box<T(): unit {}
 // CHECK: [[# @LINE - 1 ]]:9: error: expected ',' or '>'
 
-fn box<T,(): void {}
+fn box<T,(): unit {}
 // CHECK: [[# @LINE - 1 ]]:10: error: expected type parameter declaration
 
-fn main(): void {
+fn main(): unit {
     Box@{};
     // CHECK: [[# @LINE - 1 ]]:9: error: expected '<'
 
@@ -78,19 +78,19 @@ fn main(): void {
 // CHECK-NEXT:   TypeParamDecl: U
 // CHECK-NEXT: FunctionDecl: box
 // CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT: FunctionDecl: box2
 // CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT: FunctionDecl: box3
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   TypeParamDecl: U
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: void
+// CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     StructInstantiationExpr
 // CHECK-NEXT:       DeclRefExpr: Box

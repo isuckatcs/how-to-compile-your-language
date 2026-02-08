@@ -4,4 +4,4 @@
 // CHECK-NEXT: source_filename = "{{.*}}/module_setup.yl"
 // CHECK-NEXT: target triple = "{{.*}}"
 
-fn main(): void {}
+fn main(): unit {}

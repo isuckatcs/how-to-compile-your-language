@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn main(): void {
+fn main(): unit {
     let x: number;
     
     if 1.0 {
@@ -11,7 +11,7 @@ fn main(): void {
     x;
 }
 
-fn modifyImmutable(): void {
+fn modifyImmutable(): unit {
     let x: number = 1.0;
     
     if 1.0 {
@@ -26,7 +26,7 @@ fn modifyImmutable(): void {
     x = 3.0;
 }
 
-fn uninitOneBranch(): void {
+fn uninitOneBranch(): unit {
     let x: number;
     
     if 1.0 {
@@ -40,7 +40,7 @@ fn uninitOneBranch(): void {
     x;
 }
 
-fn initEveryBranch(): void {
+fn initEveryBranch(): unit {
     mut x: number;
     
     if 1.0 {
@@ -53,7 +53,7 @@ fn initEveryBranch(): void {
     x;
 }
 
-fn initConditionVar(): void {
+fn initConditionVar(): unit {
     mut x: number;
     
     // CHECK: [[# @LINE + 1 ]]:15: error: 'x' is not initialized
@@ -70,7 +70,7 @@ fn initConditionVar(): void {
     x;
 }
 
-fn loop(): void {
+fn loop(): unit {
     let x: number;
     mut y: number;
     
@@ -88,7 +88,7 @@ fn loop(): void {
     y;
 }
 
-fn shadowInitialization(): void {
+fn shadowInitialization(): unit {
     let x: number;
     
     if 1.0 {
@@ -102,7 +102,7 @@ fn shadowInitialization(): void {
     x;
 }
 
-fn shadowInitialized(): void {
+fn shadowInitialized(): unit {
     let x: number;
     
     if 1.0 {
@@ -117,7 +117,7 @@ fn shadowInitialized(): void {
     x;
 }
 
-fn nestedInLoop(param: number): void {
+fn nestedInLoop(param: number): unit {
     mut x: number;
 
     if param {

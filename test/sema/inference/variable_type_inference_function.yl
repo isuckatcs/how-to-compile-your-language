@@ -1,21 +1,21 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo(): void {}
+fn foo(): unit {}
 
-fn main(): void { 
+fn main(): unit { 
   let f;
 
   f = foo;
 
   f();
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> void}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
-// CHECK-NEXT:       VarDecl @({{.*}}) f {() -> void}
+// CHECK-NEXT:       VarDecl @({{.*}}) f {() -> unit}
 // CHECK-NEXT:     Assignment
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> void}
-// CHECK-NEXT:     CallExpr {void}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> void}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> unit}
 
 // CHECK-NOT: {{.*error.*}}
