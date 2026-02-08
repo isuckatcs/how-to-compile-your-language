@@ -313,11 +313,6 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
-  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
-  llvm::Function *calledFunction = nullptr;
-  if (callee->hasName())
-    calledFunction = module.getFunction(callee->getName());
-
   llvm::Type *retTy = generateType(resolvedTree->getType(&call));
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
@@ -334,8 +329,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     if (argTy->isVoidTy())
       continue;
 
-    if (calledFunction &&
-        calledFunction->getArg(argIdx + isReturningStruct)->hasByValAttr()) {
+    if (argTy->isStructTy()) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", argTy);
       storeValue(argVal, tmpVar, argTy);
       argVal = tmpVar;
@@ -345,12 +339,13 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  const auto *resFnTy =
+  const auto *fnTy =
       resolvedTree->getType(call.callee)->getAs<res::FunctionType>();
+
+  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   llvm::CallInst *callInst =
-      builder.CreateCall(generateFunctionType(resFnTy), callee, args);
-  callInst->setAttributes(calledFunction ? calledFunction->getAttributes()
-                                         : constructAttrList(nullptr, resFnTy));
+      builder.CreateCall(generateFunctionType(fnTy), callee, args);
+  callInst->setAttributes(constructAttrList(fnTy));
 
   return isReturningStruct ? retVal : callInst;
 }
@@ -521,8 +516,7 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
-llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *decl,
-                                               const res::FunctionType *ty) {
+llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
   std::vector<llvm::AttributeSet> argsAttrSets;
 
   if (ty->getReturnType()->getAs<res::StructType>()) {
@@ -533,19 +527,15 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionDecl *decl,
 
   size_t i = 0;
   for (auto &&argTy : ty->getArgs()) {
-    if (argTy->getAs<res::BuiltinUnitType>()) {
+    llvm::Type *llvmTy = generateType(argTy);
+    if (llvmTy->isVoidTy()) {
       ++i;
       continue;
     }
 
     llvm::AttrBuilder paramAttrs(context);
-
-    if (argTy->getAs<res::StructType>()) {
-      if (decl && decl->params[i]->isMutable)
-        paramAttrs.addByValAttr(generateType(argTy));
-      else
-        paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
-    }
+    if (llvmTy->isStructTy())
+      paramAttrs.addByValAttr(llvmTy);
 
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
     ++i;
@@ -679,7 +669,7 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                           name, module);
-  function->setAttributes(constructAttrList(&fn, type));
+  function->setAttributes(constructAttrList(type));
 
   pendingFunctions.push({typeArgs, name, &fn});
   return function;

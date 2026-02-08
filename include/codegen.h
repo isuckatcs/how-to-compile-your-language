@@ -80,8 +80,7 @@ class Codegen {
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
                                           llvm::Type *type);
-  llvm::AttributeList constructAttrList(const res::FunctionDecl *decl,
-                                        const res::FunctionType *ty);
+  llvm::AttributeList constructAttrList(const res::FunctionType *ty);
 
   void generateBlock(const res::Block &block);
   llvm::Function *

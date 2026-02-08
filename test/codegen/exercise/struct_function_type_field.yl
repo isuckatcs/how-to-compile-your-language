@@ -1,0 +1,64 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o struct_function_type_field && ./struct_function_type_field | grep -Plzx '123\n456\n123\n123\n'
+struct N {
+  n: number
+}
+
+struct F {
+  f: (N) -> N,
+}
+
+fn foo(mut n: N): N {
+  n.n = 456;
+  return n;
+}
+// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %n, i32 0, i32 0
+// CHECK-NEXT:   store double 4.560000e+02, ptr %0, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %n, i64 8, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn bar(n: N): N {
+  return n;
+}
+// CHECK: define void @bar(ptr sret({ double }) %ret, ptr byval({ double }) %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %n, i64 8, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let n = N { n: 123 };
+  let f = F { f: foo };
+  let f2 = F { f: bar };
+
+  println(n.n);
+
+  println(f.f(n).n);
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %n, i64 8, i1 false)
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { ptr }, ptr %f, i32 0, i32 0
+  // CHECK-NEXT: %6 = load ptr, ptr %5, align 8
+  // CHECK-NEXT: call void %6(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
+  // CHECK-NEXT: %7 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
+  // CHECK-NEXT: %8 = load double, ptr %7, align 8
+  // CHECK-NEXT: call void @println(double %8)
+
+  println(f2.f(n).n);
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp3, ptr align 8 %n, i64 8, i1 false)
+  // CHECK-NEXT: %9 = getelementptr inbounds nuw { ptr }, ptr %f2, i32 0, i32 0
+  // CHECK-NEXT: %10 = load ptr, ptr %9, align 8
+  // CHECK-NEXT: call void %10(ptr sret({ double }) %struct.ret.tmp2, ptr byval({ double }) %struct.arg.tmp3)
+  // CHECK-NEXT: %11 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp2, i32 0, i32 0
+  // CHECK-NEXT: %12 = load double, ptr %11, align 8
+  // CHECK-NEXT: call void @println(double %12)
+
+  println(n.n);
+}

@@ -8,7 +8,7 @@ struct S {
 fn foo(s: S, y: number): number {
   return s.x * -y;
 }
-// CHECK: define double @foo(ptr readonly %s, double %y) {
+// CHECK: define double @foo(ptr byval({ double, double }) %s, double %y) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 0

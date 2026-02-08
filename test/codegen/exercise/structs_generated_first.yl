@@ -4,7 +4,7 @@
 fn foo(s: S): S2 {
   return S2 { x: s.x, y: s.y };
 }
-// CHECK: define void @foo(ptr sret({ double, double }) %ret, ptr readonly %s) {
+// CHECK: define void @foo(ptr sret({ double, double }) %ret, ptr byval({ double, double }) %s) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %S2.tmp = alloca { double, double }, align 8
 

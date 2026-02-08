@@ -27,6 +27,7 @@ fn main(): unit {
 // CHECK-NEXT:   %y = alloca double, align 8
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %z = alloca double, align 8
 
 // CHECK-NEXT:   %0 = call ptr @_Y3boxGFRnE(ptr @returnOne)
@@ -38,7 +39,8 @@ fn main(): unit {
 
 // CHECK-NEXT:   %3 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 3.000000e+00, ptr %3, align 8
-// CHECK-NEXT:   call void @_Y3boxGS1SE(ptr sret({ double }) %struct.ret.tmp, ptr readonly %S.tmp)
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   call void @_Y3boxGS1SE(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
 // CHECK-NEXT:   %4 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %5 = load double, ptr %4, align 8
 // CHECK-NEXT:   store double %5, ptr %z, align 8
@@ -74,7 +76,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3boxGS1SE(ptr sret({ double }) %ret, ptr readonly %x) {
+// CHECK: define void @_Y3boxGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 8, i1 false)
 // CHECK-NEXT:   br label %return
