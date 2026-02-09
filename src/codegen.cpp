@@ -257,25 +257,33 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
 llvm::Value *
 Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  std::vector<std::pair<llvm::Value *, llvm::Type *>> fieldInits;
+  std::map<const res::FieldDecl *, std::pair<llvm::Value *, llvm::Type *>>
+      fieldInits;
 
   for (auto &&initStmt : sie.fieldInitializers) {
     llvm::Value *init = generateExprAndLoadValue(*initStmt->initializer);
     llvm::Type *ty = generateType(resolvedTree->getType(initStmt->initializer));
+
     if (!ty->isVoidTy())
-      fieldInits.emplace_back(init, ty);
+      fieldInits[initStmt->field] = {init, ty};
   }
 
   if (fieldInits.empty())
     return nullptr;
 
-  llvm::Type *type = generateType(resolvedTree->getType(sie.structDecl));
+  const auto *structTy =
+      resolvedTree->getType(sie.structDecl)->getAs<res::StructType>();
+  llvm::Type *type = generateType(structTy);
   llvm::Value *tmp =
       allocateStackVariable(sie.structDecl->decl->identifier + ".tmp", type);
 
-  for (unsigned i = 0; i < fieldInits.size(); ++i) {
-    auto [init, ty] = fieldInits[i];
-    llvm::Value *field = builder.CreateStructGEP(type, tmp, i);
+  unsigned idx = 0;
+  for (auto &&fieldDecl : structTy->getDecl()->fields) {
+    if (!fieldInits.count(fieldDecl))
+      continue;
+
+    const auto &[init, ty] = fieldInits[fieldDecl];
+    llvm::Value *field = builder.CreateStructGEP(type, tmp, idx++);
     storeValue(init, field, ty);
   }
 
