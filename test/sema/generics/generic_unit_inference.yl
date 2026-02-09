@@ -1,0 +1,38 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {
+  x: T
+}
+
+fn foo<T>(x: T): T {
+  return x;
+}
+
+fn bar<T>(f: (T) -> T): (T) -> T {
+  return f;
+}
+
+fn main() {
+  let f = foo(unit);
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) f {unit}
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(unit) -> unit}
+  // CHECK-NEXT:       UnitLiteral {unit}
+
+  let s = S {x: unit};
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) s {S<unit>}
+  // CHECK-NEXT:     StructInstantiationExpr {S<unit>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<unit>}
+  // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:         UnitLiteral {unit}
+
+  let b = bar(foo@<unit>)(unit);
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) b {unit}
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       CallExpr {(unit) -> unit}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {((unit) -> unit) -> (unit) -> unit}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(unit) -> unit}
+  // CHECK-NEXT:       UnitLiteral {unit}
+}

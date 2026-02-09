@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo<T>(x: (T) -> T) {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected '(_) -> _' argument, but received '() -> unit'
+  foo(main);
+
+  // CHECK: [[# @LINE + 1 ]]:14: error: expected '(unit) -> unit' argument, but received '() -> unit'
+  foo@<unit>(main);
+}

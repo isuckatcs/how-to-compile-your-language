@@ -1,0 +1,32 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo() {
+  return unit;
+}
+// CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       UnitLiteral {unit}
+
+fn bar(x: number) {
+  if x > 2 {
+    return unit;
+  }
+}
+// CHECK: FunctionDecl @({{.*}}) bar {(number) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     IfStmt
+// CHECK-NEXT:       BinaryOperator '>' {number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:         NumberLiteral '2' {number}
+// CHECK-NEXT:       Block
+// CHECK-NEXT:         ReturnStmt
+// CHECK-NEXT:           UnitLiteral {unit}
+
+fn baz(): unit {}
+// CHECK: FunctionDecl @({{.*}}) baz {() -> unit}
+// CHECK-NEXT:   Block
+
+fn main() {}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
