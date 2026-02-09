@@ -1,0 +1,9 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+
+fn main() {
+  return unit;
+}
+// CHECK: FunctionDecl: main
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     ReturnStmt
+// CHECK-NEXT:       UnitLiteral
