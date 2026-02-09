@@ -1,0 +1,59 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o unit_member_expr && ./unit_member_expr | grep -Plzxe '0\n1\n2\n3\n4\n5\n'
+struct S {
+  x: unit,
+  y: (number, number) -> S2,
+  z: unit
+}
+
+struct S2 {
+  x: unit,
+  y: unit
+}
+
+fn foo(x: number, y: number): S2 {
+  return S2 { x: println(x), y: println(y) };
+}
+// CHECK: define void @foo(double %x, double %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double %x)
+// CHECK-NEXT:   call void @println(double %y)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S { 
+    x: println(0), 
+    y: foo, 
+    z: println(1) 
+  };
+
+  let x = s.x;
+  let y = s.y(2, 3).x;
+  let z = s.y(4, 5).y;
+  let w = s.z;
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S.tmp = alloca { ptr }, align 8
+// CHECK-NEXT:   %s = alloca { ptr }, align 8
+
+// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store ptr @foo, ptr %0, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 8, i1 false)
+
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { ptr }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %2 = load ptr, ptr %1, align 8
+// CHECK-NEXT:   call void %2(double 2.000000e+00, double 3.000000e+00)
+
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { ptr }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %4 = load ptr, ptr %3, align 8
+// CHECK-NEXT:   call void %4(double 4.000000e+00, double 5.000000e+00)
+
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

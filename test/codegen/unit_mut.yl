@@ -1,0 +1,18 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o unit_mut && ./unit_mut | ( ! grep ^ )
+fn foo(mut x: unit) {
+  x = x;
+}
+// CHECK: define void @foo() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  foo(unit);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @foo()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

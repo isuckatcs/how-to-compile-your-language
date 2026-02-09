@@ -1,0 +1,36 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o empty_struct && ./empty_struct | grep -Plzx '123\n456\n789\n'
+struct S {
+  x: unit,
+  y: unit,
+  z: unit
+}
+
+fn foo(s: S): S {
+  return s;
+}
+// CHECK: define void @foo() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S { x: println(123), y: println(456), z: println(789) };
+
+  let s2 = foo(s);
+
+  let x = s2.x;
+  let y = s2.y;
+  let z = s2.z;
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 4.560000e+02)
+// CHECK-NEXT:   call void @println(double 7.890000e+02)
+// CHECK-NEXT:   call void @foo()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

@@ -199,19 +199,18 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
 
 llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   const res::VarDecl *decl = stmt.varDecl;
-  const res::Expr *initExpr = decl->initializer;
+  llvm::Type *declTy = generateType(resolvedTree->getType(decl));
 
+  const res::Expr *initExpr = decl->initializer;
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
-  if (resolvedTree->getType(decl)->getAs<res::BuiltinUnitType>())
+  if (declTy->isVoidTy())
     return nullptr;
 
-  llvm::AllocaInst *var = allocateStackVariable(
-      decl->identifier, generateType(resolvedTree->getType(decl)));
-
+  llvm::AllocaInst *var = allocateStackVariable(decl->identifier, declTy);
   if (initExpr)
-    storeValue(initVal, var, generateType(resolvedTree->getType(initExpr)));
+    storeValue(initVal, var, declTy);
 
   declarations[decl] = var;
   return nullptr;
@@ -237,7 +236,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
   llvm::Type *baseTy = generateType(resolvedTree->getType(memberExpr.base));
 
-  if (resolvedTree->getType(&memberExpr)->getAs<res::BuiltinUnitType>())
+  if (generateType(resolvedTree->getType(&memberExpr))->isVoidTy())
     return nullptr;
 
   return builder.CreateStructGEP(baseTy, base, memberExpr.field->nonUnitIndex);
@@ -245,24 +244,26 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
 llvm::Value *
 Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  llvm::Type *type = generateType(resolvedTree->getType(sie.structDecl));
-  if (type->isVoidTy())
-    return nullptr;
-
-  llvm::Value *tmp =
-      allocateStackVariable(sie.structDecl->decl->identifier + ".tmp", type);
+  std::vector<std::pair<llvm::Value *, llvm::Type *>> fieldInits;
 
   for (auto &&initStmt : sie.fieldInitializers) {
     llvm::Value *init = generateExprAndLoadValue(*initStmt->initializer);
-    llvm::Type *initTy =
-        generateType(resolvedTree->getType(initStmt->initializer));
+    llvm::Type *ty = generateType(resolvedTree->getType(initStmt->initializer));
+    if (!ty->isVoidTy())
+      fieldInits.emplace_back(init, ty);
+  }
 
-    if (initTy->isVoidTy())
-      continue;
+  if (fieldInits.empty())
+    return nullptr;
 
-    llvm::Value *field =
-        builder.CreateStructGEP(type, tmp, initStmt->field->nonUnitIndex);
-    storeValue(init, field, initTy);
+  llvm::Type *type = generateType(resolvedTree->getType(sie.structDecl));
+  llvm::Value *tmp =
+      allocateStackVariable(sie.structDecl->decl->identifier + ".tmp", type);
+
+  for (unsigned i = 0; i < fieldInits.size(); ++i) {
+    auto [init, ty] = fieldInits[i];
+    llvm::Value *field = builder.CreateStructGEP(type, tmp, i);
+    storeValue(init, field, ty);
   }
 
   return tmp;
@@ -519,26 +520,23 @@ Codegen::allocateStackVariable(const std::string_view identifier,
 llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
   std::vector<llvm::AttributeSet> argsAttrSets;
 
-  if (ty->getReturnType()->getAs<res::StructType>()) {
+  if (llvm::Type *retTy = generateType(ty->getReturnType());
+      retTy && retTy->isStructTy()) {
     llvm::AttrBuilder retAttrs(context);
-    retAttrs.addStructRetAttr(generateType(ty->getReturnType()));
+    retAttrs.addStructRetAttr(retTy);
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
   }
 
-  size_t i = 0;
   for (auto &&argTy : ty->getArgs()) {
     llvm::Type *llvmTy = generateType(argTy);
-    if (llvmTy->isVoidTy()) {
-      ++i;
+    if (llvmTy->isVoidTy())
       continue;
-    }
 
     llvm::AttrBuilder paramAttrs(context);
     if (llvmTy->isStructTy())
       paramAttrs.addByValAttr(llvmTy);
 
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
-    ++i;
   }
 
   return llvm::AttributeList::get(context, llvm::AttributeSet{},

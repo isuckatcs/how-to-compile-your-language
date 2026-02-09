@@ -15,8 +15,8 @@ fn main(): unit {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %B.tmp = alloca { { double } }, align 8
 // CHECK-NEXT:   %A.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %B.tmp = alloca { { double } }, align 8
 // CHECK-NEXT:   %b = alloca { { double } }, align 8
 
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %A.tmp, i32 0, i32 0

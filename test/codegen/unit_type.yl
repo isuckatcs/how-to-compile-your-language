@@ -1,0 +1,24 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o unit_type && ./unit_type | grep -Plzx '123\n'
+fn foo(x: unit): unit {
+  return println(123);
+}
+// CHECK: define void @foo() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let x = unit;
+
+  let y = foo(x);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @foo()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

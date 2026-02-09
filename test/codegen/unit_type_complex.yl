@@ -1,0 +1,36 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o unit_type_complex && ./unit_type_complex | grep -Plzx '123\n123\n456\n789\n'
+struct S {
+  x: number,
+  y: number
+}
+
+fn foo(x: unit): unit {
+  println(123);
+  return x;
+}
+// CHECK: define void @foo() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @bar(ptr sret({ double, double }) %ret, double %y, double %w)
+fn bar(x: unit, y: number, z: unit, w: number): S {
+  return S { x: y, y: w };
+}
+
+fn main() {
+  let s = bar(foo(unit), 456, foo(unit), 789);
+  // CHECK: %struct.ret.tmp = alloca { double, double }, align 8
+  // CHECK-NEXT: %s = alloca { double, double }, align 8
+  // CHECK-NEXT: call void @foo()
+  // CHECK-NEXT: call void @foo()
+  // CHECK-NEXT: call void @bar(ptr sret({ double, double }) %struct.ret.tmp, double 4.560000e+02, double 7.890000e+02)
+
+  println(s.x);
+  println(s.y);
+}

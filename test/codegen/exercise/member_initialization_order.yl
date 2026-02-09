@@ -37,34 +37,34 @@ fn main(): unit {
 // CHECK-NEXT:   %Color.tmp2 = alloca { double, double, double }, align 8
 
 // CHECK-NEXT: %0 = call double @printAndReturn(double 1.000000e+00)
-// CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 0
-// CHECK-NEXT: store double %0, ptr %1, align 8
-// CHECK-NEXT: %2 = call double @printAndReturn(double 2.000000e+00)
-// CHECK-NEXT: %3 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 1
-// CHECK-NEXT: store double %2, ptr %3, align 8
-// CHECK-NEXT: %4 = call double @printAndReturn(double 3.000000e+00)
+// CHECK-NEXT: %1 = call double @printAndReturn(double 2.000000e+00)
+// CHECK-NEXT: %2 = call double @printAndReturn(double 3.000000e+00)
+// CHECK-NEXT: %3 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 0
+// CHECK-NEXT: store double %0, ptr %3, align 8
+// CHECK-NEXT: %4 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 1
+// CHECK-NEXT: store double %1, ptr %4, align 8
 // CHECK-NEXT: %5 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp, i32 0, i32 2
-// CHECK-NEXT: store double %4, ptr %5, align 8
+// CHECK-NEXT: store double %2, ptr %5, align 8
 
 // CHECK-NEXT: %6 = call double @printAndReturn(double 2.000000e+00)
-// CHECK-NEXT: %7 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 1
-// CHECK-NEXT: store double %6, ptr %7, align 8
-// CHECK-NEXT: %8 = call double @printAndReturn(double 1.000000e+00)
+// CHECK-NEXT: %7 = call double @printAndReturn(double 1.000000e+00)
+// CHECK-NEXT: %8 = call double @printAndReturn(double 3.000000e+00)
 // CHECK-NEXT: %9 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 0
-// CHECK-NEXT: store double %8, ptr %9, align 8
-// CHECK-NEXT: %10 = call double @printAndReturn(double 3.000000e+00)
+// CHECK-NEXT: store double %6, ptr %9, align 8
+// CHECK-NEXT: %10 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 1
+// CHECK-NEXT: store double %7, ptr %10, align 8
 // CHECK-NEXT: %11 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp1, i32 0, i32 2
-// CHECK-NEXT: store double %10, ptr %11, align 8
+// CHECK-NEXT: store double %8, ptr %11, align 8
 
 // CHECK-NEXT: %12 = call double @printAndReturn(double 3.000000e+00)
-// CHECK-NEXT: %13 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 2
-// CHECK-NEXT: store double %12, ptr %13, align 8
-// CHECK-NEXT: %14 = call double @printAndReturn(double 2.000000e+00)
-// CHECK-NEXT: %15 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 1
-// CHECK-NEXT: store double %14, ptr %15, align 8
-// CHECK-NEXT: %16 = call double @printAndReturn(double 1.000000e+00)
-// CHECK-NEXT: %17 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 0
-// CHECK-NEXT: store double %16, ptr %17, align 8
+// CHECK-NEXT: %13 = call double @printAndReturn(double 2.000000e+00)
+// CHECK-NEXT: %14 = call double @printAndReturn(double 1.000000e+00)
+// CHECK-NEXT: %15 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 0
+// CHECK-NEXT: store double %12, ptr %15, align 8
+// CHECK-NEXT: %16 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 1
+// CHECK-NEXT: store double %13, ptr %16, align 8
+// CHECK-NEXT: %17 = getelementptr inbounds nuw { double, double, double }, ptr %Color.tmp2, i32 0, i32 2
+// CHECK-NEXT: store double %14, ptr %17, align 8
 
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

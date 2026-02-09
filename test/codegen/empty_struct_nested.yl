@@ -1,0 +1,39 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o empty_struct_nested && ./empty_struct_nested | grep -Plzxe '0\n1\n2\n3\n'
+struct S {
+  x: unit,
+  y: S2,
+  z: unit
+}
+
+struct S2 {
+  x: unit,
+  y: unit
+}
+
+fn foo(s: S): S {
+  return s;
+}
+// CHECK: define void @foo() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S { 
+    x: println(0), 
+    y: S2 { x: println(1), y: println(2) }, 
+    z: println(3) 
+  };
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   call void @println(double 2.000000e+00)
+// CHECK-NEXT:   call void @println(double 3.000000e+00)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

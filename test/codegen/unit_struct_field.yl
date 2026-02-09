@@ -1,0 +1,44 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o unit_struct_field && ./unit_struct_field | grep -Plzx '123\n789\n456\n'
+struct S {
+  x: unit,
+  y: number,
+  z: unit
+}
+
+fn foo(s: S): S {
+  return S { x: s.x, y: s.y, z: s.z };
+}
+// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %s) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %1, ptr %2, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S { x: println(123), y: 456, z: println(789) };
+
+  println(s.y);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %s = alloca { double }, align 8
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 7.890000e+02)
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double 4.560000e+02, ptr %0, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { double }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %2 = load double, ptr %1, align 8
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
