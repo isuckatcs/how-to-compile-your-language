@@ -874,7 +874,6 @@ bool Sema::resolveStructFields(res::Context &ctx,
   std::set<std::string_view> identifiers;
   std::vector<res::FieldDecl *> resolvedFields;
 
-  unsigned nonUnitFields = 0;
   for (auto &&field : astDecl.fields) {
     res::Type *fieldTy = resolveType(ctx, *field->type);
     if (!fieldTy) {
@@ -888,12 +887,8 @@ bool Sema::resolveStructFields(res::Context &ctx,
       error = true;
     }
 
-    auto *fieldDecl =
-        ctx.create<res::FieldDecl>(loc, field->identifier, nonUnitFields);
+    auto *fieldDecl = ctx.create<res::FieldDecl>(loc, field->identifier);
     resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
-
-    if (!fieldTy->getAs<res::BuiltinUnitType>())
-      ++nonUnitFields;
   }
 
   decl.setFields(std::move(resolvedFields));

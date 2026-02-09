@@ -161,11 +161,8 @@ struct TypeParamDecl : public TypeDecl {
 };
 
 struct FieldDecl : public ValueDecl {
-  unsigned nonUnitIndex;
-
-  FieldDecl(SourceLocation location, std::string identifier, unsigned index)
-      : ValueDecl(location, std::move(identifier), false),
-        nonUnitIndex(index) {}
+  FieldDecl(SourceLocation location, std::string identifier)
+      : ValueDecl(location, std::move(identifier), false) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
 };

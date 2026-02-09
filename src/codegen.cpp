@@ -234,12 +234,25 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
 
 llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
-  llvm::Type *baseTy = generateType(resolvedTree->getType(memberExpr.base));
+
+  const auto *structTy =
+      resolvedTree->getType(memberExpr.base)->getAs<res::StructType>();
+  llvm::Type *baseTy = generateType(structTy);
 
   if (generateType(resolvedTree->getType(&memberExpr))->isVoidTy())
     return nullptr;
 
-  return builder.CreateStructGEP(baseTy, base, memberExpr.field->nonUnitIndex);
+  unsigned index = 0;
+  EnterInstantiationRAII structInst(this, structTy->getTypeArgs());
+  for (auto &&field : structTy->getDecl()->fields) {
+    if (field == memberExpr.field)
+      break;
+
+    if (!generateType(resolvedTree->getType(field))->isVoidTy())
+      ++index;
+  }
+
+  return builder.CreateStructGEP(baseTy, base, index);
 }
 
 llvm::Value *
