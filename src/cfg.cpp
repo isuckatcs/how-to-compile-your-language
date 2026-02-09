@@ -56,6 +56,9 @@ void CFG::dump() const {
       } else if (auto *fi = dynamic_cast<const res::FieldInitStmt *>(*it)) {
         std::cerr << fi->field->identifier << ": "
                   << stmtToRef[fi->initializer];
+      } else if (const auto *unit =
+                     dynamic_cast<const res::UnitLiteral *>(*it)) {
+        std::cerr << "unit";
       } else if (const auto *number =
                      dynamic_cast<const res::NumberLiteral *>(*it)) {
         std::cerr << number->value;
