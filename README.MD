@@ -8,6 +8,8 @@
 
 ![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
+**🚧 The guide is currently behind the main branch. Updates are coming soon. 🚧**
+
 A simple programming language implementation with an educational guide that displays modern compiler techniques. 
 
 [isuckatcs.github.io/how-to-compile-your-language](https://isuckatcs.github.io/how-to-compile-your-language/)
@@ -20,7 +22,7 @@ This guide assumes that the project is being built on Linux* but equivalent step
    - `apt-get install cmake`
 
 2. Install LLVM and Clang
-   - The project was originally built for **LLVM 14.0.0**. Other versions are not guaranteed to work.
+   - The project was originally built for **LLVM 20.1.0**. Other versions are not guaranteed to work.
    - `apt-get install llvm clang`
 
 3. Create a build directory and enter that directory
@@ -48,21 +50,47 @@ To run the tests, proceed with these following optional steps.
 Unambiguous, modern and easy to parse syntax with elements inspired by C, Kotlin, Rust and Swift.
 
 ```
-fn main(): void {
-    println(0);
+fn main() {
+  println(0);
 }
 ```
 
-### Static Type System
+### Hindley-Milner Type System
 
-Simple type system currently supporting the `number` and `void` types with the capability to be expanded by user-defined types. 
+Simple Hindley-Milner style static type system currently supporting the `number`, `unit`, `function` and user-defined `struct` types with type inference capabilities. 
 
 The `number` type is implemented as a 64-bit floating point value.
 
 ```
-fn main(): void {
-    let x: number = 1234;
-    let y: number = 12.34;
+fn foo<T>(x: (T) -> T, y: T): T {
+  return x(y);
+}
+
+fn bar<T>(x: T): T {
+  return x;
+}
+
+fn main() {
+  println(foo(bar, 0));
+}
+```
+
+### Generics
+
+Generic `struct`, and `function` types instantiated during LLVM IR generation with zero-sized values optimized away.
+
+```
+struct S<T, U> {
+  x: T,
+  y: U,
+}
+
+fn wrapper<T, U>(x: T, y: U): S<T, U> {
+  return S{ x: x, y: y };
+}
+
+fn main() {
+  wrapper(0, unit);
 }
 ```
 
@@ -71,67 +99,20 @@ fn main(): void {
 Data-flow analysis based support for detecting lazily initialized and uninitialized variables.
 
 ```
-fn dataFlowAnalysis(n: number): void {
-    let uninit: number;
+fn dataFlowAnalysis(n: number) {
+  let uninit;
 
-    if n > 3 {
-        uninit = 1;
-    }
+  if n > 3 {
+    uninit = 1;
+  }
 
-    println(uninit);
+  println(uninit);
 }
 ```
 ```
-main.yl:8:13: error: 'uninit' is not initialized
-```
-
-### Naive Type Inference
-When a variable is initialized, the type specifier can be omitted as the type is inferred from the initializer.
-
-```
-fn main(): void {
-    let typeInference = 1; 
-}
-```
-
-### Immutability
-
-Immutable and mutable variables declared with the `let` and `mut` keywords.
-
-```
-fn main(): void {
-    let immutable = 1;
-    mut mutable = 2;
-
-    while mutable > 2 {
-      immutable = 0;
-      mutable = mutable - 1;
-    }
-}
-```
-```
-main.yl:6:7: error: 'immutable' cannot be mutated
-```
-
-### Compile Time Expression Evaluation
-
-Expressions are evaluated by a tree-walk interpreter during compilation if possible.
-
-```
-fn main(): void {
-    let x = (1 + 2) * 3 - -4;
-    println(x);
-}
-```
-```
-$ compiler main.yl -res-dump
-
-ResolvedFunctionDecl: @(main.addr) main:
-  ResolvedBlock
-    ...
-    ResolvedCallExpr: @(println.addr) println
-      ResolvedDeclRefExpr: @(x.addr) x
-      | value: 13
+main.yl:8:11: error: 'uninit' is not initialized
+8 |   println(uninit);
+  |           ^
 ```
 
 ### Smart Return Check
@@ -140,25 +121,70 @@ Flow-sensitive return value analysis made smarter with compile time expression e
 
 ```
 fn maybeReturns(n: number): number {
-    if n > 2 {
-        return 1;
-    } else if n < -2 {
-        return -1;
-    }
+  if n > 2 {
+    return 1;
+  } else if n < -2 {
+    return -1;
+  }
 
-    // missing return 'else' branch
+  // missing return 'else' branch
 }
 
 fn alwaysReturns(n: number): number {
-    if 0 && n > 2 {
-        // unreachable
-    } else {
-        return 0;
-    }
+  if 0 && n > 2 {
+    // unreachable
+  } else {
+    return 0;
+  }
 }
 ```
 ```
-main.yl:1:1: error: non-void function doesn't return a value on every path
+main.yl:1:1: error: expected function to return a value on every path
+1 | fn maybeReturns(n: number): number {
+  | ^
+```
+
+### Immutability
+
+Immutable and mutable variables declared with the `let` and `mut` keywords.
+
+```
+fn main() {
+  let immutable = 1;
+  mut mutable = 2;
+
+  while mutable > 2 {
+    immutable = 0;
+    mutable = mutable - 1;
+  }
+}
+```
+```
+main.yl:6:15: error: 'immutable' cannot be mutated
+6 |     immutable = 0;
+  |               ^
+```
+
+### Compile Time Expression Evaluation
+
+Expressions are evaluated by a tree-walk interpreter during compilation if possible.
+
+```
+fn main() {
+  let x = (1 + 2) * 3 - -4;
+  println(x);
+}
+```
+```
+$ compiler main.yl -res-dump
+
+FunctionDecl @(main.addr) main {() -> unit}
+  Block
+    ...
+    CallExpr {unit}
+      DeclRefExpr @(println.addr) println {(number) -> unit}
+      DeclRefExpr @(x.addr) x {number}
+      | value: 13
 ```
 
 ### Native Code Generation
@@ -166,8 +192,8 @@ main.yl:1:1: error: non-void function doesn't return a value on every path
 A source file is first compiled to LLVM IR, which is then passed to the host platform specific LLVM backend to generate a native executable.
 
 ```
-fn main(): void {
-    println(1.23);
+fn main() {
+  println(1.23);
 }
 ```
 ```
@@ -180,14 +206,14 @@ $ ./main.out
 
 Capability to print the Abstract Syntax Tree before and after resolution, the Control-Flow Graph and the generated LLVM IR module.
 ```
-fn main(): void {
-    println(1.23);
+fn main() {
+  println(1.23);
 }
 ```
 ```
 $ compiler main.yl -ast-dump
 
-FunctionDecl: main:void
+FunctionDecl: main
   Block
     CallExpr:
       DeclRefExpr: println
@@ -196,10 +222,11 @@ FunctionDecl: main:void
 ```
 $ compiler main.yl -res-dump
 
-ResolvedFunctionDecl: @(main.addr) main:
-  ResolvedBlock
-    ResolvedCallExpr: @(println.addr) println
-      ResolvedNumberLiteral: '1.23'
+FunctionDecl @(main.addr) main {() -> unit}
+  Block
+    CallExpr {unit}
+      DeclRefExpr @(println.addr) println {(number) -> unit}
+      NumberLiteral '1.23' {number}
       | value: 1.23
 ```
 ```
@@ -213,11 +240,9 @@ main:
 [1]
   preds: 2 
   succs: 0 
-  ResolvedNumberLiteral: '1.23'
-  | value: 1.23
-  ResolvedCallExpr: @(println.addr) println
-    ResolvedNumberLiteral: '1.23'
-    | value: 1.23
+  1: 1.23
+  2: println
+  3: [1.2] ([1.1])
 
 [0 (exit)]
   preds: 1 
@@ -227,6 +252,7 @@ main:
 $ compiler main.yl -llvm-dump
 
 define void @__builtin_main() {
+entry:
   call void @println(double 1.230000e+00)
   ret void
 }
