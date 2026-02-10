@@ -43,8 +43,13 @@ void CFG::dump() const {
         std::cerr << "while " << stmtToRef[whileStmt->condition];
       } else if (auto *assignment =
                      dynamic_cast<const res::Assignment *>(*it)) {
-        std::cerr << stmtToRef[assignment->assignee] << " = "
-                  << stmtToRef[assignment->expr];
+        if (auto *dre =
+                dynamic_cast<const res::DeclRefExpr *>(assignment->assignee))
+          std::cerr << dre->decl->identifier;
+        else
+          std::cerr << stmtToRef[assignment->assignee];
+
+        std::cerr << " = " << stmtToRef[assignment->expr];
       } else if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(*it)) {
         std::cerr << (declStmt->varDecl->isMutable ? "mut " : "let ")
                   << declStmt->varDecl->identifier;

@@ -18,13 +18,13 @@ fn main(): unit {
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   1: mut x
 // CHECK-NEXT:   2: 2
-// CHECK-NEXT:   3:  = [1.2]
-// CHECK-NEXT:   5: 3
-// CHECK-NEXT:   6:  = [1.5]
-// CHECK-NEXT:   8: x
-// CHECK-NEXT:   9: 1
-// CHECK-NEXT:   10: [1.8] + [1.9]
-// CHECK-NEXT:   11:  = [1.10]
+// CHECK-NEXT:   3: x = [1.2]
+// CHECK-NEXT:   4: 3
+// CHECK-NEXT:   5: x = [1.4]
+// CHECK-NEXT:   6: x
+// CHECK-NEXT:   7: 1
+// CHECK-NEXT:   8: [1.6] + [1.7]
+// CHECK-NEXT:   9: x = [1.8]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
