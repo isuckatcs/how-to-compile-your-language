@@ -3,18 +3,18 @@ struct S<T> {
   x: (T)-> T
 }
 
-fn boxNum(x: number): number {
+fn wrapperNum(x: number): number {
   return x;
 }
 
 fn main(): unit {
-  let s = S{x: boxNum};
+  let s = S{x: wrapperNum};
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
   // CHECK-NEXT:     StructInstantiationExpr {S<number>}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) boxNum {(number) -> number}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapperNum {(number) -> number}
 
   println(s.x(10));
   // CHECK-NEXT: CallExpr {unit}

@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o generic_unit_function && ./generic_unit_function | grep -Plzx '123\n'
-fn box<T>(x: (T) -> T, a: T) {
+fn wrapper<T>(x: (T) -> T, a: T) {
   x(a);
 }
 
@@ -9,15 +9,15 @@ fn sideEffect(x: unit) {
 }
 
 fn main() {
-  box(sideEffect, unit);
+  wrapper(sideEffect, unit);
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_Y3boxGuE(ptr @sideEffect)
+// CHECK-NEXT:   call void @_Y7wrapperGuE(ptr @sideEffect)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3boxGuE(ptr %x) {
+// CHECK: define void @_Y7wrapperGuE(ptr %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void %x()
 // CHECK-NEXT:   ret void

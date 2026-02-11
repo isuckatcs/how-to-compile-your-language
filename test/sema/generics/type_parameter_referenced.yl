@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn box<T>(x: T): T {
+fn wrapper<T>(x: T): T {
   let x: T = T;
   // CHECK: [[# @LINE - 1 ]]:14: error: expected value, found type parameter
 

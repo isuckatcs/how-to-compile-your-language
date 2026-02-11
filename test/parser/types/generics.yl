@@ -1,90 +1,90 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
-struct Box<T>{}
+struct Wrapper<T>{}
 
-struct Box2<T,>{}
+struct Wrapper2<T,>{}
 
-struct Box3<T,U>{}
+struct Wrapper3<T,U>{}
 
-struct Box<>{}
+struct Wrapper<>{}
+// CHECK: [[# @LINE - 1 ]]:16: error: expected type parameter declaration
+
+struct Wrapper<{}
+// CHECK: [[# @LINE - 1 ]]:16: error: expected type parameter declaration
+
+struct Wrapper<T{}
+// CHECK: [[# @LINE - 1 ]]:17: error: expected ',' or '>'
+
+struct Wrapper<T,{}
+// CHECK: [[# @LINE - 1 ]]:18: error: expected type parameter declaration
+
+fn wrapper<T>(): unit {}
+
+fn wrapper2<T,>(): unit {}
+
+fn wrapper3<T,U>(): unit {}
+
+fn wrapper<>(): unit {}
 // CHECK: [[# @LINE - 1 ]]:12: error: expected type parameter declaration
 
-struct Box<{}
+fn wrapper<(): unit {}
 // CHECK: [[# @LINE - 1 ]]:12: error: expected type parameter declaration
 
-struct Box<T{}
+fn wrapper<T(): unit {}
 // CHECK: [[# @LINE - 1 ]]:13: error: expected ',' or '>'
 
-struct Box<T,{}
+fn wrapper<T,(): unit {}
 // CHECK: [[# @LINE - 1 ]]:14: error: expected type parameter declaration
 
-fn box<T>(): unit {}
-
-fn box2<T,>(): unit {}
-
-fn box3<T,U>(): unit {}
-
-fn box<>(): unit {}
-// CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
-
-fn box<(): unit {}
-// CHECK: [[# @LINE - 1 ]]:8: error: expected type parameter declaration
-
-fn box<T(): unit {}
-// CHECK: [[# @LINE - 1 ]]:9: error: expected ',' or '>'
-
-fn box<T,(): unit {}
-// CHECK: [[# @LINE - 1 ]]:10: error: expected type parameter declaration
-
 fn main(): unit {
-    Box@{};
-    // CHECK: [[# @LINE - 1 ]]:9: error: expected '<'
+    Wrapper@{};
+    // CHECK: [[# @LINE - 1 ]]:13: error: expected '<'
 
-    Box@<{};
-    // CHECK: [[# @LINE - 1 ]]:10: error: expected type specifier
+    Wrapper@<{};
+    // CHECK: [[# @LINE - 1 ]]:14: error: expected type specifier
 
-    Box@<number{};
-    // CHECK: [[# @LINE - 1 ]]:16: error: expected ',' or '>'
+    Wrapper@<number{};
+    // CHECK: [[# @LINE - 1 ]]:20: error: expected ',' or '>'
 
-    Box@<number,{};
-    // CHECK: [[# @LINE - 1 ]]:17: error: expected type specifier
+    Wrapper@<number,{};
+    // CHECK: [[# @LINE - 1 ]]:21: error: expected type specifier
 
-    Box@<number,>{};
+    Wrapper@<number,>{};
 
-    Box@<number>{};
+    Wrapper@<number>{};
 
-    box@();
-    // CHECK: [[# @LINE - 1 ]]:9: error: expected '<'
+    wrapper@();
+    // CHECK: [[# @LINE - 1 ]]:13: error: expected '<'
 
-    box@<();
-    // CHECK: [[# @LINE - 1 ]]:12: error: expected '->'
+    wrapper@<();
+    // CHECK: [[# @LINE - 1 ]]:16: error: expected '->'
 
-    box@<number();
-    // CHECK: [[# @LINE - 1 ]]:16: error: expected ',' or '>'
+    wrapper@<number();
+    // CHECK: [[# @LINE - 1 ]]:20: error: expected ',' or '>'
 
-    box@<number,();
-    // CHECK: [[# @LINE - 1 ]]:19: error: expected '->'
+    wrapper@<number,();
+    // CHECK: [[# @LINE - 1 ]]:23: error: expected '->'
 
-    box@<number,>();
+    wrapper@<number,>();
 
-    box@<number>();
+    wrapper@<number>();
 }
 
-// CHECK: StructDecl: Box
+// CHECK: StructDecl: Wrapper
 // CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT: StructDecl: Box2
+// CHECK-NEXT: StructDecl: Wrapper2
 // CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT: StructDecl: Box3
+// CHECK-NEXT: StructDecl: Wrapper3
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   TypeParamDecl: U
-// CHECK-NEXT: FunctionDecl: box
+// CHECK-NEXT: FunctionDecl: wrapper
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: box2
+// CHECK-NEXT: FunctionDecl: wrapper2
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: box3
+// CHECK-NEXT: FunctionDecl: wrapper3
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   TypeParamDecl: U
 // CHECK-NEXT:   BuiltinType: unit
@@ -93,18 +93,18 @@ fn main(): unit {
 // CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       DeclRefExpr: Box
+// CHECK-NEXT:       DeclRefExpr: Wrapper
 // CHECK-NEXT:         TypeArgumentList
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       DeclRefExpr: Box
+// CHECK-NEXT:       DeclRefExpr: Wrapper
 // CHECK-NEXT:         TypeArgumentList
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: box
+// CHECK-NEXT:       DeclRefExpr: wrapper
 // CHECK-NEXT:         TypeArgumentList
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: box
+// CHECK-NEXT:       DeclRefExpr: wrapper
 // CHECK-NEXT:         TypeArgumentList
 // CHECK-NEXT:           BuiltinType: number

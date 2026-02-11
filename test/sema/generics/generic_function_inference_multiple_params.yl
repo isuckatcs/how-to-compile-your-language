@@ -4,8 +4,8 @@ struct S<T> { x: T }
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 
-fn box<T, U>(x: T, y: T, z: U): unit {}
-// CHECK: FunctionDecl @({{.*}}) box {(T, T, U) -> unit}
+fn wrapper<T, U>(x: T, y: T, z: U): unit {}
+// CHECK: FunctionDecl @({{.*}}) wrapper {(T, T, U) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
@@ -14,12 +14,12 @@ fn box<T, U>(x: T, y: T, z: U): unit {}
 // CHECK-NEXT:   Block
 
 fn main(): unit {
-  box(S{ x: 1 }, S{ x: 2 }, main);
+  wrapper(S{ x: 1 }, S{ x: 2 }, main);
 }
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) box {(S<number>, S<number>, () -> unit) -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) wrapper {(S<number>, S<number>, () -> unit) -> unit}
 // CHECK-NEXT:       StructInstantiationExpr {S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x

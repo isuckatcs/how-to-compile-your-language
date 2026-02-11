@@ -4,10 +4,10 @@ struct S<T> { x: T }
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {T}
 
-fn box<U>(x: S<U>): S<U> {
+fn wrapper<U>(x: S<U>): S<U> {
   return x;
 }
-// CHECK: FunctionDecl @({{.*}}) box {(S<U>) -> S<U>}
+// CHECK: FunctionDecl @({{.*}}) wrapper {(S<U>) -> S<U>}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {S<U>}
 // CHECK-NEXT:   Block
@@ -24,11 +24,11 @@ fn main(): unit {
   // CHECK-NEXT:         NumberLiteral '1' {number}
   // CHECK-NEXT:         | value: 1
 
-  let x = box(s).x;
+  let x = wrapper(s).x;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:       CallExpr {S<number>}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) box {(S<number>) -> S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapper {(S<number>) -> S<number>}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 }

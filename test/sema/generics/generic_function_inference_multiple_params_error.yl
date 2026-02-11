@@ -1,11 +1,11 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> { x: T }
 
-fn box<T, U>(x: T, y: T, z: U): unit {}
+fn wrapper<T, U>(x: T, y: T, z: U): unit {}
 
 fn main(): unit {
-  // CHECK: [[# @LINE + 1 ]]:19: error: expected 'S<number>' argument, but received 'S<S<number>>'
-  box(S{ x: 1 }, S{ x: S{ x: 1 } }, main);
+  // CHECK: [[# @LINE + 1 ]]:23: error: expected 'S<number>' argument, but received 'S<S<number>>'
+  wrapper(S{ x: 1 }, S{ x: S{ x: 1 } }, main);
 }
 
 // CHECK-NOT: {{.*error.*}}

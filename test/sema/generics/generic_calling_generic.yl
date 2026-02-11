@@ -1,8 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn box<T>(x: T): T {
+fn wrapper<T>(x: T): T {
   return x;
 }
-// CHECK: FunctionDecl @({{.*}}) box {(T) -> T}
+// CHECK: FunctionDecl @({{.*}}) wrapper {(T) -> T}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
 // CHECK-NEXT:   Block
@@ -23,7 +23,7 @@ fn foo<U>(x: (U) -> U, y: U): U {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) y {U}
 
 fn main(): unit {
-  let x = foo(box, 20);
+  let x = foo(wrapper, 20);
   println(x);
 }
 // CHECK: FunctionDecl @{{.*}}) main {() -> unit}
@@ -32,7 +32,7 @@ fn main(): unit {
 // CHECK-NEXT:       VarDecl @({{.*}}) x {number}
 // CHECK-NEXT:         CallExpr {number}
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {((number) -> number, number) -> number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) box {(number) -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) wrapper {(number) -> number}
 // CHECK-NEXT:           NumberLiteral '20' {number}
 // CHECK-NEXT:           | value: 20
 // CHECK-NEXT:     CallExpr {unit}

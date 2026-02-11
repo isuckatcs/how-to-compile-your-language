@@ -1,26 +1,26 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o generic_function_multiple_uses && ./generic_function_multiple_uses | grep -Plzx '1\n2\n3\n'
-fn box<T>(x: T): T {
+fn wrapper<T>(x: T): T {
   return x;
 }
 
 fn main(): unit {
-  println(box(1));
-  println(box@<number>(2));
-  println(box(3));
+  println(wrapper(1));
+  println(wrapper@<number>(2));
+  println(wrapper(3));
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @_Y3boxGnE(double 1.000000e+00)
+// CHECK-NEXT:   %0 = call double @_Y7wrapperGnE(double 1.000000e+00)
 // CHECK-NEXT:   call void @println(double %0)
-// CHECK-NEXT:   %1 = call double @_Y3boxGnE(double 2.000000e+00)
+// CHECK-NEXT:   %1 = call double @_Y7wrapperGnE(double 2.000000e+00)
 // CHECK-NEXT:   call void @println(double %1)
-// CHECK-NEXT:   %2 = call double @_Y3boxGnE(double 3.000000e+00)
+// CHECK-NEXT:   %2 = call double @_Y7wrapperGnE(double 3.000000e+00)
 // CHECK-NEXT:   call void @println(double %2)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define double @_Y3boxGnE(double %x) {
+// CHECK: define double @_Y7wrapperGnE(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   store double %x, ptr %retval, align 8

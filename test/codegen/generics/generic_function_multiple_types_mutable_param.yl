@@ -4,7 +4,7 @@ struct S {
   x: number
 }
 
-fn box<T>(mut x: T): T {
+fn wrapper<T>(mut x: T): T {
   return x;
 }
 
@@ -13,9 +13,9 @@ fn returnOne(): number {
 }
 
 fn main(): unit {
-  let x = box(returnOne)();
-  let y = box(2);
-  let z = box(S{ x: 3 }).x;
+  let x = wrapper(returnOne)();
+  let y = wrapper(2);
+  let z = wrapper(S{ x: 3 }).x;
 
   println(x);
   println(y);
@@ -30,17 +30,17 @@ fn main(): unit {
 // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %z = alloca double, align 8
 
-// CHECK-NEXT:   %0 = call ptr @_Y3boxGFRnE(ptr @returnOne)
+// CHECK-NEXT:   %0 = call ptr @_Y7wrapperGFRnE(ptr @returnOne)
 // CHECK-NEXT:   %1 = call double %0()
 // CHECK-NEXT:   store double %1, ptr %x, align 8
 
-// CHECK-NEXT:   %2 = call double @_Y3boxGnE(double 2.000000e+00)
+// CHECK-NEXT:   %2 = call double @_Y7wrapperGnE(double 2.000000e+00)
 // CHECK-NEXT:   store double %2, ptr %y, align 8
 
 // CHECK-NEXT:   %3 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 3.000000e+00, ptr %3, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %S.tmp, i64 8, i1 false)
-// CHECK-NEXT:   call void @_Y3boxGS1SE(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
+// CHECK-NEXT:   call void @_Y7wrapperGS1SE(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
 // CHECK-NEXT:   %4 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %5 = load double, ptr %4, align 8
 // CHECK-NEXT:   store double %5, ptr %z, align 8
@@ -54,7 +54,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define ptr @_Y3boxGFRnE(ptr %x) {
+// CHECK: define ptr @_Y7wrapperGFRnE(ptr %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca ptr, align 8
 // CHECK-NEXT:   %x1 = alloca ptr, align 8
@@ -68,7 +68,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret ptr %1
 // CHECK-NEXT: }
 
-// CHECK: define double @_Y3boxGnE(double %x) {
+// CHECK: define double @_Y7wrapperGnE(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %x1 = alloca double, align 8
@@ -82,7 +82,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret double %1
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3boxGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x) {
+// CHECK: define void @_Y7wrapperGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 8, i1 false)
 // CHECK-NEXT:   br label %return
@@ -91,4 +91,4 @@ fn main(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK-NOT: {{define.*box.*}}
+// CHECK-NOT: {{define.*wrapper.*}}

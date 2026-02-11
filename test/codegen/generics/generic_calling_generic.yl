@@ -1,6 +1,6 @@
 // RUN: compiler %s -o generic_calling_generic && ./generic_calling_generic | grep -Plzx '20\n'
 
-fn box<T>(x: T): T {
+fn wrapper<T>(x: T): T {
   return x;
 }
 
@@ -9,8 +9,8 @@ fn foo<U>(x: (U) -> U, y: U): U {
 }
 
 fn main(): unit {
-  let x = foo(box, 20);
-  // CHECK: %0 = call double @_Y3fooGnE(ptr @_Y3boxGnE, double 2.000000e+01)
+  let x = foo(wrapper, 20);
+  // CHECK: %0 = call double @_Y3fooGnE(ptr @_Y7wrapperGnE, double 2.000000e+01)
 
   println(x);
 }
@@ -27,7 +27,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret double %1
 // CHECK-NEXT: }
 
-// CHECK: define double @_Y3boxGnE(double %x) {
+// CHECK: define double @_Y7wrapperGnE(double %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   store double %x, ptr %retval, align 8
@@ -38,4 +38,4 @@ fn main(): unit {
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
 
-// CHECK-NOT: {{define.*box.*}}
+// CHECK-NOT: {{define.*wrapper.*}}
