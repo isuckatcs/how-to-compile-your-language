@@ -19,7 +19,7 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
-  const res::Context *resolvedTree;
+  const res::Context *resCtx;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
