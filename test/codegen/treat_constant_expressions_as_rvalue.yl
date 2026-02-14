@@ -1,0 +1,11 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o treat_constant_expressions_as_rvalue && ./treat_constant_expressions_as_rvalue | grep -Plzxe '123.456\n'
+fn main() {
+  let x = 123.456;
+  println(x);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.234560e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

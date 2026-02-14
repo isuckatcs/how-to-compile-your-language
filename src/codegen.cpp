@@ -205,7 +205,8 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
-  if (declTy->isVoidTy())
+  bool isConst = !decl->isMutable && initExpr && initExpr->getConstantValue();
+  if (isConst || declTy->isVoidTy())
     return nullptr;
 
   llvm::AllocaInst *var = allocateStackVariable(decl->identifier, declTy);
@@ -484,7 +485,8 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
     return nullptr;
 
   llvm::Type *type = generateType(resCtx->getType(&expr));
-  if (!expr.isLvalue() || type->isStructTy() || llvm::isa<llvm::Argument>(val))
+  if (!expr.isLvalue() || expr.getConstantValue() || type->isStructTy() ||
+      llvm::isa<llvm::Argument>(val))
     return val;
 
   return builder.CreateLoad(type, val);

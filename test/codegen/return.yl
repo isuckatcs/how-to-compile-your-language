@@ -63,14 +63,12 @@ fn insertPointNonEmptyBlock(): unit {
 }
 // CHECK: define void @insertPointNonEmptyBlock() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: if.true:                                             ; preds = %entry
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: if.exit:                                            ; preds = %entry
-// CHECK-NEXT:   store double 1.000000e+00, ptr %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %if.exit, %if.true
@@ -86,7 +84,6 @@ fn insertPointNonEmptyBlock2(): unit {
 }
 // CHECK: define void @insertPointNonEmptyBlock2() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
 // CHECK-NEXT: while.cond:                                        ; preds = %entry
@@ -96,7 +93,6 @@ fn insertPointNonEmptyBlock2(): unit {
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: while.exit:                                        ; preds = %while.cond
-// CHECK-NEXT:   store double 1.000000e+00, ptr %x, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %while.exit, %while.body
