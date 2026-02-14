@@ -278,11 +278,16 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     return ctx.getFunctionType(std::move(args), retTy);
   }
 
+  if (const auto *ref = dynamic_cast<const ast::ReferenceType *>(&parsedType)) {
+    varOrReturn(referencedType, resolveType(ctx, *ref->referencedType));
+    return ctx.getReferenceType(ref->isMutable, referencedType);
+  }
+
   llvm_unreachable("unexpected ast type encountered");
 }
 
-res::UnaryOperator *
-Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
+res::Expr *Sema::resolveUnaryOperator(res::Context &ctx,
+                                      const ast::UnaryOperator &unary) {
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
   auto *rhsTy = ctx.getType(rhs);
@@ -291,6 +296,25 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
                   "type of operand to unary operator is unknown");
 
   const auto &loc = unary.location;
+  if (unary.op == TokenKind::Amp || unary.op == TokenKind::AmpQ) {
+    if (!rhs->isLvalue())
+      return report(rhs->location,
+                    "cannot create reference to temporary value");
+
+    return ctx.bind(ctx.create<res::RefExpr>(loc, rhs),
+                    ctx.getReferenceType(unary.op == TokenKind::AmpQ, rhsTy));
+  }
+
+  if (unary.op == TokenKind::Asterisk) {
+    auto *refTy = rhsTy->getAs<res::ReferenceType>();
+    if (!refTy)
+      return report(rhs->location, "expected reference type, received '" +
+                                       rhsTy->getName() + "'");
+
+    return ctx.bind(ctx.create<res::DerefExpr>(loc, rhs),
+                    refTy->getReferencedType());
+  }
+
   if (!rhsTy->getAs<res::BuiltinNumberType>())
     return report(loc, '\'' + rhsTy->getName() +
                            "' cannot be used as an operand to unary operator");

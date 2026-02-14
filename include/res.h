@@ -318,6 +318,26 @@ struct UnaryOperator : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+struct RefExpr : public Expr {
+  Expr *operand;
+
+  RefExpr(SourceLocation location, Expr *operand)
+      : Expr(location, Expr::Kind::Rvalue),
+        operand(operand) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
+struct DerefExpr : public Expr {
+  Expr *operand;
+
+  DerefExpr(SourceLocation location, Expr *operand)
+      : Expr(location, Expr::Kind::Lvalue),
+        operand(operand) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
 struct DeclStmt : public Stmt {
   VarDecl *varDecl;
 
@@ -472,6 +492,23 @@ public:
   friend class Context;
 };
 
+class ReferenceType : public Type {
+  ReferenceType(bool isMutable, Type *referencedType)
+      : Type("&", {referencedType}),
+        isMutable(isMutable){};
+
+  std::string getName() const override {
+    return (isMutable ? "&?" : "&") + args[0]->getName();
+  }
+
+public:
+  Type *getReferencedType() { return args[0]->getRootType(); }
+
+  const bool isMutable;
+
+  friend class Context;
+};
+
 class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
@@ -524,6 +561,7 @@ public:
   StructType *getStructType(const StructDecl &decl,
                             std::vector<Type *> typeArgs);
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
+  ReferenceType *getReferenceType(bool isMutable, Type *referencedType);
 
   using SubstitutionTy = std::vector<res::Type *>;
   SubstitutionTy createSubstitution(const Decl *decl);

@@ -83,7 +83,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (const auto *s = type->getAs<res::StructType>())
     return generateStructType(s);
 
-  if (type->getAs<res::FunctionType>())
+  if (type->getAs<res::FunctionType>() || type->getAs<res::ReferenceType>())
     return llvm::PointerType::get(context, 0);
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
@@ -321,6 +321,14 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(&expr))
     return generateTemporaryStruct(*sie);
+
+  if (auto *ref = dynamic_cast<const res::RefExpr *>(&expr)) {
+    return generateExpr(*ref->operand);
+  }
+
+  if (auto *deref = dynamic_cast<const res::DerefExpr *>(&expr)) {
+    return generateExprAndLoadValue(*deref->operand);
+  }
 
   llvm_unreachable("unexpected expression");
 }

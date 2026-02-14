@@ -30,8 +30,8 @@ class Sema {
 
   res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
 
-  res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
-                                           const ast::UnaryOperator &unary);
+  res::Expr *resolveUnaryOperator(res::Context &ctx,
+                                  const ast::UnaryOperator &unary);
   res::BinaryOperator *resolveBinaryOperator(res::Context &ctx,
                                              const ast::BinaryOperator &binop);
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,

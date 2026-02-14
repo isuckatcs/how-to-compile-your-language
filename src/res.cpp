@@ -157,6 +157,18 @@ void BinaryOperator::dump(Context &ctx, size_t level) const {
   rhs->dump(ctx, level + 1);
 }
 
+void RefExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "RefExpr " << '{'
+            << ctx.getType(this)->getName() << '}' << '\n';
+  operand->dump(ctx, level + 1);
+}
+
+void DerefExpr::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "DerefExpr " << '{'
+            << ctx.getType(this)->getName() << '}' << '\n';
+  operand->dump(ctx, level + 1);
+}
+
 void UnaryOperator::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\''
             << " {" << ctx.getType(this)->getName() << '}' << '\n';
@@ -262,6 +274,12 @@ TypeParamType *Context::getTypeParamType(const TypeParamDecl &decl) {
       .try_emplace(&decl,
                    std::unique_ptr<TypeParamType>(new TypeParamType(decl)))
       .first->second.get();
+}
+
+ReferenceType *Context::getReferenceType(bool isMutable, Type *referencedType) {
+  auto *refTy = new ReferenceType(isMutable, referencedType);
+  types.emplace_back(std::unique_ptr<ReferenceType>(refTy));
+  return refTy;
 }
 
 bool Context::unify(Type *t1, Type *t2) {
