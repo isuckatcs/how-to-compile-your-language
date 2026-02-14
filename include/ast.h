@@ -59,6 +59,20 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
+struct ReferenceType : public Type {
+  std::unique_ptr<Type> referencedType;
+  bool isMutable;
+
+  ReferenceType(SourceLocation location,
+                std::unique_ptr<Type> referencedType,
+                bool isMutable)
+      : Type(location),
+        referencedType(std::move(referencedType)),
+        isMutable(isMutable) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct Decl {
   SourceLocation location;
   std::string identifier;

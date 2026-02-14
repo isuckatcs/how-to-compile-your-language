@@ -20,6 +20,8 @@ enum class TokenKind : char {
 
   Equal,
   EqualEqual,
+  Amp,
+  AmpQ,
   AmpAmp,
   PipePipe,
   Minus,
@@ -96,7 +98,7 @@ class Lexer {
 public:
   explicit Lexer(const SourceFile &source)
       : source(&source) {}
-  Token getNextToken();
+  Token getNextToken(bool logicalAndAllowed = false);
 };
 } // namespace yl
 

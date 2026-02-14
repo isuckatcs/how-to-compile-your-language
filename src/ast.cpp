@@ -31,6 +31,12 @@ void FunctionType::dump(size_t level) const {
   ret->dump(level + 1);
 }
 
+void ReferenceType::dump(size_t level) const {
+  std::cerr << indent(level) << "ReferenceType\n";
+
+  referencedType->dump(level + 1);
+}
+
 void Block::dump(size_t level) const {
   std::cerr << indent(level) << "Block\n";
 

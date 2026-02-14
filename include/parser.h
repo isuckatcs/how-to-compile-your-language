@@ -18,13 +18,17 @@ class Parser {
   using RestrictionType = unsigned char;
   RestrictionType restrictions = 0;
 
-  enum RestrictionKind : RestrictionType { StructNotAllowed = 1 };
+  enum RestrictionKind : RestrictionType {
+    StructNotAllowed = (1 << 0),
+    LogicalAndAllowed = (1 << 1)
+  };
 
   template <typename T>
   T withRestrictions(RestrictionType rests, T (Parser::*f)()) {
+    RestrictionType prevRestrictions = restrictions;
     restrictions |= rests;
     auto res = (this->*f)();
-    restrictions &= ~rests;
+    restrictions = prevRestrictions;
     return res;
   }
 
@@ -36,7 +40,9 @@ class Parser {
     return res;
   }
 
-  void eatNextToken() { nextToken = lexer->getNextToken(); }
+  void eatNextToken() {
+    nextToken = lexer->getNextToken(restrictions & LogicalAndAllowed);
+  }
   void synchronize();
   void synchronizeOn(const std::unordered_set<TokenKind> &kind) {
     incompleteAST = true;

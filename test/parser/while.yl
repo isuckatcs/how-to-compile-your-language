@@ -1,6 +1,6 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main(): unit {
-    // CHECK: [[# @LINE + 1 ]]:11: error: expected expression
+    // CHECK: [[# @LINE + 1 ]]:13: error: expected expression
     while & {}
     
     // CHECK: [[# @LINE + 1 ]]:15: error: expected 'while' body

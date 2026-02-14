@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn foo(): &&?&number{}
+// CHECK: FunctionDecl: foo
+// CHECK-NEXT:   ReferenceType
+// CHECK-NEXT:     ReferenceType
+// CHECK-NEXT:       ReferenceType
+// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:   Bloc
+
+fn main() {
+  let x: &&&?&&number;
+  // CHECK: DeclStmt:
+  // CHECK-NEXT:   VarDecl: x
+  // CHECK-NEXT:     ReferenceType
+  // CHECK-NEXT:       ReferenceType
+  // CHECK-NEXT:         ReferenceType
+  // CHECK-NEXT:           ReferenceType
+  // CHECK-NEXT:             ReferenceType
+  // CHECK-NEXT:               BuiltinType: number
+}

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <set>
 
 #include "parser.h"
 #include "utils.h"
@@ -470,13 +471,17 @@ std::unique_ptr<ast::Expr> Parser::parseExprRHS(std::unique_ptr<ast::Expr> lhs,
 }
 
 // <prefixExpression>
-//  ::= ('!' | '-')* <postfixExpression>
+//  ::= ('!' | '-' | '&' | '&?' | '*')* <postfixExpression>
 std::unique_ptr<ast::Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
-  if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus)
-    return parsePostfixExpr();
-  eatNextToken(); // eat '!' or '-'
+  static const std::set<TokenKind> prefixTokKinds = {
+      TokenKind::Excl, TokenKind::Minus, TokenKind::Amp, TokenKind::AmpQ,
+      TokenKind::Asterisk};
+
+  if (!prefixTokKinds.count(tok.kind))
+    return withRestrictions(LogicalAndAllowed, &Parser::parsePostfixExpr);
+  eatNextToken(); // eat '!', '-', '&', '&?' or '*'
 
   varOrReturn(rhs, parsePrefixExpr());
 
@@ -655,16 +660,21 @@ Parser::parseListWithTrailingComma(
 //  ::= <builtinType>
 //  |   <userDefinedType>
 //  |   <functionType>
+//  |   <referenceType>
 //
 // <builtinType>
 //  ::= 'number'
 //  |   'unit'
 //
 // <userDefinedType>
-//     ::= <identifier> <typeList>?
+//  ::= <identifier> <typeList>?
 //
 // <functionType>
 //  ::= '(' <type> (',' <type>)* ','? ')' -> type
+//
+// <referenceType>
+//  ::= '&' <type>
+//  |   '&?' <type>
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
 
@@ -704,6 +714,17 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     varOrReturn(returnType, parseType());
     return std::make_unique<ast::FunctionType>(
         location, std::move(*argumentList), std::move(returnType));
+  }
+
+  if (nextToken.kind == TokenKind::Amp || nextToken.kind == TokenKind::AmpQ) {
+    SourceLocation location = nextToken.location;
+
+    bool isMutable = nextToken.kind == TokenKind::AmpQ;
+    eatNextToken(); // eat '&' or '&?'
+
+    varOrReturn(referencedType, parseType());
+    return std::make_unique<ast::ReferenceType>(
+        location, std::move(referencedType), isMutable);
   }
 
   return report(nextToken.location, "expected type specifier");
