@@ -82,7 +82,7 @@
     ::= <prefixExpression> (('*' | '/') <prefixExpression>)*
 
 <prefixExpression>
-    ::= ('!' | '-')* <postfixExpression>
+    ::= ('!' | '-' | '&' | '&?' | '*')* <postfixExpression>
 
 <postfixExpression>
     ::= <primaryExpression> (<argumentList> | <memberExpr>)*
@@ -115,6 +115,7 @@
     ::= <builtinType>
     |   <userDefinedType>
     |   <functionType>
+    |   <referenceType>
 
 <builtinType>
     ::= 'number'
@@ -125,6 +126,10 @@
 
 <functionType>
     ::= '(' <type> (',' <type>)* ','? ')' -> type
+
+<referenceType>
+    ::= '&' <type>
+    |   '&?' <type>
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
