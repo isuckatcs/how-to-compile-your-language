@@ -12,13 +12,13 @@ fn main(): unit {
     
     y = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expression is not assignable
+    // CHECK: [[# @LINE + 1 ]]:5: error: cannot assign to rvalue
     bar = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expression is not assignable
+    // CHECK: [[# @LINE + 1 ]]:5: error: cannot assign to rvalue
     foo = 3.0;
 
-    // CHECK: [[# @LINE + 1 ]]:7: error: expression is not assignable
+    // CHECK: [[# @LINE + 1 ]]:7: error: cannot assign to rvalue
     1 + 1 = 2;
 
     let z: number;

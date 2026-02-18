@@ -54,7 +54,7 @@ struct Stmt {
 };
 
 struct Expr : public ConstantValueContainer<double>, public Stmt {
-  enum class Kind { Lvalue, Rvalue };
+  enum class Kind { Rvalue, MutLvalue, Lvalue };
 
   Kind kind;
 
@@ -62,7 +62,8 @@ struct Expr : public ConstantValueContainer<double>, public Stmt {
       : Stmt(location),
         kind(kind) {}
 
-  bool isLvalue() const { return kind == Kind::Lvalue; }
+  bool isLvalue() const { return kind != Kind::Rvalue; }
+  bool isMutable() const { return kind == Kind::MutLvalue; }
 
   virtual ~Expr() = default;
 };
@@ -275,7 +276,7 @@ struct MemberExpr : public Expr {
   FieldDecl *field;
 
   MemberExpr(SourceLocation location, Expr *base, FieldDecl *field)
-      : Expr(location, Expr::Kind::Lvalue),
+      : Expr(location, !base->isLvalue() ? Expr::Kind::MutLvalue : base->kind),
         base(base),
         field(field) {}
 
