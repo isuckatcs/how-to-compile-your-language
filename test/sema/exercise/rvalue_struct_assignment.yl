@@ -8,6 +8,6 @@ fn foo(): S {
 fn main(): unit {
   let s = S { x: 2 };
   foo() = s;
-  // CHECK: [[# @LINE - 1 ]]:6: error: expression is not assignable
+  // CHECK: [[# @LINE - 1 ]]:6: error: cannot assign to rvalue
 }
 

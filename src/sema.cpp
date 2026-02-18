@@ -342,10 +342,12 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
   if (decl->getAs<res::TypeParamDecl>())
     return report(declRefExpr.location, "expected value, found type parameter");
 
-  res::Expr::Kind kind =
-      decl->getAs<res::FunctionDecl>() || decl->getAs<res::StructDecl>()
-          ? res::Expr::Kind::Rvalue
-          : res::Expr::Kind::Lvalue;
+  res::Expr::Kind kind;
+  if (decl->getAs<res::FunctionDecl>() || decl->getAs<res::StructDecl>())
+    kind = res::Expr::Kind::Rvalue;
+  else
+    kind = decl->getAs<res::ValueDecl>()->isMutable ? res::Expr::Kind::MutLvalue
+                                                    : res::Expr::Kind::Lvalue;
 
   auto *declTy = ctx.getType(decl);
   res::Context::SubstitutionTy substitution = ctx.createSubstitution(decl);
@@ -596,7 +598,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   varOrReturn(lhs, resolveExpr(ctx, *assignment.assignee));
 
   if (!lhs->isLvalue())
-    return report(lhs->location, "expression is not assignable");
+    return report(lhs->location, "cannot assign to rvalue");
 
   auto *lhsTy = ctx.getType(lhs);
   auto *rhsTy = ctx.getType(rhs);

@@ -2,6 +2,6 @@
 struct S { x: number }
 
 fn main(): unit {
-  // CHECK: [[# @LINE + 1 ]]:4: error: expression is not assignable
+  // CHECK: [[# @LINE + 1 ]]:4: error: cannot assign to rvalue
   S{x: 1} = S{x: 2};
 }
