@@ -22,9 +22,10 @@ class Parser {
 
   template <typename T>
   T withRestrictions(RestrictionType rests, T (Parser::*f)()) {
+    RestrictionType prevRestrictions = restrictions;
     restrictions |= rests;
     auto res = (this->*f)();
-    restrictions &= ~rests;
+    restrictions = prevRestrictions;
     return res;
   }
 
