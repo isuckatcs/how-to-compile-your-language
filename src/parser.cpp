@@ -470,13 +470,14 @@ std::unique_ptr<ast::Expr> Parser::parseExprRHS(std::unique_ptr<ast::Expr> lhs,
 }
 
 // <prefixExpression>
-//  ::= ('!' | '-')* <postfixExpression>
+//  ::= ('!' | '-' | '&')* <postfixExpression>
 std::unique_ptr<ast::Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
-  if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus)
+  if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus &&
+      tok.kind != TokenKind::Amp)
     return parsePostfixExpr();
-  eatNextToken(); // eat '!' or '-'
+  eatNextToken(); // eat '!', '-' or '&'
 
   varOrReturn(rhs, parsePrefixExpr());
 
@@ -655,16 +656,20 @@ Parser::parseListWithTrailingComma(
 //  ::= <builtinType>
 //  |   <userDefinedType>
 //  |   <functionType>
+//  |   <pointerType>
 //
 // <builtinType>
 //  ::= 'number'
 //  |   'unit'
 //
 // <userDefinedType>
-//     ::= <identifier> <typeList>?
+//  ::= <identifier> <typeList>?
 //
 // <functionType>
 //  ::= '(' <type> (',' <type>)* ','? ')' -> type
+//
+// <pointerType>
+//  ::= '*' <type>
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
 
@@ -704,6 +709,15 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     varOrReturn(returnType, parseType());
     return std::make_unique<ast::FunctionType>(
         location, std::move(*argumentList), std::move(returnType));
+  }
+
+  if (nextToken.kind == TokenKind::Asterisk) {
+    SourceLocation location = nextToken.location;
+    eatNextToken(); // eat '*'
+
+    varOrReturn(referencedType, parseType());
+    return std::make_unique<ast::PointerType>(location,
+                                              std::move(referencedType));
   }
 
   return report(nextToken.location, "expected type specifier");

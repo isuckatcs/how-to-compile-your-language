@@ -59,6 +59,16 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
+struct PointerType : public Type {
+  std::unique_ptr<Type> pointeeType;
+
+  PointerType(SourceLocation location, std::unique_ptr<Type> referencedType)
+      : Type(location),
+        pointeeType(std::move(referencedType)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct Decl {
   SourceLocation location;
   std::string identifier;

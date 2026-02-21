@@ -20,6 +20,7 @@ enum class TokenKind : char {
 
   Equal,
   EqualEqual,
+  Amp,
   AmpAmp,
   PipePipe,
   Minus,

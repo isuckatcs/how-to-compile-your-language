@@ -23,8 +23,12 @@ std::string_view getOpStr(TokenKind op) {
     return "*";
   if (op == TokenKind::Slash)
     return "/";
+  if (op == TokenKind::Equal)
+    return "=";
   if (op == TokenKind::EqualEqual)
     return "==";
+  if (op == TokenKind::Amp)
+    return "&";
   if (op == TokenKind::AmpAmp)
     return "&&";
   if (op == TokenKind::PipePipe)
@@ -69,9 +73,13 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::EqualEqual};
   }
 
-  if (currentChar == '&' && peekNextChar() == '&') {
-    eatNextChar();
-    return Token{tokenStartLocation, TokenKind::AmpAmp};
+  if (currentChar == '&') {
+    if (peekNextChar() == '&') {
+      eatNextChar();
+      return Token{tokenStartLocation, TokenKind::AmpAmp};
+    }
+
+    return Token{tokenStartLocation, TokenKind::Amp};
   }
 
   if (currentChar == '|' && peekNextChar() == '|') {

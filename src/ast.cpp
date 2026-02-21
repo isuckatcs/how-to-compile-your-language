@@ -31,6 +31,12 @@ void FunctionType::dump(size_t level) const {
   ret->dump(level + 1);
 }
 
+void PointerType::dump(size_t level) const {
+  std::cerr << indent(level) << "PointerType\n";
+
+  pointeeType->dump(level + 1);
+}
+
 void Block::dump(size_t level) const {
   std::cerr << indent(level) << "Block\n";
 

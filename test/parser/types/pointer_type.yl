@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn foo(): ***number{}
+// CHECK: FunctionDecl: foo
+// CHECK-NEXT:   PointerType
+// CHECK-NEXT:     PointerType
+// CHECK-NEXT:       PointerType
+// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:   Block
+
+fn main() {
+  let x: *****number;
+  // CHECK: DeclStmt:
+  // CHECK-NEXT:   VarDecl: x
+  // CHECK-NEXT:     PointerType
+  // CHECK-NEXT:       PointerType
+  // CHECK-NEXT:         PointerType
+  // CHECK-NEXT:           PointerType
+  // CHECK-NEXT:             PointerType
+  // CHECK-NEXT:               BuiltinType: number
+}
