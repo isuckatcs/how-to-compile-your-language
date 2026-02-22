@@ -115,7 +115,7 @@
     ::= <builtinType>
     |   <userDefinedType>
     |   <functionType>
-    |   <pointerType>
+    |   <outParamType>
 
 <builtinType>
     ::= 'number'
@@ -127,8 +127,8 @@
 <functionType>
     ::= '(' <type> (',' <type>)* ','? ')' -> type
 
-<pointerType>
-    ::= '*' <type>
+<outParamType>
+    ::= '&' <type>
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
