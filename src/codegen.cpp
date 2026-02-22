@@ -92,16 +92,10 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   }
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
-    if (instantiations.empty())
-      assert(false && "type param found outside an instantiation");
-
     size_t idx = typeParamTy->decl->index;
-
-    const auto &currentInstantiation = instantiations.top();
-    if (idx >= currentInstantiation.size())
-      assert(false && "type argument is not in the current instantiation");
-
-    return currentInstantiation[idx];
+    assert(!instantiations.empty() && idx < instantiations.top().size() &&
+           "type param found in an invalid instantiation");
+    return instantiations.top()[idx];
   }
 
   llvm_unreachable("unexpected type encountered");
