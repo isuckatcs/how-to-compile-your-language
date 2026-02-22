@@ -1,0 +1,24 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o out_param_field && ./out_param_field | grep -Plzx '1\n2\n'
+struct S {
+  x: number,
+  y: number,
+}
+
+fn swap<T>(x: *T, y: *T) {
+  let tmp = x;
+  x = y;
+  y = tmp;
+}
+
+fn main() {
+  mut s = S{x: 2, y: 1};
+
+  swap(&s.x, &s.y);
+  // CHECK: %2 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 0
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 1
+  // CHECK-NEXT: call void @_Y4swapGnE(ptr %2, ptr %3)
+  
+  println(s.x);
+  println(s.y);
+}

@@ -1,0 +1,36 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o out_param_out_param && ./out_param_out_param | grep -Plzx '1\n2\n'
+fn swap<T>(x: *T, y: *T) {
+  let tmp = x;
+  x = y;
+  y = tmp;
+}
+
+fn wrapper(x: *number, y: *number) {
+  x = 2;
+  y = 1;
+
+  swap(&x, &y);
+}
+// CHECK: define void @wrapper(ptr %x, ptr %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   store double 2.000000e+00, ptr %x, align 8
+// CHECK-NEXT:   store double 1.000000e+00, ptr %y, align 8
+// CHECK-NEXT:   call void @_Y4swapGnE(ptr %x, ptr %y)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  mut x = 3;
+  mut y = 4;
+  // CHECK: %x = alloca double, align 8
+  // CHECK-NEXT: %y = alloca double, align 8
+  // CHECK-NEXT: store double 3.000000e+00, ptr %x, align 8
+  // CHECK-NEXT: store double 4.000000e+00, ptr %y, align 8
+
+  wrapper(&x, &y);
+  // CHECK-NEXT: call void @wrapper(ptr %x, ptr %y)
+
+  println(x);
+  println(y);
+}

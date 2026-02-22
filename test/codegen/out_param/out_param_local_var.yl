@@ -1,0 +1,23 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o out_param_local_var && ./out_param_local_var | grep -Plzx '0\n10\n'
+fn bar(x: *number) {
+  x = 10;
+}
+// CHECK: define void @bar(ptr %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   store double 1.000000e+01, ptr %x, align 8
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  mut x = 0;
+  // CHECK: %x = alloca double, align 8
+  // CHECK-NEXT: store double 0.000000e+00, ptr %x, align 8
+
+  println(x);
+
+  bar(&x);
+  // CHECK: call void @bar(ptr %x)
+
+  println(x);
+}

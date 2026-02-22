@@ -1,0 +1,105 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o out_param_on_rhs_generic && ./out_param_on_rhs_generic | grep -Plzx '1\n2\n3\n4\n5\n6\n7\n8\n'
+struct S {
+  x: number,
+  y: number,
+}
+
+fn swap<T>(x: *T, y: *T) {
+  let tmp = x;
+  x = y;
+  y = tmp;
+}
+
+fn seven() {
+  println(7);
+}
+
+fn eight() {
+  println(8);
+}
+
+fn main() {
+  // CHECK: %x = alloca double, align 8
+  // CHECK: %y = alloca double, align 8
+
+  // CHECK: %s1 = alloca { double, double }, align 8
+  // CHECK: %s2 = alloca { double, double }, align 8
+
+  // CHECK: %f1 = alloca ptr, align 8
+  // CHECK: %f2 = alloca ptr, align 8
+
+  mut x = 2;
+  mut y = 1;
+
+  swap(&x, &y);
+  // CHECK: call void @_Y4swapGnE(ptr %x, ptr %y)
+
+  println(x);
+  println(y);
+
+  mut s1 = S { x: 5, y: 6 };
+  mut s2 = S { x: 3, y: 4 };
+
+  swap(&s1, &s2);
+  // CHECK: call void @_Y4swapGS1SE(ptr %s1, ptr %s2)
+
+  println(s1.x);
+  println(s1.y);
+
+  println(s2.x);
+  println(s2.y);
+
+  mut u1 = unit;
+  mut u2 = unit;
+  
+  swap(&u1, &u2);
+  // CHECK: call void @_Y4swapGuE()
+
+  mut f1 = eight;
+  mut f2 = seven;
+
+  swap(&f1, &f2);
+  // CHECK: call void @_Y4swapGFRuE(ptr %f1, ptr %f2)
+
+  f1();
+  f2();
+}
+
+// CHECK: define void @_Y4swapGnE(ptr %x, ptr %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %tmp = alloca double, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x, align 8
+// CHECK-NEXT:   store double %0, ptr %tmp, align 8
+// CHECK-NEXT:   %1 = load double, ptr %y, align 8
+// CHECK-NEXT:   store double %1, ptr %x, align 8
+// CHECK-NEXT:   %2 = load double, ptr %tmp, align 8
+// CHECK-NEXT:   store double %2, ptr %y, align 8
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y4swapGS1SE(ptr %x, ptr %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %tmp = alloca { double, double }, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %tmp, ptr align 8 %x, i64 16, i1 false)
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %x, ptr align 8 %y, i64 16, i1 false)
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %y, ptr align 8 %tmp, i64 16, i1 false)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y4swapGuE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y4swapGFRuE(ptr %x, ptr %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %tmp = alloca ptr, align 8
+// CHECK-NEXT:   %0 = load ptr, ptr %x, align 8
+// CHECK-NEXT:   store ptr %0, ptr %tmp, align 8
+// CHECK-NEXT:   %1 = load ptr, ptr %y, align 8
+// CHECK-NEXT:   store ptr %1, ptr %x, align 8
+// CHECK-NEXT:   %2 = load ptr, ptr %tmp, align 8
+// CHECK-NEXT:   store ptr %2, ptr %y, align 8
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

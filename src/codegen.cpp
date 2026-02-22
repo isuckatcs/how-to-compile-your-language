@@ -86,6 +86,11 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
 
+  if (const auto *p = type->getAs<res::PointerType>()) {
+    llvm::Type *t = generateType(p->getPointeeType());
+    return t->isVoidTy() ? t : llvm::PointerType::get(context, 0);
+  }
+
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
     if (instantiations.empty())
       assert(false && "type param found outside an instantiation");
@@ -206,8 +211,10 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
   bool isConst = !decl->isMutable && initExpr && initExpr->getConstantValue();
-  if (isConst || declTy->isVoidTy())
+  if (isConst || declTy->isVoidTy()) {
+    declarations[decl] = nullptr;
     return nullptr;
+  }
 
   llvm::AllocaInst *var = allocateStackVariable(decl->identifier, declTy);
   if (initExpr)
@@ -322,6 +329,9 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(&expr))
     return generateTemporaryStruct(*sie);
 
+  if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
+    return generateDeclRefExpr(*ide->outParamRef);
+
   llvm_unreachable("unexpected expression");
 }
 
@@ -373,6 +383,9 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
+  if (unop.op == TokenKind::Amp)
+    return generateExpr(*unop.operand);
+
   llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 
   if (unop.op == TokenKind::Excl)
@@ -484,9 +497,11 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   if (!val)
     return nullptr;
 
+  bool outParamRef = dynamic_cast<const res::ImplicitDerefExpr *>(&expr);
+
   llvm::Type *type = generateType(resCtx->getType(&expr));
   if (!expr.isLvalue() || expr.getConstantValue() || type->isStructTy() ||
-      llvm::isa<llvm::Argument>(val))
+      (llvm::isa<llvm::Argument>(val) && !outParamRef))
     return val;
 
   return builder.CreateLoad(type, val);
@@ -610,17 +625,19 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    llvm::Type *argTy = generateType(resCtx->getType(paramDecl));
-    if (argTy->isVoidTy())
+    const res::Type *paramDeclTy = resCtx->getType(paramDecl);
+    llvm::Type *argTy = generateType(paramDeclTy);
+    if (argTy->isVoidTy()) {
+      declarations[paramDecl] = nullptr;
       continue;
+    }
 
     llvm::Argument *arg = function->getArg(nonVoidArgIdx);
     arg->setName(paramDecl->identifier);
 
-    llvm::Value *argVal;
-    if (!paramDecl->isMutable || arg->hasByValAttr()) {
-      argVal = arg;
-    } else {
+    llvm::Value *argVal = arg;
+    if (paramDecl->isMutable && !arg->hasByValAttr() &&
+        !paramDeclTy->getAs<res::PointerType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }
