@@ -264,6 +264,12 @@ TypeParamType *Context::getTypeParamType(const TypeParamDecl &decl) {
       .first->second.get();
 }
 
+PointerType *Context::getPointerType(Type *pointeeType) {
+  auto *ptrTy = new PointerType(pointeeType);
+  types.emplace_back(std::unique_ptr<PointerType>(ptrTy));
+  return ptrTy;
+}
+
 bool Context::unify(Type *t1, Type *t2) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
@@ -272,6 +278,11 @@ bool Context::unify(Type *t1, Type *t2) {
     return true;
 
   if (auto *u = t1->getAs<UninferredType>()) {
+    if (auto *ptrTy = t2->getAs<PointerType>()) {
+      u->infer(ptrTy->getPointeeType());
+      return false;
+    }
+
     u->infer(t2);
     return true;
   }

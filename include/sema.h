@@ -28,6 +28,25 @@ class Sema {
     ~ScopeRAII() { sema->scopes.pop_back(); }
   };
 
+  unsigned char resolutionContext = 0;
+  enum ResolutionContextKind : unsigned char {
+    ParamList = (1 << 1),
+    ArgList = (1 << 2)
+  };
+
+  class ResolutionContextRAII {
+    Sema *sema;
+    unsigned char previousContext;
+
+  public:
+    explicit ResolutionContextRAII(Sema *sema, ResolutionContextKind kind)
+        : sema(sema),
+          previousContext(sema->resolutionContext) {
+      sema->resolutionContext |= kind;
+    }
+    ~ResolutionContextRAII() { sema->resolutionContext = previousContext; }
+  };
+
   res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
 
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,

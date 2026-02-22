@@ -83,7 +83,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (const auto *s = type->getAs<res::StructType>())
     return generateStructType(s);
 
-  if (type->getAs<res::FunctionType>())
+  if (type->getAs<res::FunctionType>() || type->getAs<res::PointerType>())
     return llvm::PointerType::get(context, 0);
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
@@ -373,8 +373,10 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
-  llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
+  if (unop.op == TokenKind::Amp)
+    return generateExpr(*unop.operand);
 
+  llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
   if (unop.op == TokenKind::Excl)
     return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
 
@@ -484,9 +486,13 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   if (!val)
     return nullptr;
 
+  llvm::Argument *arg = llvm::dyn_cast<llvm::Argument>(val);
+  bool isOutParam = arg && arg->getType()->isPointerTy() &&
+                    !arg->hasAttribute(llvm::Attribute::ReadOnly);
+
   llvm::Type *type = generateType(resCtx->getType(&expr));
   if (!expr.isLvalue() || expr.getConstantValue() || type->isStructTy() ||
-      llvm::isa<llvm::Argument>(val))
+      (arg && !isOutParam))
     return val;
 
   return builder.CreateLoad(type, val);
@@ -557,6 +563,8 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
     llvm::AttrBuilder paramAttrs(context);
     if (llvmTy->isStructTy())
       paramAttrs.addByValAttr(llvmTy);
+    else if (argTy->getAs<res::FunctionType>())
+      paramAttrs.addAttribute(llvm::Attribute::ReadOnly);
 
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
   }
@@ -610,17 +618,17 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    llvm::Type *argTy = generateType(resCtx->getType(paramDecl));
+    const res::Type *paramDeclTy = resCtx->getType(paramDecl);
+    llvm::Type *argTy = generateType(paramDeclTy);
     if (argTy->isVoidTy())
       continue;
 
     llvm::Argument *arg = function->getArg(nonVoidArgIdx);
     arg->setName(paramDecl->identifier);
 
-    llvm::Value *argVal;
-    if (!paramDecl->isMutable || arg->hasByValAttr()) {
-      argVal = arg;
-    } else {
+    llvm::Value *argVal = arg;
+    if (paramDecl->isMutable && !arg->hasByValAttr() &&
+        !paramDeclTy->getAs<res::PointerType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }

@@ -30,7 +30,7 @@ fn main(): unit {
 // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %z = alloca double, align 8
 
-// CHECK-NEXT:   %0 = call ptr @_Y7wrapperGFRnE(ptr @returnOne)
+// CHECK-NEXT:   %0 = call ptr @_Y7wrapperGFRnE(ptr readonly @returnOne)
 // CHECK-NEXT:   %1 = call double %0()
 // CHECK-NEXT:   store double %1, ptr %x, align 8
 
@@ -54,7 +54,7 @@ fn main(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define ptr @_Y7wrapperGFRnE(ptr %x) {
+// CHECK: define ptr @_Y7wrapperGFRnE(ptr readonly %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca ptr, align 8
 // CHECK-NEXT:   %x1 = alloca ptr, align 8

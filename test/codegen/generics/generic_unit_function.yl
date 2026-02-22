@@ -13,11 +13,11 @@ fn main() {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_Y7wrapperGuE(ptr @sideEffect)
+// CHECK-NEXT:   call void @_Y7wrapperGuE(ptr readonly @sideEffect)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y7wrapperGuE(ptr %x) {
+// CHECK: define void @_Y7wrapperGuE(ptr readonly %x) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void %x()
 // CHECK-NEXT:   ret void
