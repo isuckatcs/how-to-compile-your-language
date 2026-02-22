@@ -28,7 +28,6 @@ struct Type {
 
   virtual const Type *getRootType() const { return this; }
   virtual std::string getName() const { return name; };
-  virtual std::string getDebugName() const { return getName(); };
   virtual ~Type() = default;
 
 protected:
@@ -410,12 +409,6 @@ public:
       return parent->getName();
     return "_";
   };
-
-  std::string getDebugName() const override {
-    if (parent)
-      return parent->getDebugName();
-    return name;
-  }
 
   friend class Context;
 };
