@@ -23,8 +23,6 @@ std::string_view getOpStr(TokenKind op) {
     return "*";
   if (op == TokenKind::Slash)
     return "/";
-  if (op == TokenKind::Equal)
-    return "=";
   if (op == TokenKind::EqualEqual)
     return "==";
   if (op == TokenKind::Amp)
