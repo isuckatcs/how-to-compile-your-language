@@ -2,9 +2,9 @@ name: Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ out-params ]
   pull_request:
-    branches: [ main ]
+    branches: [ out-params ]
   workflow_dispatch:
 
 env:
