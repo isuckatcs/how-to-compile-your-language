@@ -50,7 +50,7 @@ struct Stmt {
 
   virtual ~Stmt() = default;
 
-  virtual void dump(Context &ctx, size_t level = 0) const = 0;
+  virtual void dump(const Context &ctx, size_t level = 0) const = 0;
 };
 
 struct Expr : public ConstantValueContainer<double>, public Stmt {
@@ -88,7 +88,7 @@ struct Decl {
 
   virtual bool isGeneric() const { return false; }
 
-  virtual void dump(Context &ctx, size_t level = 0) const = 0;
+  virtual void dump(const Context &ctx, size_t level = 0) const = 0;
 };
 
 struct TypeDecl : public Decl {
@@ -112,7 +112,7 @@ struct Block {
       : location(location),
         statements(std::move(statements)) {}
 
-  void dump(Context &ctx, size_t level = 0) const;
+  void dump(const Context &ctx, size_t level = 0) const;
 };
 
 struct IfStmt : public Stmt {
@@ -129,7 +129,7 @@ struct IfStmt : public Stmt {
         trueBlock(trueBlock),
         falseBlock(falseBlock) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct WhileStmt : public Stmt {
@@ -141,14 +141,14 @@ struct WhileStmt : public Stmt {
         condition(condition),
         body(body) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct ParamDecl : public ValueDecl {
   ParamDecl(SourceLocation location, std::string identifier, bool isMutable)
       : ValueDecl(location, std::move(identifier), isMutable) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct TypeParamDecl : public TypeDecl {
@@ -158,14 +158,14 @@ struct TypeParamDecl : public TypeDecl {
       : TypeDecl(location, std::move(identifier)),
         index(index) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct FieldDecl : public ValueDecl {
   FieldDecl(SourceLocation location, std::string identifier)
       : ValueDecl(location, std::move(identifier), false) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct VarDecl : public ValueDecl {
@@ -178,7 +178,7 @@ struct VarDecl : public ValueDecl {
       : ValueDecl(location, std::move(identifier), isMutable),
         initializer(initializer) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct FunctionDecl : public ValueDecl {
@@ -198,7 +198,7 @@ struct FunctionDecl : public ValueDecl {
   void setBody(Block *body);
   bool isGeneric() const override { return !typeParams.empty(); }
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct StructDecl : public TypeDecl {
@@ -215,7 +215,7 @@ struct StructDecl : public TypeDecl {
   void setFields(std::vector<FieldDecl *> fields);
   bool isGeneric() const override { return !typeParams.empty(); }
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct NumberLiteral : public Expr {
@@ -225,7 +225,7 @@ struct NumberLiteral : public Expr {
       : Expr(location, Expr::Kind::Rvalue),
         value(value) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct UnitLiteral : public Expr {
@@ -233,7 +233,7 @@ struct UnitLiteral : public Expr {
   UnitLiteral(SourceLocation location)
       : Expr(location, Expr::Kind::Rvalue) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct CallExpr : public Expr {
@@ -245,7 +245,7 @@ struct CallExpr : public Expr {
         callee(callee),
         arguments(std::move(arguments)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct DeclRefExpr : public Expr {
@@ -268,7 +268,7 @@ public:
     return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
   }
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct MemberExpr : public Expr {
@@ -280,7 +280,7 @@ struct MemberExpr : public Expr {
         base(base),
         field(field) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct GroupingExpr : public Expr {
@@ -290,7 +290,7 @@ struct GroupingExpr : public Expr {
       : Expr(location, expr->kind),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct BinaryOperator : public Expr {
@@ -304,7 +304,7 @@ struct BinaryOperator : public Expr {
         lhs(lhs),
         rhs(rhs) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct UnaryOperator : public Expr {
@@ -316,7 +316,7 @@ struct UnaryOperator : public Expr {
         op(op),
         operand(operand) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct DeclStmt : public Stmt {
@@ -326,7 +326,7 @@ struct DeclStmt : public Stmt {
       : Stmt(location),
         varDecl(varDecl) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct Assignment : public Stmt {
@@ -338,7 +338,7 @@ struct Assignment : public Stmt {
         assignee(assignee),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct ReturnStmt : public Stmt {
@@ -348,7 +348,7 @@ struct ReturnStmt : public Stmt {
       : Stmt(location),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct FieldInitStmt : public Stmt {
@@ -360,7 +360,7 @@ struct FieldInitStmt : public Stmt {
         field(field),
         initializer(initializer) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct StructInstantiationExpr : public Expr {
@@ -374,7 +374,7 @@ struct StructInstantiationExpr : public Expr {
         structDecl(structDecl),
         fieldInitializers(std::move(fieldInitializers)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct ImplicitDerefExpr : public Expr {
@@ -384,7 +384,7 @@ struct ImplicitDerefExpr : public Expr {
       : Expr(location, Expr::Kind::Lvalue),
         outParamRef(outParamRef) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 class UninferredType : public Type {
