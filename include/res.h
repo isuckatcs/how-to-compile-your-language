@@ -380,7 +380,7 @@ struct ImplicitDerefExpr : public Expr {
   const DeclRefExpr *outParamRef;
 
   ImplicitDerefExpr(SourceLocation location, const DeclRefExpr *outParamRef)
-      : Expr(location, Expr::Kind::Lvalue),
+      : Expr(location, outParamRef->kind),
         outParamRef(outParamRef) {}
 
   void dump(const Context &ctx, size_t level = 0) const override;
