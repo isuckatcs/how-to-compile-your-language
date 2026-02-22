@@ -59,12 +59,12 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct PointerType : public Type {
-  std::unique_ptr<Type> pointeeType;
+struct OutParamType : public Type {
+  std::unique_ptr<Type> paramType;
 
-  PointerType(SourceLocation location, std::unique_ptr<Type> referencedType)
+  OutParamType(SourceLocation location, std::unique_ptr<Type> paramType)
       : Type(location),
-        pointeeType(std::move(referencedType)) {}
+        paramType(std::move(paramType)) {}
 
   void dump(size_t level = 0) const override;
 };

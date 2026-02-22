@@ -656,7 +656,7 @@ Parser::parseListWithTrailingComma(
 //  ::= <builtinType>
 //  |   <userDefinedType>
 //  |   <functionType>
-//  |   <pointerType>
+//  |   <outParamType>
 //
 // <builtinType>
 //  ::= 'number'
@@ -668,8 +668,8 @@ Parser::parseListWithTrailingComma(
 // <functionType>
 //  ::= '(' <type> (',' <type>)* ','? ')' -> type
 //
-// <pointerType>
-//  ::= '*' <type>
+// <outParamType>
+//  ::= '&' <type>
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
 
@@ -711,13 +711,13 @@ std::unique_ptr<ast::Type> Parser::parseType() {
         location, std::move(*argumentList), std::move(returnType));
   }
 
-  if (nextToken.kind == TokenKind::Asterisk) {
+  if (nextToken.kind == TokenKind::Amp) {
     SourceLocation location = nextToken.location;
-    eatNextToken(); // eat '*'
+    eatNextToken(); // eat '&'
 
     varOrReturn(referencedType, parseType());
-    return std::make_unique<ast::PointerType>(location,
-                                              std::move(referencedType));
+    return std::make_unique<ast::OutParamType>(location,
+                                               std::move(referencedType));
   }
 
   return report(nextToken.location, "expected type specifier");

@@ -1,9 +1,0 @@
-// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
-fn foo(): &*number{}
-// CHECK: [[# @LINE - 1 ]]:11: error: expected type specifier
-
-
-fn main() {
-  let x: *&number;
-  // CHECK: [[# @LINE - 1 ]]:11: error: expected type specifier
-}

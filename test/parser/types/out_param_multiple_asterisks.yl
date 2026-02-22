@@ -1,0 +1,5 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:11: error: expected type specifier
+fn foo(x: &&number, y: &number) {}
+
+fn main() {}

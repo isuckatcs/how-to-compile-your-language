@@ -1,0 +1,33 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:10: error: expected type specifier
+  let x: &&number;
+}
+
+fn foo(): &number{}
+// CHECK: FunctionDecl: foo
+// CHECK-NEXT:   OutParamType
+// CHECK-NEXT:     BuiltinType: number
+
+fn bar(x: &number) {}
+// CHECK: FunctionDecl: bar
+// CHECK-NEXT:   ParamDecl: x
+// CHECK-NEXT:     OutParamType
+// CHECK-NEXT:       BuiltinType: number
+// CHECK-NEXT:   Block
+
+fn baz() {
+  let x: &number;
+  
+  mut x: &number;
+}
+// CHECK: FunctionDecl: baz
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: x
+// CHECK-NEXT:         OutParamType
+// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:     DeclStmt:
+// CHECK-NEXT:       VarDecl: x
+// CHECK-NEXT:         OutParamType
+// CHECK-NEXT:           BuiltinType: number
