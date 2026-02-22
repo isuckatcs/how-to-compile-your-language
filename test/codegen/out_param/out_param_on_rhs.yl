@@ -2,7 +2,7 @@
 // RUN: compiler %s -o out_param_on_rhs && ./out_param_on_rhs | grep -Plzx '1\n2\n2\n1\n'
 
 // CHECK: define void @swap(ptr %x, ptr %y)
-fn swap(x: *number, y: *number) {
+fn swap(x: &number, y: &number) {
   let tmp = x;
   // CHECK: %tmp = alloca double, align 8
   // CHECK-NEXT: %0 = load double, ptr %x, align 8

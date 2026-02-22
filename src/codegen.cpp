@@ -86,8 +86,8 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
 
-  if (const auto *p = type->getAs<res::PointerType>()) {
-    llvm::Type *t = generateType(p->getPointeeType());
+  if (const auto *o = type->getAs<res::OutParamType>()) {
+    llvm::Type *t = generateType(o->getParamType());
     return t->isVoidTy() ? t : llvm::PointerType::get(context, 0);
   }
 
@@ -637,7 +637,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
 
     llvm::Value *argVal = arg;
     if (paramDecl->isMutable && !arg->hasByValAttr() &&
-        !paramDeclTy->getAs<res::PointerType>()) {
+        !paramDeclTy->getAs<res::OutParamType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }

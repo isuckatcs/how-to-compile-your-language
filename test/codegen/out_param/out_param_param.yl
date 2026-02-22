@@ -1,6 +1,6 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o out_param_param && ./out_param_param | grep -Plzx '2\n1\n1\n2\n'
-fn swap<T>(x: *T, y: *T) {
+fn swap<T>(x: &T, y: &T) {
   let tmp = x;
   x = y;
   y = tmp;
