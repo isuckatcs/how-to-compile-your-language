@@ -1,0 +1,25 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {}
+
+fn foo<T>(x: *T) {}
+// CHECK: FunctionDecl @({{.*}}) foo {(*T) -> unit}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {*T}
+// CHECK-NEXT:   Block
+
+fn main() {
+  mut n = 0;
+  mut s = S {};
+
+  foo(&n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*number) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {*number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+
+  foo(&s);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*S) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {*S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+}

@@ -333,6 +333,9 @@ Type *Context::instantiate(Type *t, const SubstitutionTy &substitution) {
   if (auto *s = t->getAs<StructType>())
     instTy = getStructType(*s->getDecl(), s->getTypeArgs());
 
+  if (auto *p = t->getAs<PointerType>())
+    instTy = getPointerType(p->getPointeeType());
+
   for (auto &arg : instTy->args)
     arg = instantiate(arg, substitution);
 
