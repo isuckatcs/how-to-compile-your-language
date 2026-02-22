@@ -1,11 +1,11 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn foo<T>(x: *T) {}
+fn foo<T>(x: &T) {}
 
 fn main() {
   mut x = 1;
   foo(&x);
 }
 // CHECK: CallExpr {unit}
-// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*number) -> unit}
-// CHECK-NEXT:   UnaryOperator '&' {*number}
+// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+// CHECK-NEXT:   UnaryOperator '&' {&number}
 // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}

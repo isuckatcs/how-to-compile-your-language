@@ -1,24 +1,24 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn swap<T>(x: *T, y: *T) {
+fn swap<T>(x: &T, y: &T) {
   let tmp = x;
   x = y;
   y = tmp;
 }
 
-fn wrapper(x: *number, y: *number) {
+fn wrapper(x: &number, y: &number) {
   swap(&x, &y);
 }
-// CHECK: FunctionDecl @({{.*}}) wrapper {(*number, *number) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {*number}
-// CHECK-NEXT:   ParamDecl @({{.*}}) y {*number}
+// CHECK: FunctionDecl @({{.*}}) wrapper {(&number, &number) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {&number}
+// CHECK-NEXT:   ParamDecl @({{.*}}) y {&number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(*number, *number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {*number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&number, &number) -> unit}
+// CHECK-NEXT:       UnaryOperator '&' {&number}
 // CHECK-NEXT:         ImplicitDerefExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {*number}
-// CHECK-NEXT:       UnaryOperator '&' {*number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {&number}
+// CHECK-NEXT:       UnaryOperator '&' {&number}
 // CHECK-NEXT:         ImplicitDerefExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) y {*number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) y {&number}
 
 fn main() {}

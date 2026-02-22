@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 
-// CHECK: [[# @LINE + 1 ]]:8: error: unexpected 'mut' specifier, a '*' parameter is always mutable
-fn foo(mut x: *number) {}
+// CHECK: [[# @LINE + 1 ]]:8: error: unexpected 'mut' specifier, a '&' parameter is always mutable
+fn foo(mut x: &number) {}
 
 fn main() {}

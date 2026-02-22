@@ -476,15 +476,15 @@ public:
   friend class Context;
 };
 
-class PointerType : public Type {
-  PointerType(Type *pointeeType)
-      : Type("*", std::vector<res::Type *>{pointeeType}){};
+class OutParamType : public Type {
+  OutParamType(Type *paramType)
+      : Type("&", std::vector<res::Type *>{paramType}){};
 
-  std::string getName() const override { return "*" + args[0]->getName(); }
+  std::string getName() const override { return "&" + args[0]->getName(); }
 
 public:
-  Type *getPointeeType() { return args[0]->getRootType(); }
-  const Type *getPointeeType() const { return args[0]->getRootType(); }
+  Type *getParamType() { return args[0]->getRootType(); }
+  const Type *getParamType() const { return args[0]->getRootType(); }
 
   friend class Context;
 };
@@ -541,7 +541,7 @@ public:
   StructType *getStructType(const StructDecl &decl,
                             std::vector<Type *> typeArgs);
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
-  PointerType *getPointerType(Type *pointeeType);
+  OutParamType *getPointerType(Type *pointeeType);
 
   using SubstitutionTy = std::vector<res::Type *>;
   SubstitutionTy createSubstitution(const Decl *decl);

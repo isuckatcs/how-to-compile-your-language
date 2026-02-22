@@ -3,16 +3,16 @@ struct S {
   x: number
 }
 
-fn foo(n: *number, s: *S) {
-// CHECK: FunctionDecl @({{.*}}) foo {(*number, *S) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) n {*number}
-// CHECK-NEXT:   ParamDecl @({{.*}}) s {*S}
+fn foo(n: &number, s: &S) {
+// CHECK: FunctionDecl @({{.*}}) foo {(&number, &S) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {&number}
+// CHECK-NEXT:   ParamDecl @({{.*}}) s {&S}
 // CHECK-NEXT:   Block
 
   n = 1;
   // CHECK-NEXT: Assignment
   // CHECK-NEXT:   ImplicitDerefExpr {number}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {*number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {&number}
   // CHECK-NEXT:   NumberLiteral '1' {number}
   // CHECK-NEXT:   | value: 1
 
@@ -21,7 +21,7 @@ fn foo(n: *number, s: *S) {
   // CHECK-NEXT: Assignment
   // CHECK-NEXT:   MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:     ImplicitDerefExpr {S}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {*S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {&S}
   // CHECK-NEXT:   NumberLiteral '2' {number}
   // CHECK-NEXT:   | value: 2
 }

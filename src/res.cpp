@@ -271,9 +271,9 @@ TypeParamType *Context::getTypeParamType(const TypeParamDecl &decl) {
       .first->second.get();
 }
 
-PointerType *Context::getPointerType(Type *pointeeType) {
-  auto *ptrTy = new PointerType(pointeeType);
-  types.emplace_back(std::unique_ptr<PointerType>(ptrTy));
+OutParamType *Context::getPointerType(Type *pointeeType) {
+  auto *ptrTy = new OutParamType(pointeeType);
+  types.emplace_back(std::unique_ptr<OutParamType>(ptrTy));
   return ptrTy;
 }
 
@@ -285,8 +285,8 @@ bool Context::unify(Type *t1, Type *t2) {
     return true;
 
   if (auto *u = t1->getAs<UninferredType>()) {
-    if (auto *ptrTy = t2->getAs<PointerType>()) {
-      u->infer(ptrTy->getPointeeType());
+    if (auto *ptrTy = t2->getAs<OutParamType>()) {
+      u->infer(ptrTy->getParamType());
       return false;
     }
 
@@ -333,8 +333,8 @@ Type *Context::instantiate(Type *t, const SubstitutionTy &substitution) {
   if (auto *s = t->getAs<StructType>())
     instTy = getStructType(*s->getDecl(), s->getTypeArgs());
 
-  if (auto *p = t->getAs<PointerType>())
-    instTy = getPointerType(p->getPointeeType());
+  if (auto *p = t->getAs<OutParamType>())
+    instTy = getPointerType(p->getParamType());
 
   for (auto &arg : instTy->args)
     arg = instantiate(arg, substitution);

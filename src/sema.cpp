@@ -279,15 +279,15 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     return ctx.getFunctionType(std::move(args), retTy);
   }
 
-  if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
+  if (const auto *out = dynamic_cast<const ast::OutParamType *>(&parsedType)) {
     if (!(resolutionContext & ParamList))
-      return report(ptr->location, "only parameters can have '*' type");
+      return report(out->location, "only parameters can have '&' type");
 
-    varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType));
-    if (pointeeType->getAs<res::PointerType>())
-      return report(ptr->location, "a type can have only one '*' specifier");
+    varOrReturn(paramType, resolveType(ctx, *out->paramType));
+    assert(!paramType->getAs<res::OutParamType>() &&
+           "grammar doesn't allow nested out param types");
 
-    return ctx.getPointerType(pointeeType);
+    return ctx.getPointerType(paramType);
   }
 
   llvm_unreachable("unexpected ast type encountered");
@@ -306,11 +306,11 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
   if (unary.op == TokenKind::Amp) {
     if (!(resolutionContext & ArgList))
       return report(unary.location,
-                    "'&' can only be used to pass arguments to '*' parameters");
+                    "'&' can only be used to pass arguments to '&' parameters");
 
     if (!rhs->isMutable())
       return report(unary.location,
-                    "only mutable lvalues can be passed to '*' parameters");
+                    "only mutable lvalues can be passed to '&' parameters");
 
     rhsTy = ctx.getPointerType(rhsTy);
   } else if (!rhsTy->getAs<res::BuiltinNumberType>()) {
@@ -703,10 +703,10 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
       return report(declRefExpr->location, "expected an instance of '" +
                                                declRefExpr->identifier + '\'');
 
-    auto *ptrType = ctx.getType(dre)->getAs<res::PointerType>();
-    if (ptrType)
+    auto *outType = ctx.getType(dre)->getAs<res::OutParamType>();
+    if (outType)
       return ctx.bind(ctx.create<res::ImplicitDerefExpr>(dre->location, dre),
-                      ptrType->getPointeeType());
+                      outType->getParamType());
 
     return dre;
   }
@@ -854,10 +854,10 @@ Sema::resolveFunctionDecl(res::Context &ctx,
     auto *type = paramTypes.emplace_back(resolveType(ctx, *param->type));
     error |= !type;
 
-    bool isOutputType = type && type->getAs<res::PointerType>();
+    bool isOutputType = type && type->getAs<res::OutParamType>();
     if (isOutputType && param->isMutable) {
       report(param->location,
-             "unexpected 'mut' specifier, a '*' parameter is always mutable");
+             "unexpected 'mut' specifier, a '&' parameter is always mutable");
       error |= true;
     }
 

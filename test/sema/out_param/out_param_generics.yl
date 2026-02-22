@@ -4,9 +4,9 @@ struct S<T> {}
 fn foo<T>() {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:6: error: only parameters can have '*' type
-  S@<*number>{};
+  // CHECK: [[# @LINE + 1 ]]:6: error: only parameters can have '&' type
+  S@<&number>{};
 
-  // CHECK: [[# @LINE + 1 ]]:8: error: only parameters can have '*' type
-  foo@<*number>();
+  // CHECK: [[# @LINE + 1 ]]:8: error: only parameters can have '&' type
+  foo@<&number>();
 }

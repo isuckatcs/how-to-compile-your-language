@@ -1,5 +1,5 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn swap<T>(x: *T, y: *T) {
+fn swap<T>(x: &T, y: &T) {
   let tmp = x;
   x = y;
   y = tmp;
@@ -13,10 +13,10 @@ fn wrapper(mut x: number, mut y: number) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(*number, *number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {*number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&number, &number) -> unit}
+// CHECK-NEXT:       UnaryOperator '&' {&number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:       UnaryOperator '&' {*number}
+// CHECK-NEXT:       UnaryOperator '&' {&number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) y {number}
 
 fn main() {}

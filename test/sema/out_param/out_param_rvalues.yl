@@ -1,19 +1,19 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {}
 
-fn test1(x: *number) {}
+fn test1(x: &number) {}
 
-fn test2(x: *S) {}
+fn test2(x: &S) {}
 
-fn test3(x: *() -> unit) {}
+fn test3(x: &() -> unit) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:9: error: only mutable lvalues can be passed to '*' parameters
+  // CHECK: [[# @LINE + 1 ]]:9: error: only mutable lvalues can be passed to '&' parameters
   test1(&1);
 
   // CHECK: [[# @LINE + 1 ]]:10: error: expected an instance of 'S'
   test2(&S);
   
-  // CHECK: [[# @LINE + 1 ]]:9: error: only mutable lvalues can be passed to '*' parameters
+  // CHECK: [[# @LINE + 1 ]]:9: error: only mutable lvalues can be passed to '&' parameters
   test3(&main);
 }
