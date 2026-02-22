@@ -377,6 +377,16 @@ struct StructInstantiationExpr : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+struct ImplicitDerefExpr : public Expr {
+  const DeclRefExpr *outParamRef;
+
+  ImplicitDerefExpr(SourceLocation location, const DeclRefExpr *outParamRef)
+      : Expr(location, Expr::Kind::Lvalue),
+        outParamRef(outParamRef) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
 class UninferredType : public Type {
   Type *parent = nullptr;
 
@@ -473,6 +483,19 @@ public:
   friend class Context;
 };
 
+class PointerType : public Type {
+  PointerType(Type *pointeeType)
+      : Type("*", std::vector<res::Type *>{pointeeType}){};
+
+  std::string getName() const override { return "*" + args[0]->getName(); }
+
+public:
+  Type *getPointeeType() { return args[0]->getRootType(); }
+  const Type *getPointeeType() const { return args[0]->getRootType(); }
+
+  friend class Context;
+};
+
 class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
@@ -525,6 +548,7 @@ public:
   StructType *getStructType(const StructDecl &decl,
                             std::vector<Type *> typeArgs);
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
+  PointerType *getPointerType(Type *pointeeType);
 
   using SubstitutionTy = std::vector<res::Type *>;
   SubstitutionTy createSubstitution(const Decl *decl);

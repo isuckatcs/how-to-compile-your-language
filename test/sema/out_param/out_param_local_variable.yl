@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:10: error: only parameters can have '*' type
+  let x: *number;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: only parameters can have '*' type
+  let y: **number;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: only parameters can have '*' type
+  mut x: *number;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: only parameters can have '*' type
+  mut y: **number;
+}

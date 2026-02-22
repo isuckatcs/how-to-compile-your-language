@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn bar(x: *number) {
+  x = 1;
+}
+
+fn main() {
+  mut x = 0;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected '*number' argument, but received 'number'
+  bar(x);
+}

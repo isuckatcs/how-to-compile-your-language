@@ -92,7 +92,7 @@ std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
   if (unop.op == TokenKind::Minus)
     return -*operand;
 
-  llvm_unreachable("unexpected unary operator");
+  return std::nullopt;
 }
 
 std::optional<double>

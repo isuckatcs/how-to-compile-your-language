@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> { x: T }
+
+fn foo<T>(x: T) {}
+
+fn main() {
+  mut x = 1;
+
+  // CHECK: [[# @LINE + 1 ]]:9: error: '&' can only be used to pass arguments to '*' parameters
+  S{ x: &x };
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected 'number' argument, but received '*number'
+  foo(&x);
+}

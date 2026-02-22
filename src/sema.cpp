@@ -270,12 +270,24 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
           dynamic_cast<const ast::FunctionType *>(&parsedType)) {
     std::vector<res::Type *> args;
     for (auto &&astArg : function->args) {
+      ResolutionContextRAII paramCtx(this, ParamList);
       varOrReturn(argTy, resolveType(ctx, *astArg));
       args.emplace_back(argTy);
     }
 
     varOrReturn(retTy, resolveType(ctx, *function->ret));
     return ctx.getFunctionType(std::move(args), retTy);
+  }
+
+  if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
+    if (!(resolutionContext & ParamList))
+      return report(ptr->location, "only parameters can have '*' type");
+
+    varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType));
+    if (pointeeType->getAs<res::PointerType>())
+      return report(ptr->location, "a type can have only one '*' specifier");
+
+    return ctx.getPointerType(pointeeType);
   }
 
   llvm_unreachable("unexpected ast type encountered");
@@ -291,9 +303,20 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
                   "type of operand to unary operator is unknown");
 
   const auto &loc = unary.location;
-  if (!rhsTy->getAs<res::BuiltinNumberType>())
+  if (unary.op == TokenKind::Amp) {
+    if (!(resolutionContext & ArgList))
+      return report(unary.location,
+                    "'&' can only be used to pass arguments to '*' parameters");
+
+    if (!rhs->isMutable())
+      return report(unary.location,
+                    "only mutable lvalues can be passed to '*' parameters");
+
+    rhsTy = ctx.getPointerType(rhsTy);
+  } else if (!rhsTy->getAs<res::BuiltinNumberType>()) {
     return report(loc, '\'' + rhsTy->getName() +
                            "' cannot be used as an operand to unary operator");
+  }
 
   return ctx.bind(ctx.create<res::UnaryOperator>(loc, unary.op, rhs), rhsTy);
 }
@@ -399,6 +422,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   std::vector<res::Expr *> resolvedArgs;
   size_t idx = 0;
   for (auto &&argument : call.arguments) {
+    ResolutionContextRAII argCtx(this, ArgList);
     varOrReturn(arg, resolveExpr(ctx, *argument));
 
     res::Type *expectedTy = argTypes[idx];
@@ -679,6 +703,11 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
       return report(declRefExpr->location, "expected an instance of '" +
                                                declRefExpr->identifier + '\'');
 
+    auto *ptrType = ctx.getType(dre)->getAs<res::PointerType>();
+    if (ptrType)
+      return ctx.bind(ctx.create<res::ImplicitDerefExpr>(dre->location, dre),
+                      ptrType->getPointeeType());
+
     return dre;
   }
 
@@ -741,9 +770,6 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     auto *initTy = ctx.getType(initializer);
 
     if (!ctx.unify(declTy, initTy)) {
-      declTy = ctx.getType(decl);
-      initTy = ctx.getType(initializer);
-
       return report(decl->initializer->location,
                     "an expression of type '" + initTy->getName() +
                         "' cannot be used to initialize a variable of type '" +
@@ -823,13 +849,22 @@ Sema::resolveFunctionDecl(res::Context &ctx,
 
   ScopeRAII paramScope(this);
   for (auto &&param : function.params) {
-    auto *resolvedParam =
-        resolvedParams.emplace_back(ctx.create<res::ParamDecl>(
-            param->location, param->identifier, param->isMutable));
-    error |= !insertDeclToCurrentScope(resolvedParam);
+    ResolutionContextRAII paramCtx(this, ParamList);
 
     auto *type = paramTypes.emplace_back(resolveType(ctx, *param->type));
     error |= !type;
+
+    bool isOutputType = type && type->getAs<res::PointerType>();
+    if (isOutputType && param->isMutable) {
+      report(param->location,
+             "unexpected 'mut' specifier, a '*' parameter is always mutable");
+      error |= true;
+    }
+
+    auto *resolvedParam = resolvedParams.emplace_back(
+        ctx.create<res::ParamDecl>(param->location, param->identifier,
+                                   param->isMutable || isOutputType));
+    error |= !insertDeclToCurrentScope(resolvedParam);
 
     if (error)
       continue;
