@@ -129,10 +129,16 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
 }
 
 // <structDecl>
-//  ::= 'struct' <identifier> <typeParamList>? <fieldList>
+//  ::= 'struct' <identifier> <typeParamList>? '{' <memberList>? '}'
+//
+// <memberList>
+//  ::= (<fieldList> | <memberFunctionList>)*
 //
 // <fieldList>
-//  ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
+//  ::= <fieldDecl> (',' <fieldDecl>)* ','?
+//
+// <memberFunctionList>
+//  ::= <functionDecl>*
 std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat struct
@@ -145,14 +151,50 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
 
   varOrReturn(typeParamList, parseTypeParamList());
 
-  varOrReturn(fieldList,
-              parseListWithTrailingComma<ast::FieldDecl>(
-                  {TokenKind::Lbrace, "expected '{'"}, &Parser::parseFieldDecl,
-                  {TokenKind::Rbrace, "expected '}'"}));
+  matchOrReturn(TokenKind::Lbrace, "expected '{'");
+  eatNextToken(); // eat '{'
 
-  return std::make_unique<ast::StructDecl>(location, structIdentifier,
-                                           std::move(*typeParamList),
-                                           std::move(*fieldList));
+  std::vector<std::unique_ptr<ast::Decl>> decls;
+
+  while (true) {
+    if (nextToken.kind == TokenKind::Rbrace)
+      break;
+
+    while (true) {
+      if (nextToken.kind == TokenKind::Rbrace ||
+          nextToken.kind == TokenKind::KwFn)
+        break;
+
+      auto field = parseFieldDecl();
+      if (field)
+        decls.emplace_back(std::move(field));
+      else
+        synchronizeOn({TokenKind::Rbrace, TokenKind::KwFn});
+
+      if (nextToken.kind != TokenKind::Comma)
+        break;
+      eatNextToken(); // eat ','
+    }
+
+    while (true) {
+      if (nextToken.kind == TokenKind::Rbrace ||
+          nextToken.kind == TokenKind::Identifier)
+        break;
+
+      auto fn = parseFunctionDecl();
+      if (fn)
+        decls.emplace_back(std::move(fn));
+      else
+        synchronizeOn(
+            {TokenKind::Rbrace, TokenKind::Identifier, TokenKind::KwFn});
+    }
+  }
+
+  matchOrReturn(TokenKind::Rbrace, "expected '}'");
+  eatNextToken(); // eat '}'
+
+  return std::make_unique<ast::StructDecl>(
+      location, structIdentifier, std::move(*typeParamList), std::move(decls));
 }
 
 // <functionDecl>
@@ -661,6 +703,7 @@ Parser::parseListWithTrailingComma(
 // <builtinType>
 //  ::= 'number'
 //  |   'unit'
+//  |   'Self'
 //
 // <userDefinedType>
 //  ::= <identifier> <typeList>?
@@ -673,13 +716,22 @@ Parser::parseListWithTrailingComma(
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
 
-  if (nextToken.kind == TokenKind::KwNumber ||
-      nextToken.kind == TokenKind::KwUnit) {
-    auto kind = nextToken.kind == TokenKind::KwNumber
-                    ? ast::BuiltinType::Kind::Number
-                    : ast::BuiltinType::Kind::Unit;
-    eatNextToken(); // eat 'number' or 'unit'
-    return std::make_unique<ast::BuiltinType>(location, kind);
+  if (nextToken.kind == TokenKind::KwNumber) {
+    eatNextToken(); // eat 'number'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Number);
+  }
+
+  if (nextToken.kind == TokenKind::KwUnit) {
+    eatNextToken(); // eat 'unit'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Unit);
+  }
+
+  if (nextToken.kind == TokenKind::KwSelf) {
+    eatNextToken(); // eat 'Self'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Self);
   }
 
   if (nextToken.kind == TokenKind::Identifier) {

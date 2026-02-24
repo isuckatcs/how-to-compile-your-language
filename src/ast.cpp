@@ -12,6 +12,8 @@ void BuiltinType::dump(size_t level) const {
     std::cerr << "unit";
   else if (kind == Kind::Number)
     std::cerr << "number";
+  else if (kind == Kind::Self)
+    std::cerr << "Self";
 
   std::cerr << '\n';
 }
@@ -156,8 +158,8 @@ void StructDecl::dump(size_t level) const {
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
 
-  for (auto &&field : fields)
-    field->dump(level + 1);
+  for (auto &&decl : decls)
+    decl->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {

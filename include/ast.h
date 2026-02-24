@@ -20,7 +20,7 @@ struct Type {
 };
 
 struct BuiltinType : public Type {
-  enum class Kind { Unit, Number };
+  enum class Kind { Unit, Number, Self };
 
   Kind kind;
 
@@ -295,33 +295,6 @@ struct TypeParamDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct FieldDecl : public Decl {
-  std::unique_ptr<Type> type;
-
-  FieldDecl(SourceLocation location,
-            std::string identifier,
-            std::unique_ptr<Type> type)
-      : Decl(location, std::move(identifier)),
-        type(std::move(type)) {}
-
-  void dump(size_t level = 0) const override;
-};
-
-struct StructDecl : public Decl {
-  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<FieldDecl>> fields;
-
-  StructDecl(SourceLocation location,
-             std::string identifier,
-             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-             std::vector<std::unique_ptr<FieldDecl>> fields)
-      : Decl(location, std::move(identifier)),
-        typeParameters(std::move(typeParameters)),
-        fields(std::move(fields)) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct ParamDecl : public Decl {
   std::unique_ptr<Type> type;
   bool isMutable;
@@ -372,6 +345,45 @@ struct FunctionDecl : public Decl {
         typeParameters(std::move(typeParameters)),
         params(std::move(params)),
         body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct FieldDecl : public Decl {
+  std::unique_ptr<Type> type;
+
+  FieldDecl(SourceLocation location,
+            std::string identifier,
+            std::unique_ptr<Type> type)
+      : Decl(location, std::move(identifier)),
+        type(std::move(type)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct StructDecl : public Decl {
+  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
+  std::vector<std::unique_ptr<Decl>> decls;
+
+  std::vector<const FieldDecl *> fields;
+  std::vector<const FunctionDecl *> memberFunctions;
+
+  StructDecl(SourceLocation location,
+             std::string identifier,
+             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
+             std::vector<std::unique_ptr<Decl>> decls)
+      : Decl(location, std::move(identifier)),
+        typeParameters(std::move(typeParameters)),
+        decls(std::move(decls)) {
+    for (auto &&decl : this->decls) {
+      if (const auto *field = dynamic_cast<const FieldDecl *>(decl.get()))
+        fields.emplace_back(field);
+      else if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get()))
+        memberFunctions.emplace_back(fn);
+      else
+        assert(false && "unexpected struct member decl");
+    }
+  }
 
   void dump(size_t level = 0) const override;
 };
