@@ -5,7 +5,7 @@
     ::= (<structDecl> | <functionDecl>)* EOF
 
 <structDecl>
-    ::= 'struct' <identifier> <typeParamList>? <fieldList>
+    ::= 'struct' <identifier> <typeParamList>? '{' <memberList>? '}'
 
 <typeParamList>
     ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
@@ -13,11 +13,17 @@
 <typeParamDecl>
     ::= <identifier>
 
+<memberList>
+    ::= (<fieldList> | <memberFunctionList>)*
+
 <fieldList>
-    ::= '{' (<fieldDecl> (',' <fieldDecl>)* ','?)? '}'
+    ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
 
 <fieldDecl>
     ::= <identifier> ':' <type>
+
+<memberFunctionList>
+    ::= <functionDecl>*
 
 <functionDecl> 
     ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type>? <block>
@@ -120,6 +126,7 @@
 <builtinType>
     ::= 'number'
     |   'unit'
+    |   'Self'
 
 <userDefinedType>
     ::= <identifier> <typeList>?
