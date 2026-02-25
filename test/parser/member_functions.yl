@@ -1,0 +1,32 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+struct S {
+  fn foo(self: Self): Self {}
+
+  x: number
+
+  fn bar() {}
+
+  y: number,
+
+  fn baz(x: number, y: number) {}
+}
+// CHECK: StructDecl: S
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     BuiltinType: Self
+// CHECK-NEXT:     ParamDecl: self
+// CHECK-NEXT:       BuiltinType: Self
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FieldDecl: x
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FieldDecl: y
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     ParamDecl: x
+// CHECK-NEXT:       BuiltinType: number
+// CHECK-NEXT:     ParamDecl: y
+// CHECK-NEXT:       BuiltinType: number
+// CHECK-NEXT:     Block
+
+fn main() {}

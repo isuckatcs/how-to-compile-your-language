@@ -169,7 +169,7 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
       if (field)
         decls.emplace_back(std::move(field));
       else
-        synchronizeOn({TokenKind::Rbrace, TokenKind::KwFn});
+        synchronize();
 
       if (nextToken.kind != TokenKind::Comma)
         break;
@@ -185,8 +185,7 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
       if (fn)
         decls.emplace_back(std::move(fn));
       else
-        synchronizeOn(
-            {TokenKind::Rbrace, TokenKind::Identifier, TokenKind::KwFn});
+        synchronize();
     }
   }
 

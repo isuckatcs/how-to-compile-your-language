@@ -1,0 +1,21 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+struct Err {
+  // CHECK: [[# @LINE + 1 ]]:5: error: expected ':'
+  x ->,
+  x: number,
+  x: number,
+  x: number,
+
+  fn foo() {}
+  fn bar() {}
+  fn baz() {}
+}
+// CHECK: StructDecl: Err
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     Block
+
+fn main() {}

@@ -1,0 +1,38 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+struct Err1 {
+  fn foo() {}
+  
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':' or '{'
+  fn bar() -> {}
+
+  fn baz() {}
+
+  x: number,
+  x: number,
+  x: number,
+}
+
+struct Err2 {
+  fn foo() {}
+
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':' or '{'
+  fn bar() -> {}
+}
+
+// CHECK: StructDecl: Err1
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FieldDecl: x
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FieldDecl: x
+// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FieldDecl: x
+// CHECK-NEXT:     BuiltinType: number
+
+// CHECK-NEXT: StructDecl: Err2
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+
+fn main() {}
