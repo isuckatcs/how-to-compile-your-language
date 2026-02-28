@@ -71,10 +71,12 @@ void FunctionDecl::dump(const Context &ctx, size_t level) const {
     body->dump(ctx, level + 1);
 }
 
-void StructDecl::setFields(std::vector<FieldDecl *> fields) {
-  assert(!isComplete && "setting fields on already complete struct");
+void StructDecl::setMembers(std::vector<FieldDecl *> fields,
+                            std::vector<FunctionDecl *> memberFunctions) {
+  assert(!isComplete && "setting members on already complete struct");
 
   this->fields = std::move(fields);
+  this->memberFunctions = std::move(memberFunctions);
   isComplete = true;
 }
 
@@ -88,6 +90,9 @@ void StructDecl::dump(const Context &ctx, size_t level) const {
 
   for (auto &&field : fields)
     field->dump(ctx, level + 1);
+
+  for (auto &&memberFn : memberFunctions)
+    memberFn->dump(ctx, level + 1);
 }
 
 void TypeParamDecl::dump(const Context &ctx, size_t level) const {

@@ -14,4 +14,3 @@ fn foo(x: S, x: S): unit {}
 
 fn main(): invalid {}
 // CHECK: [[# @LINE - 1 ]]:12: error: failed to resolve type 'invalid'
-// CHECK: [[# @LINE - 2 ]]:1: error: 'main' function is expected to return 'unit'

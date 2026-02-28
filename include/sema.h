@@ -15,7 +15,8 @@ class Sema {
 
   res::Context ctx;
   std::vector<std::vector<res::Decl *>> scopes;
-  res::FunctionDecl *currentFunction;
+  res::FunctionDecl *currentFunction = nullptr;
+  res::Type *selfType = nullptr;
 
   class ScopeRAII {
     Sema *sema;
@@ -80,12 +81,19 @@ class Sema {
 
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *resolveFunctionDecl(res::Context &ctx,
-                                         const ast::FunctionDecl &function);
+                                         const ast::FunctionDecl &function,
+                                         res::StructDecl *parent = nullptr);
+  res::FunctionDecl *resolveFunctionBody(res::Context &ctx,
+                                         const ast::FunctionDecl &functionDecl,
+                                         res::FunctionDecl *function);
   res::StructDecl *resolveStructDecl(res::Context &ctx,
                                      const ast::StructDecl &structDecl);
-  bool resolveStructFields(res::Context &ctx,
-                           res::StructDecl &decl,
-                           const ast::StructDecl &astDecl);
+  bool resolveMemberDecls(res::Context &ctx,
+                          res::StructDecl &structDecl,
+                          const ast::StructDecl &astDecl);
+  bool resolveMemberFunctionBodies(res::Context &ctx,
+                                   res::StructDecl &decl,
+                                   const ast::StructDecl &astDecl);
 
   bool checkTypeParameterCount(SourceLocation loc,
                                size_t received,
@@ -103,6 +111,8 @@ class Sema {
                              const res::FunctionDecl &fn,
                              const CFG &cfg);
   bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
+
+  bool checkBuiltinFunctionCollisions(const res::FunctionDecl *fn);
   bool hasSelfContainingStructs(const res::Context &ctx);
 
 public:

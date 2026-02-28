@@ -180,19 +180,24 @@ struct VarDecl : public ValueDecl {
   void dump(const Context &ctx, size_t level = 0) const override;
 };
 
+struct StructDecl;
+
 struct FunctionDecl : public ValueDecl {
   std::vector<TypeParamDecl *> typeParams;
   std::vector<ParamDecl *> params;
+  StructDecl *parent = nullptr;
   Block *body = nullptr;
   bool isComplete = false;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
                std::vector<TypeParamDecl *> typeParams,
-               std::vector<ParamDecl *> params)
+               std::vector<ParamDecl *> params,
+               StructDecl *parent = nullptr)
       : ValueDecl(location, std::move(identifier), false),
         typeParams(std::move(typeParams)),
-        params(std::move(params)) {}
+        params(std::move(params)),
+        parent(parent) {}
 
   void setBody(Block *body);
   bool isGeneric() const override { return !typeParams.empty(); }
@@ -203,6 +208,7 @@ struct FunctionDecl : public ValueDecl {
 struct StructDecl : public TypeDecl {
   std::vector<TypeParamDecl *> typeParams;
   std::vector<FieldDecl *> fields;
+  std::vector<FunctionDecl *> memberFunctions;
   bool isComplete = false;
 
   StructDecl(SourceLocation location,
@@ -211,7 +217,8 @@ struct StructDecl : public TypeDecl {
       : TypeDecl(location, std::move(identifier)),
         typeParams(std::move(typeParams)) {}
 
-  void setFields(std::vector<FieldDecl *> fields);
+  void setMembers(std::vector<FieldDecl *> fields,
+                  std::vector<FunctionDecl *> memberFunctions);
   bool isGeneric() const override { return !typeParams.empty(); }
 
   void dump(const Context &ctx, size_t level = 0) const override;
@@ -523,7 +530,8 @@ public:
     if constexpr (std::is_base_of_v<StructDecl, T>)
       structs.emplace_back(raw);
     else if constexpr (std::is_base_of_v<FunctionDecl, T>)
-      functions.emplace_back(raw);
+      if (!static_cast<FunctionDecl *>(raw)->parent)
+        functions.emplace_back(raw);
 
     return raw;
   }

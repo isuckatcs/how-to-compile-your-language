@@ -236,6 +236,11 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return ctx.getBuiltinUnitType();
     case ast::BuiltinType::Kind::Number:
       return ctx.getBuiltinNumberType();
+    case ast::BuiltinType::Kind::Self:
+      if (!selfType)
+        return report(parsedType.location,
+                      "'Self' is only allowed inside structs");
+      return selfType;
     }
   }
 
@@ -814,9 +819,9 @@ std::vector<res::TypeParamDecl *> Sema::resolveTypeParameters(
   return resolvedTypeParams;
 }
 
-res::FunctionDecl *
-Sema::resolveFunctionDecl(res::Context &ctx,
-                          const ast::FunctionDecl &function) {
+res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
+                                             const ast::FunctionDecl &function,
+                                             res::StructDecl *parent) {
   std::vector<res::TypeParamDecl *> resolvedTypeParams =
       resolveTypeParameters(ctx, function.typeParameters);
 
@@ -829,20 +834,6 @@ Sema::resolveFunctionDecl(res::Context &ctx,
   res::Type *retTy = function.type ? resolveType(ctx, *function.type)
                                    : ctx.getBuiltinUnitType();
   error |= !retTy;
-
-  if (function.identifier == "main") {
-    if (!retTy || !retTy->getAs<res::BuiltinUnitType>())
-      return report(function.location,
-                    "'main' function is expected to return 'unit'");
-
-    if (!function.params.empty())
-      return report(function.location,
-                    "'main' function is expected to take no arguments");
-  } else if (function.identifier == "printf") {
-    return report(function.location,
-                  "'printf' is a reserved function name and cannot be used for "
-                  "user-defined functions");
-  }
 
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
@@ -877,10 +868,33 @@ Sema::resolveFunctionDecl(res::Context &ctx,
 
   auto *fnDecl = ctx.create<res::FunctionDecl>(
       function.location, function.identifier, std::move(resolvedTypeParams),
-      std::move(resolvedParams));
+      std::move(resolvedParams), parent);
   auto *fnTy = ctx.getFunctionType(std::move(paramTypes), retTy);
   return ctx.bind(fnDecl, fnTy);
 };
+
+res::FunctionDecl *
+Sema::resolveFunctionBody(res::Context &ctx,
+                          const ast::FunctionDecl &functionDecl,
+                          res::FunctionDecl *function) {
+  currentFunction = function;
+
+  ScopeRAII typeParamScope(this);
+  for (auto &&typeParam : currentFunction->typeParams)
+    insertDeclToCurrentScope(typeParam);
+
+  ScopeRAII paramScope(this);
+  for (auto &&param : currentFunction->params)
+    insertDeclToCurrentScope(param);
+
+  varOrReturn(body, resolveBlock(ctx, *functionDecl.body));
+
+  currentFunction->setBody(body);
+  if (runFlowSensitiveChecks(ctx, *currentFunction))
+    return nullptr;
+
+  return function;
+}
 
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &structDecl) {
@@ -898,37 +912,64 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                                     std::move(typeParamTypes)));
 }
 
-bool Sema::resolveStructFields(res::Context &ctx,
-                               res::StructDecl &decl,
-                               const ast::StructDecl &astDecl) {
-  assert(!decl.isComplete);
-
+bool Sema::resolveMemberDecls(res::Context &ctx,
+                              res::StructDecl &structDecl,
+                              const ast::StructDecl &astDecl) {
+  selfType = ctx.getType(&structDecl);
   bool error = false;
   ScopeRAII typeParamScope(this);
-  for (auto &&typeParamDecl : decl.typeParams)
+  for (auto &&typeParamDecl : structDecl.typeParams)
     error |= !insertDeclToCurrentScope(typeParamDecl);
 
-  std::set<std::string_view> identifiers;
+  ScopeRAII memberScope(this);
   std::vector<res::FieldDecl *> resolvedFields;
+  std::vector<res::FunctionDecl *> resolvedMemberFunctions;
+  for (auto &&decl : astDecl.decls) {
+    if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
+      res::Type *fieldTy = resolveType(ctx, *field->type);
+      if (!fieldTy) {
+        error = true;
+        continue;
+      }
 
-  for (auto &&field : astDecl.fields) {
-    res::Type *fieldTy = resolveType(ctx, *field->type);
-    if (!fieldTy) {
-      error = true;
+      auto *fieldDecl =
+          ctx.create<res::FieldDecl>(field->location, field->identifier);
+      error |= !insertDeclToCurrentScope(fieldDecl);
+      resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
       continue;
     }
 
-    auto loc = field->location;
-    if (!identifiers.emplace(field->identifier).second) {
-      report(loc, "field '" + field->identifier + "' is already declared");
-      error = true;
+    if (auto *memberFunction = dynamic_cast<ast::FunctionDecl *>(decl.get())) {
+      auto *memberFn = resolveFunctionDecl(ctx, *memberFunction, &structDecl);
+      error |= !insertDeclToCurrentScope(memberFn);
+      if (memberFn)
+        resolvedMemberFunctions.emplace_back(memberFn);
     }
-
-    auto *fieldDecl = ctx.create<res::FieldDecl>(loc, field->identifier);
-    resolvedFields.emplace_back(ctx.bind(fieldDecl, fieldTy));
   }
 
-  decl.setFields(std::move(resolvedFields));
+  structDecl.setMembers(resolvedFields, resolvedMemberFunctions);
+  selfType = nullptr;
+  return !error;
+}
+
+bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
+                                       res::StructDecl &decl,
+                                       const ast::StructDecl &astDecl) {
+  selfType = ctx.getType(&decl);
+  ScopeRAII typeParamScope(this);
+  for (auto &&typeParamDecl : decl.typeParams)
+    insertDeclToCurrentScope(typeParamDecl);
+
+  ScopeRAII memberScope(this);
+  for (auto &&field : decl.fields)
+    insertDeclToCurrentScope(field);
+
+  bool error = false;
+  for (size_t i = 0; i < decl.memberFunctions.size(); ++i)
+    error |= !resolveFunctionBody(ctx, *astDecl.memberFunctions[i],
+                                  decl.memberFunctions[i]);
+
+  selfType = nullptr;
   return !error;
 }
 
@@ -943,41 +984,60 @@ res::Context *Sema::resolveAST() {
   }
 
   for (size_t i = 0; i < resolvedStructs.size(); ++i)
-    error |= !resolveStructFields(ctx, *resolvedStructs[i], *ast->structs[i]);
+    error |= !resolveMemberDecls(ctx, *resolvedStructs[i], *ast->structs[i]);
   error |= hasSelfContainingStructs(ctx);
 
   insertDeclToCurrentScope(createBuiltinPrintln(ctx));
 
-  for (auto &&fn : ast->functions)
-    error |= !insertDeclToCurrentScope(resolveFunctionDecl(ctx, *fn));
-  if (error)
-    return nullptr;
-
   for (auto &&fn : ast->functions) {
-    currentFunction = lookupDecl<res::FunctionDecl>(fn->identifier).first;
-
-    ScopeRAII typeParamScope(this);
-    for (auto &&typeParam : currentFunction->typeParams)
-      insertDeclToCurrentScope(typeParam);
-
-    ScopeRAII paramScope(this);
-    for (auto &&param : currentFunction->params)
-      insertDeclToCurrentScope(param);
-
-    auto *body = resolveBlock(ctx, *fn->body);
-    if (!body) {
-      error = true;
-      continue;
-    }
-
-    currentFunction->setBody(body);
-    error |= runFlowSensitiveChecks(ctx, *currentFunction);
+    res::FunctionDecl *fnDecl = resolveFunctionDecl(ctx, *fn);
+    error |= !insertDeclToCurrentScope(fnDecl);
+    if (fnDecl)
+      error |= !checkBuiltinFunctionCollisions(fnDecl);
   }
 
   if (error)
     return nullptr;
 
+  for (size_t i = 0; i < resolvedStructs.size(); ++i)
+    error |= !resolveMemberFunctionBodies(ctx, *resolvedStructs[i],
+                                          *ast->structs[i]);
+
+  for (auto &&fn : ast->functions)
+    error |= !resolveFunctionBody(
+        ctx, *fn, lookupDecl<res::FunctionDecl>(fn->identifier).first);
+
+  if (error)
+    return nullptr;
+
   return &ctx;
+}
+
+bool Sema::checkBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
+  if (fnDecl->identifier == "main") {
+    if (!ctx.getType(fnDecl)
+             ->getAs<res::FunctionType>()
+             ->getReturnType()
+             ->getAs<res::BuiltinUnitType>()) {
+      report(fnDecl->location, "'main' function is expected to return 'unit'");
+      return false;
+    }
+
+    if (!fnDecl->params.empty()) {
+      report(fnDecl->location,
+             "'main' function is expected to take no arguments");
+      return false;
+    }
+  }
+
+  if (fnDecl->identifier == "printf") {
+    report(fnDecl->location,
+           "'printf' is a reserved function name and cannot be used for "
+           "user-defined functions");
+    return false;
+  }
+
+  return true;
 }
 
 bool Sema::hasSelfContainingStructs(const res::Context &ctx) {

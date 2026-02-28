@@ -2,7 +2,7 @@
 struct S {
   x: number,
   x: number,
-  // CHECK: [[# @LINE - 1 ]]:3: error: field 'x' is already declared
+  // CHECK: [[# @LINE - 1 ]]:3: error: redeclaration of 'x'
 }
 
 fn main(): unit {}
