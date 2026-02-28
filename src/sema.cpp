@@ -251,7 +251,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return report(udt->location,
                     "failed to resolve type '" + udt->identifier + "'");
 
-    if (const auto *sd = decl->getAs<res::StructDecl>()) {
+    if (auto *sd = decl->getAs<res::StructDecl>()) {
       varOrReturn(res, checkTypeParameterCount(udt->location,
                                                udt->typeArguments.size(),
                                                sd->typeParams.size()));
@@ -362,10 +362,41 @@ Sema::resolveGroupingExpr(res::Context &ctx,
 res::DeclRefExpr *
 Sema::resolveDeclRefExpr(res::Context &ctx,
                          const ast::DeclRefExpr &declRefExpr) {
-  res::Decl *decl = lookupDecl<res::Decl>(declRefExpr.identifier).first;
-  if (!decl)
-    return report(declRefExpr.location,
-                  "symbol '" + declRefExpr.identifier + "' not found");
+
+  res::Decl *decl = nullptr;
+  if (const auto &parent = declRefExpr.parent) {
+    varOrReturn(parentDelc, resolveDeclRefExpr(ctx, *parent));
+
+    auto *parentStruct = parentDelc->decl->getAs<res::StructDecl>();
+    if (!parentStruct)
+      return report(
+          declRefExpr.location,
+          "member functions can only be looked up in struct declarations");
+
+    for (auto &&memberFunction : parentStruct->memberFunctions) {
+      if (memberFunction->identifier == declRefExpr.identifier) {
+        decl = memberFunction;
+        break;
+      }
+    }
+
+    if (!decl)
+      return report(declRefExpr.location,
+                    "failed to find member function named '" +
+                        declRefExpr.identifier + "' in '" + parent->identifier +
+                        "'");
+  } else if (declRefExpr.identifier == "Self") {
+    auto *structType = dynamic_cast<res::StructType *>(selfType);
+    if (!structType)
+      return report(declRefExpr.location,
+                    "'Self' is only allowed inside structs");
+    decl = structType->getDecl();
+  } else {
+    decl = lookupDecl<res::Decl>(declRefExpr.identifier).first;
+    if (!decl)
+      return report(declRefExpr.location,
+                    "symbol '" + declRefExpr.identifier + "' not found");
+  }
 
   if (decl->getAs<res::TypeParamDecl>())
     return report(declRefExpr.location, "expected value, found type parameter");

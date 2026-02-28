@@ -464,13 +464,14 @@ public:
 };
 
 class StructType : public Type {
-  const StructDecl *decl;
+  StructDecl *decl;
 
-  StructType(const StructDecl &decl, std::vector<Type *> typeArgs)
+  StructType(StructDecl &decl, std::vector<Type *> typeArgs)
       : Type(decl.identifier, std::move(typeArgs)),
         decl(&decl){};
 
 public:
+  StructDecl *getDecl() { return decl; }
   const StructDecl *getDecl() const { return decl; }
 
   std::vector<Type *> getTypeArgs() { return args; }
@@ -546,8 +547,7 @@ public:
   BuiltinUnitType *getBuiltinUnitType() { return &unitType; };
   BuiltinNumberType *getBuiltinNumberType() { return &numberType; };
   FunctionType *getFunctionType(std::vector<Type *> args, Type *ret);
-  StructType *getStructType(const StructDecl &decl,
-                            std::vector<Type *> typeArgs);
+  StructType *getStructType(StructDecl &decl, std::vector<Type *> typeArgs);
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
   OutParamType *getPointerType(Type *pointeeType);
 

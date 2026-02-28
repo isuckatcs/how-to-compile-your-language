@@ -262,7 +262,7 @@ FunctionType *Context::getFunctionType(std::vector<Type *> args, Type *ret) {
   return fnTy;
 }
 
-StructType *Context::getStructType(const res::StructDecl &decl,
+StructType *Context::getStructType(res::StructDecl &decl,
                                    std::vector<Type *> typeArgs) {
   auto *structTy = new StructType(decl, std::move(typeArgs));
   types.emplace_back(std::unique_ptr<StructType>(structTy));
