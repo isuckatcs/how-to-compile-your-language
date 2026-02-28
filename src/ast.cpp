@@ -96,6 +96,9 @@ void DeclRefExpr::dump(size_t level) const {
 
   if (typeArgumentList)
     typeArgumentList->dump(level + 1);
+
+  if (parent)
+    parent->dump(level + 1);
 }
 
 void TypeArgumentList::dump(size_t level) const {

@@ -207,13 +207,16 @@ struct TypeArgumentList : public Expr {
 struct DeclRefExpr : public Expr {
   std::string identifier;
   std::unique_ptr<TypeArgumentList> typeArgumentList;
+  std::unique_ptr<DeclRefExpr> parent;
 
   DeclRefExpr(SourceLocation location,
               std::string identifier,
-              std::unique_ptr<TypeArgumentList> typeArgumentList = nullptr)
+              std::unique_ptr<TypeArgumentList> typeArgumentList = nullptr,
+              std::unique_ptr<DeclRefExpr> parent = nullptr)
       : Expr(location),
         identifier(identifier),
-        typeArgumentList(std::move(typeArgumentList)) {}
+        typeArgumentList(std::move(typeArgumentList)),
+        parent(std::move(parent)) {}
 
   void dump(size_t level = 0) const override;
 };

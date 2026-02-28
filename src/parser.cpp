@@ -574,7 +574,7 @@ std::unique_ptr<ast::Expr> Parser::parsePostfixExpr() {
 //  |   '(' <expr> ')'
 //
 // <declRefExpr>
-//  ::= <identifier> <typeArgumentList>?
+//  ::= (<identifier> | 'Self') <typeArgumentList>? ('::' <declRefExpr>)?
 //
 // <fieldInitList>
 //  ::= '{' (<fieldInit> (',' <fieldInit>)* ','?)? '}'
@@ -605,7 +605,8 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     return literal;
   }
 
-  if (nextToken.kind == TokenKind::Identifier) {
+  if (nextToken.kind == TokenKind::Identifier ||
+      nextToken.kind == TokenKind::KwSelf) {
     varOrReturn(dre, parseDeclRefExpr());
     if (restrictions & StructNotAllowed || nextToken.kind != TokenKind::Lbrace)
       return dre;
@@ -629,23 +630,34 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
 }
 
 std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
-  SourceLocation location = nextToken.location;
+  std::unique_ptr<ast::DeclRefExpr> dre = nullptr;
+  while (true) {
+    SourceLocation location = nextToken.location;
 
-  if (nextToken.kind != TokenKind::Identifier)
-    return report(location, "expected identifier");
+    if (nextToken.kind != TokenKind::Identifier &&
+        nextToken.kind != TokenKind::KwSelf)
+      return report(location, "expected identifier or 'Self'");
 
-  assert(nextToken.value && "identifier without value");
-  std::string identifier = *nextToken.value;
-  eatNextToken(); // eat identifier
+    assert(nextToken.value && "identifier without value");
+    std::string identifier = *nextToken.value;
+    eatNextToken(); // eat identifier or 'Self'
 
-  std::unique_ptr<ast::TypeArgumentList> typeArgsList = nullptr;
-  if (nextToken.kind == TokenKind::At) {
-    varOrReturn(parsedTypeArgList, parseTypeArgumentList());
-    typeArgsList = std::move(parsedTypeArgList);
+    std::unique_ptr<ast::TypeArgumentList> typeArgsList = nullptr;
+    if (nextToken.kind == TokenKind::At) {
+      varOrReturn(parsedTypeArgList, parseTypeArgumentList());
+      typeArgsList = std::move(parsedTypeArgList);
+    }
+
+    dre = std::make_unique<ast::DeclRefExpr>(location, std::move(identifier),
+                                             std::move(typeArgsList),
+                                             std::move(dre));
+
+    if (nextToken.kind != TokenKind::ColonColon)
+      break;
+    eatNextToken(); // eat '::'
   }
 
-  return std::make_unique<ast::DeclRefExpr>(location, std::move(identifier),
-                                            std::move(typeArgsList));
+  return dre;
 }
 
 std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {

@@ -1,0 +1,36 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn main() {
+  S@<number>::create();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   DeclRefExpr: create
+  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:       TypeArgumentList
+  // CHECK-NEXT:         BuiltinType: number
+
+  S@<number>::foo@<number>();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   DeclRefExpr: foo
+  // CHECK-NEXT:     TypeArgumentList
+  // CHECK-NEXT:       BuiltinType: number
+  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:       TypeArgumentList
+  // CHECK-NEXT:         BuiltinType: number
+
+  Self::create();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   DeclRefExpr: create
+  // CHECK-NEXT:     DeclRefExpr: Self
+
+  Self{};
+  // CHECK: StructInstantiationExpr
+  // CHECK-NEXT:   DeclRefExpr: Self
+
+  x.foo::errorInSema@<number>();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   MemberExpr:
+  // CHECK-NEXT:     DeclRefExpr: x
+  // CHECK-NEXT:     DeclRefExpr: errorInSema
+  // CHECK-NEXT:       TypeArgumentList
+  // CHECK-NEXT:         BuiltinType: number
+  // CHECK-NEXT:       DeclRefExpr: foo
+}
