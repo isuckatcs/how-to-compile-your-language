@@ -103,7 +103,7 @@
     |   '(' <expr> ')'
 
 <declRefExpr>
-    ::= <identifier> <typeArgumentList>?
+    ::= (<identifier> | 'Self') <typeArgumentList>? ('::' <declRefExpr>)?
 
 <typeArgumentList>
     ::= '@' <typeList>
