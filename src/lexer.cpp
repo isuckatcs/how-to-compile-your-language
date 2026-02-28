@@ -93,6 +93,15 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Arrow};
   }
 
+  if (currentChar == ':') {
+    if (peekNextChar() == ':') {
+      eatNextChar();
+      return Token{tokenStartLocation, TokenKind::ColonColon};
+    }
+
+    return Token{tokenStartLocation, TokenKind::Colon};
+  }
+
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 
