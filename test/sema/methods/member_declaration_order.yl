@@ -1,0 +1,26 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x: number,
+  y: number,
+
+  fn foo() {}
+
+  z: number,
+
+  fn bar() {}
+
+  w: number,
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FieldDecl @({{.*}}) z {number}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {() -> unit}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FieldDecl @({{.*}}) w {number}
+
+fn main() {
+  let s = S{ x: 1, y: 2, z: 3, w: 4 };
+}
