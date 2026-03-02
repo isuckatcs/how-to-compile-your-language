@@ -7,5 +7,5 @@ fn main(): unit {
   let s = Struct { x: 0 };
 
   let y = s.y;
-  // CHECK: [[# @LINE - 1 ]]:12: error: 'Struct' has no field called 'y'
+  // CHECK: [[# @LINE - 1 ]]:12: error: 'Struct' has no member called 'y'
 }

@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x: number
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: the type of 'self' must reference 'Self'
+  fn foo(self: number) {}
+  
+  // CHECK: [[# @LINE + 1 ]]:10: error: the type of 'self' must reference 'Self'
+  fn bar(self: &number) {}
+}
+
+fn main() {}

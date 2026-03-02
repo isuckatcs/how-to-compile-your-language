@@ -1,0 +1,30 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo<T>(t: T) {}
+
+struct S {
+  x: number,
+
+  fn create(): Self {
+    return Self{ x : 1 };
+  }
+  // CHECK: FunctionDecl @({{.*}}) create {() -> S}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     ReturnStmt
+  // CHECK-NEXT:       StructInstantiationExpr {S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:           NumberLiteral '1' {number}
+  // CHECK-NEXT:           | value: 1
+
+  fn foo(self: Self) {
+    foo@<Self>(self);
+  }
+  // CHECK: FunctionDecl @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {S}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) self {S}
+}
+
+fn main() {}

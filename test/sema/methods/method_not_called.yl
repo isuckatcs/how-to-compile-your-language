@@ -1,0 +1,22 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn method(self: Self): Self {
+    return self;
+  }
+}
+
+fn main() {
+  let s = S{};
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
+  s.method;
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
+  s.method.method;
+
+  // CHECK: [[# @LINE + 1 ]]:13: error: expected to call method
+  s.method().method;
+  
+  // CHECK: [[# @LINE + 1 ]]:11: error: cannot access member of '(S) -> S'
+  s.method.method();
+}

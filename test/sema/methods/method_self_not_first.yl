@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo(x: number, self: Self) {}
+  // CHECK: [[# @LINE - 1 ]]:21: error: 'self' can only be the first parameter
+
+  fn bar(x: number, self: Self, self: &Self) {}
+  // CHECK: [[# @LINE - 1 ]]:21: error: 'self' can only be the first parameter
+  // CHECK: [[# @LINE - 2 ]]:33: error: 'self' can only be the first parameter
+  // CHECK: [[# @LINE - 3 ]]:33: error: redeclaration of 'self'
+}
+
+fn main() {}

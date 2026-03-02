@@ -71,28 +71,15 @@ void FunctionDecl::dump(const Context &ctx, size_t level) const {
     body->dump(ctx, level + 1);
 }
 
-void StructDecl::setMembers(std::vector<FieldDecl *> fields,
-                            std::vector<FunctionDecl *> memberFunctions) {
-  assert(!isComplete && "setting members on already complete struct");
-
-  this->fields = std::move(fields);
-  this->memberFunctions = std::move(memberFunctions);
-  isComplete = true;
-}
-
 void StructDecl::dump(const Context &ctx, size_t level) const {
   std::cerr << indent(level) << "StructDecl @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "") << " {"
-            << ctx.getType(this)->getName() << '}' << '\n';
+            << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(ctx, level + 1);
 
-  for (auto &&field : fields)
-    field->dump(ctx, level + 1);
-
-  for (auto &&memberFn : memberFunctions)
-    memberFn->dump(ctx, level + 1);
+  for (auto &&decl : decls)
+    decl->dump(ctx, level + 1);
 }
 
 void TypeParamDecl::dump(const Context &ctx, size_t level) const {
@@ -134,9 +121,9 @@ void CallExpr::dump(const Context &ctx, size_t level) const {
 }
 
 void MemberExpr::dump(const Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "MemberExpr @(" << field << ')' << ' '
-            << field->identifier << " {" << ctx.getType(this)->getName() << '}'
-            << '\n';
+  std::cerr << indent(level) << "MemberExpr @(" << member << ')' << ' '
+            << member->decl->identifier << " {" << ctx.getType(this)->getName()
+            << '}' << '\n';
 
   base->dump(ctx, level + 1);
 }

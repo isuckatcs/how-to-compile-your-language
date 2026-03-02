@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(self: Self) {}
+// CHECK: [[# @LINE - 1 ]]:14: error: 'Self' is only allowed inside structs
+// CHECK: [[# @LINE - 2 ]]:8: error: 'self' parameter is only allowed in methods
+
+fn bar(self: number) {}
+// CHECK: [[# @LINE - 1 ]]:8: error: 'self' parameter is only allowed in methods
+
+fn baz(x: number, self: number) {}
+// CHECK: [[# @LINE - 1 ]]:19: error: 'self' parameter is only allowed in methods
+
+fn main() {}

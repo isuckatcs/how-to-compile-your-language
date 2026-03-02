@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x: number
+
+  fn foo() {
+    // CHECK: [[# @LINE + 1 ]]:5: error: symbol 'x' not found
+    x = 1;
+  }
+}
+
+fn main() {}

@@ -1,0 +1,27 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x:number
+
+  fn foo(mut self: Self) {
+    self.x = 1;
+  }
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {S}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       Assignment
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) self {S}
+// CHECK-NEXT:         NumberLiteral '1' {number}
+// CHECK-NEXT:         | value: 1
+
+fn main() {
+  mut s = S{ x: 123 };
+
+  s.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+}

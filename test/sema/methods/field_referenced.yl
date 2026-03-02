@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x: number
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find member function named 'x' in 'S'
+  let s = S::x;
+}

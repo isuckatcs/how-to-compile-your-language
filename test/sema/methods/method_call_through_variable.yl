@@ -1,0 +1,36 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn classMethod() {}
+  // CHECK: FunctionDecl @({{.*}}) classMethod {() -> unit}
+  // CHECK-NEXT:   Block
+
+  fn instanceMethod(self: Self, x: number) {}
+  // CHECK: FunctionDecl @({{.*}}) instanceMethod {(S, number) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {S}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
+  // CHECK-NEXT:   Block
+}
+
+fn main() {
+  let classLevel = S::classMethod;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) classLevel {() -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) classMethod {() -> unit}
+  
+  classLevel();
+  // CHECK-NEXT: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) classLevel {() -> unit}
+  
+  let instanceLevel = S::instanceMethod;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) instanceLevel {(S, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) instanceMethod {(S, number) -> unit}
+  
+  instanceLevel(S{}, 0);
+  // CHECK-NEXT: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) instanceLevel {(S, number) -> unit}
+  // CHECK-NEXT:   StructInstantiationExpr {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:   NumberLiteral '0' {number}
+  // CHECK-NEXT:   | value: 0
+}

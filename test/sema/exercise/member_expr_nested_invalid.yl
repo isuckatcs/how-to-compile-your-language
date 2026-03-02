@@ -12,5 +12,5 @@ fn main(): unit {
   let s = S { x: 0, n: S2 { x: 1 } };
 
   let x = s.y.x;
-  // CHECK: [[# @LINE - 1 ]]:12: error: 'S' has no field called 'y'
+  // CHECK: [[# @LINE - 1 ]]:12: error: 'S' has no member called 'y'
 }

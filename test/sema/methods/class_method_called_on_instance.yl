@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo() {}
+}
+
+fn main() {
+  let s = S{};
+
+  // CHECK: [[# @LINE + 1 ]]:8: error: class level methods cannot be called on an instance
+  s.foo();
+}
