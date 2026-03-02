@@ -14,19 +14,21 @@ class Sema {
   const ast::Context *ast;
 
   res::Context ctx;
-  std::vector<std::vector<res::Decl *>> scopes;
+  res::DeclContext *lexicalScope = nullptr;
   res::FunctionDecl *currentFunction = nullptr;
   res::Type *selfType = nullptr;
 
   class ScopeRAII {
     Sema *sema;
+    res::DeclContext scope;
 
   public:
     explicit ScopeRAII(Sema *sema)
-        : sema(sema) {
-      sema->scopes.emplace_back();
+        : sema(sema),
+          scope(sema->lexicalScope) {
+      sema->lexicalScope = &scope;
     }
-    ~ScopeRAII() { sema->scopes.pop_back(); }
+    ~ScopeRAII() { sema->lexicalScope = scope.parent; }
   };
 
   unsigned char resolutionContext = 0;
@@ -103,7 +105,6 @@ class Sema {
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
-  template <typename T> std::pair<T *, int> lookupDecl(const std::string id);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
 
   bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);

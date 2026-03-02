@@ -90,6 +90,47 @@ struct Decl {
   virtual void dump(const Context &ctx, size_t level = 0) const = 0;
 };
 
+struct DeclContext {
+  DeclContext *parent;
+
+  DeclContext(DeclContext *parent)
+      : parent(parent) {}
+
+  bool insertDecl(res::Decl *decl) {
+    if (decl == nullptr)
+      return false;
+
+    for (auto &&currentDecl : decls)
+      if (currentDecl->identifier == decl->identifier)
+        return false;
+
+    decls.emplace_back(decl);
+    return true;
+  }
+
+  template <typename T> T *lookupDecl(const std::string id) const {
+    for (auto &&decl : decls) {
+      auto *correctDecl = dynamic_cast<T *>(decl);
+
+      if (!correctDecl)
+        continue;
+
+      if (decl->identifier != id)
+        continue;
+
+      return correctDecl;
+    }
+
+    if (!parent)
+      return nullptr;
+
+    return parent->lookupDecl<T>(id);
+  }
+
+private:
+  std::vector<res::Decl *> decls;
+};
+
 struct TypeDecl : public Decl {
   TypeDecl(SourceLocation location, std::string identifier)
       : Decl(location, std::move(identifier)) {}

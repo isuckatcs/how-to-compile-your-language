@@ -179,40 +179,15 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 }
 
 bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
-  if (decl == nullptr)
+  if (!decl)
     return false;
 
-  const auto &[foundDecl, scopeIdx] = lookupDecl<res::Decl>(decl->identifier);
-
-  if (foundDecl && scopeIdx == 0) {
+  if (!lexicalScope->insertDecl(decl)) {
     report(decl->location, "redeclaration of '" + decl->identifier + '\'');
     return false;
   }
 
-  scopes.back().emplace_back(decl);
   return true;
-}
-
-template <typename T>
-std::pair<T *, int> Sema::lookupDecl(const std::string id) {
-  int scopeIdx = 0;
-  for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
-    for (auto &&decl : *it) {
-      auto *correctDecl = dynamic_cast<T *>(decl);
-
-      if (!correctDecl)
-        continue;
-
-      if (decl->identifier != id)
-        continue;
-
-      return {correctDecl, scopeIdx};
-    }
-
-    ++scopeIdx;
-  }
-
-  return {nullptr, -1};
 }
 
 res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
@@ -246,7 +221,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
 
   if (const auto *udt =
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
-    res::Decl *decl = lookupDecl<res::TypeDecl>(udt->identifier).first;
+    res::Decl *decl = lexicalScope->lookupDecl<res::TypeDecl>(udt->identifier);
     if (!decl)
       return report(udt->location,
                     "failed to resolve type '" + udt->identifier + "'");
@@ -392,7 +367,7 @@ Sema::resolveDeclRefExpr(res::Context &ctx,
                     "'Self' is only allowed inside structs");
     decl = structType->getDecl();
   } else {
-    decl = lookupDecl<res::Decl>(declRefExpr.identifier).first;
+    decl = lexicalScope->lookupDecl<res::Decl>(declRefExpr.identifier);
     if (!decl)
       return report(declRefExpr.location,
                     "symbol '" + declRefExpr.identifier + "' not found");
@@ -1036,7 +1011,7 @@ res::Context *Sema::resolveAST() {
 
   for (auto &&fn : ast->functions)
     error |= !resolveFunctionBody(
-        ctx, *fn, lookupDecl<res::FunctionDecl>(fn->identifier).first);
+        ctx, *fn, lexicalScope->lookupDecl<res::FunctionDecl>(fn->identifier));
 
   if (error)
     return nullptr;
