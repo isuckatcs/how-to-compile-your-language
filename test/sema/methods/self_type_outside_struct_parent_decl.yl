@@ -1,0 +1,5 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:3: error: 'Self' is only allowed inside structs
+  Self::foo();
+}

@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {}
+
+fn foo(p: S) {
+  let v = S{};
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: member functions can only be looked up in struct declarations
+  v::foo();
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: member functions can only be looked up in struct declarations
+  p::foo();
+}
+
+fn main() {}

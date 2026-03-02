@@ -5,10 +5,23 @@ struct S {
   fn foo(self: &Self) {
     self.x = 1;
   }
+
+  fn bar(self: &S) {
+    self.x = 1;
+  }
 }
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 // CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(&S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       Assignment
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           ImplicitDerefExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
+// CHECK-NEXT:         NumberLiteral '1' {number}
+// CHECK-NEXT:         | value: 1
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(&S) -> unit}
 // CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       Assignment
@@ -24,6 +37,12 @@ fn main() {
   s.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&S) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+
+  s.bar();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(&S) -> unit}
   // CHECK-NEXT:   UnaryOperator '&' {&S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

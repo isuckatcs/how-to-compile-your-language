@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo(self: &Self) {}
+}
+
+fn main() {
+  let s = S{};
+  
+  // CHECK: [[# @LINE + 1 ]]:3: error: expected mutable struct instance
+  s.foo();
+}

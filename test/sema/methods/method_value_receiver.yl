@@ -5,10 +5,21 @@ struct S {
   fn foo(self: Self) {
     println(self.x);
   }
+
+  fn bar(self: Self) {
+    println(self.x);
+  }
 }
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 // CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {S}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       CallExpr {unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) self {S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(S) -> unit}
 // CHECK-NEXT:     ParamDecl @({{.*}}) self {S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       CallExpr {unit}
@@ -22,5 +33,10 @@ fn main() {
   s.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+
+  s.bar();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(S) -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
 }

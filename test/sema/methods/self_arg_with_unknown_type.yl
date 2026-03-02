@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo(x: number, self: Unknown) {}
+  // CHECK: [[# @LINE - 1 ]]:27: error: failed to resolve type 'Unknown'
+  // CHECK: [[# @LINE - 2 ]]:21: error: 'self' can only be the first parameter
+
+  fn foo(self: Unknown) {}
+  // CHECK: [[# @LINE - 1 ]]:16: error: failed to resolve type 'Unknown'
+}
+
+fn main() {}

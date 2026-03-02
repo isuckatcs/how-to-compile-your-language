@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo(self: &Self) {}
+}
+
+fn main() {
+  S{}.foo();
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(&S) -> unit}
+// CHECK-NEXT:       UnaryOperator '&' {&S}
+// CHECK-NEXT:         StructInstantiationExpr {S}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
