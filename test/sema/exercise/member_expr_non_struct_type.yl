@@ -4,5 +4,5 @@ fn main(): unit {
   let x = 1.0;
 
   let y = x.x;
-  // CHECK: [[# @LINE - 1 ]]:11: error: cannot access field of 'number'
+  // CHECK: [[# @LINE - 1 ]]:12: error: cannot access member of 'number'
 }

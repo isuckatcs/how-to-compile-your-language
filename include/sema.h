@@ -34,7 +34,8 @@ class Sema {
   unsigned char resolutionContext = 0;
   enum ResolutionContextKind : unsigned char {
     ParamList = (1 << 1),
-    ArgList = (1 << 2)
+    ArgList = (1 << 2),
+    Call = (1 << 3)
   };
 
   class ResolutionContextRAII {
@@ -59,7 +60,8 @@ class Sema {
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
                                          const ast::GroupingExpr &grouping);
   res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
-                                       const ast::DeclRefExpr &declRefExpr);
+                                       const ast::DeclRefExpr &declRefExpr,
+                                       const res::DeclContext *scope);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
@@ -104,7 +106,7 @@ class Sema {
       res::Context &ctx,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
 
-  bool insertDeclToCurrentScope(res::Decl *decl);
+  bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
 
   bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);

@@ -92,6 +92,7 @@ struct Decl {
 
 struct DeclContext {
   DeclContext *parent;
+  std::vector<res::Decl *> decls;
 
   DeclContext(DeclContext *parent)
       : parent(parent) {}
@@ -127,8 +128,13 @@ struct DeclContext {
     return parent->lookupDecl<T>(id);
   }
 
-private:
-  std::vector<res::Decl *> decls;
+  template <typename T> std::vector<T *> getAll() const {
+    std::vector<T *> out;
+    for (auto &&decl : decls)
+      if (auto *d = dynamic_cast<T *>(decl))
+        out.emplace_back(d);
+    return out;
+  }
 };
 
 struct TypeDecl : public Decl {
@@ -246,20 +252,17 @@ struct FunctionDecl : public ValueDecl {
   void dump(const Context &ctx, size_t level = 0) const override;
 };
 
-struct StructDecl : public TypeDecl {
+struct StructDecl : public TypeDecl, public DeclContext {
+  // FIXME: this should be a separate scope?
   std::vector<TypeParamDecl *> typeParams;
-  std::vector<FieldDecl *> fields;
-  std::vector<FunctionDecl *> memberFunctions;
-  bool isComplete = false;
 
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<TypeParamDecl *> typeParams)
       : TypeDecl(location, std::move(identifier)),
+        DeclContext(nullptr),
         typeParams(std::move(typeParams)) {}
 
-  void setMembers(std::vector<FieldDecl *> fields,
-                  std::vector<FunctionDecl *> memberFunctions);
   bool isGeneric() const override { return !typeParams.empty(); }
 
   void dump(const Context &ctx, size_t level = 0) const override;
@@ -320,12 +323,12 @@ public:
 
 struct MemberExpr : public Expr {
   Expr *base;
-  FieldDecl *field;
+  DeclRefExpr *member;
 
-  MemberExpr(SourceLocation location, Expr *base, FieldDecl *field)
+  MemberExpr(SourceLocation location, Expr *base, DeclRefExpr *member)
       : Expr(location, !base->isLvalue() ? Expr::Kind::MutLvalue : base->kind),
         base(base),
-        field(field) {}
+        member(member) {}
 
   void dump(const Context &ctx, size_t level = 0) const override;
 };

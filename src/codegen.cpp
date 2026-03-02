@@ -246,8 +246,8 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
   unsigned index = 0;
   EnterInstantiationRAII structInst(this, structTy->getTypeArgs());
-  for (auto &&field : structTy->getDecl()->fields) {
-    if (field == memberExpr.field)
+  for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
+    if (field == memberExpr.member->decl)
       break;
 
     if (!generateType(resCtx->getType(field))->isVoidTy())
@@ -280,7 +280,7 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
       allocateStackVariable(sie.structDecl->decl->identifier + ".tmp", type);
 
   unsigned idx = 0;
-  for (auto &&fieldDecl : structTy->getDecl()->fields) {
+  for (auto &&fieldDecl : structTy->getDecl()->getAll<res::FieldDecl>()) {
     if (!fieldInits.count(fieldDecl))
       continue;
 
@@ -710,7 +710,7 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   EnterInstantiationRAII structInstantiation(this, structTy->getTypeArgs());
 
   std::vector<llvm::Type *> fieldTypes;
-  for (auto &&field : structTy->getDecl()->fields) {
+  for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(resCtx->getType(field));
     if (fieldTy->isVoidTy())
       continue;

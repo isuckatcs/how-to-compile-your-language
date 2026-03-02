@@ -103,7 +103,7 @@ void CFG::dump() const {
       } else if (const auto *memberExpr =
                      dynamic_cast<const res::MemberExpr *>(*it)) {
         std::cerr << stmtToRef[memberExpr->base] << '.'
-                  << memberExpr->field->identifier;
+                  << memberExpr->member->decl->identifier;
       }
 
       stmtToRef[*it] = '[' + std::to_string(i) + '.' +
