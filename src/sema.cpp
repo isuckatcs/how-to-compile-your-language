@@ -884,36 +884,14 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
       error |= true;
     }
 
-    // FIXME: extract this check
-    if (param->identifier == "self") {
-      if (!selfType) {
-        report(param->location, "'self' parameter is only allowed in methods");
-        error = true;
-      } else {
-        if (!resolvedParams.empty()) {
-          report(param->location, "'self' can only be the first parameter");
-          error = true;
-        }
-
-        if (!(isOutputType &&
-              ctx.unify(type->getAs<res::OutParamType>()->getParamType(),
-                        selfType)) &&
-            !(type && ctx.unify(type, selfType))) {
-          report(param->location, "the type of 'self' must reference 'Self'");
-          error = true;
-        }
-      }
-    }
-
     auto *resolvedParam = resolvedParams.emplace_back(
         ctx.create<res::ParamDecl>(param->location, param->identifier,
                                    param->isMutable || isOutputType));
+    if (type)
+      ctx.bind(resolvedParam, type);
+
     error |= !insertDeclToScope(resolvedParam, lexicalScope);
-
-    if (error)
-      continue;
-
-    ctx.bind(resolvedParam, type);
+    error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
   }
 
   if (error)
@@ -1085,6 +1063,34 @@ bool Sema::checkBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
     report(fnDecl->location,
            "'printf' is a reserved function name and cannot be used for "
            "user-defined functions");
+    return false;
+  }
+
+  return true;
+}
+
+bool Sema::checkSelfParameter(const res::ParamDecl *param, size_t idx) {
+  if (param->identifier != "self")
+    return true;
+
+  if (!selfType) {
+    report(param->location, "'self' parameter is only allowed in methods");
+    return false;
+  }
+
+  if (idx != 0) {
+    report(param->location, "'self' can only be the first parameter");
+    return false;
+  }
+
+  auto *type = ctx.getType(param);
+  if (!type)
+    return true;
+
+  auto *outTy = type->getAs<res::OutParamType>();
+  if (!ctx.unify(type, selfType) &&
+      !(outTy && ctx.unify(outTy->getParamType(), selfType))) {
+    report(param->location, "the type of 'self' must reference 'Self'");
     return false;
   }
 

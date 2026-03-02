@@ -5,8 +5,8 @@ struct S {
 
   fn bar(x: number, self: Self, self: &Self) {}
   // CHECK: [[# @LINE - 1 ]]:21: error: 'self' can only be the first parameter
-  // CHECK: [[# @LINE - 2 ]]:33: error: 'self' can only be the first parameter
-  // CHECK: [[# @LINE - 3 ]]:33: error: redeclaration of 'self'
+  // CHECK: [[# @LINE - 2 ]]:33: error: redeclaration of 'self'
+  // CHECK: [[# @LINE - 3 ]]:33: error: 'self' can only be the first parameter
 }
 
 fn main() {}

@@ -116,6 +116,7 @@ class Sema {
   bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
 
   bool checkBuiltinFunctionCollisions(const res::FunctionDecl *fn);
+  bool checkSelfParameter(const res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(const res::Context &ctx);
 
 public:
