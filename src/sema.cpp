@@ -449,7 +449,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   if ((call.arguments.size() + !!receiver) != argTypes.size())
     return report(call.location,
                   "wrong number of arguments in function call, expected " +
-                      std::to_string(argTypes.size()) + ", but received " +
+                      std::to_string(argTypes.size() - !!receiver) +
+                      ", but received " +
                       std::to_string(call.arguments.size()));
 
   std::vector<res::Expr *> resolvedArgs;

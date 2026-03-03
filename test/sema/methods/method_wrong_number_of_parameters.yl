@@ -1,0 +1,16 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo(self: Self) {}
+
+  fn bar(self: Self, x: number) {}
+}
+
+fn main() {
+  let s = S{};
+  
+  // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 0, but received 1
+  s.foo(0);
+
+  // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 1, but received 0
+  s.bar();
+}
