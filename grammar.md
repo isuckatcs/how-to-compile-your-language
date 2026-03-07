@@ -99,11 +99,14 @@
 <primaryExpression>
     ::= 'unit'
     |   <numberLiteral>
-    |   <declRefExpr> <fieldInitList>?
+    |   <pathExpr> <fieldInitList>?
     |   '(' <expr> ')'
 
+<pathExpr>
+    ::= <declRefExpr> ('::' <declRefExpr>)*
+
 <declRefExpr>
-    ::= (<identifier> | 'Self') <typeArgumentList>? ('::' <declRefExpr>)?
+    ::= (<identifier> | 'Self') <typeArgumentList>?
 
 <typeArgumentList>
     ::= '@' <typeList>
