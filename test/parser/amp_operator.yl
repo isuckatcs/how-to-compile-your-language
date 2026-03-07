@@ -11,12 +11,15 @@ fn main() {
 
   &x;
   // CHECK: UnaryOperator: '&'
-  // CHECK-NEXT:   DeclRefExpr: x
+  // CHECK-NEXT:   PathExpr:
+  // CHECK-NEXT:     DeclRefExpr: x
 
   &x && &x;
   // CHECK: BinaryOperator: '&&'
   // CHECK-NEXT:   UnaryOperator: '&'
-  // CHECK-NEXT:     DeclRefExpr: x
+  // CHECK-NEXT:     PathExpr:
+  // CHECK-NEXT:       DeclRefExpr: x
   // CHECK-NEXT:   UnaryOperator: '&'
-  // CHECK-NEXT:     DeclRefExpr: x
+  // CHECK-NEXT:     PathExpr:
+  // CHECK-NEXT:       DeclRefExpr: x
 }

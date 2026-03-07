@@ -8,11 +8,13 @@ fn main(): unit {
     bar() = 3.0;
     // CHECK: Assignment:
     // CHECK-NEXT:   CallExpr:
-    // CHECK-NEXT:     DeclRefExpr: bar
+    // CHECK-NEXT:     PathExpr:
+    // CHECK-NEXT:       DeclRefExpr: bar
     // CHECK-NEXT:   NumberLiteral: '3.0'
 
     a = 4.0;
     // CHECK: Assignment:
-    // CHECK-NEXT:   DeclRefExpr: a
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: a
     // CHECK-NEXT:   NumberLiteral: '4.0'
 }

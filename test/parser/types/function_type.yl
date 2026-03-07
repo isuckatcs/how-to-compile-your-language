@@ -45,7 +45,8 @@ fn baz(): unit {
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:           BuiltinType: unit
-// CHECK-NEXT:         DeclRefExpr: foo
+// CHECK-NEXT:         PathExpr:
+// CHECK-NEXT:           DeclRefExpr: foo
 
 fn nested(): () -> (S<number>) -> () -> number {}
 // CHECK-NEXT: FunctionDecl: nested

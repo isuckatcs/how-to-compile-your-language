@@ -71,6 +71,7 @@ class Parser {
   std::unique_ptr<ast::Expr> parsePrefixExpr();
   std::unique_ptr<ast::Expr> parsePostfixExpr();
   std::unique_ptr<ast::Expr> parsePrimary();
+  std::unique_ptr<ast::PathExpr> parsePathExpr();
   std::unique_ptr<ast::DeclRefExpr> parseDeclRefExpr();
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
 

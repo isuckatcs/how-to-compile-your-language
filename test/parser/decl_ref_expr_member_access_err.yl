@@ -1,0 +1,8 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:8: error: expected ';' at the end of expression
+  x.foo::error@<number>();
+ 
+  // CHECK: [[# @LINE + 1 ]]:10: error: expected ';' at the end of expression
+  x.foo()::error@<number>();
+}

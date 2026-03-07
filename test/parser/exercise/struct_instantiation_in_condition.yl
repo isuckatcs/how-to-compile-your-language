@@ -4,7 +4,8 @@ fn main(): unit {
   // CHECK: IfStmt
   // CHECK-NEXT:   GroupingExpr:
   // CHECK-NEXT:     StructInstantiationExpr
-  // CHECK-NEXT:       DeclRefExpr: Struct
+  // CHECK-NEXT:       PathExpr:
+  // CHECK-NEXT:         DeclRefExpr: Struct
   // CHECK-NEXT:       FieldInitStmt: field
   // CHECK-NEXT:         NumberLiteral: '0'
   // CHECK-NEXT:       FieldInitStmt: field
@@ -14,6 +15,7 @@ fn main(): unit {
   // CHECK: WhileStmt
   // CHECK-NEXT:   GroupingExpr:
   // CHECK-NEXT:     StructInstantiationExpr
-  // CHECK-NEXT:       DeclRefExpr: Struct
+  // CHECK-NEXT:       PathExpr:
+  // CHECK-NEXT:         DeclRefExpr: Struct
   // CHECK-NEXT:   Block
 }

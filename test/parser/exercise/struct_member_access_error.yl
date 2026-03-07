@@ -13,7 +13,8 @@ fn main(): unit {
     // CHECK-NEXT:       MemberExpr:
     // CHECK-NEXT:         MemberExpr:
     // CHECK-NEXT:           CallExpr:
-    // CHECK-NEXT:             DeclRefExpr: s
+    // CHECK-NEXT:             PathExpr:
+    // CHECK-NEXT:               DeclRefExpr: s
     // CHECK-NEXT:           DeclRefExpr: r
     // CHECK-NEXT:         DeclRefExpr: x
 
@@ -23,7 +24,8 @@ fn main(): unit {
     // CHECK-NEXT:     CallExpr:
     // CHECK-NEXT:       MemberExpr:
     // CHECK-NEXT:         MemberExpr:
-    // CHECK-NEXT:           DeclRefExpr: s
+    // CHECK-NEXT:           PathExpr:
+    // CHECK-NEXT:             DeclRefExpr: s
     // CHECK-NEXT:           DeclRefExpr: r
     // CHECK-NEXT:         DeclRefExpr: x
 }

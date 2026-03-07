@@ -47,26 +47,32 @@ fn main(): unit {
     // CHECK-NEXT:           NumberLiteral: '2.0'
 
     a;
-    // CHECK: DeclRefExpr: a
+    // CHECK:   PathExpr:
+    // CHECK-NEXT:   DeclRefExpr: a
 
     a();
     // CHECK: CallExpr:
-    // CHECK-NEXT:   DeclRefExpr: a
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: a
 
     a(x,);
     // CHECK: CallExpr:
-    // CHECK-NEXT:   DeclRefExpr: a
-    // CHECK-NEXT:   DeclRefExpr: x
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: a
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: x
 
     a(1.0, 2.0,);
     // CHECK: CallExpr:
-    // CHECK-NEXT:   DeclRefExpr: a
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: a
     // CHECK-NEXT:   NumberLiteral: '1.0'
     // CHECK-NEXT:   NumberLiteral: '2.0'
 
     a(1.0, 2.0);
     // CHECK: CallExpr:
-    // CHECK-NEXT:   DeclRefExpr: a
+    // CHECK-NEXT:   PathExpr:
+    // CHECK-NEXT:     DeclRefExpr: a
     // CHECK-NEXT:   NumberLiteral: '1.0'
     // CHECK-NEXT:   NumberLiteral: '2.0'
 }

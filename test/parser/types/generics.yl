@@ -93,18 +93,22 @@ fn main(): unit {
 // CHECK-NEXT:   BuiltinType: unit
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       DeclRefExpr: Wrapper
-// CHECK-NEXT:         TypeArgumentList
-// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:       PathExpr:
+// CHECK-NEXT:         DeclRefExpr: Wrapper
+// CHECK-NEXT:           TypeArgumentList
+// CHECK-NEXT:             BuiltinType: number
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       DeclRefExpr: Wrapper
-// CHECK-NEXT:         TypeArgumentList
-// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:       PathExpr:
+// CHECK-NEXT:         DeclRefExpr: Wrapper
+// CHECK-NEXT:           TypeArgumentList
+// CHECK-NEXT:             BuiltinType: number
 // CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: wrapper
-// CHECK-NEXT:         TypeArgumentList
-// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:       PathExpr:
+// CHECK-NEXT:         DeclRefExpr: wrapper
+// CHECK-NEXT:           TypeArgumentList
+// CHECK-NEXT:             BuiltinType: number
 // CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       DeclRefExpr: wrapper
-// CHECK-NEXT:         TypeArgumentList
-// CHECK-NEXT:           BuiltinType: number
+// CHECK-NEXT:       PathExpr:
+// CHECK-NEXT:         DeclRefExpr: wrapper
+// CHECK-NEXT:           TypeArgumentList
+// CHECK-NEXT:             BuiltinType: number

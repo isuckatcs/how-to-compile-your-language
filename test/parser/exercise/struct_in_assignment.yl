@@ -5,7 +5,9 @@ fn main(): unit {
   S {} = S {};
   // CHECK: Assignment:
   // CHECK-NEXT:   StructInstantiationExpr
-  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:     PathExpr:
+  // CHECK-NEXT:       DeclRefExpr: S
   // CHECK-NEXT:   StructInstantiationExpr
-  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:     PathExpr:
+  // CHECK-NEXT:       DeclRefExpr: S
 }

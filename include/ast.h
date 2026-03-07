@@ -207,27 +207,34 @@ struct TypeArgumentList : public Expr {
 struct DeclRefExpr : public Expr {
   std::string identifier;
   std::unique_ptr<TypeArgumentList> typeArgumentList;
-  std::unique_ptr<DeclRefExpr> parent;
 
   DeclRefExpr(SourceLocation location,
               std::string identifier,
-              std::unique_ptr<TypeArgumentList> typeArgumentList = nullptr,
-              std::unique_ptr<DeclRefExpr> parent = nullptr)
+              std::unique_ptr<TypeArgumentList> typeArgumentList = nullptr)
       : Expr(location),
         identifier(identifier),
-        typeArgumentList(std::move(typeArgumentList)),
-        parent(std::move(parent)) {}
+        typeArgumentList(std::move(typeArgumentList)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct PathExpr : public Expr {
+  std::vector<std::unique_ptr<DeclRefExpr>> path;
+
+  PathExpr(std::vector<std::unique_ptr<DeclRefExpr>> path)
+      : Expr(path[0]->location),
+        path(std::move(path)) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct StructInstantiationExpr : public Expr {
-  std::unique_ptr<DeclRefExpr> structRef;
+  std::unique_ptr<PathExpr> structRef;
   std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
 
   StructInstantiationExpr(
       SourceLocation location,
-      std::unique_ptr<DeclRefExpr> structRef,
+      std::unique_ptr<PathExpr> structRef,
       std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers)
       : Expr(location),
         structRef(std::move(structRef)),
