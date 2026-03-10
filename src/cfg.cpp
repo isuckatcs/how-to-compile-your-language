@@ -69,7 +69,7 @@ void CFG::dump() const {
         std::cerr << number->value;
       } else if (const auto *callExpr =
                      dynamic_cast<const res::CallExpr *>(*it)) {
-        std::cerr << stmtToRef[callExpr->callee] << ' ' << '(';
+        std::cerr << stmtToRef[callExpr->callee] << '(';
         for (int i = 0; i < callExpr->arguments.size(); ++i) {
           std::cerr << stmtToRef[callExpr->arguments[i]];
 
