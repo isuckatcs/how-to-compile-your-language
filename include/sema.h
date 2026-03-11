@@ -59,9 +59,11 @@ class Sema {
                                              const ast::BinaryOperator &binop);
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
                                          const ast::GroupingExpr &grouping);
+  res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
+                                    const ast::PathExpr &pathExpr);
   res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
                                        const ast::DeclRefExpr &declRefExpr,
-                                       const res::DeclContext *scope);
+                                       std::vector<res::Type *> path);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,

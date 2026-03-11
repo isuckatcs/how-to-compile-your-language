@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  fn foo(self: Self, x: T) {}
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:11: error: explicit type annotations are needed to infer the type of 'S'
+  let x = S::foo;
+}

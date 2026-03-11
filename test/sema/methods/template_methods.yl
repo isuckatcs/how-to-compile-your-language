@@ -1,0 +1,33 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  fn foo<U>(self: &Self, x: U) {}
+}
+
+struct S2<T> {
+  fn foo<U>(x: U) {}
+}
+
+fn main() {
+  S2@<unit>::foo(unit);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S2<unit>::foo {(unit) -> unit}
+  // CHECK-NEXT:   UnitLiteral {unit}
+
+  S2@<number>::foo(unit);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S2<number>::foo {(unit) -> unit}
+  // CHECK-NEXT:   UnitLiteral {unit}
+  
+  mut s = S{};
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) s {S}
+  // CHECK-NEXT:     StructInstantiationExpr {S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
+  
+  s.foo(unit);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&S, unit) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   UnitLiteral {unit}
+}

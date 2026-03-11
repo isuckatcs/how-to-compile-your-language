@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  // CHECK: [[# @LINE + 1 ]]:10: error: declaring 'T' shadows outer type parameter
+  fn foo<T>(self: Self) {}
+}
+
+fn main() {}

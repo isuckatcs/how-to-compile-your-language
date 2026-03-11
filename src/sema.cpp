@@ -229,7 +229,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     if (auto *sd = decl->getAs<res::StructDecl>()) {
       varOrReturn(res, checkTypeParameterCount(udt->location,
                                                udt->typeArguments.size(),
-                                               sd->typeParams.size()));
+                                               sd->getTypeParams().size()));
 
       std::vector<res::Type *> resolvedTypeArgs;
       for (auto &&astArg : udt->typeArguments) {
@@ -334,41 +334,67 @@ Sema::resolveGroupingExpr(res::Context &ctx,
                   ctx.getType(expr));
 }
 
+res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
+                                        const ast::PathExpr &pathExpr) {
+  std::vector<res::DeclRefExpr *> nestedSpecifiers;
+  std::vector<res::Type *> path;
+
+  for (auto &&pathFragment : pathExpr.path) {
+    if (!nestedSpecifiers.empty() &&
+        !nestedSpecifiers.back()->decl->getAs<res::StructDecl>()) {
+      return report(
+          pathFragment->location,
+          "member functions can only be looked up in struct declarations");
+    }
+
+    varOrReturn(dre, resolveDeclRefExpr(ctx, *pathFragment, path));
+    path.emplace_back(ctx.getType(dre));
+    nestedSpecifiers.emplace_back(dre);
+  }
+
+  res::DeclRefExpr *dre = nestedSpecifiers.back();
+  nestedSpecifiers.pop_back();
+  if (!nestedSpecifiers.empty() && !dre->decl->getAs<res::FunctionDecl>())
+    return report(dre->location, "failed to find member function '" +
+                                     dre->decl->identifier + "' in '" +
+                                     nestedSpecifiers.back()->decl->identifier +
+                                     "'");
+
+  dre->nestedPathSpecifier = std::move(nestedSpecifiers);
+  return dre;
+}
+
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
                                            const ast::DeclRefExpr &declRefExpr,
-                                           const res::DeclContext *scope) {
+                                           std::vector<res::Type *> path) {
+  SourceLocation loc = declRefExpr.location;
+  const std::string &id = declRefExpr.identifier;
 
   res::Decl *decl = nullptr;
-  if (const auto &parent = declRefExpr.parent) {
-    varOrReturn(parentDelc, resolveDeclRefExpr(ctx, *parent, scope));
+  if (!path.empty()) {
+    auto *structTy = path.back()->getAs<res::StructType>();
+    if (!structTy)
+      return report(declRefExpr.location, "cannot access member of '" +
+                                              path.back()->getName() + '\'');
 
-    auto *parentStruct = parentDelc->decl->getAs<res::StructDecl>();
-    if (!parentStruct)
-      return report(
-          declRefExpr.location,
-          "member functions can only be looked up in struct declarations");
-
-    decl = parentStruct->lookupDecl<res::FunctionDecl>(declRefExpr.identifier);
+    res::StructDecl *structDecl = structTy->getDecl();
+    decl = structDecl->lookupDecl<res::Decl>(declRefExpr.identifier);
     if (!decl)
-      return report(declRefExpr.location,
-                    "failed to find member function named '" +
-                        declRefExpr.identifier + "' in '" + parent->identifier +
-                        "'");
-  } else if (declRefExpr.identifier == "Self") {
-    auto *structType = dynamic_cast<res::StructType *>(selfType);
-    if (!structType)
-      return report(declRefExpr.location,
-                    "'Self' is only allowed inside structs");
-    decl = structType->getDecl();
+      return report(loc, '\'' + structDecl->identifier +
+                             "' has no member called '" + id + '\'');
+  } else if (id == "Self") {
+    if (!selfType)
+      return report(loc, "'Self' is only allowed inside structs");
+
+    decl = selfType->getAs<res::StructType>()->getDecl();
   } else {
-    decl = scope->lookupDecl<res::Decl>(declRefExpr.identifier);
+    decl = lexicalScope->lookupDecl<res::Decl>(id);
     if (!decl)
-      return report(declRefExpr.location,
-                    "symbol '" + declRefExpr.identifier + "' not found");
+      return report(loc, "symbol '" + id + "' not found");
   }
 
   if (decl->getAs<res::TypeParamDecl>())
-    return report(declRefExpr.location, "expected value, found type parameter");
+    return report(loc, "expected value, found type parameter");
 
   res::Expr::Kind kind;
   if (decl->getAs<res::FunctionDecl>() || decl->getAs<res::StructDecl>())
@@ -377,32 +403,38 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     kind = decl->getAs<res::ValueDecl>()->isMutable ? res::Expr::Kind::MutLvalue
                                                     : res::Expr::Kind::Lvalue;
 
-  auto *declTy = ctx.getType(decl);
-  res::Context::SubstitutionTy substitution = ctx.createSubstitution(decl);
+  res::Type *declTy = ctx.getType(decl);
+  for (auto &&fragment : path)
+    if (auto *structTy = fragment->getAs<res::StructType>())
+      declTy = ctx.instantiate(
+          declTy, ctx.createSubstitution(structTy->getDecl()->getTypeParams(),
+                                         structTy->getTypeArgs()));
 
-  const auto &typeArgList = declRefExpr.typeArgumentList.get();
-  if (typeArgList) {
+  std::vector<res::TypeParamDecl *> typeParams = decl->getTypeParams();
+  std::vector<res::Type *> typeArgs;
+
+  if (const auto *typeArgList = declRefExpr.typeArgumentList.get()) {
     if (!decl->isGeneric())
       return report(typeArgList->location,
                     "'" + decl->identifier + "' is not a generic");
 
     varOrReturn(res, checkTypeParameterCount(typeArgList->location,
                                              typeArgList->args.size(),
-                                             substitution.size()));
+                                             typeParams.size()));
 
-    size_t i = 0;
-    for (auto &&typeArg : typeArgList->args) {
-      varOrReturn(resolvedTypeArg, resolveType(ctx, *typeArg));
-      ctx.unify(substitution[i++], resolvedTypeArg);
+    for (auto &&arg : typeArgList->args) {
+      varOrReturn(typeArg, resolveType(ctx, *arg));
+      typeArgs.emplace_back(typeArg);
     }
+  } else if (decl->isGeneric()) {
+    for (size_t i = 0; i < typeParams.size(); ++i)
+      typeArgs.emplace_back(ctx.getNewUninferredType());
   }
 
-  if (decl->isGeneric())
-    declTy = ctx.instantiate(ctx.getType(decl), substitution);
-
-  return ctx.bind(ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl,
-                                               kind, std::move(substitution)),
-                  declTy);
+  return ctx.bind(
+      ctx.create<res::DeclRefExpr>(declRefExpr.location, *decl, kind, typeArgs,
+                                   path),
+      ctx.instantiate(declTy, ctx.createSubstitution(typeParams, typeArgs)));
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
@@ -433,7 +465,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                             ctx.getPointerType(ctx.getType(receiver)));
       }
 
-      callee = me->member;
+      callee = ctx.bind(me->member, ctx.getType(me));
     }
   }
 
@@ -484,8 +516,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     res::Context &ctx,
     const ast::StructInstantiationExpr &structInstantiation) {
 
-  varOrReturn(dre, resolveDeclRefExpr(ctx, *structInstantiation.structRef,
-                                      lexicalScope));
+  varOrReturn(dre, resolvePathExpr(ctx, *structInstantiation.structRef));
 
   if (!dre->decl->getAs<res::StructDecl>())
     return report(dre->location, "expected struct declaration to instantiate");
@@ -526,8 +557,10 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     }
 
     res::Type *initTy = ctx.getType(resolvedInitExpr);
-    res::Type *fieldTy =
-        ctx.instantiate(ctx.getType(fieldDecl), structTy->getTypeArgs());
+    res::Type *fieldTy = ctx.instantiate(
+        ctx.getType(fieldDecl),
+        ctx.createSubstitution(structTy->getDecl()->getTypeParams(),
+                               structTy->getTypeArgs()));
 
     if (!ctx.unify(fieldTy, initTy)) {
       report(resolvedInitExpr->location,
@@ -567,27 +600,16 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                                          const ast::MemberExpr &memberExpr) {
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
+  varOrReturn(memberDre,
+              resolveDeclRefExpr(ctx, *memberExpr.member, {ctx.getType(base)}));
 
-  auto *baseTy = ctx.getType(base);
-  auto *structTy = baseTy->getAs<res::StructType>();
-  if (!structTy)
-    return report(memberExpr.location,
-                  "cannot access member of '" + baseTy->getName() + '\'');
-  const auto *sd = structTy->getDecl();
-
-  auto *memberDecl = resolveDeclRefExpr(ctx, *memberExpr.member, sd);
-  if (!memberDecl)
-    return report(memberExpr.location,
-                  '\'' + sd->identifier + "' has no member called '" +
-                      memberExpr.member->identifier + '\'');
-
-  if (memberDecl->decl->getAs<res::FunctionDecl>() &&
+  if (memberDre->decl->getAs<res::FunctionDecl>() &&
       !(resolutionContext & Call))
     return report(memberExpr.location, "expected to call method");
 
   return ctx.bind(
-      ctx.create<res::MemberExpr>(memberExpr.location, base, memberDecl),
-      ctx.instantiate(ctx.getType(memberDecl), structTy->getTypeArgs()));
+      ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre),
+      ctx.getType(memberDre));
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -734,12 +756,12 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
           dynamic_cast<const ast::StructInstantiationExpr *>(&expr))
     return resolveStructInstantiation(ctx, *structInstantiation);
 
-  if (const auto *declRefExpr = dynamic_cast<const ast::DeclRefExpr *>(&expr)) {
-    varOrReturn(dre, resolveDeclRefExpr(ctx, *declRefExpr, lexicalScope));
+  if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
+    varOrReturn(dre, resolvePathExpr(ctx, *path));
 
     if (dre->decl->getAs<res::StructDecl>())
-      return report(declRefExpr->location, "expected an instance of '" +
-                                               declRefExpr->identifier + '\'');
+      return report(path->location,
+                    "expected an instance of '" + dre->decl->identifier + '\'');
 
     auto *outType = ctx.getType(dre)->getAs<res::OutParamType>();
     if (outType)
@@ -840,16 +862,16 @@ bool Sema::checkTypeParameterCount(SourceLocation loc,
 std::vector<res::TypeParamDecl *> Sema::resolveTypeParameters(
     res::Context &ctx,
     const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls) {
-  std::vector<res::TypeParamDecl *> resolvedTypeParams;
+  std::vector<res::TypeParamDecl *> resTypeParams;
   for (auto &&typeParam : typeParamDecls) {
-    auto *resolvedTypeParam = ctx.create<res::TypeParamDecl>(
-        typeParam->location, typeParam->identifier, resolvedTypeParams.size());
+    auto *resTypeParam = ctx.create<res::TypeParamDecl>(typeParam->location,
+                                                        typeParam->identifier);
 
-    resolvedTypeParams.emplace_back(
-        ctx.bind(resolvedTypeParam, ctx.getTypeParamType(*resolvedTypeParam)));
+    resTypeParams.emplace_back(
+        ctx.bind(resTypeParam, ctx.getTypeParamType(*resTypeParam)));
   }
 
-  return resolvedTypeParams;
+  return resTypeParams;
 }
 
 res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
@@ -860,9 +882,21 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
 
   bool error = false;
   ScopeRAII typeParamScope(this);
-  for (auto &&typeParamDecl : resolvedTypeParams)
+
+  for (auto &&typeParamDecl : resolvedTypeParams) {
+
+    if (lexicalScope->parent &&
+        lexicalScope->parent->lookupDecl<res::TypeParamDecl>(
+            typeParamDecl->identifier)) {
+      report(typeParamDecl->location, "declaring '" +
+                                          typeParamDecl->identifier +
+                                          "' shadows outer type parameter");
+      error = true;
+    }
+
     if (!insertDeclToScope(typeParamDecl, lexicalScope))
       error = true;
+  }
 
   res::Type *retTy = function.type ? resolveType(ctx, *function.type)
                                    : ctx.getBuiltinUnitType();
@@ -912,7 +946,7 @@ Sema::resolveFunctionBody(res::Context &ctx,
   currentFunction = function;
 
   ScopeRAII typeParamScope(this);
-  for (auto &&typeParam : currentFunction->typeParams)
+  for (auto &&typeParam : currentFunction->getTypeParams())
     insertDeclToScope(typeParam, lexicalScope);
 
   ScopeRAII paramScope(this);
@@ -930,18 +964,17 @@ Sema::resolveFunctionBody(res::Context &ctx,
 
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &structDecl) {
-  std::vector<res::TypeParamDecl *> resolvedTypeParams =
-      resolveTypeParameters(ctx, structDecl.typeParameters);
-  auto *resolvedStruct =
-      ctx.create<res::StructDecl>(structDecl.location, structDecl.identifier,
-                                  std::move(resolvedTypeParams));
+  auto typeParams = resolveTypeParameters(ctx, structDecl.typeParameters);
 
-  std::vector<res::Type *> typeParamTypes;
-  for (auto &&typeParamDecl : resolvedStruct->typeParams)
-    typeParamTypes.emplace_back(ctx.getType(typeParamDecl));
+  std::vector<res::Type *> typeParamTys;
+  for (auto &&typeParam : typeParams)
+    typeParamTys.emplace_back(ctx.getType(typeParam));
 
-  return ctx.bind(resolvedStruct, ctx.getStructType(*resolvedStruct,
-                                                    std::move(typeParamTypes)));
+  auto *resStruct = ctx.create<res::StructDecl>(
+      structDecl.location, structDecl.identifier, std::move(typeParams));
+
+  return ctx.bind(resStruct,
+                  ctx.getStructType(*resStruct, std::move(typeParamTys)));
 }
 
 bool Sema::resolveMemberDecls(res::Context &ctx,
@@ -950,7 +983,7 @@ bool Sema::resolveMemberDecls(res::Context &ctx,
   selfType = ctx.getType(&structDecl);
   bool error = false;
   ScopeRAII typeParamScope(this);
-  for (auto &&typeParamDecl : structDecl.typeParams)
+  for (auto &&typeParamDecl : structDecl.getTypeParams())
     error |= !insertDeclToScope(typeParamDecl, lexicalScope);
 
   for (auto &&decl : astDecl.decls) {
@@ -989,7 +1022,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
                                        const ast::StructDecl &astDecl) {
   selfType = ctx.getType(&resolvedStruct);
   ScopeRAII typeParamScope(this);
-  for (auto &&typeParamDecl : resolvedStruct.typeParams)
+  for (auto &&typeParamDecl : resolvedStruct.getTypeParams())
     insertDeclToScope(typeParamDecl, lexicalScope);
 
   bool error = false;

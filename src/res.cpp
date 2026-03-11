@@ -101,8 +101,10 @@ void UnitLiteral::dump(const Context &ctx, size_t level) const {
 }
 
 void DeclRefExpr::dump(const Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
-            << decl->identifier;
+  std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") ";
+  for (auto &&pathFragment : path)
+    std::cerr << pathFragment->getName() << ':' << ':';
+  std::cerr << decl->identifier;
 
   std::cerr << " {" << ctx.getType(this)->getName() << '}' << '\n';
 
@@ -299,42 +301,41 @@ bool Context::unify(Type *t1, Type *t2) {
   return true;
 }
 
-Context::SubstitutionTy Context::createSubstitution(const Decl *decl) {
-  size_t typeParamCnt = 0;
-  if (auto *fnDecl = decl->getAs<FunctionDecl>())
-    typeParamCnt = fnDecl->typeParams.size();
+Context::SubstitutionTy
+Context::createSubstitution(const std::vector<TypeParamDecl *> &typeParams,
+                            const std::vector<Type *> &types) {
+  assert(typeParams.size() == types.size() && "cannot create substitution");
 
-  if (auto *structDecl = decl->getAs<StructDecl>())
-    typeParamCnt = structDecl->typeParams.size();
-
-  std::vector<res::Type *> substitution(typeParamCnt);
-  for (size_t i = 0; i < typeParamCnt; ++i)
-    substitution[i] = getNewUninferredType();
+  SubstitutionTy substitution;
+  for (size_t i = 0; i < typeParams.size(); ++i)
+    substitution[typeParams[i]] = types[i];
 
   return substitution;
 }
 
 Type *Context::instantiate(Type *t, const SubstitutionTy &substitution) {
-  if (auto *typeParamTy = t->getAs<TypeParamType>())
-    return substitution[typeParamTy->decl->index];
+  if (auto *typeParamTy = t->getAs<TypeParamType>()) {
+    auto it = substitution.find(typeParamTy->decl);
+    if (it != substitution.end())
+      return it->second;
+  }
 
-  Type *instTy = t;
-  if (auto *fnTy = t->getAs<FunctionType>())
-    instTy = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
+  else if (auto *fnTy = t->getAs<FunctionType>())
+    t = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
 
-  if (auto *s = t->getAs<StructType>())
-    instTy = getStructType(*s->getDecl(), s->getTypeArgs());
+  else if (auto *s = t->getAs<StructType>())
+    t = getStructType(*s->getDecl(), s->getTypeArgs());
 
-  if (auto *p = t->getAs<OutParamType>())
-    instTy = getPointerType(p->getParamType());
+  else if (auto *p = t->getAs<OutParamType>())
+    t = getPointerType(p->getParamType());
 
-  for (auto &arg : instTy->args)
+  for (auto &arg : t->args)
     arg = instantiate(arg, substitution);
 
-  return instTy;
+  return t;
 }
 
-void Context::dump() {
+void Context::dump() const {
   for (auto &&decl : structs)
     decl->dump(*this, 0);
 

@@ -17,6 +17,6 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:13: error: expected to call method
   s.method().method;
   
-  // CHECK: [[# @LINE + 1 ]]:11: error: cannot access member of '(S) -> S'
+  // CHECK: [[# @LINE + 1 ]]:12: error: cannot access member of '(S) -> S'
   s.method.method();
 }

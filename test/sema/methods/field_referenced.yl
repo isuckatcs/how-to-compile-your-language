@@ -4,6 +4,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find member function named 'x' in 'S'
+  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find member function 'x' in 'S'
   let s = S::x;
 }

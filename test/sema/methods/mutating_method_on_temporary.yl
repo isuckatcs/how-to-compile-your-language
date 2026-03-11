@@ -9,7 +9,7 @@ fn main() {
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(&S) -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) S::foo {(&S) -> unit}
 // CHECK-NEXT:       UnaryOperator '&' {&S}
 // CHECK-NEXT:         StructInstantiationExpr {S}
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}

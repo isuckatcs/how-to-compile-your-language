@@ -1,0 +1,19 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  x: T
+
+  fn foo(self: &Self, x: T): T {
+    return self.x;
+  }
+}
+
+fn main() {
+  mut s = S{ x: 1 };
+  s.foo(0);
+  // CHECK: CallExpr {number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S<number>::foo {(&S<number>, number) -> number}
+  // CHECK-NEXT:   UnaryOperator '&' {&S<number>}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S<number>}
+  // CHECK-NEXT:   NumberLiteral '0' {number}
+  // CHECK-NEXT:   | value: 0
+}

@@ -27,7 +27,7 @@ struct S {
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(S) -> unit}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) self {S}
   // CHECK-NEXT:     CallExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) create {() -> S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::create {() -> S}
 }
 
 fn main() {}

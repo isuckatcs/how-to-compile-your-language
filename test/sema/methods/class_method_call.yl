@@ -19,4 +19,4 @@ fn main() {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
 // CHECK-NEXT:         CallExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) create {() -> S}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S::create {() -> S}

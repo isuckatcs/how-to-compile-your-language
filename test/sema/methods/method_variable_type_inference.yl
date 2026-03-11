@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  fn foo(self: Self, x: T) {}
+}
+
+fn main() {
+  let x = S::foo;
+  x(S{}, 1);
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) x {(S<number>, number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S<number>::foo {(S<number>, number) -> unit}
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {(S<number>, number) -> unit}
+// CHECK-NEXT:       StructInstantiationExpr {S<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
+// CHECK-NEXT:       NumberLiteral '1' {number}
+// CHECK-NEXT:       | value: 1

@@ -34,11 +34,11 @@ fn main() {
 
   s.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(S) -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
 
   s.bar();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(S) -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
 }

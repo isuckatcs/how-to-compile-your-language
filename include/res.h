@@ -1,6 +1,7 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 
+#include <map>
 #include <memory>
 #include <variant>
 #include <vector>
@@ -67,13 +68,22 @@ struct Expr : public ConstantValueContainer<double>, public Stmt {
   virtual ~Expr() = default;
 };
 
+struct TypeParamDecl;
+
 struct Decl {
+protected:
+  std::vector<TypeParamDecl *> typeParams;
+
+public:
   SourceLocation location;
   std::string identifier;
 
-  Decl(SourceLocation location, std::string identifier)
+  Decl(SourceLocation location,
+       std::string identifier,
+       std::vector<TypeParamDecl *> typeParams = {})
       : location(location),
-        identifier(std::move(identifier)) {}
+        identifier(std::move(identifier)),
+        typeParams(std::move(typeParams)) {}
   virtual ~Decl() = default;
 
   template <typename T> T *getAs() {
@@ -85,7 +95,12 @@ struct Decl {
     return dynamic_cast<const T *>(this);
   }
 
-  virtual bool isGeneric() const { return false; }
+  bool isGeneric() const { return !typeParams.empty(); }
+  std::vector<TypeParamDecl *> getTypeParams() { return typeParams; }
+  std::vector<const TypeParamDecl *> getTypeParams() const {
+    return std::vector<const TypeParamDecl *>(typeParams.begin(),
+                                              typeParams.end());
+  }
 
   virtual void dump(const Context &ctx, size_t level = 0) const = 0;
 };
@@ -96,6 +111,7 @@ struct DeclContext {
 
   DeclContext(DeclContext *parent)
       : parent(parent) {}
+  virtual ~DeclContext() = default;
 
   bool insertDecl(res::Decl *decl) {
     if (decl == nullptr)
@@ -138,15 +154,20 @@ struct DeclContext {
 };
 
 struct TypeDecl : public Decl {
-  TypeDecl(SourceLocation location, std::string identifier)
-      : Decl(location, std::move(identifier)) {}
+  TypeDecl(SourceLocation location,
+           std::string identifier,
+           std::vector<TypeParamDecl *> typeParams = {})
+      : Decl(location, std::move(identifier), std::move(typeParams)) {}
 };
 
 struct ValueDecl : public Decl {
   bool isMutable;
 
-  ValueDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : Decl(location, std::move(identifier)),
+  ValueDecl(SourceLocation location,
+            std::string identifier,
+            bool isMutable,
+            std::vector<TypeParamDecl *> typeParams = {})
+      : Decl(location, std::move(identifier), std::move(typeParams)),
         isMutable(isMutable) {}
 };
 
@@ -198,11 +219,8 @@ struct ParamDecl : public ValueDecl {
 };
 
 struct TypeParamDecl : public TypeDecl {
-  unsigned index;
-
-  TypeParamDecl(SourceLocation location, std::string identifier, unsigned index)
-      : TypeDecl(location, std::move(identifier)),
-        index(index) {}
+  TypeParamDecl(SourceLocation location, std::string identifier)
+      : TypeDecl(location, std::move(identifier)) {}
 
   void dump(const Context &ctx, size_t level = 0) const override;
 };
@@ -230,7 +248,6 @@ struct VarDecl : public ValueDecl {
 struct StructDecl;
 
 struct FunctionDecl : public ValueDecl {
-  std::vector<TypeParamDecl *> typeParams;
   std::vector<ParamDecl *> params;
   StructDecl *parent = nullptr;
   Block *body = nullptr;
@@ -241,29 +258,22 @@ struct FunctionDecl : public ValueDecl {
                std::vector<TypeParamDecl *> typeParams,
                std::vector<ParamDecl *> params,
                StructDecl *parent = nullptr)
-      : ValueDecl(location, std::move(identifier), false),
-        typeParams(std::move(typeParams)),
+      : ValueDecl(
+            location, std::move(identifier), false, std::move(typeParams)),
         params(std::move(params)),
         parent(parent) {}
 
   void setBody(Block *body);
-  bool isGeneric() const override { return !typeParams.empty(); }
 
   void dump(const Context &ctx, size_t level = 0) const override;
 };
 
 struct StructDecl : public TypeDecl, public DeclContext {
-  // FIXME: this should be a separate scope?
-  std::vector<TypeParamDecl *> typeParams;
-
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<TypeParamDecl *> typeParams)
-      : TypeDecl(location, std::move(identifier)),
-        DeclContext(nullptr),
-        typeParams(std::move(typeParams)) {}
-
-  bool isGeneric() const override { return !typeParams.empty(); }
+      : TypeDecl(location, std::move(identifier), std::move(typeParams)),
+        DeclContext(nullptr) {}
 
   void dump(const Context &ctx, size_t level = 0) const override;
 };
@@ -301,21 +311,30 @@ struct CallExpr : public Expr {
 struct DeclRefExpr : public Expr {
 private:
   std::vector<Type *> typeArgs;
+  std::vector<Type *> path;
 
 public:
-  Decl *decl;
+  std::vector<DeclRefExpr *> nestedPathSpecifier;
+  const Decl *decl;
 
   DeclRefExpr(SourceLocation location,
               Decl &decl,
               Expr::Kind kind,
-              std::vector<Type *> typeArgs)
+              std::vector<Type *> typeArgs,
+              std::vector<Type *> path)
       : Expr(location, kind),
-        decl(&decl),
-        typeArgs(std::move(typeArgs)) {}
+        typeArgs(std::move(typeArgs)),
+        path(std::move(path)),
+        decl(&decl) {}
 
   std::vector<Type *> getTypeArgs() { return typeArgs; }
   std::vector<const Type *> getTypeArgs() const {
     return std::vector<const Type *>(typeArgs.begin(), typeArgs.end());
+  }
+
+  std::vector<Type *> getPath() { return path; }
+  std::vector<const Type *> getPath() const {
+    return std::vector<const Type *>(path.begin(), path.end());
   }
 
   void dump(const Context &ctx, size_t level = 0) const override;
@@ -595,8 +614,10 @@ public:
   TypeParamType *getTypeParamType(const TypeParamDecl &decl);
   OutParamType *getPointerType(Type *pointeeType);
 
-  using SubstitutionTy = std::vector<res::Type *>;
-  SubstitutionTy createSubstitution(const Decl *decl);
+  using SubstitutionTy = std::map<const res::TypeParamDecl *, res::Type *>;
+  SubstitutionTy
+  createSubstitution(const std::vector<TypeParamDecl *> &typeParams,
+                     const std::vector<Type *> &types);
   Type *instantiate(Type *t, const SubstitutionTy &substitution);
 
   bool unify(Type *t1, Type *t2);
@@ -617,7 +638,7 @@ public:
     return const_cast<Type *>(const_cast<const Context *>(this)->getType(node));
   }
 
-  void dump();
+  void dump() const;
 };
 } // namespace res
 } // namespace yl
