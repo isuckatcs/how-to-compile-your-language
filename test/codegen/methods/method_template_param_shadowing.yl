@@ -1,0 +1,30 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_template_param_shadowing && ./method_template_param_shadowing | grep -Plzx '1\n'
+struct S<T> {
+  x: T
+
+  fn foo(self: &Self, x: T): T {
+    return self.x;
+  }
+}
+
+fn main() {
+  mut s = S{ x: 1 };
+
+  println(s.foo(2));
+  // CHECK: %1 = call double @_YS1SGnE3foo(ptr %s, double 2.000000e+00)
+  // CHECK-NEXT: call void @println(double %1)
+}
+
+// CHECK: define double @_YS1SGnE3foo(ptr %self, double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   store double %1, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %2 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %2
+// CHECK-NEXT: }

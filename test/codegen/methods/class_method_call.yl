@@ -1,0 +1,25 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o class_method_call && ./class_method_call | grep -Plzx '0\n'
+struct S {
+  fn create(): Self {
+    println(0);
+    return S{};
+  }
+}
+// CHECK: define void @_YS1S6create() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S::create();
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S6create()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

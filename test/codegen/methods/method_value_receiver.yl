@@ -1,0 +1,45 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_value_receiver && ./method_value_receiver | grep -Plzx '123\n246\n123\n'
+struct S {
+  x: number
+
+  fn foo(self: Self): Self {
+    println(self.x);
+    return self;
+  }
+  // CHECK: define void @_YS1S3foo(ptr sret({ double }) %ret, ptr byval({ double }) %self) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+  // CHECK-NEXT:   %1 = load double, ptr %0, align 8
+  // CHECK-NEXT:   call void @println(double %1)
+  // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %self, i64 8, i1 false)
+  // CHECK-NEXT:   br label %return
+  // CHECK-NEXT: 
+  // CHECK-NEXT: return:                                           ; preds = %entry
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  fn bar(self: Self) {
+    println(self.x * 2);
+  }
+  // CHECK: define void @_YS1S3bar(ptr byval({ double }) %self) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+  // CHECK-NEXT:   %1 = load double, ptr %0, align 8
+  // CHECK-NEXT:   %2 = fmul double %1, 2.000000e+00
+  // CHECK-NEXT:   call void @println(double %2)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+fn main() {
+  mut s = S{ x: 123 };
+
+  s.foo().bar();
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS1S3foo(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS1S3bar(ptr byval({ double }) %struct.arg.tmp1)
+
+  println(s.x);
+}

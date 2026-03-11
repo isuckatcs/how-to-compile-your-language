@@ -7,14 +7,49 @@
 
 #include <map>
 #include <queue>
-#include <stack>
 
 #include "res.h"
 
 namespace yl {
 class Codegen {
+  using InstCtxTy = std::map<const res::TypeParamDecl *, const res::Type *>;
+
+  class EnterInstantiationRAII {
+    Codegen *codegen;
+    InstCtxTy instCtxSnapshot;
+
+    void impl(std::vector<const res::TypeParamDecl *> typeParams,
+              std::vector<const res::Type *> typeArgs) {
+      for (size_t i = 0; i < typeParams.size(); ++i) {
+        const res::Type *type = typeArgs[i];
+        if (const auto *typeParamTy = type->getAs<res::TypeParamType>())
+          type = instCtxSnapshot[typeParamTy->decl];
+
+        codegen->instCtx[typeParams[i]] = type;
+      }
+    }
+
+  public:
+    EnterInstantiationRAII(Codegen *codegen, const res::StructType *st)
+        : codegen(codegen),
+          instCtxSnapshot(codegen->instCtx) {
+      impl(st->getDecl()->getTypeParams(), st->getTypeArgs());
+    }
+
+    EnterInstantiationRAII(Codegen *codegen, const res::DeclRefExpr *dre)
+        : codegen(codegen),
+          instCtxSnapshot(codegen->instCtx) {
+      for (auto &&fragment : dre->getPath())
+        if (const auto *st = fragment->getAs<res::StructType>())
+          impl(st->getDecl()->getTypeParams(), st->getTypeArgs());
+      impl(dre->decl->getTypeParams(), dre->getTypeArgs());
+    }
+
+    ~EnterInstantiationRAII() { codegen->instCtx = instCtxSnapshot; }
+  };
+
   struct PendingFunctionDescriptor {
-    std::vector<const res::Type *> typeArgs;
+    InstCtxTy instCtxCapture;
     std::string mangledName;
     const res::FunctionDecl *decl;
   };
@@ -23,23 +58,7 @@ class Codegen {
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
-  std::stack<std::vector<llvm::Type *>> instantiations;
-
-  class EnterInstantiationRAII {
-    Codegen *codegen;
-
-  public:
-    EnterInstantiationRAII(Codegen *codegen,
-                           std::vector<const res::Type *> typeArgs)
-        : codegen(codegen) {
-      std::vector<llvm::Type *> instantiation;
-      for (auto &&arg : typeArgs)
-        instantiation.emplace_back(codegen->generateType(arg));
-
-      codegen->instantiations.emplace(std::move(instantiation));
-    }
-    ~EnterInstantiationRAII() { codegen->instantiations.pop(); }
-  };
+  InstCtxTy instCtx;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
@@ -86,7 +105,8 @@ class Codegen {
   llvm::Function *
   generateFunctionDecl(const res::FunctionDecl &decl,
                        const res::FunctionType *type,
-                       const std::vector<const res::Type *> &typeArgs);
+                       const std::vector<const res::Type *> &path,
+                       std::vector<const res::Type *> typeArgs);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
   llvm::Type *generateStructType(const res::StructType *structTy);

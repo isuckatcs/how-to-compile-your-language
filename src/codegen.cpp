@@ -9,7 +9,9 @@
 namespace yl {
 namespace {
 class Mangling {
-  static std::string mangleType(const res::Type *type) {
+  static std::string mangleType(
+      const res::Type *type,
+      std::map<const res::TypeParamDecl *, const res::Type *> substitution) {
     type = type->getRootType();
 
     std::stringstream mangledName;
@@ -20,12 +22,14 @@ class Mangling {
     } else if (const auto *s = type->getAs<res::StructType>()) {
       const auto &id = s->getDecl()->identifier;
       mangledName << 'S' << id.size() << id
-                  << mangleGenericArgs(s->getTypeArgs());
+                  << mangleGenericArgs(s->getTypeArgs(), substitution);
     } else if (const auto *f = type->getAs<res::FunctionType>()) {
       mangledName << 'F';
       for (auto &&arg : f->getArgs())
-        mangledName << mangleType(arg);
-      mangledName << 'R' << mangleType(f->getReturnType());
+        mangledName << mangleType(arg, substitution);
+      mangledName << 'R' << mangleType(f->getReturnType(), substitution);
+    } else if (const auto *t = type->getAs<res::TypeParamType>()) {
+      mangledName << mangleType(substitution[t->decl], substitution);
     } else {
       llvm_unreachable("unexpected type in mangling");
     }
@@ -33,8 +37,9 @@ class Mangling {
     return mangledName.str();
   }
 
-  static std::string
-  mangleGenericArgs(const std::vector<const res::Type *> &genericArgs) {
+  static std::string mangleGenericArgs(
+      const std::vector<const res::Type *> &genericArgs,
+      std::map<const res::TypeParamDecl *, const res::Type *> substitution) {
     if (genericArgs.empty())
       return "";
 
@@ -42,22 +47,28 @@ class Mangling {
 
     mangledName << 'G';
     for (auto &&type : genericArgs)
-      mangledName << mangleType(type);
+      mangledName << mangleType(type, substitution);
     mangledName << 'E';
 
     return mangledName.str();
   }
 
 public:
-  static std::string
-  mangleFunction(const res::FunctionDecl *fn,
-                 const std::vector<const res::Type *> &genericArgs) {
+  static std::string mangleFunction(
+      const res::FunctionDecl *fn,
+      const std::vector<const res::Type *> &path,
+      std::map<const res::TypeParamDecl *, const res::Type *> substitution,
+      const std::vector<const res::Type *> &genericArgs) {
     std::stringstream mangledName;
 
     const auto &identifier = fn->identifier;
-    if (fn->isGeneric())
-      mangledName << '_' << 'Y' << identifier.size();
-    mangledName << identifier << mangleGenericArgs(genericArgs);
+    if (fn->isGeneric() || !path.empty()) {
+      mangledName << '_' << 'Y';
+      for (auto &&fragment : path)
+        mangledName << mangleType(fragment, substitution);
+      mangledName << identifier.size();
+    }
+    mangledName << identifier << mangleGenericArgs(genericArgs, substitution);
     return mangledName.str();
   }
 };
@@ -92,10 +103,10 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   }
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
-    size_t idx = typeParamTy->decl->index;
-    assert(!instantiations.empty() && idx < instantiations.top().size() &&
+    auto it = instCtx.find(typeParamTy->decl);
+    assert(it != instCtx.end() &&
            "type param found in an invalid instantiation");
-    return instantiations.top()[idx];
+    return generateType(it->second);
   }
 
   llvm_unreachable("unexpected type encountered");
@@ -245,7 +256,9 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
     return nullptr;
 
   unsigned index = 0;
-  EnterInstantiationRAII structInst(this, structTy->getTypeArgs());
+
+  EnterInstantiationRAII structInst(this, structTy);
+
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
     if (field == memberExpr.member->decl)
       break;
@@ -334,9 +347,10 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (!fnDecl)
     return declarations[dre.decl];
 
+  EnterInstantiationRAII instantiation(this, &dre);
   return generateFunctionDecl(*fnDecl,
                               resCtx->getType(&dre)->getAs<res::FunctionType>(),
-                              dre.getTypeArgs());
+                              dre.getPath(), dre.getTypeArgs());
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
@@ -586,8 +600,8 @@ void Codegen::generateBlock(const res::Block &block) {
 }
 
 void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
-  auto [instantiation, mangledName, functionDecl] = fn;
-  EnterInstantiationRAII fnInstantiation(this, instantiation);
+  auto [instCtxCapture, mangledName, functionDecl] = fn;
+  instCtx = instCtxCapture;
 
   llvm::Function *function = module.getFunction(mangledName);
   llvm::FunctionType *functionTy = function->getFunctionType();
@@ -690,24 +704,23 @@ void Codegen::generateMainWrapper() {
 llvm::Function *
 Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
                               const res::FunctionType *type,
-                              const std::vector<const res::Type *> &typeArgs) {
-  std::string name = Mangling::mangleFunction(&fn, typeArgs);
+                              const std::vector<const res::Type *> &path,
+                              std::vector<const res::Type *> typeArgs) {
+  std::string name = Mangling::mangleFunction(&fn, path, instCtx, typeArgs);
   if (auto *function = module.getFunction(name))
     return function;
-
-  EnterInstantiationRAII fnInstantiation(this, typeArgs);
 
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                           name, module);
   function->setAttributes(constructAttrList(type));
 
-  pendingFunctions.push({typeArgs, name, &fn});
+  pendingFunctions.push({instCtx, name, &fn});
   return function;
 }
 
 llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
-  EnterInstantiationRAII structInstantiation(this, structTy->getTypeArgs());
+  EnterInstantiationRAII structInst(this, structTy);
 
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
@@ -725,10 +738,18 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
 }
 
 llvm::Module *Codegen::generateIR() {
+  for (auto &&st : resCtx->getStructs())
+    if (!st->isGeneric())
+      for (auto &&fn : st->getAll<res::FunctionDecl>())
+        if (!fn->isGeneric())
+          generateFunctionDecl(*fn,
+                               resCtx->getType(fn)->getAs<res::FunctionType>(),
+                               {resCtx->getType(st)}, {});
+
   for (auto &&fn : resCtx->getFunctions())
     if (!fn->isGeneric())
       generateFunctionDecl(*fn, resCtx->getType(fn)->getAs<res::FunctionType>(),
-                           {});
+                           {}, {});
 
   while (!pendingFunctions.empty()) {
     generateFunctionBody(pendingFunctions.front());

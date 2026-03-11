@@ -1,0 +1,15 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_variable_type_inference && ./method_variable_type_inference | grep -Plzx '123\n'
+struct S<T> {
+  fn foo(self: Self, x: T, y: number) {
+    println(y);
+  }
+}
+
+fn main() {
+  let x = S::foo;
+  x(S{}, 123, 123);
+  // CHECK: store ptr @_YS1SGnE3foo, ptr %x, align 8
+  // CHECK-NEXT: %0 = load ptr, ptr %x, align 8
+  // CHECK-NEXT: call void %0(double 1.230000e+02, double 1.230000e+02)
+}

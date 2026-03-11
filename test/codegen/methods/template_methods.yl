@@ -1,0 +1,47 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o template_methods && ./template_methods | grep -Plzx '0\n1\n1\n'
+struct S {
+  fn foo<U>(self: &Self, x: U) {
+    println(0);
+  }
+}
+
+struct S2<T> {
+  fn foo<U>(x: U) {
+    println(1);
+  }
+}
+
+fn main() {
+  mut s = S{};
+  s.foo(unit);
+
+  S2@<unit>::foo(unit);
+
+  S2@<number>::foo(unit);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S3fooGuE()
+// CHECK-NEXT:   call void @_YS2S2GuE3fooGuE()
+// CHECK-NEXT:   call void @_YS2S2GnE3fooGuE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1S3fooGuE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS2S2GuE3fooGuE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS2S2GnE3fooGuE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

@@ -1,0 +1,55 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_template_not_using_outer_param && ./method_template_not_using_outer_param | grep -Plzx '123\n'
+fn foo<T>(x: T): T {
+  return x;
+}
+
+struct S<T> {
+  fn foo<U>(x: T, y: U) {
+    foo@<(T, U) -> U>(S::bar)(x, y);
+  }
+
+  fn bar<V>(x: T, y: V): V {
+    println(123);
+    return y;
+  }
+}
+
+fn main() {
+  S::foo(unit, 456);
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1SGuE3fooGnE(double 4.560000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1SGuE3fooGnE(double %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = call ptr @_Y3fooGFunRnE(ptr @_YS1SGuE3barGnE)
+// CHECK-NEXT:   %1 = call double %0(double %y)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define double @_YS1SGuE3barGnE(double %y) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   store double %y, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+// CHECK: define ptr @_Y3fooGFunRnE(ptr %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca ptr, align 8
+// CHECK-NEXT:   store ptr %x, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %0 = load ptr, ptr %retval, align 8
+// CHECK-NEXT:   ret ptr %0
+// CHECK-NEXT: }

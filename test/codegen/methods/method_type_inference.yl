@@ -1,0 +1,32 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_type_inference && ./method_type_inference | grep -Plzx '123\n'
+fn foo<T>() {
+  println(123);
+}
+
+struct S<T> {
+  fn foo<U>() {
+    foo@<T>();
+  }
+}
+
+fn main() {
+  S@<number>::foo@<unit>();
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1SGnE3fooGuE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1SGnE3fooGuE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_Y3fooGnE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y3fooGnE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

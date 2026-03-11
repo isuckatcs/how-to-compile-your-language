@@ -1,0 +1,35 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_call_through_variable && ./method_call_through_variable | grep -Plzx '1\n2\n'
+struct S {
+  fn classMethod() {
+    println(1);
+  }
+  // CHECK: define void @_YS1S11classMethod() {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @println(double 1.000000e+00)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  fn instanceMethod(self: Self, x: number) {
+    println(x);
+  }
+  // CHECK: define void @_YS1S14instanceMethod(double %x) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @println(double %x)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+fn main() {
+  let classLevel = S::classMethod;
+  classLevel();
+  // CHECK: store ptr @_YS1S11classMethod, ptr %classLevel, align 8
+  // CHECK-NEXT: %0 = load ptr, ptr %classLevel, align 8
+  // CHECK-NEXT: call void %0()
+  
+  let instanceLevel = S::instanceMethod;
+  instanceLevel(S{}, 2);
+  // CHECK: store ptr @_YS1S14instanceMethod, ptr %instanceLevel, align 8
+  // CHECK-NEXT: %1 = load ptr, ptr %instanceLevel, align 8
+  // CHECK-NEXT: call void %1(double 2.000000e+00)
+}

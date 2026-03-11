@@ -1,0 +1,42 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o member_declaration_order && ./member_declaration_order | grep -Plzx '1\n2\n3\n4\n'
+struct S {
+  x: number,
+  y: number,
+
+  fn foo() {}
+  // CHECK: define void @_YS1S3foo() {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  z: number,
+
+  fn bar() {}
+  // CHECK: define void @_YS1S3bar() {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  w: number,
+}
+
+fn main() {
+  let s = S{ x: 1, y: 2, z: 3, w: 4 };
+  // CHECK: %S.tmp = alloca { double, double, double, double }, align 8
+  // CHECK-NEXT: %s = alloca { double, double, double, double }, align 8
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { double, double, double, double }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: store double 1.000000e+00, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double, double, double }, ptr %S.tmp, i32 0, i32 1
+  // CHECK-NEXT: store double 2.000000e+00, ptr %1, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { double, double, double, double }, ptr %S.tmp, i32 0, i32 2
+  // CHECK-NEXT: store double 3.000000e+00, ptr %2, align 8
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { double, double, double, double }, ptr %S.tmp, i32 0, i32 3
+  // CHECK-NEXT: store double 4.000000e+00, ptr %3, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 32, i1 false)
+
+  println(s.x);
+  println(s.y);
+  println(s.z);
+  println(s.w);
+}

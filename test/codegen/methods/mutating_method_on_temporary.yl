@@ -1,0 +1,24 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o method_variable_type_inference && ./method_variable_type_inference | grep -Plzx '0\n-1\n'
+struct S {
+  x: number,
+  y: number
+
+  fn foo(self: &Self) {
+    self.x = 0;
+    self.y = -1;
+
+    println(self.x);
+    println(self.y);
+  }
+}
+
+fn main() {
+  S{x: 1, y: 2}.foo();
+  // CHECK: %S.tmp = alloca { double, double }, align 8
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { double, double }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: store double 1.000000e+00, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double }, ptr %S.tmp, i32 0, i32 1
+  // CHECK-NEXT: store double 2.000000e+00, ptr %1, align 8
+  // CHECK-NEXT: call void @_YS1S3foo(ptr %S.tmp)
+}
