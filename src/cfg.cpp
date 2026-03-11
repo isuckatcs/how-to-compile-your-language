@@ -99,6 +99,8 @@ void CFG::dump() const {
         std::cerr << '}';
       } else if (const auto *dre =
                      dynamic_cast<const res::DeclRefExpr *>(*it)) {
+        for (auto &&fragment : dre->nestedPathSpecifier)
+          std::cerr << stmtToRef[fragment] << ':' << ':';
         std::cerr << dre->decl->identifier;
       } else if (const auto *memberExpr =
                      dynamic_cast<const res::MemberExpr *>(*it)) {
@@ -203,6 +205,13 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
     for (auto it = structInst->fieldInitializers.rbegin();
          it != structInst->fieldInitializers.rend(); ++it)
       block = insertStmt(**it, block);
+    return block;
+  }
+
+  if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr)) {
+    for (auto it = dre->nestedPathSpecifier.rbegin();
+         it != dre->nestedPathSpecifier.rend(); ++it)
+      block = insertExpr(**it, block);
     return block;
   }
 
