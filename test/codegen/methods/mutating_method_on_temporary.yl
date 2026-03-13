@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_variable_type_inference && ./method_variable_type_inference | grep -Plzx '0\n-1\n'
+// RUN: compiler %s -o mutating_method_on_temporary && ./mutating_method_on_temporary | grep -Plzx '0\n-1\n'
 struct S {
   x: number,
   y: number
