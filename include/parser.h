@@ -18,7 +18,10 @@ class Parser {
   using RestrictionType = unsigned char;
   RestrictionType restrictions = 0;
 
-  enum RestrictionKind : RestrictionType { StructNotAllowed = 1 };
+  enum RestrictionKind : RestrictionType {
+    StructNotAllowed = (1 << 0),
+    FunctionWithoutBodyAllowed = (1 << 1)
+  };
 
   template <typename T>
   T withRestrictions(RestrictionType rests, T (Parser::*f)()) {
@@ -51,6 +54,7 @@ class Parser {
   std::unique_ptr<ast::ParamDecl> parseParamDecl();
   std::unique_ptr<ast::VarDecl> parseVarDecl(bool isLet);
   std::unique_ptr<ast::StructDecl> parseStructDecl();
+  std::unique_ptr<ast::TraitDecl> parseTraitDecl();
   std::unique_ptr<ast::FieldDecl> parseFieldDecl();
   std::unique_ptr<ast::TypeParamDecl> parseTypeParamDecl();
 
@@ -74,8 +78,10 @@ class Parser {
   std::unique_ptr<ast::PathExpr> parsePathExpr();
   std::unique_ptr<ast::DeclRefExpr> parseDeclRefExpr();
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
+  std::unique_ptr<ast::TraitList> parseTraitList();
 
   std::unique_ptr<ast::Type> parseType();
+  std::unique_ptr<ast::UserDefinedType> parseUserDefinedType();
 
   // helper methods
   template <typename T, typename F>

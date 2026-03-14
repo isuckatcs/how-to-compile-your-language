@@ -2,7 +2,7 @@
 struct Err1 {
   fn foo() {}
   
-  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':' or '{'
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':', ';' or '{'
   fn bar() -> {}
 
   fn baz() {}
@@ -15,7 +15,7 @@ struct Err1 {
 struct Err2 {
   fn foo() {}
 
-  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':' or '{'
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ':', ';' or '{'
   fn bar() -> {}
 }
 

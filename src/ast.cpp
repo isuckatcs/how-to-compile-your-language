@@ -149,8 +149,18 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
+void TraitList::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitList\n";
+  for (auto &&trait : traits)
+    trait->dump(level + 1);
+}
+
 void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
+
+  if (restrictions)
+    for (auto &&restriction : restrictions->traits)
+      restriction->dump(level + 1);
 }
 
 void FieldDecl::dump(size_t level) const {
@@ -167,6 +177,16 @@ void StructDecl::dump(size_t level) const {
 
   for (auto &&decl : decls)
     decl->dump(level + 1);
+}
+
+void TraitDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitDecl: " << identifier << '\n';
+
+  for (auto &&typeParamDecl : typeParameters)
+    typeParamDecl->dump(level + 1);
+
+  for (auto &&fn : memberFunctions)
+    fn->dump(level + 1);
 }
 
 void ParamDecl::dump(size_t level) const {
@@ -196,7 +216,8 @@ void FunctionDecl::dump(size_t level) const {
   for (auto &&param : params)
     param->dump(level + 1);
 
-  body->dump(level + 1);
+  if (body)
+    body->dump(level + 1);
 }
 
 void DeclStmt::dump(size_t level) const {

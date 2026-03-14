@@ -298,9 +298,23 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct TraitList {
+  std::vector<std::unique_ptr<UserDefinedType>> traits;
+
+  TraitList(std::vector<std::unique_ptr<UserDefinedType>> traits)
+      : traits(std::move(traits)) {}
+
+  void dump(size_t level = 0) const;
+};
+
 struct TypeParamDecl : public Decl {
-  TypeParamDecl(SourceLocation location, std::string identifier)
-      : Decl(location, std::move(identifier)) {}
+  std::unique_ptr<TraitList> restrictions;
+
+  TypeParamDecl(SourceLocation location,
+                std::string identifier,
+                std::unique_ptr<TraitList> restrictions)
+      : Decl(location, std::move(identifier)),
+        restrictions(std::move(restrictions)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -374,6 +388,7 @@ struct FieldDecl : public Decl {
 struct StructDecl : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<Decl>> decls;
+  std::unique_ptr<TraitList> traits;
 
   std::vector<const FieldDecl *> fields;
   std::vector<const FunctionDecl *> memberFunctions;
@@ -381,10 +396,12 @@ struct StructDecl : public Decl {
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-             std::vector<std::unique_ptr<Decl>> decls)
+             std::vector<std::unique_ptr<Decl>> decls,
+             std::unique_ptr<TraitList> traits)
       : Decl(location, std::move(identifier)),
         typeParameters(std::move(typeParameters)),
-        decls(std::move(decls)) {
+        decls(std::move(decls)),
+        traits(std::move(traits)) {
     for (auto &&decl : this->decls) {
       if (const auto *field = dynamic_cast<const FieldDecl *>(decl.get()))
         fields.emplace_back(field);
@@ -394,6 +411,24 @@ struct StructDecl : public Decl {
         assert(false && "unexpected struct member decl");
     }
   }
+
+  void dump(size_t level = 0) const override;
+};
+
+struct TraitDecl : public Decl {
+  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
+  std::vector<std::unique_ptr<FunctionDecl>> memberFunctions;
+  std::unique_ptr<TraitList> parentTraits;
+
+  TraitDecl(SourceLocation location,
+            std::string identifier,
+            std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
+            std::vector<std::unique_ptr<FunctionDecl>> memberFunctions,
+            std::unique_ptr<TraitList> parentTraits)
+      : Decl(location, std::move(identifier)),
+        typeParameters(std::move(typeParameters)),
+        memberFunctions(std::move(memberFunctions)),
+        parentTraits(std::move(parentTraits)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -425,8 +460,14 @@ struct Assignment : public Stmt {
 struct Context {
   std::vector<std::unique_ptr<ast::Decl>> decls;
 
+  std::vector<const TraitDecl *> traits;
   std::vector<const StructDecl *> structs;
   std::vector<const FunctionDecl *> functions;
+
+  void addTraitDecl(std::unique_ptr<TraitDecl> trait) {
+    traits.emplace_back(trait.get());
+    decls.emplace_back(std::move(trait));
+  }
 
   void addStructDecl(std::unique_ptr<StructDecl> sd) {
     structs.emplace_back(sd.get());
