@@ -8,7 +8,7 @@
     ::= 'trait' <identifier> <typeParamList>? <traitList>? '{' <traitFunctionDecl>* '}'
 
 <traitFunctionDecl>
-    ::= <functionHeader> (';' | <block>)
+    ::= 'fn' <functionSignature> (';' | <block>)
 
 <traitList>
     ::= ':' <userDefinedType> ('&' <userDefinedType>)*
@@ -32,13 +32,16 @@
     ::= <identifier> ':' <type>
 
 <memberFunctionList>
-    ::= <functionDecl>*
+    ::= (<implDecl> | <functionDecl>)*
+
+<implDecl> 
+    ::= 'impl' <userDefinedType> '::' <functionSignature> <block>
 
 <functionDecl> 
-    ::= <functionHeader> <block>
+    ::= 'fn' <functionSignature> <block>
 
-<functionHeader>
-    ::= 'fn' <identifier> <typeParamList>? <parameterList> ':' <type>?
+<functionSignature>
+    ::= <identifier> <typeParamList>? <parameterList> ':' <type>?
 
 <parameterList>
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
