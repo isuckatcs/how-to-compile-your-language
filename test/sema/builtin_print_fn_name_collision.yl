@@ -1,7 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main(): unit {}
 
-// CHECK: [[# @LINE + 1 ]]:1: error: redeclaration of 'println'
+// CHECK: [[# @LINE + 1 ]]:4: error: redeclaration of 'println'
 fn println(x: number): number {
     return 0.0;
 }

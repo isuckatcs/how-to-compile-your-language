@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn S(): unit {
-// CHECK: [[# @LINE - 1 ]]:1: error: redeclaration of 'S'
+// CHECK: [[# @LINE - 1 ]]:4: error: redeclaration of 'S'
 }
 
 struct S {

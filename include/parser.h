@@ -51,6 +51,8 @@ class Parser {
 
   // AST node parser methods
   std::unique_ptr<ast::FunctionDecl> parseFunctionDecl();
+  std::unique_ptr<ast::ImplDecl> parseImplDecl();
+  std::unique_ptr<ast::FunctionDecl> parseFunctionSignature();
   std::unique_ptr<ast::ParamDecl> parseParamDecl();
   std::unique_ptr<ast::VarDecl> parseVarDecl(bool isLet);
   std::unique_ptr<ast::StructDecl> parseStructDecl();

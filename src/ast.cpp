@@ -220,6 +220,13 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
+void ImplDecl::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplDecl\n";
+
+  owningTrait->dump(level + 1);
+  function->dump(level + 1);
+}
+
 void DeclStmt::dump(size_t level) const {
   std::cerr << indent(level) << "DeclStmt:\n";
   varDecl->dump(level + 1);

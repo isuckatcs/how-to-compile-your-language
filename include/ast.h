@@ -373,6 +373,19 @@ struct FunctionDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
+struct ImplDecl : public Decl {
+  std::unique_ptr<UserDefinedType> owningTrait;
+  std::unique_ptr<FunctionDecl> function;
+
+  ImplDecl(std::unique_ptr<UserDefinedType> owningTrait,
+           std::unique_ptr<FunctionDecl> function)
+      : Decl(function->location, function->identifier),
+        owningTrait(std::move(owningTrait)),
+        function(std::move(function)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct FieldDecl : public Decl {
   std::unique_ptr<Type> type;
 
@@ -392,6 +405,7 @@ struct StructDecl : public Decl {
 
   std::vector<const FieldDecl *> fields;
   std::vector<const FunctionDecl *> memberFunctions;
+  std::vector<const ImplDecl *> traitFunctionImpls;
 
   StructDecl(SourceLocation location,
              std::string identifier,
@@ -407,7 +421,9 @@ struct StructDecl : public Decl {
         fields.emplace_back(field);
       else if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get()))
         memberFunctions.emplace_back(fn);
-      else
+      else if (const auto *impl = dynamic_cast<const ImplDecl *>(decl.get())) {
+        traitFunctionImpls.emplace_back(impl);
+      } else
         assert(false && "unexpected struct member decl");
     }
   }

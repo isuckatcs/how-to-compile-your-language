@@ -167,7 +167,8 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
 
     while (true) {
       if (nextToken.kind == TokenKind::Rbrace ||
-          nextToken.kind == TokenKind::KwFn)
+          nextToken.kind == TokenKind::KwFn ||
+          nextToken.kind == TokenKind::KwImpl)
         break;
 
       auto field = parseFieldDecl();
@@ -186,9 +187,17 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
           nextToken.kind == TokenKind::Identifier)
         break;
 
-      auto fn = parseFunctionDecl();
-      if (fn)
-        decls.emplace_back(std::move(fn));
+      std::unique_ptr<ast::Decl> decl = nullptr;
+
+      if (nextToken.kind == TokenKind::KwFn)
+        decl = parseFunctionDecl();
+      else if (nextToken.kind == TokenKind::KwImpl)
+        decl = parseImplDecl();
+      else
+        report(nextToken.location, "expected 'fn' or 'impl'");
+
+      if (decl)
+        decls.emplace_back(std::move(decl));
       else
         synchronize();
     }
@@ -247,6 +256,21 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
       std::move(memberFunctions), std::move(traits));
 }
 
+// <implDecl>
+//  ::= 'impl' <userDefinedType> '::' <functionSignature> <block>
+std::unique_ptr<ast::ImplDecl> Parser::parseImplDecl() {
+  matchOrReturn(TokenKind::KwImpl, "expected 'impl'");
+  eatNextToken(); // eat 'impl'
+
+  varOrReturn(owningTrait, parseUserDefinedType());
+  matchOrReturn(TokenKind::ColonColon, "expected '::'");
+  eatNextToken(); // eat '::'
+  varOrReturn(function, parseFunctionSignature());
+
+  return std::make_unique<ast::ImplDecl>(std::move(owningTrait),
+                                         std::move(function));
+}
+
 // <functionDecl>
 //  ::= <functionHeader> <block>
 
@@ -257,10 +281,13 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
 //  ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionDecl() {
   matchOrReturn(TokenKind::KwFn, "expected 'fn'");
-
-  SourceLocation location = nextToken.location;
   eatNextToken(); // eat fn
 
+  return parseFunctionSignature();
+}
+
+std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
+  SourceLocation location = nextToken.location;
   matchOrReturn(TokenKind::Identifier, "expected identifier");
 
   assert(nextToken.value && "identifier token without value");
