@@ -220,7 +220,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   }
 
   if (const auto *udt =
-          dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
+          dynamic_cast<const ast::UserDefinedDeclInstance *>(&parsedType)) {
     res::Decl *decl = lexicalScope->lookupDecl<res::TypeDecl>(udt->identifier);
     if (!decl)
       return report(udt->location,

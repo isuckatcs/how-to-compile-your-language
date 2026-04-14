@@ -16,5 +16,5 @@ fn f(): unit }
 
 fn main(): validCustomTypeDuringParsing {}
 // CHECK: FunctionDecl: main
-// CHECK-NEXT:   UserDefinedType: validCustomTypeDuringParsing 
+// CHECK-NEXT:   UserDefinedDeclInstance: validCustomTypeDuringParsing 
 // CHECK-NEXT:   Block

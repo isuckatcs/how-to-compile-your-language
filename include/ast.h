@@ -31,13 +31,13 @@ struct BuiltinType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct UserDefinedType : public Type {
+struct UserDefinedDeclInstance : public Type {
   std::string identifier;
   std::vector<std::unique_ptr<Type>> typeArguments;
 
-  UserDefinedType(SourceLocation location,
-                  std::string identifier,
-                  std::vector<std::unique_ptr<Type>> typeArguments)
+  UserDefinedDeclInstance(SourceLocation location,
+                          std::string identifier,
+                          std::vector<std::unique_ptr<Type>> typeArguments)
       : Type(location),
         identifier(std::move(identifier)),
         typeArguments(std::move(typeArguments)) {}
@@ -299,9 +299,9 @@ struct UnaryOperator : public Expr {
 };
 
 struct TraitList {
-  std::vector<std::unique_ptr<UserDefinedType>> traits;
+  std::vector<std::unique_ptr<UserDefinedDeclInstance>> traits;
 
-  TraitList(std::vector<std::unique_ptr<UserDefinedType>> traits)
+  TraitList(std::vector<std::unique_ptr<UserDefinedDeclInstance>> traits)
       : traits(std::move(traits)) {}
 
   void dump(size_t level = 0) const;
@@ -374,10 +374,10 @@ struct FunctionDecl : public Decl {
 };
 
 struct ImplDecl : public Decl {
-  std::unique_ptr<UserDefinedType> owningTrait;
+  std::unique_ptr<UserDefinedDeclInstance> owningTrait;
   std::unique_ptr<FunctionDecl> function;
 
-  ImplDecl(std::unique_ptr<UserDefinedType> owningTrait,
+  ImplDecl(std::unique_ptr<UserDefinedDeclInstance> owningTrait,
            std::unique_ptr<FunctionDecl> function)
       : Decl(function->location, function->identifier),
         owningTrait(std::move(owningTrait)),

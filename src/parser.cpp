@@ -257,12 +257,12 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
 }
 
 // <implDecl>
-//  ::= 'impl' <userDefinedType> '::' <functionSignature> <block>
+//  ::= 'impl' <userDefinedDeclInstance> '::' <functionSignature> <block>
 std::unique_ptr<ast::ImplDecl> Parser::parseImplDecl() {
   matchOrReturn(TokenKind::KwImpl, "expected 'impl'");
   eatNextToken(); // eat 'impl'
 
-  varOrReturn(owningTrait, parseUserDefinedType());
+  varOrReturn(owningTrait, parseUserDefinedDeclInstance());
   matchOrReturn(TokenKind::ColonColon, "expected '::'");
   eatNextToken(); // eat '::'
   varOrReturn(function, parseFunctionSignature());
@@ -766,16 +766,16 @@ std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {
 }
 
 // <traitList>
-//  ::= ':' <userDefinedType> ('&' <userDefinedType>)*
+//  ::= ':' <userDefinedDeclInstance> ('&' <userDefinedDeclInstance>)*
 std::unique_ptr<ast::TraitList> Parser::parseTraitList() {
-  std::vector<std::unique_ptr<ast::UserDefinedType>> traits;
+  std::vector<std::unique_ptr<ast::UserDefinedDeclInstance>> traits;
 
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat ':'
 
     while (true) {
       matchOrReturn(TokenKind::Identifier, "expected identifier");
-      varOrReturn(trait, parseUserDefinedType());
+      varOrReturn(trait, parseUserDefinedDeclInstance());
       traits.emplace_back(std::move(trait));
 
       if (nextToken.kind != TokenKind::Amp)
@@ -824,7 +824,7 @@ Parser::parseListWithTrailingComma(
 
 // <type>
 //  ::= <builtinType>
-//  |   <userDefinedType>
+//  |   <userDefinedDeclInstance>
 //  |   <functionType>
 //  |   <outParamType>
 //
@@ -833,7 +833,7 @@ Parser::parseListWithTrailingComma(
 //  |   'unit'
 //  |   'Self'
 //
-// <userDefinedType>
+// <userDefinedDeclInstance>
 //  ::= <identifier> <typeList>?
 //
 // <functionType>
@@ -863,7 +863,7 @@ std::unique_ptr<ast::Type> Parser::parseType() {
   }
 
   if (nextToken.kind == TokenKind::Identifier)
-    return parseUserDefinedType();
+    return parseUserDefinedDeclInstance();
 
   if (nextToken.kind == TokenKind::Lpar) {
     SourceLocation location = nextToken.location;
@@ -891,7 +891,8 @@ std::unique_ptr<ast::Type> Parser::parseType() {
   return report(nextToken.location, "expected type specifier");
 };
 
-std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
+std::unique_ptr<ast::UserDefinedDeclInstance>
+Parser::parseUserDefinedDeclInstance() {
   SourceLocation location = nextToken.location;
 
   matchOrReturn(TokenKind::Identifier, "expected identifier");
@@ -906,8 +907,8 @@ std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
     types = std::move(*typeArguments);
   }
 
-  return std::make_unique<ast::UserDefinedType>(location, std::move(identifier),
-                                                std::move(types));
+  return std::make_unique<ast::UserDefinedDeclInstance>(
+      location, std::move(identifier), std::move(types));
 }
 
 // <sourceFile>

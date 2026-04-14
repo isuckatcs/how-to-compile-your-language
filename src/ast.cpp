@@ -18,8 +18,9 @@ void BuiltinType::dump(size_t level) const {
   std::cerr << '\n';
 }
 
-void UserDefinedType::dump(size_t level) const {
-  std::cerr << indent(level) << "UserDefinedType: " << identifier << '\n';
+void UserDefinedDeclInstance::dump(size_t level) const {
+  std::cerr << indent(level) << "UserDefinedDeclInstance: " << identifier
+            << '\n';
 
   for (auto &&type : typeArguments)
     type->dump(level + 1);
