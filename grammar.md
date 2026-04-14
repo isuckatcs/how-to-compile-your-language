@@ -11,10 +11,13 @@
     ::= 'fn' <functionSignature> (';' | <block>)
 
 <traitList>
-    ::= ':' <userDefinedType> ('&' <userDefinedType>)*
+    ::= '<:' <traitInstance> ('&' <traitInstance>)*
+
+<traitInstance>
+    ::= <identifier> <typeList>?
 
 <structDecl>
-    ::= 'struct' <identifier> <typeParamList>? <traitList>? '{' <memberList>? '}'
+    ::= 'struct' <identifier> <typeParamList>? '{' <memberList>? '}'
 
 <typeParamList>
     ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
@@ -23,7 +26,7 @@
     ::= <identifier> <traitList>?
 
 <memberList>
-    ::= (<fieldList> | <memberFunctionList>)*
+    ::= (<fieldList> | <implDecl> | <functionDecl>)*
 
 <fieldList>
     ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
@@ -31,11 +34,11 @@
 <fieldDecl>
     ::= <identifier> ':' <type>
 
-<memberFunctionList>
-    ::= (<implDecl> | <functionDecl>)*
-
 <implDecl> 
-    ::= 'impl' <userDefinedType> '::' <functionSignature> <block>
+    ::= <implSpecifier> (';' | ('{' <functionDecl>* '}'))
+
+<implSpecifier>
+    ::= 'impl' <traitInstance>
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
@@ -118,7 +121,7 @@
     |   '(' <expr> ')'
 
 <pathExpr>
-    ::= <declRefExpr> ('::' <declRefExpr>)*
+    ::= <declRefExpr> ('::' (<implSpecifier> '::')? <declRefExpr>)*
 
 <declRefExpr>
     ::= (<identifier> | 'Self') <typeArgumentList>?
