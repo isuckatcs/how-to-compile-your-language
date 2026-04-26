@@ -8,8 +8,8 @@ fn foo(S: S): unit {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:       PathExpr {S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}
 }
 
-fn main(): unit {
-}
+fn main(): unit {}

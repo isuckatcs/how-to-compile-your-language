@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn bar(t: T) {}
+}
+
+fn traitFnDispatch<T <: A<number>>() {
+  T::bar(0);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) T {T}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<number>::bar {(number) -> unit}
+  // CHECK-NEXT:   NumberLiteral '0' {number}
+  // CHECK-NEXT:   | value: 0
+}
+
+fn main() {}

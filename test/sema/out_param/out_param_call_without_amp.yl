@@ -6,6 +6,6 @@ fn bar(x: &number) {
 fn main() {
   mut x = 0;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected '&number' argument, but received 'number'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&number'
   bar(x);
 }

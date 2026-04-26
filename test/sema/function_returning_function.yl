@@ -14,7 +14,8 @@ fn bar(): () -> number {
 // CHECK: FunctionDecl @({{.*}}) bar {() -> () -> number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> number}
+// CHECK-NEXT:       PathExpr {() -> number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {() -> number}
 
 fn main(): unit { 
   let f: () -> number = bar();
@@ -25,8 +26,10 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {() -> number}
 // CHECK-NEXT:         CallExpr {() -> number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) bar {() -> () -> number}
+// CHECK-NEXT:           PathExpr {() -> () -> number}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) bar {() -> () -> number}
 // CHECK-NEXT:     CallExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> number}
+// CHECK-NEXT:       PathExpr {() -> number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) f {() -> number}
 
 // CHECK-NOT: {{.*error.*}}

@@ -16,7 +16,8 @@ fn main(): unit {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {S<number>}
   // CHECK-NEXT:     StructInstantiationExpr {S<number>}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<number>}
+  // CHECK-NEXT:       PathExpr {S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:         NumberLiteral '1' {number}
   // CHECK-NEXT:         | value: 1
@@ -26,8 +27,10 @@ fn main(): unit {
 
   foo(x, 1);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S<number>, number) -> unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {S<number>}
+  // CHECK-NEXT:   PathExpr {(S<number>, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S<number>, number) -> unit}
+  // CHECK-NEXT:   PathExpr {S<number>}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {S<number>}
   // CHECK-NEXT:   NumberLiteral '1' {number}
   // CHECK-NEXT:   | value: 1
 }

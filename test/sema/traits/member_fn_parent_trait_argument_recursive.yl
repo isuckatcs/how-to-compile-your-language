@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+struct S<T <: A<T>> {
+  fn foo(x: T) {}
+}
+
+struct S2<X> {
+  x: X
+
+  impl A<X>;
+}
+
+fn main() {
+  let s2 = S2{ x: 0 };
+  S::foo(s2);
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'number' with 'S2<number>'
+  // CHECK: [[# @LINE - 2 ]]:10: error: cannot satisfy constraint 'S2<number> : A<S2<number>>'
+}

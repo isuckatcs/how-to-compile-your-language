@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+
+  fn bar(x: number);
+}
+
+struct S {
+  impl A {
+    // CHECK: [[# @LINE + 1]]:8: error: trait function declaration has '() -> unit' signature, but the given implementation is '(number) -> unit'
+    fn foo(x: number) {}
+
+    // CHECK: [[# @LINE + 1]]:8: error: trait function declaration has '(number) -> unit' signature, but the given implementation is '() -> unit'
+    fn bar() {}
+  }
+}
+
+fn main() {
+  S::foo();
+  S::bar();
+}

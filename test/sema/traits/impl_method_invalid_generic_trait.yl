@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+}
+
+struct S {
+  // CHECK: [[# @LINE + 1]]:8: error: expected '0' type arguments but received '1'
+  impl A<number> {
+    fn foo() {}
+  }
+}
+
+fn main() {}

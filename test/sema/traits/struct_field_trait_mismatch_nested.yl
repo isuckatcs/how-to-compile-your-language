@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B {}
+
+struct S2 {
+  impl A<unit>;
+}
+
+struct S<T <: B, U <: A<T>> {
+  x: U
+}
+
+fn main() {
+  let s = S{ x: S2{} };
+  // CHECK: [[# @LINE - 1 ]]:19: error: cannot satisfy constraint 'unit : B'
+  // CHECK: [[# @LINE - 2 ]]:19: error: cannot satisfy constraint 'S2 : A<unit>'
+}

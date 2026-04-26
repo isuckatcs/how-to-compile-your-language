@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  // CHECK: [[# @LINE + 1]]:6: error: struct 'S' must implement function 'foo'
+  fn foo();
+}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  S::foo();
+}

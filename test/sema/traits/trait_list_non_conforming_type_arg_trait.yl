@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1]]:19: error: cannot satisfy constraint 'T : B'
+trait A<T <: Base<T>> {}
+
+trait B {}
+
+trait Base<T <: B> {}
+
+fn main() {}

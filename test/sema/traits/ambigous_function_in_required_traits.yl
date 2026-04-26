@@ -1,0 +1,22 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait C {
+  fn foo(self: Self) {}
+}
+
+trait B <: C {
+  fn foo(self: Self) {}
+}
+
+trait A <: B {}
+
+fn foo<T <: C>(t : T) {}
+
+fn bar<T <: A>(t : T) {
+  // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
+  t.foo();
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: ambigous member function reference
+  T::foo(t);
+}
+
+fn main() {}

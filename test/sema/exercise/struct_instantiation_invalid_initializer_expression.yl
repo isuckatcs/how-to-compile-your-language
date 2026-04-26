@@ -7,6 +7,6 @@ struct S2 {}
 
 fn main(): unit {
   S { x: S2 {} };
-  // CHECK: [[# @LINE - 1 ]]:13: error: a field of type 'number' cannot be initialized with an expression of type 'S2'
+  // CHECK: [[# @LINE - 1 ]]:13: error: cannot unify 'S2' with 'number'
   // CHECK: [[# @LINE - 2 ]]:5: error: field 'x' is not initialized
 }

@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn foo<T <: A>(x: T) {}
+
+fn main() {
+  let f = foo@<S>;
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) f {(S) -> unit}
+// CHECK-NEXT:         PathExpr {(S) -> unit}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {(S) -> unit}

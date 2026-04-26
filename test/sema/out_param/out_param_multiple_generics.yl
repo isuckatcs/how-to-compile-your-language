@@ -13,13 +13,17 @@ fn main() {
 
   foo(&n);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   PathExpr {(&number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(&number) -> unit}
   // CHECK-NEXT:   UnaryOperator '&' {&number}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     PathExpr {number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {number}
 
   foo(&s);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&S) -> unit}
+  // CHECK-NEXT:   PathExpr {(&S) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(&S) -> unit}
   // CHECK-NEXT:   UnaryOperator '&' {&S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:     PathExpr {S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S}
 }

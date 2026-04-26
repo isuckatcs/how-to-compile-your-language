@@ -21,7 +21,8 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {Color}
 // CHECK-NEXT:         StructInstantiationExpr {Color}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) Color {Color}
+// CHECK-NEXT:           PathExpr {Color}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) Color {Color}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) r
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0

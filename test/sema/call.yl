@@ -18,10 +18,10 @@ fn main(): unit {
     // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 0, but received 1
     foo(x);
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: expected 'number' argument, but received 'unit'
+    // CHECK: [[# @LINE + 1 ]]:12: error: cannot unify 'unit' with 'number'
     bar(foo(), foo());
 
-    // CHECK: [[# @LINE + 1 ]]:17: error: expected 'number' argument, but received 'unit'
+    // CHECK: [[# @LINE + 1 ]]:17: error: cannot unify 'unit' with 'number'
     bar(1.0, foo());
     
     // CHECK: [[# @LINE + 1 ]]:8: error: wrong number of arguments in function call, expected 2, but received 0

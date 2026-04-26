@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+struct S {}
+
+fn foo<T <: A>(x: T) {}
+
+fn main() {
+  let s = S{};
+  let f = foo;
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: cannot satisfy constraint 'S : A'
+  f(s);
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'S : A'
+  foo(s);
+}

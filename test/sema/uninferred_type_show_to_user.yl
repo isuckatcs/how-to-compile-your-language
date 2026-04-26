@@ -4,6 +4,6 @@ fn foo<T>(f: (T) -> T): (T) -> T {
 }
 
 fn main(): unit {
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected '(_) -> _' argument, but received 'number'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '(_) -> _'
   foo(1);
 }

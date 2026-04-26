@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+}
+
+struct S {
+  impl A {
+    // CHECK: [[# @LINE + 1]]:8: error: 'A' has no member function called 'bar'
+    fn bar() {}
+  }
+}
+
+fn main() {}

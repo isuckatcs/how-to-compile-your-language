@@ -4,11 +4,11 @@ struct S<T> { x: T }
 fn foo<T>(x: T): unit {}
 
 fn main(): unit {
-  // CHECK: [[# @LINE + 2 ]]:16: error: a field of type 'unit' cannot be initialized with an expression of type 'number'
+  // CHECK: [[# @LINE + 2 ]]:16: error: cannot unify 'number' with 'unit'
   // CHECK: [[# @LINE + 1 ]]:11: error: field 'x' is not initialized
   S@<unit>{ x: 1 };
 
-  // CHECK: [[# @LINE + 1 ]]:17: error: expected 'S<unit>' argument, but received 'number'
+  // CHECK: [[# @LINE + 1 ]]:17: error: cannot unify 'number' with 'S<unit>'
   foo@<S<unit>>(1);
 }
 

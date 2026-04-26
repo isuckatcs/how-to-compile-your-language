@@ -12,9 +12,13 @@ fn main() {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S<number>}
 // CHECK-NEXT:         StructInstantiationExpr {S<number>}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
+// CHECK-NEXT:           PathExpr {S<number>}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) S<number>::foo {(S<number>, number) -> unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S<number>}
+// CHECK-NEXT:       PathExpr {(S<number>, number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(S<number>, number) -> unit}
+// CHECK-NEXT:       PathExpr {S<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 // CHECK-NEXT:       NumberLiteral '0' {number}
 // CHECK-NEXT:       | value: 0

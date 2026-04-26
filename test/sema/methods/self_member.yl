@@ -4,9 +4,9 @@ struct S {}
 fn main() {
   mut s = S{};
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: 'S' has no member called 'Self'
+  // CHECK: [[# @LINE + 1 ]]:5: error: failed to find member 'Self'
   s.Self;
 
-  // CHECK: [[# @LINE + 1 ]]:6: error: 'S' has no member called 'Self'
+  // CHECK: [[# @LINE + 1 ]]:6: error: failed to find member 'Self'
   S::Self;
 }

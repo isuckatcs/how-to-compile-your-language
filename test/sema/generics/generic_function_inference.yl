@@ -12,7 +12,8 @@ fn wrapper<U>(x: S<U>): S<U> {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {S<U>}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
+// CHECK-NEXT:       PathExpr {S<U>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {S<U>}
 
 fn main(): unit {
   let f: (S<number>) -> S<number> = wrapper;
@@ -21,4 +22,5 @@ fn main(): unit {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {(S<number>) -> S<number>}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapper {(S<number>) -> S<number>}
+// CHECK-NEXT:         PathExpr {(S<number>) -> S<number>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) wrapper {(S<number>) -> S<number>}

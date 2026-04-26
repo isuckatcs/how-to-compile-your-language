@@ -1,0 +1,22 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo<T, U, V>();
+
+  fn bar();
+}
+
+struct S {
+  impl A {
+    // CHECK: [[# @LINE + 1]]:8: error: expected '3' type arguments but received '0'
+    fn foo() {}
+
+    // CHECK: [[# @LINE + 1]]:8: error: expected '0' type arguments but received '3'
+    fn bar<T, U, V>() {}
+  }
+
+}
+
+fn main() {
+  S::foo();
+  S::bar();
+}

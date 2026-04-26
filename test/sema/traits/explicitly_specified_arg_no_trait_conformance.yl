@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+struct S {}
+
+fn foo<T <: A>() {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1]]:8: error: cannot satisfy constraint 'S : A'
+  foo@<S>();
+}

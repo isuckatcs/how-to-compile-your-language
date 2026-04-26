@@ -1,0 +1,23 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B {}
+
+trait A<T> {
+  fn foo(self: Self) {}
+}
+
+struct S {
+  impl A<number> {
+    fn foo(self: Self) {}
+  }
+
+  impl A<unit> {
+    fn foo(self: Self) {}
+  }
+}
+
+fn main() {
+  let s = S{};
+
+  // CHECK: [[# @LINE + 1]]:22: error: trait 'A' has no member 'B'
+  S::impl A<number>::B::foo();
+}

@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait Base {}
+
+struct B {
+    impl Base;
+}
+
+trait A<T <: Base> {}
+
+struct S {
+    impl A<B>;
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+
+fn main() {}

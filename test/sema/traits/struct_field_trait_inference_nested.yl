@@ -1,0 +1,27 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B {}
+
+struct S2 {
+  impl A<number>;
+}
+
+struct S<T, U <: A<T>> {
+  x: U
+}
+
+fn main() {
+  let s = S{ x: S2{} };
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) s {S<number, S2>}
+// CHECK-NEXT:         StructInstantiationExpr {S<number, S2>}
+// CHECK-NEXT:           PathExpr
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S<number, S2>}
+// CHECK-NEXT:           FieldInitStmt @({{.*}}) x
+// CHECK-NEXT:             StructInstantiationExpr {S2}
+// CHECK-NEXT:               PathExpr
+// CHECK-NEXT:                 DeclRefExpr @({{.*}}) S2 {S2}

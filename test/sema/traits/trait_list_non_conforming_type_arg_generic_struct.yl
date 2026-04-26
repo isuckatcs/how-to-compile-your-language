@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait Base<T> {}
+
+struct B<T> {
+    impl Base<T>;
+}
+
+trait A<T, U <: Base<T>> {}
+
+struct S {
+    impl A<number, B<unit>>;
+    // CHECK: [[# @LINE - 1]]:20: error: cannot unify 'unit' with 'number'
+    // CHECK: [[# @LINE - 2]]:20: error: cannot satisfy constraint 'B<unit> : Base<number>'
+}
+
+fn main() {}

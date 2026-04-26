@@ -1,5 +1,5 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 
 fn main(x: Self): Self {}
-// CHECK: [[# @LINE - 1 ]]:19: error: 'Self' is only allowed inside structs
-// CHECK: [[# @LINE - 2 ]]:12: error: 'Self' is only allowed inside structs
+// CHECK: [[# @LINE - 1 ]]:12: error: 'Self' is only allowed inside structs
+// CHECK: [[# @LINE - 2 ]]:19: error: 'Self' is only allowed inside structs

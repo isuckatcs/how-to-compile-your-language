@@ -13,10 +13,13 @@ fn wrapper(mut x: number, mut y: number) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&number, &number) -> unit}
+// CHECK-NEXT:       PathExpr {(&number, &number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) swap {(&number, &number) -> unit}
 // CHECK-NEXT:       UnaryOperator '&' {&number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:         PathExpr {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:       UnaryOperator '&' {&number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) y {number}
+// CHECK-NEXT:         PathExpr {number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) y {number}
 
 fn main() {}

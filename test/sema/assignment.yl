@@ -6,6 +6,7 @@ fn bar(): number { return 1.0; }
 fn main(): unit {
     mut x: number = 1.0;
 
+    // CHECK: [[# @LINE + 1 ]]:12: error: expected to assign 'number' but received 'unit' instead
     x = foo();
 
     let y: number = 3.0;

@@ -24,13 +24,16 @@ struct S2 { x: number, y:number }
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       StructInstantiationExpr {S2}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S2 {S2}
+// CHECK-NEXT:         PathExpr {S2}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S2 {S2}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
+// CHECK-NEXT:             PathExpr {S}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) s {S}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) y
 // CHECK-NEXT:           MemberExpr @({{.*}}) y {number}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
+// CHECK-NEXT:             PathExpr {S}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) s {S}
 
 // CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block

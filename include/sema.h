@@ -10,10 +10,16 @@
 
 namespace yl {
 class Sema {
+  static constexpr const char *implicitSelfId = "__Self";
+  static constexpr const char *selfParamId = "self";
+  static constexpr const char *selfTypeId = "Self";
+
   ConstantExpressionEvaluator *cee;
   const ast::Context *ast;
 
+  res::TypeManager typeMgr;
   res::Context ctx;
+
   res::DeclContext *lexicalScope = nullptr;
   res::FunctionDecl *currentFunction = nullptr;
   res::Type *selfType = nullptr;
@@ -59,11 +65,23 @@ class Sema {
                                              const ast::BinaryOperator &binop);
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
                                          const ast::GroupingExpr &grouping);
-  res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
-                                    const ast::PathExpr &pathExpr);
-  res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
-                                       const ast::DeclRefExpr &declRefExpr,
-                                       std::vector<res::Type *> path);
+  template <typename Hint>
+  res::PathExpr *resolvePathExpr(res::Context &ctx,
+                                 const ast::PathExpr &pathExpr);
+  template <typename Hint>
+  res::DeclRefExpr *
+  resolveDeclRefExpr(res::Context &ctx,
+                     res::Type *parentTy,
+                     const ast::DeclRefExpr *dre,
+                     const ast::ImplSpecifier *impl = nullptr);
+  res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
+                                      const ast::DeclRefExpr *dre,
+                                      res::Type *parentTy,
+                                      res::Decl *decl,
+                                      res::TraitType *trait);
+  template <typename Hint>
+  res::Decl *lookupSymbolWithFallback(res::DeclContext *scope,
+                                      const ast::DeclRefExpr *dre);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
@@ -85,18 +103,35 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
+  res::ImplDecl *resolveImplDecl(res::Context &ctx,
+                                 const ast::ImplDecl &decl,
+                                 res::StructDecl *parent);
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
-  res::FunctionDecl *resolveFunctionDecl(res::Context &ctx,
-                                         const ast::FunctionDecl &function,
-                                         res::StructDecl *parent = nullptr);
+  res::FunctionDecl *
+  resolveFunctionDecl(res::Context &ctx,
+                      const ast::FunctionDecl &decl,
+                      res::Decl *parent = nullptr,
+                      res::FunctionDecl *implements = nullptr);
   res::FunctionDecl *resolveFunctionBody(res::Context &ctx,
                                          const ast::FunctionDecl &functionDecl,
                                          res::FunctionDecl *function);
+
+  res::TraitInstance *resolveTraitInstance(res::Context &ctx,
+                                           const ast::TraitInstance *trait);
+  res::TraitDecl *resolveTraitDecl(res::Context &ctx,
+                                   const ast::TraitDecl &decl);
+  bool resolveTraitBody(res::Context &ctx,
+                        res::TraitDecl &traitDecl,
+                        const ast::TraitDecl &astDecl);
+  bool resolveTraitFunctionBodies(res::Context &ctx,
+                                  res::TraitDecl &traitDecl,
+                                  const ast::TraitDecl &astDecl);
+
   res::StructDecl *resolveStructDecl(res::Context &ctx,
-                                     const ast::StructDecl &structDecl);
-  bool resolveMemberDecls(res::Context &ctx,
-                          res::StructDecl &structDecl,
-                          const ast::StructDecl &astDecl);
+                                     const ast::StructDecl &decl);
+  bool resolveStructBody(res::Context &ctx,
+                         res::StructDecl &structDecl,
+                         const ast::StructDecl &astDecl);
   bool resolveMemberFunctionBodies(res::Context &ctx,
                                    res::StructDecl &decl,
                                    const ast::StructDecl &astDecl);
@@ -104,9 +139,20 @@ class Sema {
   bool checkTypeParameterCount(SourceLocation loc,
                                size_t received,
                                size_t expected) const;
-  std::vector<res::TypeParamDecl *> resolveTypeParameters(
+
+  std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &typeParamDecls);
+  bool resolveGenericParamsInCurrentScope(
+      res::Context &ctx,
+      const std::vector<res::TypeParamDecl *> &resParams,
+      const std::vector<std::unique_ptr<ast::TypeParamDecl>> &astParams);
+
+  std::vector<res::TraitInstance *>
+  resolveTraitInstanceList(res::Context &ctx, const ast::TraitList *traitList);
+  bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
+  bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
+                                            res::StructDecl *structDecl);
 
   bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
@@ -117,14 +163,21 @@ class Sema {
                              const CFG &cfg);
   bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
 
-  bool checkBuiltinFunctionCollisions(const res::FunctionDecl *fn);
+  bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
   bool checkSelfParameter(const res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(const res::Context &ctx);
+  bool checkTraitInstances(res::Context &ctx);
+
+  bool
+  unifyAndReportTypeErrors(SourceLocation loc, res::Type *t1, res::Type *t2);
+  std::pair<res::PathExpr *, res::Expr *>
+  transformMethodCall(res::MemberExpr *me);
 
 public:
   explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)
       : cee(&cee),
-        ast(&ast) {}
+        ast(&ast),
+        ctx(typeMgr) {}
 
   res::Context *resolveAST();
 };

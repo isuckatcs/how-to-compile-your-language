@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B<T> {}
+
+trait A {
+  fn foo<T, U <: B<T>>();
+}
+
+struct S {
+  impl A {
+    fn foo<X, Y <: B<X> & B<unit>>() {}
+    // CHECK: [[# @LINE - 1]]:15: error: cannot unify 'T' with 'unit'
+    // CHECK: [[# @LINE - 2]]:15: error: cannot unify 'B<T>' with 'B<unit>'
+    // CHECK: [[# @LINE - 3]]:15: error: cannot satisfy constraint 'U : B<unit>'
+    // CHECK: [[# @LINE - 4]]:15: error: cannot replace parameter of type 'U' with stricter implementation type 'Y'
+  }
+}
+
+fn main() {}

@@ -18,11 +18,13 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
 // CHECK-NEXT:         StructInstantiationExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) y {number}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) s {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}

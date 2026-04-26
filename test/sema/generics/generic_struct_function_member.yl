@@ -12,16 +12,20 @@ fn main(): unit {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
   // CHECK-NEXT:     StructInstantiationExpr {S<number>}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<number>}
+  // CHECK-NEXT:       PathExpr {S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapperNum {(number) -> number}
+  // CHECK-NEXT:         PathExpr {(number) -> number}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) wrapperNum {(number) -> number}
 
   println(s.x(10));
   // CHECK-NEXT: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:   PathExpr {(number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:   CallExpr {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {(number) -> number}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S<number>}
+  // CHECK-NEXT:       PathExpr {S<number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
   // CHECK-NEXT:     NumberLiteral '10' {number}
   // CHECK-NEXT:     | value: 10
 }

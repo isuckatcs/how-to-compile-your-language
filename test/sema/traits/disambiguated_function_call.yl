@@ -1,0 +1,70 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: Self, x: T) {}
+}
+
+struct S {
+// CHECK: StructDecl @({{.*}}) S {S}
+
+  x: number
+
+  impl A<number> {
+    fn foo(self: Self, x: number) {
+      println(self.x * x);
+    }
+    // CHECK: FunctionDecl @({{.*}}) foo {(S, number) -> unit}
+    // CHECK-NEXT: | implements 'foo' @({{.*}})
+    // CHECK-NEXT:   ParamDecl @({{.*}}) self {S}
+    // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
+    // CHECK-NEXT:   Block
+    // CHECK-NEXT:     CallExpr {unit}
+    // CHECK-NEXT:       PathExpr {(number) -> unit}
+    // CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+    // CHECK-NEXT:       BinaryOperator '*' {number}
+    // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+    // CHECK-NEXT:           PathExpr {S}
+    // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {S}
+    // CHECK-NEXT:         PathExpr {number}
+    // CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
+  }
+
+  impl A<unit> {
+    fn foo(self: Self, x: unit) {
+      println(self.x);
+    }
+    // CHECK: FunctionDecl @({{.*}}) foo {(S, unit) -> unit}
+    // CHECK-NEXT: | implements 'foo' @({{.*}})
+    // CHECK-NEXT:   ParamDecl @({{.*}}) self {S}
+    // CHECK-NEXT:   ParamDecl @({{.*}}) x {unit}
+    // CHECK-NEXT:   Block
+    // CHECK-NEXT:     CallExpr {unit}
+    // CHECK-NEXT:       PathExpr {(number) -> unit}
+    // CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+    // CHECK-NEXT:       MemberExpr @({{.*}}) x {number}
+    // CHECK-NEXT:     PathExpr {S}
+    // CHECK-NEXT:       DeclRefExpr @({{.*}}) self {S}
+  }
+}
+
+fn main() {
+  let s = S{ x: 123 };
+
+  S::impl A<unit>::foo(s, unit);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(S, unit) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<unit>::foo {(S, unit) -> unit}
+  // CHECK-NEXT:   PathExpr {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   UnitLiteral {unit}
+
+  S::impl A<number>::foo(s, 2);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(S, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<number>::foo {(S, number) -> unit}
+  // CHECK-NEXT:   PathExpr {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   NumberLiteral '2' {number}
+  // CHECK-NEXT:   | value: 2
+}

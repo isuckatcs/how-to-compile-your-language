@@ -1,0 +1,36 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B<T> {}
+
+struct S {
+  impl A;
+}
+
+struct S2 {
+  impl B<S>;
+}
+
+fn foo<T, U <: B<T>>(x: T, y: U) {}
+fn bar<T, U <: B<T>>(x: U, y: T) {}
+
+fn main() {
+  let s = S2{};
+
+  let f = foo;
+  let b = bar;
+
+  f(0, s);
+  // CHECK: [[# @LINE - 1 ]]:8: error: cannot unify 'S' with 'number'
+  // CHECK: [[# @LINE - 2 ]]:8: error: cannot satisfy constraint 'S2 : B<number>'
+
+  b(s, 0);
+  // CHECK: [[# @LINE - 1 ]]:8: error: cannot unify 'number' with 'S'
+
+  foo(0, s);
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'S' with 'number'
+  // CHECK: [[# @LINE - 2 ]]:10: error: cannot satisfy constraint 'S2 : B<number>'
+
+  bar(s, 0);
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'number' with 'S'
+}

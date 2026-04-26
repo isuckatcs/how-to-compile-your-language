@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait Base<T> {}
+
+// CHECK: [[# @LINE + 1]]:18: error: failed to resolve type 'Base'
+fn foo<T <: Base<Base<unit>>>() {}
+
+fn main() {}

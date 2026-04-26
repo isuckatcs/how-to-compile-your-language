@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait Base {}
+
+trait A<T <: Base> {}
+
+struct B {
+  impl Base;
+}
+
+fn foo<T <: A<B>>() {}
+// CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:   Block
+
+fn main() {}

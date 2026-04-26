@@ -1,0 +1,25 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+  // CHECK: FunctionDecl @({{.*}}) foo [incomplete] {() -> unit}
+  // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
+}
+
+struct S {
+  impl A {
+    fn foo() {}
+    // CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
+    // CHECK-NEXT: | implements 'foo' @({{.*}})
+    // CHECK-NEXT:   Block
+  }
+}
+
+fn main() {
+  S::foo();
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {() -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) A::foo {() -> unit}

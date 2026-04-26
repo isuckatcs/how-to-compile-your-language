@@ -16,14 +16,16 @@ fn main() {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) f {unit}
   // CHECK-NEXT:     CallExpr {unit}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(unit) -> unit}
+  // CHECK-NEXT:       PathExpr {(unit) -> unit}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(unit) -> unit}
   // CHECK-NEXT:       UnitLiteral {unit}
 
   let s = S {x: unit};
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<unit>}
   // CHECK-NEXT:     StructInstantiationExpr {S<unit>}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<unit>}
+  // CHECK-NEXT:       PathExpr {S<unit>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<unit>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:         UnitLiteral {unit}
 
@@ -32,7 +34,9 @@ fn main() {
   // CHECK-NEXT:   VarDecl @({{.*}}) b {unit}
   // CHECK-NEXT:     CallExpr {unit}
   // CHECK-NEXT:       CallExpr {(unit) -> unit}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {((unit) -> unit) -> (unit) -> unit}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(unit) -> unit}
+  // CHECK-NEXT:         PathExpr {((unit) -> unit) -> (unit) -> unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) bar {((unit) -> unit) -> (unit) -> unit}
+  // CHECK-NEXT:         PathExpr {(unit) -> unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {(unit) -> unit}
   // CHECK-NEXT:       UnitLiteral {unit}
 }

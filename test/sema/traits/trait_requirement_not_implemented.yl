@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B {}
+
+trait A <: B {}
+
+struct S {
+    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A' requires implementing trait 'B'
+    impl A;
+}
+
+fn main() {}

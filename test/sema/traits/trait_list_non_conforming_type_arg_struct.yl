@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait Base {}
+
+trait A<T <: Base> {}
+
+struct S {
+    // CHECK: [[# @LINE + 1]]:12: error: cannot satisfy constraint 'number : Base'
+    impl A<number>;
+}
+
+fn main() {}

@@ -13,9 +13,12 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {() -> unit}
 // CHECK-NEXT:     Assignment
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:       PathExpr {() -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) f {() -> unit}
+// CHECK-NEXT:       PathExpr {() -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {() -> unit}
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) f {() -> unit}
+// CHECK-NEXT:       PathExpr {() -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) f {() -> unit}
 
 // CHECK-NOT: {{.*error.*}}

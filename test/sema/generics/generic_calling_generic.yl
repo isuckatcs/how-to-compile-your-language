@@ -7,7 +7,8 @@ fn wrapper<T>(x: T): T {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {T}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {T}
+// CHECK-NEXT:       PathExpr {T}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {T}
 
 fn foo<U>(x: (U) -> U, y: U): U {
   return x(y);
@@ -19,8 +20,10 @@ fn foo<U>(x: (U) -> U, y: U): U {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       CallExpr {U}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {(U) -> U}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) y {U}
+// CHECK-NEXT:         PathExpr {(U) -> U}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {(U) -> U}
+// CHECK-NEXT:         PathExpr {U}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) y {U}
 
 fn main(): unit {
   let x = foo(wrapper, 20);
@@ -31,10 +34,14 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {number}
 // CHECK-NEXT:         CallExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {((number) -> number, number) -> number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) wrapper {(number) -> number}
+// CHECK-NEXT:           PathExpr {((number) -> number, number) -> number}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) foo {((number) -> number, number) -> number}
+// CHECK-NEXT:           PathExpr {(number) -> number}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) wrapper {(number) -> number}
 // CHECK-NEXT:           NumberLiteral '20' {number}
 // CHECK-NEXT:           | value: 20
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:       PathExpr {(number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:       PathExpr {number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}

@@ -16,27 +16,37 @@ struct S {
 // CHECK-NEXT:     ParamDecl @({{.*}}) self {S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       CallExpr {unit}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         PathExpr {(number) -> unit}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) self {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {S}
 // CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(S) -> unit}
 // CHECK-NEXT:     ParamDecl @({{.*}}) self {S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       CallExpr {unit}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         PathExpr {(number) -> unit}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) self {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {S}
 
 fn main() {
   mut s = S{ x: 123 };
 
   s.foo();
-  // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(S) -> unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+    // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(S) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   PathExpr {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 
   s.bar();
-  // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(S) -> unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+    // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(S) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) bar {(S) -> unit}
+  // CHECK-NEXT:   PathExpr {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

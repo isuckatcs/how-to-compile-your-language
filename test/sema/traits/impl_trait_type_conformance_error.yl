@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B {}
+
+trait A<T <: B> {
+  fn foo();
+}
+
+struct S {
+  // CHECK: [[# @LINE + 1]]:10: error: cannot satisfy constraint 'number : B'
+  impl A<number> {
+    fn foo() {}
+  }
+}
+
+fn main() {}

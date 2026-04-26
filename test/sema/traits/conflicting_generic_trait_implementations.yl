@@ -1,0 +1,28 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T, U> {}
+
+struct S<T, U> {
+    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A<T, number>' conflicts with more specific implementation 'A<number, U>'
+    impl A<T, number>;
+
+    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A<number, U>' conflicts with more specific implementation 'A<T, number>'
+    impl A<number, U>;
+}
+
+trait B<T> {}
+
+struct S2<T> {
+    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'B<T>' conflicts with more specific implementation 'B<number>'
+    impl B<T>;
+
+    impl B<number>;
+}
+
+struct S3<T> {
+    impl B<number>;
+    
+    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'B<T>' conflicts with more specific implementation 'B<number>'
+    impl B<T>;
+}
+
+fn main() {}

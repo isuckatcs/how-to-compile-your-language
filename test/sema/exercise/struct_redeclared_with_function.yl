@@ -1,11 +1,17 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn S(): unit {
-// CHECK: [[# @LINE - 1 ]]:4: error: redeclaration of 'S'
-}
+struct S {}
+// CHECK: StructDecl @({{.*}}) S {S}
 
-struct S {
-  x: number,
-}
+fn S() {}
+// CHECK: FunctionDecl @({{.*}}) S {() -> unit}
+// CHECK-NEXT:   Block
 
-fn main(): unit {
+fn main() {
+  let s = S;
 }
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl @({{.*}}) s {() -> unit}
+// CHECK-NEXT:         PathExpr {() -> unit}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {() -> unit}

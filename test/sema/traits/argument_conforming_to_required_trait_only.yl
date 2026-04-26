@@ -1,0 +1,23 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait C {}
+
+trait B <: C {}
+
+trait A <: B {}
+
+fn foo<T <: C>(t : T) {}
+
+fn bar<T <: A>(t : T) {
+  foo(t);
+}
+// CHECK: FunctionDecl @({{.*}}) bar {(T) -> unit}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:   ParamDecl @({{.*}}) t {T}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:   PathExpr {(T) -> unit}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(T) -> unit}
+// CHECK-NEXT:   PathExpr {T}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
+
+fn main() {}

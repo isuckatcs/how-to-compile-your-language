@@ -12,13 +12,15 @@ fn wrapper<U>(x: S<U>): S<U> {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {S<U>}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {S<U>}
+// CHECK-NEXT:       PathExpr {S<U>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {S<U>}
 
 fn main(): unit {
   let s = S { x: 1 };
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<number>}
   // CHECK-NEXT:     StructInstantiationExpr {S<number>}
+  // CHECK-NEXT:       PathExpr {S<number>}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
   // CHECK-NEXT:       FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:         NumberLiteral '1' {number}
@@ -29,6 +31,8 @@ fn main(): unit {
   // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
   // CHECK-NEXT:     MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:       CallExpr {S<number>}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapper {(S<number>) -> S<number>}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
+  // CHECK-NEXT:         PathExpr {(S<number>) -> S<number>}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) wrapper {(S<number>) -> S<number>}
+  // CHECK-NEXT:         PathExpr {S<number>}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) s {S<number>}
 }

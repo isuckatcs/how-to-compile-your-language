@@ -9,7 +9,8 @@ struct S {
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       ReturnStmt
 // CHECK-NEXT:         StructInstantiationExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S}
 
 fn main() {
   let s = S::create();
@@ -19,4 +20,6 @@ fn main() {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
 // CHECK-NEXT:         CallExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S::create {() -> S}
+// CHECK-NEXT:           PathExpr {() -> S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) create {() -> S}

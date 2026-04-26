@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {}
+
+fn main() {
+  let s = S{};
+
+  // CHECK: [[# @LINE + 1]]:6: error: failed to find member 'Self'
+  S::Self::foo();
+}

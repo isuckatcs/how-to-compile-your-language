@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: Self, x: T) {}
+}
+
+struct S {
+  impl A<number> {
+    fn foo(self: Self, x: number) {}
+  }
+
+  impl A<unit> {
+    fn foo(self: Self, x: unit) {}
+  }
+}
+
+fn main() {
+  let s = S{};
+
+  // CHECK: [[# @LINE + 1]]:29: error: cannot unify 'unit' with 'number'
+  S::impl A<number>::foo(s, unit);
+}

@@ -19,15 +19,19 @@ fn main(): unit {
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) wrapper {(S<number>, S<number>, () -> unit) -> unit}
+// CHECK-NEXT:       PathExpr {(S<number>, S<number>, () -> unit) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) wrapper {(S<number>, S<number>, () -> unit) -> unit}
 // CHECK-NEXT:       StructInstantiationExpr {S<number>}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
+// CHECK-NEXT:         PathExpr {S<number>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           NumberLiteral '1' {number}
 // CHECK-NEXT:           | value: 1
 // CHECK-NEXT:       StructInstantiationExpr {S<number>}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<number>}
+// CHECK-NEXT:         PathExpr {S<number>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:         FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:           NumberLiteral '2' {number}
 // CHECK-NEXT:           | value: 2
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) main {() -> unit}
+// CHECK-NEXT:         PathExpr {() -> unit}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) main {() -> unit}

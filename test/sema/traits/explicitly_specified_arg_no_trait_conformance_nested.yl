@@ -1,0 +1,20 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B<T> {}
+
+struct S {
+  impl A;
+}
+
+struct S2 {
+  impl B<number>;
+}
+
+fn foo<T <: A, U <: B<T>>() {}
+
+fn main() {
+  foo@<S, S2>();
+  // CHECK: [[# @LINE - 1]]:11: error: cannot unify 'number' with 'S'
+  // CHECK: [[# @LINE - 2]]:11: error: cannot satisfy constraint 'S2 : B<S>'
+}

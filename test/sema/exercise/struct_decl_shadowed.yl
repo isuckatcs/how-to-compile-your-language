@@ -16,6 +16,8 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {S}
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) S {number}
+// CHECK-NEXT:       PathExpr {(number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:       PathExpr {number}
 // CHECK-NEXT:       | value: 1
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {number}

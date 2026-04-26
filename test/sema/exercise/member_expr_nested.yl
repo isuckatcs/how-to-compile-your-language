@@ -26,13 +26,15 @@ fn main(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}
 // CHECK-NEXT:         StructInstantiationExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}
+// CHECK-NEXT:           PathExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             NumberLiteral '0' {number}
 // CHECK-NEXT:             | value: 0
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) n
 // CHECK-NEXT:             StructInstantiationExpr {S2}
-// CHECK-NEXT:               DeclRefExpr @({{.*}}) S2 {S2}
+// CHECK-NEXT:               PathExpr {S2}
+// CHECK-NEXT:                 DeclRefExpr @({{.*}}) S2 {S2}
 // CHECK-NEXT:               FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:                 NumberLiteral '1' {number}
 // CHECK-NEXT:                 | value: 1
@@ -40,4 +42,5 @@ fn main(): unit {
 // CHECK-NEXT:       VarDecl @({{.*}}) x {number}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:           MemberExpr @({{.*}}) n {S2}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) s {S}
+// CHECK-NEXT:             PathExpr {S}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) s {S}

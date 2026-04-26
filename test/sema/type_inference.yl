@@ -18,5 +18,6 @@ fn main(): unit {
 // CHECK-NEXT:   VarDecl @({{.*}}) y {number}
 // CHECK-NEXT:     BinaryOperator '+' {number}
 // CHECK-NEXT:       CallExpr {number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {() -> number}
+// CHECK-NEXT:         PathExpr {() -> number}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {() -> number}
 // CHECK-NEXT:       NumberLiteral '1' {number}

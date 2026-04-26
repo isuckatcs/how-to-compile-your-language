@@ -15,22 +15,29 @@ fn main() {
   let classLevel = S::classMethod;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) classLevel {() -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::classMethod {() -> unit}
+  // CHECK-NEXT:     PathExpr {() -> unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) classMethod {() -> unit}
   
   classLevel();
   // CHECK-NEXT: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) classLevel {() -> unit}
+  // CHECK-NEXT:   PathExpr {() -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) classLevel {() -> unit}
   
   let instanceLevel = S::instanceMethod;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) instanceLevel {(S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::instanceMethod {(S, number) -> unit}
+  // CHECK-NEXT:     PathExpr {(S, number) -> unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) instanceMethod {(S, number) -> unit}
   
   instanceLevel(S{}, 0);
   // CHECK-NEXT: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) instanceLevel {(S, number) -> unit}
+  // CHECK-NEXT:   PathExpr {(S, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) instanceLevel {(S, number) -> unit}
   // CHECK-NEXT:   StructInstantiationExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  // CHECK-NEXT:     PathExpr {S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
 }

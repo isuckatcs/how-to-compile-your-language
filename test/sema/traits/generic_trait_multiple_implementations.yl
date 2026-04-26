@@ -1,0 +1,39 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B<T> {}
+
+trait A<T, U> <: B<T> & B<U> {}
+// CHECK: TraitDecl @({{.*}}) A
+
+struct Empty {}
+
+struct S<T, U> {
+  impl A<Empty, number>;
+  impl A<number, Empty>;
+  impl B<Empty>;
+  impl B<number>;
+}
+// CHECK: StructDecl @({{.*}}) S {S<T, U>}
+
+fn foo<T, U, V <: B<T> & B<U>>(v: V) {}
+// CHECK: FunctionDecl @({{.*}}) foo {(V) -> unit}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) U {U}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) V {V}
+// CHECK-NEXT:   ParamDecl @({{.*}}) v {V}
+// CHECK-NEXT:   Block
+
+fn main() {
+  let s = S@<Empty, number>{};
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) s {S<Empty, number>}
+  // CHECK-NEXT:     StructInstantiationExpr {S<Empty, number>}
+  // CHECK-NEXT:       PathExpr {S<Empty, number>}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<Empty, number>}
+
+  foo(s);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(S<Empty, number>) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S<Empty, number>) -> unit}
+  // CHECK-NEXT:   PathExpr {S<Empty, number>}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S<Empty, number>}
+}

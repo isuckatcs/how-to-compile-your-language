@@ -6,6 +6,8 @@ fn main() {
   foo(&x);
 }
 // CHECK: CallExpr {unit}
-// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+// CHECK-NEXT:   PathExpr {(&number) -> unit}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(&number) -> unit}
 // CHECK-NEXT:   UnaryOperator '&' {&number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
