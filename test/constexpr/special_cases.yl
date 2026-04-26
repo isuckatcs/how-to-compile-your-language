@@ -9,11 +9,13 @@ fn binaryLhsKnown(y: number): number {
 // CHECK-NEXT:   GroupingExpr {number}
 // CHECK-NEXT:     BinaryOperator '&&' {number}
 // CHECK-NEXT:       NumberLiteral '0' {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {number}
+// CHECK-NEXT:       PathExpr {number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) y {number}
 // CHECK-NEXT:   GroupingExpr {number}
 // CHECK-NEXT:     BinaryOperator '||' {number}
 // CHECK-NEXT:       NumberLiteral '1' {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:       PathExpr {number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
 
 fn unaryNonConst(): number {
     mut x: number = 2.1;
@@ -22,7 +24,8 @@ fn unaryNonConst(): number {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   UnaryOperator '!' {number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 
 fn ret(): number {
     return 1.0;
@@ -36,7 +39,8 @@ fn call(): unit {
 // CHECK: IfStmt
 // CHECK-NEXT:   UnaryOperator '!' {number}
 // CHECK-NEXT:     CallExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) ret {() -> number}
+// CHECK-NEXT:       PathExpr {() -> number}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) ret {() -> number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 
@@ -46,14 +50,16 @@ fn lhsKnownRhsNot(y: number): number {
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {number}
 // CHECK-NEXT:     NumberLiteral '1' {number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) y {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {number}
 
 fn lhsUnknownRhsFalse(x: number): number {
     return x && 0.0;
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '0' {number}
 
 fn lhsUnknownRhsTrue(x: number): number {
@@ -61,7 +67,8 @@ fn lhsUnknownRhsTrue(x: number): number {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '||' {number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '1' {number}
 
 fn lhsUnknownRhsFalseOr(x: number): number {
@@ -69,7 +76,8 @@ fn lhsUnknownRhsFalseOr(x: number): number {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '||' {number}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '0' {number}
 
 fn main(): unit {}

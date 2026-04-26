@@ -128,6 +128,17 @@ ConstantExpressionEvaluator::evaluate(const res::Expr &expr,
           dynamic_cast<const res::UnaryOperator *>(&expr))
     return evaluateUnaryOperator(*unaryOperator, allowSideEffects);
 
+  if (const auto *pathExpr = dynamic_cast<const res::PathExpr *>(&expr)) {
+    for (auto &&fragment : pathExpr->fragments) {
+      auto res = evaluateDeclRefExpr(*fragment, allowSideEffects);
+      if (!res)
+        return std::nullopt;
+
+      if (fragment == pathExpr->fragments.back())
+        return res;
+    }
+  }
+
   if (const auto *declRefExpr = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return evaluateDeclRefExpr(*declRefExpr, allowSideEffects);
 

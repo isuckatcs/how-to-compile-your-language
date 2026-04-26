@@ -17,6 +17,7 @@ fn bar(): number {
 // CHECK: ReturnStmt
 // CHECK-NEXT:   GroupingExpr {number}
 // CHECK-NEXT:   | value: 2.1
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 
 fn main(): unit {}
