@@ -7,6 +7,7 @@
 namespace yl {
 std::string indent(size_t level) { return std::string(level * 2, ' '); }
 
+// FIXME: rework error message reporting with streams, and allow emitting notes
 std::nullptr_t
 report(SourceLocation location, std::string_view message, bool isWarning) {
   const auto &[file, line, col] = location;
