@@ -1,0 +1,23 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o generic_trait_function_parameter_default && ./generic_trait_function_parameter_default | grep -Plzx '123\n'
+trait A<T> {
+  fn foo(self: Self, x: T) {
+    println(123);
+  }
+  // CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @println(double 1.230000e+02)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+struct S {
+  x: number
+
+  impl A<number>;
+}
+
+fn main() {
+  let s = S{ x: 2 };
+  s.foo(0);
+}

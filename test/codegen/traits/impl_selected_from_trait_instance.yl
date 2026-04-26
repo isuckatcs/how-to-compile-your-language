@@ -1,0 +1,27 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o impl_selected_from_trait_instance && ./impl_selected_from_trait_instance | grep -Plzx '123\n'
+trait A<T> {
+  fn foo(self: Self);
+}
+
+struct S<T> {
+  impl A<T> {
+    fn foo(self: Self) {
+      println(123);
+    }
+  }
+}
+
+fn foo<X, U <: A<X>>(u: U) {
+  u.foo();
+}
+// CHECK: define void @_Y3fooGnS1SGnEE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1SGnE3fooGS1SGnEE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  let s = S@<number>{};
+  foo(s);
+}

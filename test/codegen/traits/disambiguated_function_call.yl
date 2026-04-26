@@ -1,0 +1,50 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o disambiguated_function_call && ./disambiguated_function_call | grep -Plzx '123\n246\n'
+trait A<T> {
+  fn foo(self: Self, x: T) {}
+}
+
+struct S {
+  x: number
+
+  impl A<number> {
+    fn foo(self: Self, x: number) {
+      println(self.x * x);
+    }
+  }
+
+  impl A<unit> {
+    fn foo(self: Self, x: unit) {
+      println(self.x);
+    }
+  }
+}
+
+fn main() {
+  let s = S{ x: 123 };
+
+  S::impl A<unit>::foo(s, unit);
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp)
+
+  S::impl A<number>::foo(s, 2);
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %s, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp1, double 2.000000e+00)
+}
+
+// CHECK: define void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   %2 = fmul double %1, %x
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

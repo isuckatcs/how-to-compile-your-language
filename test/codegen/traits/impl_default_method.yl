@@ -1,0 +1,74 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o impl_default_method && ./impl_default_method | grep -Plzx '123\n456\n'
+trait A {
+  fn bar() {
+    Self::foo();
+  }
+
+  fn foo() {
+    println(123);
+  }
+}
+
+struct S {
+  impl A;
+}
+
+struct S2 {
+  impl A {
+    fn foo() {
+      println(456);
+    }
+  }
+}
+
+fn traitFnDispatch<T <: A>() {
+  T::bar();
+}
+
+fn main() {
+  traitFnDispatch@<S>();
+  traitFnDispatch@<S2>();
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_Y15traitFnDispatchGS1SE()
+// CHECK-NEXT:   call void @_Y15traitFnDispatchGS2S2E()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y15traitFnDispatchGS1SE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S3barGS1SE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y15traitFnDispatchGS2S2E() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS2S23barGS2S2E()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1S3barGS1SE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S3fooGS1SE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS2S23barGS2S2E() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS2S23fooGS2S2E()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1S3fooGS1SE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS2S23fooGS2S2E() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 4.560000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

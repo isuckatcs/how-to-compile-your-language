@@ -1,0 +1,45 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o function_lookup_in_required_trait && ./function_lookup_in_required_trait | grep -Plzx '492\n'
+trait B {
+  fn foo(self: &Self);
+}
+
+trait A <: B {
+  fn getX(self: &Self): number;
+}
+
+struct S {
+  x: number
+
+  impl A {
+    fn getX(self: &Self): number {
+      return self.x;
+    }
+  }
+
+  impl B {
+    fn foo(self: &Self) {
+      self.x = self.x * 2;
+    }
+  }
+}
+
+fn bar<T <: A>(mut t : T) {
+  t.foo();
+
+  T::foo(&t);
+
+  println(t.getX());
+}
+// CHECK: define void @_Y3barGS1SE(ptr byval({ double }) %t) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t)
+// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t)
+// CHECK-NEXT:   %0 = call double @_YT1A4getXGS1SE(ptr %t)
+// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  bar(S{x: 123});
+}

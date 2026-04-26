@@ -12,16 +12,16 @@
 
 namespace yl {
 class Codegen {
-  using InstCtxTy = std::map<const res::TypeParamDecl *, const res::Type *>;
+  using InstCtxTy = std::map<const res::TypeParamDecl *, res::Type *>;
 
   class EnterInstantiationRAII {
     Codegen *codegen;
     InstCtxTy instCtxSnapshot;
 
-    void impl(std::vector<const res::TypeParamDecl *> typeParams,
-              std::vector<const res::Type *> typeArgs) {
+    void impl(std::vector<res::TypeParamDecl *> typeParams,
+              std::vector<res::Type *> typeArgs) {
       for (size_t i = 0; i < typeParams.size(); ++i) {
-        const res::Type *type = typeArgs[i];
+        res::Type *type = typeArgs[i];
         if (const auto *typeParamTy = type->getAs<res::TypeParamType>())
           type = instCtxSnapshot[typeParamTy->decl];
 
@@ -33,16 +33,20 @@ class Codegen {
     EnterInstantiationRAII(Codegen *codegen, const res::StructType *st)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
-      impl(st->getDecl()->getTypeParams(), st->getTypeArgs());
+      impl(st->getDecl()->typeParams, st->getTypeArgs());
     }
 
     EnterInstantiationRAII(Codegen *codegen, const res::DeclRefExpr *dre)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
-      for (auto &&fragment : dre->getPath())
-        if (const auto *st = fragment->getAs<res::StructType>())
-          impl(st->getDecl()->getTypeParams(), st->getTypeArgs());
-      impl(dre->decl->getTypeParams(), dre->getTypeArgs());
+      if (dre->trait)
+        impl(dre->trait->getDecl()->typeParams, dre->trait->getTypeArgs());
+
+      if (dre->parentTy)
+        if (auto *st = dre->parentTy->getAs<res::StructType>())
+          impl(st->getDecl()->typeParams, st->getTypeArgs());
+
+      impl(dre->decl->typeParams, dre->typeArgs);
     }
 
     ~EnterInstantiationRAII() { codegen->instCtx = instCtxSnapshot; }
@@ -54,7 +58,7 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
-  const res::Context *resCtx;
+  res::Context *resCtx;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
@@ -102,11 +106,10 @@ class Codegen {
   llvm::AttributeList constructAttrList(const res::FunctionType *ty);
 
   void generateBlock(const res::Block &block);
-  llvm::Function *
-  generateFunctionDecl(const res::FunctionDecl &decl,
-                       const res::FunctionType *type,
-                       const std::vector<const res::Type *> &path,
-                       std::vector<const res::Type *> typeArgs);
+  llvm::Function *generateFunctionDecl(const res::FunctionDecl &decl,
+                                       const res::FunctionType *type,
+                                       const res::Type *path,
+                                       std::vector<res::Type *> typeArgs);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
   llvm::Type *generateStructType(const res::StructType *structTy);
@@ -115,7 +118,7 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);
+  Codegen(res::Context &resolvedCtx, std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };
