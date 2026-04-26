@@ -132,6 +132,8 @@ class TraitType : public Type {
 
 public:
   TraitDecl *getDecl() { return decl; }
+  const TraitDecl *getDecl() const { return decl; }
+
   std::vector<Type *> getTypeArgs() const { return args; }
   std::string getName() const override;
 

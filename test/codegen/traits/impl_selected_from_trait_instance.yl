@@ -17,7 +17,7 @@ fn foo<X, U <: A<X>>(u: U) {
 }
 // CHECK: define void @_Y3fooGnS1SGnEE() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1SGnE3fooGS1SGnEE()
+// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

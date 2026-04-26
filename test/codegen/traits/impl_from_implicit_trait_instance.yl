@@ -18,6 +18,6 @@ fn main() {
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1SGnE3fooGS1SGnEE()
+// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

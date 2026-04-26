@@ -39,35 +39,35 @@ fn main() {
 
 // CHECK: define void @_Y15traitFnDispatchGS1SE() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1S3barGS1SE()
+// CHECK-NEXT:   call void @_YT1A3barGS1SE()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 // CHECK: define void @_Y15traitFnDispatchGS2S2E() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS2S23barGS2S2E()
+// CHECK-NEXT:   call void @_YT1A3barGS2S2E()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1S3barGS1SE() {
+// CHECK: define void @_YT1A3barGS1SE() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1S3fooGS1SE()
+// CHECK-NEXT:   call void @_YT1A3fooGS1SE()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS2S23barGS2S2E() {
+// CHECK: define void @_YT1A3barGS2S2E() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS2S23fooGS2S2E()
+// CHECK-NEXT:   call void @_YT1A3fooGS2S2E()
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1S3fooGS1SE() {
+// CHECK: define void @_YT1A3fooGS1SE() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 1.230000e+02)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS2S23fooGS2S2E() {
+// CHECK: define void @_YT1A3fooGS2S2E() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 4.560000e+02)
 // CHECK-NEXT:   ret void

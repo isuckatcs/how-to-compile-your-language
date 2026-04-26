@@ -1,0 +1,40 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o trait_and_struct_function_collision && ./trait_and_struct_function_collision | grep -Plzx '123\n456\n'
+trait A {
+  fn foo();
+}
+
+struct S {
+  fn foo<T>() {
+    println(123);
+  }
+
+  impl A {
+    fn foo() {
+      println(456);
+    }
+  }
+}
+
+fn main() {
+  S::foo@<S>();
+  S::impl A::foo();
+}
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S3fooGS1SE()
+// CHECK-NEXT:   call void @_YT1A3fooGS1SE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS1S3fooGS1SE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YT1A3fooGS1SE() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double 4.560000e+02)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

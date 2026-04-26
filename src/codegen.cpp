@@ -14,27 +14,45 @@ class Mangling {
              std::map<const res::TypeParamDecl *, res::Type *> substitution) {
     type = type->getRootType();
 
-    std::stringstream mangledName;
-    if (type->getAs<res::BuiltinUnitType>()) {
-      mangledName << 'u';
-    } else if (type->getAs<res::BuiltinNumberType>()) {
-      mangledName << 'n';
-    } else if (const auto *s = type->getAs<res::StructType>()) {
+    if (const auto *t = type->getAs<res::TypeParamType>())
+      return mangleType(substitution[t->decl], substitution);
+
+    if (type->getAs<res::BuiltinUnitType>())
+      return "u";
+
+    if (type->getAs<res::BuiltinNumberType>())
+      return "n";
+
+    if (const auto *s = type->getAs<res::StructType>()) {
       const auto &id = s->getDecl()->identifier;
+
+      std::stringstream mangledName;
       mangledName << 'S' << id.size() << id
                   << mangleGenericArgs(s->getTypeArgs(), substitution);
-    } else if (const auto *f = type->getAs<res::FunctionType>()) {
+      return mangledName.str();
+    }
+
+    if (const auto *tr = type->getAs<res::TraitType>()) {
+      const auto &id = tr->getDecl()->identifier;
+
+      std::stringstream mangledName;
+      mangledName << 'T' << id.size() << id
+                  << mangleGenericArgs(tr->getTypeArgs(), substitution);
+      return mangledName.str();
+    }
+
+    if (const auto *f = type->getAs<res::FunctionType>()) {
+      std::stringstream mangledName;
+
       mangledName << 'F';
       for (auto &&arg : f->getArgs())
         mangledName << mangleType(arg, substitution);
       mangledName << 'R' << mangleType(f->getReturnType(), substitution);
-    } else if (const auto *t = type->getAs<res::TypeParamType>()) {
-      mangledName << mangleType(substitution[t->decl], substitution);
-    } else {
-      llvm_unreachable("unexpected type in mangling");
+
+      return mangledName.str();
     }
 
-    return mangledName.str();
+    llvm_unreachable("unexpected type in mangling");
   }
 
   static std::string mangleGenericArgs(
@@ -373,9 +391,13 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   assert(fnDecl->body && "non-default trait function not implemented");
 
+  res::Type *parentTy = dre.trait;
+  if (!parentTy)
+    parentTy = dre.parentTy;
+
   return generateFunctionDecl(
       *fnDecl, resCtx->getTypeMgr().getType(&dre)->getAs<res::FunctionType>(),
-      dre.parentTy, dre.typeArgs);
+      parentTy, dre.typeArgs);
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
