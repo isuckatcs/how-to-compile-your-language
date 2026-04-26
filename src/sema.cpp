@@ -461,7 +461,8 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
       typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(parentTy));
 
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
-  if (decl->getAs<res::FunctionDecl>() || decl->getAs<res::TypeDecl>())
+  if (decl->getAs<res::FunctionDecl>() || decl->getAs<res::TypeDecl>() ||
+      decl->getAs<res::TraitDecl>())
     kind = res::Expr::Kind::Rvalue;
   else if (decl->getAs<res::ValueDecl>()->isMutable)
     kind = res::Expr::Kind::MutLvalue;

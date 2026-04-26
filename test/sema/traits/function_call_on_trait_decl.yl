@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+  fn bar();
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1]]:6: error: cannot access member of 'A'
+  A::foo();
+
+  // CHECK: [[# @LINE + 1]]:6: error: cannot access member of 'A'
+  A::bar();
+}
