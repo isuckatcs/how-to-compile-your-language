@@ -43,10 +43,18 @@ void CFG::dump() const {
         std::cerr << "while " << stmtToRef[whileStmt->condition];
       } else if (auto *assignment =
                      dynamic_cast<const res::Assignment *>(*it)) {
-        if (auto *dre =
-                dynamic_cast<const res::DeclRefExpr *>(assignment->assignee))
-          std::cerr << dre->decl->identifier;
-        else
+        if (auto *path =
+                dynamic_cast<const res::PathExpr *>(assignment->assignee)) {
+          for (auto &&fragment : path->fragments) {
+            if (fragment->trait)
+              std::cerr << "impl " << fragment->trait->getName() << ':' << ':';
+
+            std::cerr << fragment->decl->identifier;
+
+            if (fragment != path->fragments.back())
+              std::cerr << ':' << ':';
+          }
+        } else
           std::cerr << stmtToRef[assignment->assignee];
 
         std::cerr << " = " << stmtToRef[assignment->expr];
@@ -89,7 +97,7 @@ void CFG::dump() const {
         std::cerr << getOpStr(unop->op) << stmtToRef[unop->operand];
       } else if (const auto *si =
                      dynamic_cast<const res::StructInstantiationExpr *>(*it)) {
-        std::cerr << stmtToRef[si->structDecl] << ' ' << '{';
+        std::cerr << stmtToRef[si->structPath] << ' ' << '{';
         for (int i = 0; i < si->fieldInitializers.size(); ++i) {
           std::cerr << stmtToRef[si->fieldInitializers[i]];
 
@@ -99,9 +107,16 @@ void CFG::dump() const {
         std::cerr << '}';
       } else if (const auto *dre =
                      dynamic_cast<const res::DeclRefExpr *>(*it)) {
-        for (auto &&fragment : dre->nestedPathSpecifier)
-          std::cerr << stmtToRef[fragment] << ':' << ':';
         std::cerr << dre->decl->identifier;
+      } else if (const auto *path = dynamic_cast<const res::PathExpr *>(*it)) {
+        for (auto &&fragment : path->fragments) {
+          if (fragment == path->fragments.back()) {
+            std::cerr << path->fragments.back()->decl->identifier;
+            continue;
+          }
+
+          std::cerr << stmtToRef[fragment] << "::";
+        }
       } else if (const auto *memberExpr =
                      dynamic_cast<const res::MemberExpr *>(*it)) {
         std::cerr << stmtToRef[memberExpr->base] << '.'
@@ -161,7 +176,7 @@ int CFGBuilder::insertDeclStmt(const res::DeclStmt &stmt, int block) {
 int CFGBuilder::insertAssignment(const res::Assignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
 
-  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee))
+  if (!dynamic_cast<const res::PathExpr *>(stmt.assignee))
     block = insertExpr(*stmt.assignee, block);
 
   return insertExpr(*stmt.expr, block);
@@ -201,17 +216,18 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (const auto *structInst =
           dynamic_cast<const res::StructInstantiationExpr *>(&expr)) {
-    block = insertStmt(*structInst->structDecl, block);
+    block = insertStmt(*structInst->structPath, block);
     for (auto it = structInst->fieldInitializers.rbegin();
          it != structInst->fieldInitializers.rend(); ++it)
       block = insertStmt(**it, block);
     return block;
   }
 
-  if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr)) {
-    for (auto it = dre->nestedPathSpecifier.rbegin();
-         it != dre->nestedPathSpecifier.rend(); ++it)
+  if (const auto *path = dynamic_cast<const res::PathExpr *>(&expr)) {
+    for (auto it = path->fragments.rbegin() + 1; it != path->fragments.rend();
+         ++it)
       block = insertExpr(**it, block);
+
     return block;
   }
 
