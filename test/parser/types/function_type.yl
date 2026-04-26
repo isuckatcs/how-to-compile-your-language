@@ -52,7 +52,7 @@ fn nested(): () -> (S<number>) -> () -> number {}
 // CHECK-NEXT: FunctionDecl: nested
 // CHECK-NEXT:   FunctionType
 // CHECK-NEXT:     FunctionType
-// CHECK-NEXT:       UserDefinedDeclInstance: S
+// CHECK-NEXT:       UserDefinedType: S
 // CHECK-NEXT:         BuiltinType: number
 // CHECK-NEXT:       FunctionType
 // CHECK-NEXT:         BuiltinType: number

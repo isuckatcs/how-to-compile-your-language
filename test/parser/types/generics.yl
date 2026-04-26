@@ -12,7 +12,7 @@ struct Wrapper<{}
 // CHECK: [[# @LINE - 1 ]]:16: error: expected type parameter declaration
 
 struct Wrapper<T{}
-// CHECK: [[# @LINE - 1 ]]:17: error: expected ',' or '>'
+// CHECK: [[# @LINE - 1 ]]:17: error: expected ',', '<:' or '>'
 
 struct Wrapper<T,{}
 // CHECK: [[# @LINE - 1 ]]:18: error: expected type parameter declaration
@@ -30,7 +30,7 @@ fn wrapper<(): unit {}
 // CHECK: [[# @LINE - 1 ]]:12: error: expected type parameter declaration
 
 fn wrapper<T(): unit {}
-// CHECK: [[# @LINE - 1 ]]:13: error: expected ',' or '>'
+// CHECK: [[# @LINE - 1 ]]:13: error: expected ',', '<:' or '>'
 
 fn wrapper<T,(): unit {}
 // CHECK: [[# @LINE - 1 ]]:14: error: expected type parameter declaration

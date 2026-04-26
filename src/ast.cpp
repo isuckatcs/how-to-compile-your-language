@@ -18,9 +18,8 @@ void BuiltinType::dump(size_t level) const {
   std::cerr << '\n';
 }
 
-void UserDefinedDeclInstance::dump(size_t level) const {
-  std::cerr << indent(level) << "UserDefinedDeclInstance: " << identifier
-            << '\n';
+void UserDefinedType::dump(size_t level) const {
+  std::cerr << indent(level) << "UserDefinedType: " << identifier << '\n';
 
   for (auto &&type : typeArguments)
     type->dump(level + 1);
@@ -102,8 +101,11 @@ void DeclRefExpr::dump(size_t level) const {
 void PathExpr::dump(size_t level) const {
   std::cerr << indent(level) << "PathExpr:\n";
 
-  for (auto &&p : path)
-    p->dump(level + 1);
+  for (auto &&[impl, decl] : path) {
+    if (impl)
+      impl->dump(level + 1);
+    decl->dump(level + 1);
+  }
 }
 
 void TypeArgumentList::dump(size_t level) const {
@@ -150,8 +152,21 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
+void TraitInstance::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitInstance: " << identifier << '\n';
+
+  for (auto &&type : typeArguments)
+    type->dump(level + 1);
+}
+
+void ImplSpecifier::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplSpecifier\n";
+  traitInstance->dump(level + 1);
+}
+
 void TraitList::dump(size_t level) const {
   std::cerr << indent(level) << "TraitList\n";
+
   for (auto &&trait : traits)
     trait->dump(level + 1);
 }
@@ -186,7 +201,7 @@ void TraitDecl::dump(size_t level) const {
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
 
-  for (auto &&fn : memberFunctions)
+  for (auto &&fn : traitFunctions)
     fn->dump(level + 1);
 }
 
@@ -224,8 +239,9 @@ void FunctionDecl::dump(size_t level) const {
 void ImplDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ImplDecl\n";
 
-  owningTrait->dump(level + 1);
-  function->dump(level + 1);
+  trait->dump(level + 1);
+  for (auto &&function : functions)
+    function->dump(level + 1);
 }
 
 void DeclStmt::dump(size_t level) const {

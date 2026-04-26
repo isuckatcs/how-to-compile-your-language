@@ -83,7 +83,11 @@ class Parser {
   std::unique_ptr<ast::TraitList> parseTraitList();
 
   std::unique_ptr<ast::Type> parseType();
-  std::unique_ptr<ast::UserDefinedDeclInstance> parseUserDefinedDeclInstance();
+
+  template <typename T> std::unique_ptr<T> parseIdentifierWithTypelist();
+  std::unique_ptr<ast::UserDefinedType> parseUserDefinedType();
+  std::unique_ptr<ast::TraitInstance> parseTraitInstance();
+  std::unique_ptr<ast::ImplSpecifier> parseImplSpecifier();
 
   // helper methods
   template <typename T, typename F>

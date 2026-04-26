@@ -31,13 +31,13 @@ struct BuiltinType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct UserDefinedDeclInstance : public Type {
+struct UserDefinedType : public Type {
   std::string identifier;
   std::vector<std::unique_ptr<Type>> typeArguments;
 
-  UserDefinedDeclInstance(SourceLocation location,
-                          std::string identifier,
-                          std::vector<std::unique_ptr<Type>> typeArguments)
+  UserDefinedType(SourceLocation location,
+                  std::string identifier,
+                  std::vector<std::unique_ptr<Type>> typeArguments)
       : Type(location),
         identifier(std::move(identifier)),
         typeArguments(std::move(typeArguments)) {}
@@ -70,6 +70,7 @@ struct OutParamType : public Type {
 };
 
 struct Decl {
+  // FIXME: the location should point to the identifier of the declaration
   SourceLocation location;
   std::string identifier;
 
@@ -103,6 +104,42 @@ struct Block {
   Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
       : location(location),
         statements(std::move(statements)) {}
+
+  void dump(size_t level = 0) const;
+};
+
+struct TraitInstance {
+  SourceLocation location;
+  std::string identifier;
+  std::vector<std::unique_ptr<Type>> typeArguments;
+
+  TraitInstance(SourceLocation location,
+                std::string identifier,
+                std::vector<std::unique_ptr<Type>> typeArguments)
+      : location(std::move(location)),
+        identifier(std::move(identifier)),
+        typeArguments(std::move(typeArguments)) {}
+
+  void dump(size_t level = 0) const;
+};
+
+struct ImplSpecifier {
+  SourceLocation location;
+  std::unique_ptr<TraitInstance> traitInstance;
+
+  ImplSpecifier(SourceLocation location,
+                std::unique_ptr<TraitInstance> traitInstance)
+      : location(location),
+        traitInstance(std::move(traitInstance)) {}
+
+  void dump(size_t level = 0) const;
+};
+
+struct TraitList {
+  std::vector<std::unique_ptr<TraitInstance>> traits;
+
+  TraitList(std::vector<std::unique_ptr<TraitInstance>> traits)
+      : traits(std::move(traits)) {}
 
   void dump(size_t level = 0) const;
 };
@@ -219,10 +256,12 @@ struct DeclRefExpr : public Expr {
 };
 
 struct PathExpr : public Expr {
-  std::vector<std::unique_ptr<DeclRefExpr>> path;
+  using ImplXDecl =
+      std::pair<std::unique_ptr<ImplSpecifier>, std::unique_ptr<DeclRefExpr>>;
+  std::vector<ImplXDecl> path;
 
-  PathExpr(std::vector<std::unique_ptr<DeclRefExpr>> path)
-      : Expr(path[0]->location),
+  PathExpr(std::vector<ImplXDecl> path)
+      : Expr(path[0].second->location),
         path(std::move(path)) {}
 
   void dump(size_t level = 0) const override;
@@ -298,15 +337,6 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitList {
-  std::vector<std::unique_ptr<UserDefinedDeclInstance>> traits;
-
-  TraitList(std::vector<std::unique_ptr<UserDefinedDeclInstance>> traits)
-      : traits(std::move(traits)) {}
-
-  void dump(size_t level = 0) const;
-};
-
 struct TypeParamDecl : public Decl {
   std::unique_ptr<TraitList> restrictions;
 
@@ -374,14 +404,14 @@ struct FunctionDecl : public Decl {
 };
 
 struct ImplDecl : public Decl {
-  std::unique_ptr<UserDefinedDeclInstance> owningTrait;
-  std::unique_ptr<FunctionDecl> function;
+  std::unique_ptr<TraitInstance> trait;
+  std::vector<std::unique_ptr<FunctionDecl>> functions;
 
-  ImplDecl(std::unique_ptr<UserDefinedDeclInstance> owningTrait,
-           std::unique_ptr<FunctionDecl> function)
-      : Decl(function->location, function->identifier),
-        owningTrait(std::move(owningTrait)),
-        function(std::move(function)) {}
+  ImplDecl(std::unique_ptr<TraitInstance> owningTrait,
+           std::vector<std::unique_ptr<FunctionDecl>> traitFunctions)
+      : Decl(owningTrait->location, owningTrait->identifier),
+        trait(std::move(owningTrait)),
+        functions(std::move(traitFunctions)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -401,50 +431,32 @@ struct FieldDecl : public Decl {
 struct StructDecl : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<Decl>> decls;
-  std::unique_ptr<TraitList> traits;
-
-  std::vector<const FieldDecl *> fields;
-  std::vector<const FunctionDecl *> memberFunctions;
-  std::vector<const ImplDecl *> traitFunctionImpls;
 
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-             std::vector<std::unique_ptr<Decl>> decls,
-             std::unique_ptr<TraitList> traits)
-      : Decl(location, std::move(identifier)),
+             std::vector<std::unique_ptr<Decl>> decls)
+      : Decl(std::move(location), std::move(identifier)),
         typeParameters(std::move(typeParameters)),
-        decls(std::move(decls)),
-        traits(std::move(traits)) {
-    for (auto &&decl : this->decls) {
-      if (const auto *field = dynamic_cast<const FieldDecl *>(decl.get()))
-        fields.emplace_back(field);
-      else if (const auto *fn = dynamic_cast<const FunctionDecl *>(decl.get()))
-        memberFunctions.emplace_back(fn);
-      else if (const auto *impl = dynamic_cast<const ImplDecl *>(decl.get())) {
-        traitFunctionImpls.emplace_back(impl);
-      } else
-        assert(false && "unexpected struct member decl");
-    }
-  }
+        decls(std::move(decls)) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct TraitDecl : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<FunctionDecl>> memberFunctions;
-  std::unique_ptr<TraitList> parentTraits;
+  std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
+  std::unique_ptr<TraitList> traitList;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-            std::vector<std::unique_ptr<FunctionDecl>> memberFunctions,
-            std::unique_ptr<TraitList> parentTraits)
-      : Decl(location, std::move(identifier)),
+            std::vector<std::unique_ptr<FunctionDecl>> traitFunctions,
+            std::unique_ptr<TraitList> traitList)
+      : Decl(std::move(location), std::move(identifier)),
         typeParameters(std::move(typeParameters)),
-        memberFunctions(std::move(memberFunctions)),
-        parentTraits(std::move(parentTraits)) {}
+        traitFunctions(std::move(traitFunctions)),
+        traitList(std::move(traitList)) {}
 
   void dump(size_t level = 0) const override;
 };
