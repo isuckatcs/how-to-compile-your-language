@@ -987,11 +987,11 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
         for (auto &&error : errors)
           report(implFn->typeParams[i]->location, error);
 
-        error |= !report(implFn->typeParams[i]->location,
-                         "cannot replace parameter of type '" +
-                             traitParamTy->getName() +
-                             "' with stricter implementation type '" +
-                             implParamTy->getName() + "'");
+        report(implFn->typeParams[i]->location,
+               "cannot replace parameter of type '" + traitParamTy->getName() +
+                   "' with stricter implementation type '" +
+                   implParamTy->getName() + "'");
+        error = true;
       }
     }
 
@@ -1002,18 +1002,20 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
         typeMgr.instantiate(typeMgr.getType(traitFn), traitSub), sub);
     res::Type *actualType = typeMgr.getType(implFn);
 
-    if (!typeMgr.unify(expectedType, actualType).empty())
-      error |=
-          !report(implFn->location,
-                  "trait function declaration has '" + expectedType->getName() +
-                      "' signature, but the given implementation is '" +
-                      actualType->getName() + "'");
+    if (!typeMgr.unify(expectedType, actualType).empty()) {
+      report(implFn->location,
+             "trait function declaration has '" + expectedType->getName() +
+                 "' signature, but the given implementation is '" +
+                 actualType->getName() + "'");
+      error = true;
+    }
 
-    if (!resDecl->insertDecl(implFn))
-      error |=
-          !report(implFn->location, "function '" + implFn->identifier +
-                                        "' is already implemented for trait '" +
-                                        traitTy->getName() + "'");
+    if (!resDecl->insertDecl(implFn)) {
+      report(implFn->location, "function '" + implFn->identifier +
+                                   "' is already implemented for trait '" +
+                                   traitTy->getName() + "'");
+      error = true;
+    }
   }
 
   if (error)
@@ -1137,10 +1139,10 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
       if (fn->body || implCtx->lookupDecl<res::FunctionDecl>(fn->identifier))
         continue;
 
-      error = !report(fn->location, "struct '" + structDecl->identifier +
-                                        "' must implement function '" +
-                                        fn->identifier + "' from trait '" +
-                                        trait->getName() + "'");
+      report(fn->location, "struct '" + structDecl->identifier +
+                               "' must implement function '" + fn->identifier +
+                               "' from trait '" + trait->getName() + "'");
+      error = true;
     }
   }
 
@@ -1157,9 +1159,11 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   bool error =
       !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
   for (auto &&tp : typeParams)
-    if (lexicalScope->parent->lookupDecl<res::TypeParamDecl>(tp->identifier))
-      error = !report(tp->location, "declaring '" + tp->identifier +
-                                        "' shadows outer type parameter");
+    if (lexicalScope->parent->lookupDecl<res::TypeParamDecl>(tp->identifier)) {
+      report(tp->location,
+             "declaring '" + tp->identifier + "' shadows outer type parameter");
+      error = true;
+    }
 
   res::Type *currentSelfType = selfType;
   res::TypeParamDecl *implicitSelf = nullptr;
@@ -1188,10 +1192,11 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     error |= !type;
 
     bool isOutputType = type && type->getAs<res::OutParamType>();
-    if (isOutputType && param->isMutable)
-      error |= !report(
-          param->location,
-          "unexpected 'mut' specifier, a '&' parameter is always mutable");
+    if (isOutputType && param->isMutable) {
+      report(param->location,
+             "unexpected 'mut' specifier, a '&' parameter is always mutable");
+      error = true;
+    }
 
     auto *resolvedParam = resolvedParams.emplace_back(
         ctx.create<res::ParamDecl>(param->location, param->identifier,
@@ -1389,11 +1394,13 @@ bool Sema::resolveStructBody(res::Context &ctx,
         continue;
       }
 
-      if (!structDecl.insertDecl(resImpl))
-        error = !report(resImpl->location,
-                        "trait '" + typeMgr.getType(resImpl)->getName() +
-                            "' is already implemented for struct '" +
-                            structDecl.identifier + "'");
+      if (!structDecl.insertDecl(resImpl)) {
+        report(resImpl->location, "trait '" +
+                                      typeMgr.getType(resImpl)->getName() +
+                                      "' is already implemented for struct '" +
+                                      structDecl.identifier + "'");
+        error = true;
+      }
     }
   }
 
