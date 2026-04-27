@@ -103,7 +103,7 @@ Parser::parseTypeParamList() {
 
   return parseListWithTrailingComma<ast::TypeParamDecl>(
       {TokenKind::Lt, "expected '<'"}, &Parser::parseTypeParamDecl,
-      {TokenKind::Gt, "expected ',', '<:' or '>'"}, false);
+      {TokenKind::Gt, "expected ',', ':' or '>'"}, false);
 }
 
 // <typeList>
@@ -229,7 +229,7 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
   varOrReturn(traitList, parseTraitList());
 
   matchOrReturn(TokenKind::Lbrace, traitList->traits.empty()
-                                       ? "expected '<:' or '{'"
+                                       ? "expected ':' or '{'"
                                        : "expected '&' or '{'");
   eatNextToken(); // eat '{'
 
@@ -804,12 +804,12 @@ std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {
 }
 
 // <traitList>
-//  ::= '<:' <userDefinedDeclInstance> ('&' <userDefinedDeclInstance>)*
+//  ::= ':' <userDefinedDeclInstance> ('&' <userDefinedDeclInstance>)*
 std::unique_ptr<ast::TraitList> Parser::parseTraitList() {
   std::vector<std::unique_ptr<ast::TraitInstance>> traits;
 
-  if (nextToken.kind == TokenKind::Sub) {
-    eatNextToken(); // eat '<:'
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat ':'
 
     while (true) {
       matchOrReturn(TokenKind::Identifier, "expected identifier");
