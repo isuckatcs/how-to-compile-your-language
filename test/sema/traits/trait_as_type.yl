@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+// CHECK: [[# @LINE + 1 ]]:11: error: failed to resolve type 'A'
+fn foo(a: A) {}
+
+fn main() {}

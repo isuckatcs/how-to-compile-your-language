@@ -230,7 +230,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   if (const auto *udt =
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
     res::Decl *decl = lexicalScope->lookupDecl<res::TypeDecl>(udt->identifier);
-    if (!decl || decl->getAs<res::TraitDecl>())
+    if (!decl)
       return report(udt->location,
                     "failed to resolve type '" + udt->identifier + "'");
 
@@ -1255,7 +1255,7 @@ Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
   const auto &typeArguments = trait->typeArguments;
 
   auto *traitDecl = lexicalScope->lookupDecl<res::TraitDecl>(identifier);
-  if (!traitDecl || !traitDecl->getAs<res::TraitDecl>())
+  if (!traitDecl)
     return report(location, identifier + " is not a trait");
 
   std::vector<res::Type *> resTypeArgs;
