@@ -10,6 +10,7 @@ trait A<T, U : Base<T>> {}
 fn foo<T : A<T, B<T>>>() {}
 // CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitInstance @({{.*}}) A {A<T, B<T>>}
 // CHECK-NEXT:   Block
 
 fn main() {}

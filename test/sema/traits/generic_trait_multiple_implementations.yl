@@ -3,6 +3,10 @@ trait B<T> {}
 
 trait A<T, U> : B<T> & B<U> {}
 // CHECK: TraitDecl @({{.*}}) A
+// CHECK-NEXT:   TraitInstance @({{.*}}) B {B<T>}
+// CHECK-NEXT:   TraitInstance @({{.*}}) B {B<U>}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) U {U}
 
 struct Empty {}
 
@@ -19,6 +23,8 @@ fn foo<T, U, V : B<T> & B<U>>(v: V) {}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U {U}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) V {V}
+// CHECK-NEXT:     TraitInstance @({{.*}}) B {B<T>}
+// CHECK-NEXT:     TraitInstance @({{.*}}) B {B<U>}
 // CHECK-NEXT:   ParamDecl @({{.*}}) v {V}
 // CHECK-NEXT:   Block
 

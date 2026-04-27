@@ -174,7 +174,41 @@ struct ParamDecl : public ValueDecl {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+struct TraitInstance;
+struct TraitDecl : public Decl, public DeclContext {
+  std::vector<TraitInstance *> traits;
+
+  TraitDecl(SourceLocation location,
+            std::string identifier,
+            std::vector<TypeParamDecl *> typeParams)
+      : Decl(location, std::move(identifier), std::move(typeParams)),
+        DeclContext(nullptr) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
+struct TraitInstance : public TypedNode {
+  SourceLocation location;
+  TraitDecl *decl;
+
+  std::vector<res::Type *> typeArgs;
+  std::vector<yl::SourceLocation> typeLocations;
+
+  TraitInstance(yl::SourceLocation location,
+                TraitDecl *decl,
+                std::vector<res::Type *> typeArgs,
+                std::vector<yl::SourceLocation> typeLocations)
+      : location(location),
+        decl(decl),
+        typeArgs(std::move(typeArgs)),
+        typeLocations(std::move(typeLocations)) {}
+
+  void dump(Context &ctx, size_t level = 0) const;
+};
+
 struct TypeParamDecl : public TypeDecl {
+  std::vector<TraitInstance *> traits;
+
   TypeParamDecl(SourceLocation location, std::string identifier)
       : TypeDecl(location, std::move(identifier)) {}
 
@@ -199,35 +233,6 @@ struct VarDecl : public ValueDecl {
         initializer(initializer) {}
 
   void dump(Context &ctx, size_t level = 0) const override;
-};
-
-struct TraitDecl : public Decl, public DeclContext {
-  TraitDecl(SourceLocation location,
-            std::string identifier,
-            std::vector<TypeParamDecl *> typeParams)
-      : Decl(location, std::move(identifier), std::move(typeParams)),
-        DeclContext(nullptr) {}
-
-  void dump(Context &ctx, size_t level = 0) const override;
-};
-
-struct TraitInstance {
-  SourceLocation location;
-  TraitDecl *decl;
-
-  std::vector<res::Type *> typeArgs;
-  std::vector<yl::SourceLocation> typeLocations;
-
-  TraitInstance(yl::SourceLocation location,
-                TraitDecl *decl,
-                std::vector<res::Type *> typeArgs,
-                std::vector<yl::SourceLocation> typeLocations)
-      : location(location),
-        decl(decl),
-        typeArgs(std::move(typeArgs)),
-        typeLocations(std::move(typeLocations)) {}
-
-  void dump(Context &ctx, size_t level = 0) const;
 };
 
 struct ImplDecl : public Decl, public DeclContext {

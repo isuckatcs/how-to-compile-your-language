@@ -12,6 +12,7 @@ fn bar<T : A>(t : T) {
 }
 // CHECK: FunctionDecl @({{.*}}) bar {(T) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitInstance @({{.*}}) A {A}
 // CHECK-NEXT:   ParamDecl @({{.*}}) t {T}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}

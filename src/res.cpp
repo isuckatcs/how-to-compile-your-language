@@ -91,7 +91,10 @@ void FunctionDecl::dump(Context &ctx, size_t level) const {
 
 void ImplDecl::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "ImplDecl @(" << this << ") "
-            << ctx.getTypeMgr().getType(this)->getName() << '\n';
+            << traitInstance->decl->identifier << " {"
+            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+
+  traitInstance->dump(ctx, level + 1);
 
   for (auto &&decl : decls)
     decl->dump(ctx, level + 1);
@@ -110,24 +113,16 @@ void StructDecl::dump(Context &ctx, size_t level) const {
 
 void TraitInstance::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "TraitInstance @(" << decl
-            << ") " + decl->identifier;
-
-  if (!typeArgs.empty()) {
-    std::cerr << '<';
-    for (int i = 0; i < typeArgs.size(); ++i) {
-      std::cerr << typeArgs[i]->getName();
-
-      if (i < typeArgs.size() - 1)
-        std::cerr << ',' << ' ';
-    }
-    std::cerr << '>';
-  }
-  std::cerr << '\n';
+            << ") " + decl->identifier << " {"
+            << ctx.getTypeMgr().getType(this)->getName() << "}\n";
 }
 
 void TraitDecl::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "TraitDecl @(" << this << ") " << identifier
             << '\n';
+
+  for (auto &&trait : traits)
+    trait->dump(ctx, level + 1);
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(ctx, level + 1);
@@ -139,6 +134,9 @@ void TraitDecl::dump(Context &ctx, size_t level) const {
 void TypeParamDecl::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl @(" << this << ") " << identifier
             << " {" << ctx.getTypeMgr().getType(this)->getName() << "}\n";
+
+  for (auto &&trait : traits)
+    trait->dump(ctx, level + 1);
 }
 
 void NumberLiteral::dump(Context &ctx, size_t level) const {

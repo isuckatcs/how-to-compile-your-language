@@ -2,6 +2,7 @@
 trait A<T : Base<S>> {}
 // CHECK: TraitDecl @({{.*}}) A
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitInstance @({{.*}}) Base {Base<S>}
 
 trait B {}
 // CHECK-NEXT: TraitDecl @({{.*}}) B
@@ -9,6 +10,7 @@ trait B {}
 trait Base<T : B> {}
 // CHECK-NEXT: TraitDecl @({{.*}}) Base
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitInstance @({{.*}}) B {B}
 
 struct S {
     impl B;

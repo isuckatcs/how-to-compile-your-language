@@ -7,7 +7,8 @@ struct S {
   fn A() {}
 }
 // CHECK: StructDecl @({{.*}}) S {S}
-// CHECK-NEXT:   ImplDecl @({{.*}}) A
+// CHECK-NEXT:   ImplDecl @({{.*}}) A {A}
+// CHECK-NEXT:     TraitInstance @({{.*}}) A
 // CHECK-NEXT:   FunctionDecl @({{.*}}) A {() -> unit}
 // CHECK-NEXT:     Block
 

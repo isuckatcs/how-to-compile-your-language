@@ -382,7 +382,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
                 resolveTraitInstance(ctx, impl->traitInstance.get()));
 
     res::TraitType *traitTy =
-        typeMgr.getTraitType(*traitInstance->decl, traitInstance->typeArgs);
+        typeMgr.getType(traitInstance)->getAs<res::TraitType>();
 
     auto *checkTy =
         typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
@@ -932,8 +932,7 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
                                      res::StructDecl *parent) {
   varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
 
-  res::TraitType *traitTy =
-      typeMgr.getTraitType(*traitInstance->decl, traitInstance->typeArgs);
+  auto *traitTy = typeMgr.getType(traitInstance)->getAs<res::TraitType>();
   typeMgr.addUpperBound(parent, traitTy);
 
   auto *resDecl = ctx.createAndBind<res::ImplDecl>(
@@ -1103,9 +1102,11 @@ bool Sema::resolveGenericParamsInCurrentScope(
     auto traits = resolveTraitInstanceList(ctx, astTraitList);
     error |= traits.size() != astTraitList->traits.size();
 
-    for (auto &&trait : traits)
-      typeMgr.addUpperBound(
-          resParam, typeMgr.getTraitType(*trait->decl, trait->typeArgs));
+    for (auto &&trait : traits) {
+      resParam->traits.emplace_back(trait);
+      typeMgr.addUpperBound(resParam,
+                            typeMgr.getType(trait)->getAs<res::TraitType>());
+    }
   }
 
   return !error;
@@ -1282,8 +1283,10 @@ Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
   if (typeArguments.size() != resTypeArgs.size())
     return nullptr;
 
-  return ctx.create<res::TraitInstance>(
-      location, traitDecl, std::move(resTypeArgs), std::move(resTypeArgsLocs));
+  auto *traitTy = typeMgr.getTraitType(*traitDecl, resTypeArgs);
+  return ctx.createAndBind<res::TraitInstance>(traitTy, location, traitDecl,
+                                               std::move(resTypeArgs),
+                                               std::move(resTypeArgsLocs));
 }
 
 res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
@@ -1310,9 +1313,11 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   auto traits = resolveTraitInstanceList(ctx, astDecl.traitList.get());
   error |= astDecl.traitList->traits.size() != traits.size();
 
-  for (auto &&trait : traits)
+  for (auto &&trait : traits) {
+    traitDecl.traits.emplace_back(trait);
     typeMgr.addUpperBound(&traitDecl,
-                          typeMgr.getTraitType(*trait->decl, trait->typeArgs));
+                          typeMgr.getType(trait)->getAs<res::TraitType>());
+  }
 
   for (auto &&fn : astDecl.traitFunctions)
     error |= !insertDeclToScope(resolveFunctionDecl(ctx, *fn, &traitDecl),
@@ -1465,12 +1470,11 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
     if (const auto *implBlock =
             dynamic_cast<const ast::ImplDecl *>(memberDecl.get())) {
       auto *traitInstance = resolveTraitInstance(ctx, implBlock->trait.get());
-      res::Type *trait =
-          typeMgr.getTraitType(*traitInstance->decl, traitInstance->typeArgs);
 
       for (auto &&fn : implBlock->functions) {
         res::FunctionDecl *implFn =
-            decl.lookupDecl<res::ImplDecl>(trait->getName())
+            decl.lookupDecl<res::ImplDecl>(
+                    typeMgr.getType(traitInstance)->getName())
                 ->lookupDecl<res::FunctionDecl>(fn->identifier);
 
         error |= !resolveFunctionBody(ctx, *fn, implFn);
@@ -1645,8 +1649,7 @@ bool Sema::checkTraitInstances(res::Context &ctx) {
   bool error = false;
 
   for (auto &&traitInstance : ctx.getTraitInstances()) {
-    auto sub = typeMgr.extractSubstitutionFrom(
-        typeMgr.getTraitType(*traitInstance->decl, traitInstance->typeArgs));
+    auto sub = typeMgr.extractSubstitutionFrom(typeMgr.getType(traitInstance));
 
     for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
       auto *subTy = typeMgr.getNewUninferredType();
