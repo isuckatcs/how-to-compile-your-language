@@ -44,17 +44,9 @@ void CFG::dump() const {
       } else if (auto *assignment =
                      dynamic_cast<const res::Assignment *>(*it)) {
         if (auto *path =
-                dynamic_cast<const res::PathExpr *>(assignment->assignee)) {
-          for (auto &&fragment : path->fragments) {
-            if (fragment->trait)
-              std::cerr << "impl " << fragment->trait->getName() << ':' << ':';
-
-            std::cerr << fragment->decl->identifier;
-
-            if (fragment != path->fragments.back())
-              std::cerr << ':' << ':';
-          }
-        } else
+                dynamic_cast<const res::PathExpr *>(assignment->assignee))
+          std::cerr << path->fragments.back()->decl->identifier;
+        else
           std::cerr << stmtToRef[assignment->assignee];
 
         std::cerr << " = " << stmtToRef[assignment->expr];
@@ -110,6 +102,9 @@ void CFG::dump() const {
         std::cerr << dre->decl->identifier;
       } else if (const auto *path = dynamic_cast<const res::PathExpr *>(*it)) {
         for (auto &&fragment : path->fragments) {
+          if (fragment->trait)
+            std::cerr << "impl " << fragment->trait->getName() << "::";
+
           if (fragment == path->fragments.back()) {
             std::cerr << path->fragments.back()->decl->identifier;
             continue;

@@ -3,8 +3,18 @@ struct S<T> {
   fn foo<U>() {}
 }
 
+trait A {
+  fn foo() {}
+}
+
+struct S2 {
+  impl A;
+}
+
 fn main() {
   S@<number>::foo@<number>();
+
+  S2::impl A::foo();
 }
 // CHECK: main:
 // CHECK-NEXT: [2 (entry)]
@@ -17,6 +27,9 @@ fn main() {
 // CHECK-NEXT:   1: S
 // CHECK-NEXT:   2: [1.1]::foo
 // CHECK-NEXT:   3: [1.2]()
+// CHECK-NEXT:   4: S2
+// CHECK-NEXT:   5: [1.4]::impl A::foo
+// CHECK-NEXT:   6: [1.5]()
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
 // CHECK-NEXT:   preds: 1 
