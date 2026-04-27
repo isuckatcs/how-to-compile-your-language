@@ -130,7 +130,7 @@ ConstantExpressionEvaluator::evaluate(const res::Expr &expr,
 
   if (const auto *pathExpr = dynamic_cast<const res::PathExpr *>(&expr)) {
     for (auto &&fragment : pathExpr->fragments) {
-      auto res = evaluateDeclRefExpr(*fragment, allowSideEffects);
+      auto res = evaluate(*fragment, allowSideEffects);
       if (!res)
         return std::nullopt;
 
