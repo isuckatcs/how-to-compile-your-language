@@ -7,9 +7,6 @@
 namespace yl {
 namespace res {
 bool DeclContext::insertDecl(res::Decl *decl) {
-  if (decl == nullptr)
-    return false;
-
   bool isValueDecl = decl->getAs<res::ValueDecl>();
 
   for (auto &&currentDecl : decls)
@@ -159,9 +156,6 @@ void DeclRefExpr::dump(Context &ctx, size_t level) const {
   std::cerr << decl->identifier;
 
   std::cerr << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
-
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
 void PathExpr::dump(Context &ctx, size_t level) const {
