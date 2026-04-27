@@ -14,10 +14,14 @@
     ::= 'n'
     |   'v'
     |   <structType>
+    |   <traitType>
     |   <functionType>
 
 <structType>
     ::= 'S' <identifier> <genericArgs>?
+
+<traitType>
+    ::= 'T' <identifier> <genericArgs>?
 
 <functionType>
     ::= 'F' <type>* 'R' <type>
