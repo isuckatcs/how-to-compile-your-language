@@ -501,8 +501,13 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     for (auto &&astArg : typeArgList->args) {
       varOrReturn(typeArgTy, resolveType(ctx, *astArg));
 
-      if (!unifyAndReportTypeErrors(astArg->location, typeArgTy, typeArgs[idx]))
+      if (const auto &errors = typeMgr.unify(typeArgTy, typeArgs[idx]);
+          !errors.empty()) {
+        for (auto &&error : errors)
+          report(astArg->location, error);
+
         return nullptr;
+      }
 
       ++idx;
     }
@@ -1656,18 +1661,5 @@ bool Sema::checkTraitInstances(res::Context &ctx) {
   }
 
   return !error;
-}
-
-bool Sema::unifyAndReportTypeErrors(SourceLocation loc,
-                                    res::Type *t1,
-                                    res::Type *t2) {
-  const auto &errors = typeMgr.unify(t1, t2);
-  if (errors.empty())
-    return true;
-
-  for (auto &&error : errors)
-    report(loc, error);
-
-  return false;
 }
 } // namespace yl

@@ -168,11 +168,6 @@ class Sema {
   bool hasSelfContainingStructs(const res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
 
-  bool
-  unifyAndReportTypeErrors(SourceLocation loc, res::Type *t1, res::Type *t2);
-  std::pair<res::PathExpr *, res::Expr *>
-  transformMethodCall(res::MemberExpr *me);
-
 public:
   explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)
       : cee(&cee),
