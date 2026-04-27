@@ -937,7 +937,6 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
 
   auto *resDecl = ctx.createAndBind<res::ImplDecl>(
       traitTy, decl.location, traitTy->getName(), traitInstance);
-  bool error = false;
 
   for (auto &&astFunction : decl.functions) {
     auto *traitFn = traitTy->getDecl()->lookupDecl<res::FunctionDecl>(
@@ -946,24 +945,19 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
       report(astFunction->location, "'" + traitTy->getDecl()->identifier +
                                         "' has no member function called '" +
                                         astFunction->identifier + "'");
-      error = true;
       continue;
     }
 
     auto *implFn = resolveFunctionDecl(ctx, *astFunction, parent, traitFn);
-    if (!implFn) {
-      error = true;
+    if (!implFn)
       continue;
-    }
 
     auto traitFnTypeParams = traitFn->typeParams;
     auto implTypeParams = implFn->typeParams;
 
     if (!checkTypeParameterCount(implFn->location, implTypeParams.size(),
-                                 traitFnTypeParams.size() - 1)) {
-      error = true;
+                                 traitFnTypeParams.size() - 1))
       continue;
-    }
 
     res::Substitution sub;
     res::Substitution reverseSub;
@@ -990,7 +984,6 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
                "cannot replace parameter of type '" + traitParamTy->getName() +
                    "' with stricter implementation type '" +
                    implParamTy->getName() + "'");
-        error = true;
       }
     }
 
@@ -1001,24 +994,18 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
         typeMgr.instantiate(typeMgr.getType(traitFn), traitSub), sub);
     res::Type *actualType = typeMgr.getType(implFn);
 
-    if (!typeMgr.unify(expectedType, actualType).empty()) {
+    if (!typeMgr.unify(expectedType, actualType).empty())
       report(implFn->location,
              "trait function declaration has '" + expectedType->getName() +
                  "' signature, but the given implementation is '" +
                  actualType->getName() + "'");
-      error = true;
-    }
 
-    if (!resDecl->insertDecl(implFn)) {
+    if (!resDecl->insertDecl(implFn))
       report(implFn->location, "function '" + implFn->identifier +
                                    "' is already implemented for trait '" +
                                    traitTy->getName() + "'");
-      error = true;
-    }
   }
 
-  if (error)
-    return nullptr;
   return resDecl;
 }
 
@@ -1406,6 +1393,9 @@ bool Sema::resolveStructBody(res::Context &ctx,
                                       structDecl.identifier + "'");
         error = true;
       }
+
+      if (resImpl->decls.size() != implDecl->functions.size())
+        error = true;
     }
   }
 

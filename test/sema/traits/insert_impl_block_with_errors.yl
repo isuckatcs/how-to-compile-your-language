@@ -1,0 +1,20 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+}
+
+struct S {
+  impl A {
+    fn foo() {}
+
+    // CHECK: [[# @LINE + 1 ]]:8: error: function 'foo' is already implemented for trait 'A'
+    fn foo() {}
+  }
+
+  // CHECK: [[# @LINE + 1 ]]:8: error: trait 'A' is already implemented for struct 'S'
+  impl A {
+    fn foo() {}
+  }
+}
+
+fn main() {}
