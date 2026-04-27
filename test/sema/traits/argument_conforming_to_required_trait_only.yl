@@ -1,13 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait C {}
 
-trait B <: C {}
+trait B : C {}
 
-trait A <: B {}
+trait A : B {}
 
-fn foo<T <: C>(t : T) {}
+fn foo<T : C>(t : T) {}
 
-fn bar<T <: A>(t : T) {
+fn bar<T : A>(t : T) {
   foo(t);
 }
 // CHECK: FunctionDecl @({{.*}}) bar {(T) -> unit}

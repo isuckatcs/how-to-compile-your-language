@@ -12,7 +12,7 @@ struct S<T> {
   }
 }
 
-fn foo<X, U <: A<X>>(u: U) {
+fn foo<X, U : A<X>>(u: U) {
   u.foo();
 }
 // CHECK: define void @_Y3fooGnS1SGnEE() {

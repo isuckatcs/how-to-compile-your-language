@@ -3,7 +3,7 @@ trait A {}
 
 struct S {}
 
-fn foo<T <: A>(x: T) {}
+fn foo<T : A>(x: T) {}
 
 fn main() {
   let s = S{};

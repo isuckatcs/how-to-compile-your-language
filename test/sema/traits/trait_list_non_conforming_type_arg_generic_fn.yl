@@ -5,10 +5,10 @@ struct B<T> {
     impl Base<T>;
 }
 
-trait A<T, U <: Base<T>> {}
+trait A<T, U : Base<T>> {}
 
-fn foo<T <: A<number, B<unit>>>() {}
-// CHECK: [[# @LINE - 1]]:23: error: cannot unify 'unit' with 'number'
-// CHECK: [[# @LINE - 2]]:23: error: cannot satisfy constraint 'B<unit> : Base<number>'
+fn foo<T : A<number, B<unit>>>() {}
+// CHECK: [[# @LINE - 1]]:22: error: cannot unify 'unit' with 'number'
+// CHECK: [[# @LINE - 2]]:22: error: cannot satisfy constraint 'B<unit> : Base<number>'
 
 fn main() {}

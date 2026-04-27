@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait Base {}
 
-trait A<T <: Base> {}
+trait A<T : Base> {}
 
-// CHECK: [[# @LINE + 1]]:15: error: cannot satisfy constraint 'number : Base'
-fn foo<T <: A<number>>() {}
+// CHECK: [[# @LINE + 1]]:14: error: cannot satisfy constraint 'number : Base'
+fn foo<T : A<number>>() {}
 
 fn main() {}

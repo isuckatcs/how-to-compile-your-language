@@ -7,7 +7,7 @@ struct S {
   impl A<number>;
 }
 
-fn foo<T, U <: A<T>>(x: U, y: T) {}
+fn foo<T, U : A<T>>(x: U, y: T) {}
 
 fn main() {
   let s = S{};

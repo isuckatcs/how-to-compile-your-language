@@ -3,7 +3,7 @@ trait A<T> {
   fn bar(t: T) {}
 }
 
-fn traitFnDispatch<T <: A<number>>() {
+fn traitFnDispatch<T : A<number>>() {
   T::bar(0);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   PathExpr {(number) -> unit}

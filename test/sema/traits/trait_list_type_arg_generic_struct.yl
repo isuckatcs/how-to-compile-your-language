@@ -5,7 +5,7 @@ struct B<T> {
   impl Base<T>;
 }
 
-trait A<T, U <: Base<T>> {}
+trait A<T, U : Base<T>> {}
 
 struct S {
   impl A<number, B<number>>;

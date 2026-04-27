@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait B<T> {}
 
-trait A <: B<number> & B<unit> {}
+trait A : B<number> & B<unit> {}
 
 struct S {
     impl A;

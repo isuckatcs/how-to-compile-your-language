@@ -7,7 +7,7 @@ struct S2 {
   impl A<number>;
 }
 
-struct S<T, U <: A<T>> {
+struct S<T, U : A<T>> {
   x: U
 }
 

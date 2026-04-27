@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait B<T> {}
 
-trait A<T> <: B<T> {}
+trait A<T> : B<T> {}
 
 struct S<X> {
     // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A<X>' requires implementing trait 'B<X>'

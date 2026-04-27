@@ -5,7 +5,7 @@ struct S {
   impl A;
 }
 
-fn foo<T <: A>(x: T) {}
+fn foo<T : A>(x: T) {}
 
 fn main() {
   let f = foo@<S>;

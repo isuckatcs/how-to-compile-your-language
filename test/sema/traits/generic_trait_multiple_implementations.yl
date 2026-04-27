@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait B<T> {}
 
-trait A<T, U> <: B<T> & B<U> {}
+trait A<T, U> : B<T> & B<U> {}
 // CHECK: TraitDecl @({{.*}}) A
 
 struct Empty {}
@@ -14,7 +14,7 @@ struct S<T, U> {
 }
 // CHECK: StructDecl @({{.*}}) S {S<T, U>}
 
-fn foo<T, U, V <: B<T> & B<U>>(v: V) {}
+fn foo<T, U, V : B<T> & B<U>>(v: V) {}
 // CHECK: FunctionDecl @({{.*}}) foo {(V) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) U {U}

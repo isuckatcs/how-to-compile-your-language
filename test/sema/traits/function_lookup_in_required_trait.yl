@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait C {}
 
-trait B <: C {
+trait B : C {
   fn foo(self: Self) {}
   // CHECK: FunctionDecl @({{.*}}) foo {(__Self) -> unit}
   // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
@@ -9,11 +9,11 @@ trait B <: C {
   // CHECK-NEXT:   Block
 }
 
-trait A <: B {}
+trait A : B {}
 
-fn foo<T <: C>(t : T) {}
+fn foo<T : C>(t : T) {}
 
-fn bar<T <: A>(t : T) {
+fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   PathExpr {(T) -> unit}

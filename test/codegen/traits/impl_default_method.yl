@@ -22,7 +22,7 @@ struct S2 {
   }
 }
 
-fn traitFnDispatch<T <: A>() {
+fn traitFnDispatch<T : A>() {
   T::bar();
 }
 

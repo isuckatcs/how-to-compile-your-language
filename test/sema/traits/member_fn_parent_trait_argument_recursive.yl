@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T> {}
 
-struct S<T <: A<T>> {
+struct S<T : A<T>> {
   fn foo(x: T) {}
 }
 

@@ -3,15 +3,15 @@ trait C {
   fn foo(self: Self) {}
 }
 
-trait B <: C {
+trait B : C {
   fn foo(self: Self) {}
 }
 
-trait A <: B {}
+trait A : B {}
 
-fn foo<T <: C>(t : T) {}
+fn foo<T : C>(t : T) {}
 
-fn bar<T <: A>(t : T) {
+fn bar<T : A>(t : T) {
   // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
   t.foo();
 

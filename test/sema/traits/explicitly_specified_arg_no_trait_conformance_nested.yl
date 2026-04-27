@@ -11,7 +11,7 @@ struct S2 {
   impl B<number>;
 }
 
-fn foo<T <: A, U <: B<T>>() {}
+fn foo<T : A, U : B<T>>() {}
 
 fn main() {
   foo@<S, S2>();

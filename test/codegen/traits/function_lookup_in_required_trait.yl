@@ -4,7 +4,7 @@ trait B {
   fn foo(self: &Self);
 }
 
-trait A <: B {
+trait A : B {
   fn getX(self: &Self): number;
 }
 
@@ -24,7 +24,7 @@ struct S {
   }
 }
 
-fn bar<T <: A>(mut t : T) {
+fn bar<T : A>(mut t : T) {
   t.foo();
 
   T::foo(&t);
