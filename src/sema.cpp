@@ -795,12 +795,16 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   auto *lhsTy = typeMgr.getType(lhs);
   auto *rhsTy = typeMgr.getType(rhs);
 
-  if (!typeMgr.unify(lhsTy, rhsTy).empty())
+  if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
+    for (auto &&error : errors)
+      report(rhs->location, error);
+
     return report(rhs->location, "expected to assign '" + lhsTy->getName() +
                                      "' but received '" + rhsTy->getName() +
                                      "' instead");
-  rhs->setConstantValue(cee->evaluate(*rhs, false));
+  }
 
+  rhs->setConstantValue(cee->evaluate(*rhs, false));
   return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
 }
 
