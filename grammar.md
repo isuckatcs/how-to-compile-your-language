@@ -11,7 +11,7 @@
     ::= 'fn' <functionSignature> (';' | <block>)
 
 <traitList>
-    ::= '<:' <traitInstance> ('&' <traitInstance>)*
+    ::= ':' <traitInstance> ('&' <traitInstance>)*
 
 <traitInstance>
     ::= <identifier> <typeList>?
