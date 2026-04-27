@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+struct S {
+  impl A<number>;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1]]:6: error: 'S' doesn't implement trait 'A<unit>'
+  S::impl A<unit>::foo();
+}

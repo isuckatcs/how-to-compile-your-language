@@ -1,0 +1,23 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(): SB {
+    return SB{};
+  }
+}
+
+trait B {
+  fn bar() {}
+}
+
+struct SA {
+  impl A;
+}
+
+struct SB {
+  impl B;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1]]:20: error: '() -> SB' doesn't implement trait 'B'
+  SA::impl A::foo::impl B::bar();
+}

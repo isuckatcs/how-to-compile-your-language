@@ -1,0 +1,4 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+
+// CHECK: [[# @LINE + 1]]:4: error: 'main' function cannot be generic
+fn main<T>() {}

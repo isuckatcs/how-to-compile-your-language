@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+  fn bar() {}
+  fn baz() {}
+}
+
+struct S {
+  impl A {
+    // CHECK: [[# @LINE + 1]]:15: error: failed to resolve type 'error'
+    fn foo(): error {}
+
+    // CHECK: [[# @LINE + 1]]:15: error: failed to resolve type 'error'
+    fn bar(): error {}
+
+    // CHECK: [[# @LINE + 1]]:15: error: failed to resolve type 'error'
+    fn baz(): error {}
+  }
+}
+
+fn main() {}

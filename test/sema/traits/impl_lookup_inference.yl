@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo() {}
+}
+
+struct S<T> {
+  impl A<T>;
+}
+
+fn main() {
+  S::impl A<number>::foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {() -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S<number>}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<number>::foo {() -> unit}
+}
