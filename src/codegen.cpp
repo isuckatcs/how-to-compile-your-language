@@ -335,7 +335,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
     return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
 
   if (auto *path = dynamic_cast<const res::PathExpr *>(&expr))
-    return generateDeclRefExpr(*path->fragments.back());
+    return generateExpr(*path->fragments.back());
 
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return generateDeclRefExpr(*dre);
