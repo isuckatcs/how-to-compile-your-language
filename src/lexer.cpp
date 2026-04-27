@@ -102,15 +102,6 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Colon};
   }
 
-  if (currentChar == '<') {
-    if (peekNextChar() == ':') {
-      eatNextChar();
-      return Token{tokenStartLocation, TokenKind::Sub};
-    }
-
-    return Token{tokenStartLocation, TokenKind::Lt};
-  }
-
   if (isAlpha(currentChar)) {
     std::string value{currentChar};
 

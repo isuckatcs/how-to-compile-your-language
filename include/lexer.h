@@ -12,7 +12,7 @@
 
 namespace yl {
 constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ';', ',',
-                                     '+',  '*', '>', '!', '.', '@'};
+                                     '+',  '*', '<', '>', '!', '.', '@'};
 
 enum class TokenKind : char {
   Unk = -128,
@@ -27,8 +27,6 @@ enum class TokenKind : char {
   Arrow,
   Colon,
   ColonColon,
-  Lt,
-  Sub,
 
   Identifier,
   Number,
@@ -56,10 +54,11 @@ enum class TokenKind : char {
   Comma = singleCharTokens[6],
   Plus = singleCharTokens[7],
   Asterisk = singleCharTokens[8],
-  Gt = singleCharTokens[9],
-  Excl = singleCharTokens[10],
-  Dot = singleCharTokens[11],
-  At = singleCharTokens[12],
+  Lt = singleCharTokens[9],
+  Gt = singleCharTokens[10],
+  Excl = singleCharTokens[11],
+  Dot = singleCharTokens[12],
+  At = singleCharTokens[13],
 };
 
 std::string_view getOpStr(TokenKind op);
