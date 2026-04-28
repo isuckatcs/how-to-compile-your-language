@@ -3,23 +3,23 @@
 fn foo(x: number): unit {
     let x: number = 1.0;
 
-    if 0.0 {
+    if false {
         let x: number = 2.0;
 
-        if 0.0 {
+        if false {
             let x: number = 3.0;
         }
     } else {
         let x: number = 4.0;
     }
 
-    while 0.0 {
+    while false {
         let x: number = 5.0;
 
-        if 0.0 {
+        if false {
             let x: number = 6.0;
 
-            if 0.0 {
+            if false {
                 let x: number = 7.0;
             }
         } else {

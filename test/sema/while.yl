@@ -1,11 +1,11 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn foo(): unit {}
 
-fn bar(): number { return 1.0; }
+fn bar(): bool { return true; }
 
 fn main(): unit {
     while bar() {}
 
-    // CHECK: [[# @LINE + 1 ]]:14: error: expected number in condition
+    // CHECK: [[# @LINE + 1 ]]:14: error: expected 'bool' in condition
     while foo() {}
 }

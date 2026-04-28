@@ -144,6 +144,14 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
     std::cerr << indent(level) << "| value: " << *val << '\n';
 }
 
+void BoolLiteral::dump(Context &ctx, size_t level) const {
+  std::cerr << indent(level) << "BoolLiteral '" << value << "' {"
+            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+
+  if (auto val = getConstantValue())
+    std::cerr << indent(level) << "| value: " << *val << '\n';
+}
+
 void UnitLiteral::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "UnitLiteral {"
             << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';

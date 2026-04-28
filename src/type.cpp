@@ -32,6 +32,9 @@ BuiltinUnitType::BuiltinUnitType()
 BuiltinNumberType::BuiltinNumberType()
     : Type("number", {}){};
 
+BuiltinBoolType::BuiltinBoolType()
+    : Type("bool", {}){};
+
 TypeParamType::TypeParamType(TypeParamDecl &decl)
     : Type(decl.identifier, {}),
       decl(&decl) {}
@@ -136,6 +139,11 @@ BuiltinUnitType *TypeManager::getBuiltinUnitType() {
 BuiltinNumberType *TypeManager::getBuiltinNumberType() {
   static BuiltinNumberType numberType;
   return &numberType;
+}
+
+BuiltinBoolType *TypeManager::getBuiltinBoolType() {
+  static BuiltinBoolType boolType;
+  return &boolType;
 }
 
 FunctionType *TypeManager::getFunctionType(std::vector<Type *> args,

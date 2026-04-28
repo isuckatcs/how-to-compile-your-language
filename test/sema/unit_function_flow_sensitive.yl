@@ -16,7 +16,7 @@ fn bar(x: number) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     IfStmt
-// CHECK-NEXT:       BinaryOperator '>' {number}
+// CHECK-NEXT:       BinaryOperator '>' {bool}
 // CHECK-NEXT:         PathExpr {number}
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:         NumberLiteral '2' {number}

@@ -2,9 +2,9 @@
 fn foo(): unit {}
 
 fn main(): unit {
-    // CHECK: [[# @LINE + 1 ]]:5: error: 'unit' cannot be used as an operand to unary operator
+    // CHECK: [[# @LINE + 1 ]]:9: error: expected 'bool' operand
     !foo();
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: 'unit' cannot be used as an operand to unary operator
+    // CHECK: [[# @LINE + 1 ]]:9: error: expected 'number' operand
     -foo();
 }

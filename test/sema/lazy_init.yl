@@ -2,7 +2,7 @@
 fn main(): unit {
     let x: number;
     
-    if 1.0 {
+    if true {
         x = 2.0;
     } else {
         x = 3.0;
@@ -14,7 +14,7 @@ fn main(): unit {
 fn modifyImmutable(): unit {
     let x: number = 1.0;
     
-    if 1.0 {
+    if true {
         // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
         x = 1.0;
     } else {
@@ -29,7 +29,7 @@ fn modifyImmutable(): unit {
 fn uninitOneBranch(): unit {
     let x: number;
     
-    if 1.0 {
+    if true {
         let x: number;
         x = 1.0; // init inner 'x'
     } else {
@@ -43,7 +43,7 @@ fn uninitOneBranch(): unit {
 fn initEveryBranch(): unit {
     mut x: number;
     
-    if 1.0 {
+    if true {
         x = 1.0;
     } else {
         x = 2.0;
@@ -56,11 +56,11 @@ fn initEveryBranch(): unit {
 fn initConditionVar(): unit {
     mut x: number;
     
-    // CHECK: [[# @LINE + 1 ]]:15: error: 'x' is not initialized
-    if 1.0 || x {
+    // CHECK: [[# @LINE + 1 ]]:16: error: 'x' is not initialized
+    if true || x > 0 {
         x = 1.0;
-    // CHECK: [[# @LINE + 1 ]]:22: error: 'x' is not initialized
-    } else if 0.0 && x == 2.0 {
+    // CHECK: [[# @LINE + 1 ]]:24: error: 'x' is not initialized
+    } else if false && x == 2.0 {
         x = 3.0;
     } else {
         x = 2.0;
@@ -74,7 +74,7 @@ fn loop(): unit {
     let x: number;
     mut y: number;
     
-    while 1.0 {
+    while true {
         // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
         x = 1.0;
 
@@ -91,7 +91,7 @@ fn loop(): unit {
 fn shadowInitialization(): unit {
     let x: number;
     
-    if 1.0 {
+    if true {
         let x: number;
         x = 1.0;
     } else {
@@ -105,7 +105,7 @@ fn shadowInitialization(): unit {
 fn shadowInitialized(): unit {
     let x: number;
     
-    if 1.0 {
+    if true {
         x = 1.0;
         let x: number;
         // CHECK: [[# @LINE + 1 ]]:9: error: 'x' is not initialized
@@ -120,9 +120,9 @@ fn shadowInitialized(): unit {
 fn nestedInLoop(param: number): unit {
     mut x: number;
 
-    if param {
-        while param {
-            if param {
+    if !(param == 0) {
+        while !(param == 0) {
+            if !(param == 0) {
                 x = param - 1.0;
             }
 
@@ -130,8 +130,8 @@ fn nestedInLoop(param: number): unit {
             mut y: number = x;
         }
     } else {
-        while param {
-            if param {
+        while !(param == 0) {
+            if !(param == 0) {
                 x = param - 1.0;
             }
 

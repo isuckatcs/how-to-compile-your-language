@@ -1,4 +1,4 @@
-// RUN: compiler %s 2>&1 | filecheck %s
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn singleReturn(): unit {
     return;
 }
@@ -22,7 +22,7 @@ fn multipleReturnsAfterEachOther(): unit {
 }
 
 fn branch(x: number): unit {
-    if 1.0 || x {
+    if true || x > 0 {
         1.0;
         return;
         // CHECK: [[# @LINE + 1 ]]:9: warning: unreachable statement
@@ -35,7 +35,7 @@ fn branch(x: number): unit {
 }
 
 fn loop(x: number): unit {
-    while x {
+    while x > 0 {
         return;
         // CHECK: [[# @LINE + 1 ]]:9: warning: unreachable statement
         1.0;

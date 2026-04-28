@@ -219,6 +219,8 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return typeMgr.getBuiltinUnitType();
     case ast::BuiltinType::Kind::Number:
       return typeMgr.getBuiltinNumberType();
+    case ast::BuiltinType::Kind::Bool:
+      return typeMgr.getBuiltinBoolType();
     case ast::BuiltinType::Kind::Self:
       if (!selfType)
         return report(parsedType.location,
@@ -289,23 +291,26 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
     return report(rhs->location,
                   "type of operand to unary operator is unknown");
 
-  const auto &loc = unary.location;
+  if (unary.op == TokenKind::Excl && !rhsTy->getAs<res::BuiltinBoolType>())
+    return report(rhs->location, "expected 'bool' operand");
+
+  if (unary.op == TokenKind::Minus && !rhsTy->getAs<res::BuiltinNumberType>())
+    return report(rhs->location, "expected 'number' operand");
+
   if (unary.op == TokenKind::Amp) {
     if (!(resolutionContext & ArgList))
       return report(unary.location,
                     "'&' can only be used to pass arguments to '&' parameters");
 
     if (!rhs->isMutable())
-      return report(unary.location,
+      return report(rhs->location,
                     "only mutable lvalues can be passed to '&' parameters");
 
     rhsTy = typeMgr.getOutParamType(rhsTy);
-  } else if (!rhsTy->getAs<res::BuiltinNumberType>()) {
-    return report(loc, '\'' + rhsTy->getName() +
-                           "' cannot be used as an operand to unary operator");
   }
 
-  return ctx.createAndBind<res::UnaryOperator>(rhsTy, loc, unary.op, rhs);
+  return ctx.createAndBind<res::UnaryOperator>(rhsTy, unary.location, unary.op,
+                                               rhs);
 }
 
 res::BinaryOperator *
@@ -324,13 +329,24 @@ Sema::resolveBinaryOperator(res::Context &ctx,
                       " to binary operator is unknown");
 
   const auto &loc = binop.location;
-  if (!typeMgr.unify(lhsTy, rhsTy).empty() ||
-      !lhsTy->getAs<res::BuiltinNumberType>())
+  TokenKind op = binop.op;
+
+  bool isLogicalOp = op == TokenKind::AmpAmp || op == TokenKind::PipePipe;
+  bool isNumbericOp = !isLogicalOp && op != TokenKind::EqualEqual;
+
+  bool typeError = !typeMgr.unify(lhsTy, rhsTy).empty();
+  typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
+  typeError |= isNumbericOp && !rhsTy->getAs<res::BuiltinNumberType>();
+  if (typeError)
     return report(loc, "incompatible operands to binary operator ('" +
                            lhsTy->getName() + "' and '" + rhsTy->getName() +
                            "')");
 
-  return ctx.createAndBind<res::BinaryOperator>(lhsTy, loc, binop.op, lhs, rhs);
+  res::Type *resTy = (op == TokenKind::EqualEqual || op == TokenKind::Lt ||
+                      op == TokenKind::Gt)
+                         ? typeMgr.getBuiltinBoolType()
+                         : lhsTy;
+  return ctx.createAndBind<res::BinaryOperator>(resTy, loc, binop.op, lhs, rhs);
 }
 
 res::GroupingExpr *
@@ -742,9 +758,9 @@ res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
 
 res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
   varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition));
-  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinNumberType())
+  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinBoolType())
            .empty())
-    return report(cond->location, "expected number in condition");
+    return report(cond->location, "expected 'bool' in condition");
 
   varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
 
@@ -763,9 +779,9 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
 res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
                                        const ast::WhileStmt &whileStmt) {
   varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition));
-  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinNumberType())
+  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinBoolType())
            .empty())
-    return report(cond->location, "expected number in condition");
+    return report(cond->location, "expected 'bool' in condition");
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
@@ -845,6 +861,11 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
     return ctx.createAndBind<res::NumberLiteral>(typeMgr.getBuiltinNumberType(),
                                                  number->location,
                                                  std::stod(number->value));
+
+  if (const auto *boolLiteral = dynamic_cast<const ast::BoolLiteral *>(&expr))
+    return ctx.createAndBind<res::BoolLiteral>(typeMgr.getBuiltinBoolType(),
+                                               boolLiteral->location,
+                                               boolLiteral->value == "true");
 
   if (const auto *unit = dynamic_cast<const ast::UnitLiteral *>(&expr))
     return ctx.createAndBind<res::UnitLiteral>(typeMgr.getBuiltinUnitType(),

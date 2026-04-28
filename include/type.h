@@ -71,6 +71,12 @@ class BuiltinNumberType : public Type {
   friend class TypeManager;
 };
 
+class BuiltinBoolType : public Type {
+  BuiltinBoolType();
+
+  friend class TypeManager;
+};
+
 class TypeParamType : public Type {
   TypeParamType(TypeParamDecl &decl);
 
@@ -166,6 +172,7 @@ public:
   UninferredType *getNewUninferredType();
   BuiltinUnitType *getBuiltinUnitType();
   BuiltinNumberType *getBuiltinNumberType();
+  BuiltinBoolType *getBuiltinBoolType();
   FunctionType *getFunctionType(std::vector<Type *> args, Type *ret);
   StructType *getStructType(StructDecl &decl, std::vector<Type *> typeArgs);
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);

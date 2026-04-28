@@ -29,7 +29,7 @@ fn returnAllBranch(x: number): number {
 }
 
 fn alwaysReturnIf(): number {
-    if 1.0 {
+    if true {
         return 0.0;
     }
 
@@ -38,17 +38,17 @@ fn alwaysReturnIf(): number {
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
 fn noReturnIf(): number {
-    if 0.0 {
+    if false {
         // unreachable
         return 0.0;
     }
 }
 
 fn alwaysReturnElseIf(): number {
-    if 0.0 {
+    if false {
         // unreachable
         return 0.0;
-    } else if 1.0 {
+    } else if true {
         return 0.0;
     }
 
@@ -57,19 +57,19 @@ fn alwaysReturnElseIf(): number {
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
 fn noReturnElseIf(): number {
-    if 0.0 {
+    if false {
         // unreachable
         return 0.0;
-    } else if 0.0 {
+    } else if false {
         // unreachable
         return 0.0;
     }
 }
 
-fn alwaysReturnElseIf2(x: number): number {
+fn alwaysReturnElseIf2(x: bool): number {
     if x {
         return 0.0;
-    } else if 1.0 {
+    } else if true {
         return 0.0;
     }
 }
@@ -86,7 +86,7 @@ fn uknownReturnElseIf(x: number): number {
 }
 
 fn alwaysReturnWhile(): number {
-    while 1.0 {
+    while true {
         return 1.0;
     }
 
@@ -95,34 +95,34 @@ fn alwaysReturnWhile(): number {
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
 fn noReturnWhile(): number {
-    while 0.0 {
+    while false {
         // unreachable
         return 1.0;
     }
 }
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value on every path
-fn uknownReturnWhile(x: number): number {
+fn uknownReturnWhile(x: bool): number {
     while x {
         return 1.0;
     }
 }
 
-fn alwaysReturnCondition(x: number): number {
-    if x || x || (0.0 - 1.0) {
+fn alwaysReturnCondition(x: bool): number {
+    if x || x || (0.0 - 1.0 == -1.0) {
         return 0.0;
     }
 }
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value on every path
-fn noReturnCondition(x: number): number {
-    if x && (0.0 - 1.0) {
+fn noReturnCondition(x: bool): number {
+    if x && (0.0 - 1.0 == -1.0) {
         return 0.0;
     }
 }
 
-fn alwaysReturnCondition2(x: number): number {
-    if x && (0.0 - 1.0) {
+fn alwaysReturnCondition2(x: bool): number {
+    if x && (0.0 - 1.0 == -1.0) {
         return 0.0;
     }
 
@@ -130,22 +130,22 @@ fn alwaysReturnCondition2(x: number): number {
 }
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
-fn noReturnLoop(x: number): number {
+fn noReturnLoop(x: bool): number {
     while x {}
 }
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
 fn noReturnInfiniteLoop(): number {
-    while 1.0 {}
+    while true {}
 }
 
 // CHECK: [[# @LINE + 1 ]]:4: error: expected function to return a value
 fn noReturnNeverRunningLoop(): number {
-    while 0.0 {}
+    while false {}
 }
 
-fn returnAllPaths(x: number): number {
-    if (x || x || 1) {
+fn returnAllPaths(x: bool): number {
+    if (x || x || true) {
         return 1;
     } else {
 
@@ -153,22 +153,22 @@ fn returnAllPaths(x: number): number {
 }
 
 fn returnAllPaths2(x: number): number {
-    if (1 && 1 && 1) {
+    if (true && true && true) {
         return 1;
     } else {
 
     }
 }
 
-fn returnAllPathsElse(x: number): number {
-    if (x && x && 0) {
+fn returnAllPathsElse(x: bool): number {
+    if (x && x && false) {
     } else {
         return 1;
     }
 }
 
 fn returnAllPathsElse2(x: number): number {
-    if (0 || 0 || 0) {
+    if (false || false || false) {
     } else {
         return 1;
     }

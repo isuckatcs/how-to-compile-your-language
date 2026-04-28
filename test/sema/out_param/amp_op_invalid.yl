@@ -17,11 +17,11 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&number' with 'number'
   foo(&x);
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: only mutable lvalues can be passed to '&' parameters
+  // CHECK: [[# @LINE + 1 ]]:8: error: only mutable lvalues can be passed to '&' parameters
   bar(&1);
 
   let z = 0;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: only mutable lvalues can be passed to '&' parameters
+  // CHECK: [[# @LINE + 1 ]]:8: error: only mutable lvalues can be passed to '&' parameters
   bar(&z);
 }

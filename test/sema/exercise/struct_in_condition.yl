@@ -6,8 +6,8 @@ fn main(): unit {
   let x = S {};
 
   if x {}
-  // CHECK: [[# @LINE - 1 ]]:6: error: expected number in condition
+  // CHECK: [[# @LINE - 1 ]]:6: error: expected 'bool' in condition
 
   while x {}
-  // CHECK: [[# @LINE - 1 ]]:9: error: expected number in condition
+  // CHECK: [[# @LINE - 1 ]]:9: error: expected 'bool' in condition
 }

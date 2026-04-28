@@ -292,6 +292,16 @@ struct NumberLiteral : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+struct BoolLiteral : public Expr {
+  bool value;
+
+  BoolLiteral(SourceLocation location, bool value)
+      : Expr(location, Expr::Kind::Rvalue),
+        value(value) {}
+
+  void dump(Context &ctx, size_t level = 0) const override;
+};
+
 struct UnitLiteral : public Expr {
 
   UnitLiteral(SourceLocation location)

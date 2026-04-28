@@ -9,7 +9,7 @@ fn main(): unit {
   // CHECK: [[# @LINE + 1 ]]:6: error: 's' is not initialized
   if s {}
 
-  s = 1;
+  s = true;
 }
 
 // CHECK-NOT: {{.*error.*}}
