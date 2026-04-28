@@ -117,6 +117,7 @@
 <primaryExpression>
     ::= 'unit'
     |   <numberLiteral>
+    |   <boolLiteral>
     |   <pathExpr> <fieldInitList>?
     |   '(' <expr> ')'
 
@@ -146,6 +147,7 @@
 
 <builtinType>
     ::= 'number'
+    |   'bool'
     |   'unit'
     |   'Self'
 
@@ -163,6 +165,9 @@
 
 <numberLiteral>
     ::= ('0'..'9')+ ('.' ('0'..'9')+)?
+
+<boolLiteral>
+    ::= 'true' | 'false'
 ```
 # Operators
 
