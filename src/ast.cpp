@@ -87,6 +87,10 @@ void NumberLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
 }
 
+void BoolLiteral::dump(size_t level) const {
+  std::cerr << indent(level) << "BoolLiteral: '" << value << "'\n";
+}
+
 void UnitLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "UnitLiteral\n";
 }

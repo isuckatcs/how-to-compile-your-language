@@ -20,7 +20,7 @@ struct Type {
 };
 
 struct BuiltinType : public Type {
-  enum class Kind { Unit, Number, Self };
+  enum class Kind { Unit, Number, Bool, Self };
 
   Kind kind;
 
@@ -194,6 +194,16 @@ struct NumberLiteral : public Expr {
   std::string value;
 
   NumberLiteral(SourceLocation location, std::string value)
+      : Expr(location),
+        value(value) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct BoolLiteral : public Expr {
+  std::string value;
+
+  BoolLiteral(SourceLocation location, std::string value)
       : Expr(location),
         value(value) {}
 

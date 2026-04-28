@@ -36,6 +36,12 @@ constexpr bool isTopLevelToken(TokenKind tok) {
          tok == TokenKind::KwStruct || tok == TokenKind::KwTrait;
 }
 
+const std::unordered_map<TokenKind, ast::BuiltinType::Kind> builtinTyTokens = {
+    {TokenKind::KwUnit, ast::BuiltinType::Kind::Unit},
+    {TokenKind::KwSelf, ast::BuiltinType::Kind::Self},
+    {TokenKind::KwBool, ast::BuiltinType::Kind::Bool},
+    {TokenKind::KwNumber, ast::BuiltinType::Kind::Number},
+};
 }; // namespace
 
 // Synchronization points:
@@ -693,6 +699,14 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     return literal;
   }
 
+  if (nextToken.kind == TokenKind::KwTrue ||
+      nextToken.kind == TokenKind::KwFalse) {
+    auto literal =
+        std::make_unique<ast::BoolLiteral>(location, *nextToken.value);
+    eatNextToken(); // eat 'true' | 'false'
+    return literal;
+  }
+
   if (nextToken.kind == TokenKind::Identifier ||
       nextToken.kind == TokenKind::KwSelf) {
     varOrReturn(path, parsePathExpr());
@@ -846,6 +860,7 @@ Parser::parseListWithTrailingComma(
 //
 // <builtinType>
 //  ::= 'number'
+//  |   'bool'
 //  |   'unit'
 //  |   'Self'
 //
@@ -859,29 +874,18 @@ Parser::parseListWithTrailingComma(
 //  ::= '&' <type>
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
+  TokenKind kind = nextToken.kind;
 
-  if (nextToken.kind == TokenKind::KwNumber) {
-    eatNextToken(); // eat 'number'
+  if (builtinTyTokens.count(kind)) {
+    eatNextToken(); // eat 'number' | 'bool' | 'unit' | 'Self'
     return std::make_unique<ast::BuiltinType>(location,
-                                              ast::BuiltinType::Kind::Number);
+                                              builtinTyTokens.at(kind));
   }
 
-  if (nextToken.kind == TokenKind::KwUnit) {
-    eatNextToken(); // eat 'unit'
-    return std::make_unique<ast::BuiltinType>(location,
-                                              ast::BuiltinType::Kind::Unit);
-  }
-
-  if (nextToken.kind == TokenKind::KwSelf) {
-    eatNextToken(); // eat 'Self'
-    return std::make_unique<ast::BuiltinType>(location,
-                                              ast::BuiltinType::Kind::Self);
-  }
-
-  if (nextToken.kind == TokenKind::Identifier)
+  if (kind == TokenKind::Identifier)
     return parseUserDefinedType();
 
-  if (nextToken.kind == TokenKind::Lpar) {
+  if (kind == TokenKind::Lpar) {
     SourceLocation location = nextToken.location;
     auto argumentList = parseListWithTrailingComma<ast::Type>(
         {TokenKind::Lpar, "expected '('"}, &Parser::parseType,
@@ -895,7 +899,7 @@ std::unique_ptr<ast::Type> Parser::parseType() {
         location, std::move(*argumentList), std::move(returnType));
   }
 
-  if (nextToken.kind == TokenKind::Amp) {
+  if (kind == TokenKind::Amp) {
     SourceLocation location = nextToken.location;
     eatNextToken(); // eat '&'
 
