@@ -1,0 +1,7 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct S {
+  impl A {
+    // CHECK: [[# @LINE + 1 ]]:13: error: expected function body
+    fn foo();
+  }
+}

@@ -1,0 +1,13 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  S::impl A::S2::impl B::foo();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   PathExpr:
+  // CHECK-NEXT:     DeclRefExpr: S
+  // CHECK-NEXT:     ImplSpecifier
+  // CHECK-NEXT:       TraitInstance: A
+  // CHECK-NEXT:     DeclRefExpr: S2
+  // CHECK-NEXT:     ImplSpecifier
+  // CHECK-NEXT:       TraitInstance: B
+  // CHECK-NEXT:     DeclRefExpr: foo
+}

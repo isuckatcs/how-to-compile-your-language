@@ -1,0 +1,35 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct S {
+  impl A {
+    fn foo() {}
+    fn bar() {}
+    fn baz() {}
+  }
+  // CHECK: ImplDecl
+  // CHECK-NEXT:   TraitInstance: A
+  // CHECK-NEXT:   FunctionDecl: foo
+  // CHECK-NEXT:     Block
+  // CHECK-NEXT:   FunctionDecl: bar
+  // CHECK-NEXT:     Block
+  // CHECK-NEXT:   FunctionDecl: baz
+  // CHECK-NEXT:     Block
+
+  impl B;
+  // CHECK: ImplDecl
+  // CHECK-NEXT:   TraitInstance: B
+
+  impl C<T> {
+    fn foo() {}
+    fn bar() {}
+    fn baz() {}
+  }
+  // CHECK: ImplDecl
+  // CHECK-NEXT:   TraitInstance: C
+  // CHECK-NEXT:     UserDefinedType: T
+  // CHECK-NEXT:   FunctionDecl: foo
+  // CHECK-NEXT:     Block
+  // CHECK-NEXT:   FunctionDecl: bar
+  // CHECK-NEXT:     Block
+  // CHECK-NEXT:   FunctionDecl: baz
+  // CHECK-NEXT:     Block
+}

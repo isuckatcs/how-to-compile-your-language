@@ -1,0 +1,41 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+
+  fn bar() {}
+}
+// CHECK: TraitDecl: A
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
+
+trait B<T> {
+  fn foo<T>();
+
+  fn bar<T>() {}
+}
+// CHECK: TraitDecl: B
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     TypeParamDecl: T
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     TypeParamDecl: T
+// CHECK-NEXT:     Block
+
+trait C<T : A> {
+  fn foo<T : A>();
+
+  fn bar<T : A>() {}
+}
+// CHECK: TraitDecl: C
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:     TraitInstance: A
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     TypeParamDecl: T
+// CHECK-NEXT:       TraitInstance: A
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     TypeParamDecl: T
+// CHECK-NEXT:       TraitInstance: A
+// CHECK-NEXT:     Block
+
+fn main(): unit {}

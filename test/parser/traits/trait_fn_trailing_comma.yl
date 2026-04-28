@@ -1,0 +1,11 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+trait A {
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected 'fn' or '}'
+  fn foo();,
+  
+  // CHECK: [[# @LINE + 1 ]]:11: error: expected ':', ';' or '{'
+  fn bar(),
+  
+  // CHECK: [[# @LINE + 2 ]]:1: error: expected ':', ';' or '{'
+  fn baz()
+}

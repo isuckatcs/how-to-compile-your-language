@@ -1,0 +1,11 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:10: error: expected '{'
+struct S : A {}
+
+// CHECK: [[# @LINE + 1 ]]:13: error: expected ')'
+fn foo(x: T : A) {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ';' after declaration
+  let s: T : A = 0;
+}

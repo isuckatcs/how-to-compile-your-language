@@ -1,0 +1,19 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(
+
+  // CHECK: [[# @LINE + 1 ]]:3: error: expected parameter declaration
+  fn bar();
+
+  fn baz() {
+    println(1);
+  }
+}
+// CHECK: TraitDecl: A
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       CallExpr:
+// CHECK-NEXT:         PathExpr:
+// CHECK-NEXT:           DeclRefExpr: println
+// CHECK-NEXT:         NumberLiteral: '1'
