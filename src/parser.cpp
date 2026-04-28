@@ -161,48 +161,28 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
   std::vector<std::unique_ptr<ast::Decl>> decls;
 
   while (true) {
-    if (nextToken.kind == TokenKind::Rbrace)
+    std::unique_ptr<ast::Decl> decl = nullptr;
+
+    if (nextToken.kind == TokenKind::Identifier) {
+      decl = parseFieldDecl();
+      if (decl && nextToken.kind == TokenKind::Comma)
+        eatNextToken(); // eat ','
+    } else if (nextToken.kind == TokenKind::KwFn)
+      decl = parseFunctionDecl();
+    else if (nextToken.kind == TokenKind::KwImpl)
+      decl = parseImplDecl();
+    else
       break;
 
-    while (true) {
-      if (nextToken.kind == TokenKind::Rbrace ||
-          nextToken.kind == TokenKind::KwFn ||
-          nextToken.kind == TokenKind::KwImpl)
-        break;
-
-      auto field = parseFieldDecl();
-      if (field)
-        decls.emplace_back(std::move(field));
-      else
-        synchronize();
-
-      if (nextToken.kind != TokenKind::Comma)
-        break;
-      eatNextToken(); // eat ','
+    if (!decl) {
+      synchronize();
+      continue;
     }
 
-    while (true) {
-      if (nextToken.kind == TokenKind::Rbrace ||
-          nextToken.kind == TokenKind::Identifier)
-        break;
-
-      std::unique_ptr<ast::Decl> decl = nullptr;
-
-      if (nextToken.kind == TokenKind::KwFn)
-        decl = parseFunctionDecl();
-      else if (nextToken.kind == TokenKind::KwImpl)
-        decl = parseImplDecl();
-      else
-        report(nextToken.location, "expected 'fn' or 'impl'");
-
-      if (decl)
-        decls.emplace_back(std::move(decl));
-      else
-        synchronize();
-    }
+    decls.emplace_back(std::move(decl));
   }
 
-  matchOrReturn(TokenKind::Rbrace, "expected '}'");
+  matchOrReturn(TokenKind::Rbrace, "expected identifier, 'fn', 'impl' or '}'");
   eatNextToken(); // eat '}'
 
   return std::make_unique<ast::StructDecl>(
@@ -235,10 +215,7 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
 
   std::vector<std::unique_ptr<ast::FunctionDecl>> memberFunctions;
 
-  while (true) {
-    if (nextToken.kind == TokenKind::Rbrace)
-      break;
-
+  while (nextToken.kind == TokenKind::KwFn) {
     if (auto fn = withRestrictions(FunctionWithoutBodyAllowed,
                                    &Parser::parseFunctionDecl)) {
       memberFunctions.emplace_back(std::move(fn));
@@ -248,7 +225,7 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
     synchronize();
   }
 
-  matchOrReturn(TokenKind::Rbrace, "expected '}'");
+  matchOrReturn(TokenKind::Rbrace, "expected 'fn' or '}'");
   eatNextToken(); // eat '}'
 
   return std::make_unique<ast::TraitDecl>(

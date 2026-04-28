@@ -2,6 +2,6 @@
 struct Error {
     r: number,
     let g = 0,
-    // CHECK: [[# @LINE -1 ]]:5: error: expected field declaration
+    // CHECK: [[# @LINE - 1 ]]:5: error: expected identifier, 'fn', 'impl' or '}'
     b: number,
 }

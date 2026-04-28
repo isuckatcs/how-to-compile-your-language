@@ -1,0 +1,3 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 2 ]]:1: error: expected 'fn' or '}'
+trait A {
