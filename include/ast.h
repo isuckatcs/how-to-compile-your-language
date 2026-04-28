@@ -135,15 +135,6 @@ struct ImplSpecifier {
   void dump(size_t level = 0) const;
 };
 
-struct TraitList {
-  std::vector<std::unique_ptr<TraitInstance>> traits;
-
-  TraitList(std::vector<std::unique_ptr<TraitInstance>> traits)
-      : traits(std::move(traits)) {}
-
-  void dump(size_t level = 0) const;
-};
-
 struct IfStmt : public Stmt {
   std::unique_ptr<Expr> condition;
   std::unique_ptr<Block> trueBlock;
@@ -338,11 +329,11 @@ struct UnaryOperator : public Expr {
 };
 
 struct TypeParamDecl : public Decl {
-  std::unique_ptr<TraitList> restrictions;
+  std::vector<std::unique_ptr<TraitInstance>> restrictions;
 
   TypeParamDecl(SourceLocation location,
                 std::string identifier,
-                std::unique_ptr<TraitList> restrictions)
+                std::vector<std::unique_ptr<TraitInstance>> restrictions)
       : Decl(location, std::move(identifier)),
         restrictions(std::move(restrictions)) {}
 
@@ -446,17 +437,17 @@ struct StructDecl : public Decl {
 struct TraitDecl : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
-  std::unique_ptr<TraitList> traitList;
+  std::vector<std::unique_ptr<TraitInstance>> requirements;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
             std::vector<std::unique_ptr<FunctionDecl>> traitFunctions,
-            std::unique_ptr<TraitList> traitList)
+            std::vector<std::unique_ptr<TraitInstance>> requirements)
       : Decl(std::move(location), std::move(identifier)),
         typeParameters(std::move(typeParameters)),
         traitFunctions(std::move(traitFunctions)),
-        traitList(std::move(traitList)) {}
+        requirements(std::move(requirements)) {}
 
   void dump(size_t level = 0) const override;
 };

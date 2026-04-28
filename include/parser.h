@@ -80,7 +80,6 @@ class Parser {
   std::unique_ptr<ast::PathExpr> parsePathExpr();
   std::unique_ptr<ast::DeclRefExpr> parseDeclRefExpr();
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
-  std::unique_ptr<ast::TraitList> parseTraitList();
 
   std::unique_ptr<ast::Type> parseType();
 
@@ -97,6 +96,8 @@ class Parser {
                              std::pair<TokenKind, const char *> closingToken,
                              bool allowEmpty = true);
 
+  std::unique_ptr<std::vector<std::unique_ptr<ast::TraitInstance>>>
+  parseTraitList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::TypeParamDecl>>>
   parseTypeParamList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::Type>>> parseTypeList();

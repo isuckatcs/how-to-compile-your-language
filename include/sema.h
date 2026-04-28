@@ -148,8 +148,9 @@ class Sema {
       const std::vector<res::TypeParamDecl *> &resParams,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &astParams);
 
-  std::vector<res::TraitInstance *>
-  resolveTraitInstanceList(res::Context &ctx, const ast::TraitList *traitList);
+  std::vector<res::TraitInstance *> resolveTraitInstanceList(
+      res::Context &ctx,
+      const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                             res::StructDecl *structDecl);

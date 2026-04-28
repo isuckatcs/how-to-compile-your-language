@@ -129,7 +129,7 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
   varOrReturn(traits, parseTraitList());
 
   return std::make_unique<ast::TypeParamDecl>(location, std::move(identifier),
-                                              std::move(traits));
+                                              std::move(*traits));
 }
 
 // <structDecl>
@@ -208,9 +208,8 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
   varOrReturn(typeParamList, parseTypeParamList());
   varOrReturn(traitList, parseTraitList());
 
-  matchOrReturn(TokenKind::Lbrace, traitList->traits.empty()
-                                       ? "expected ':' or '{'"
-                                       : "expected '&' or '{'");
+  matchOrReturn(TokenKind::Lbrace, traitList->empty() ? "expected ':' or '{'"
+                                                      : "expected '&' or '{'");
   eatNextToken(); // eat '{'
 
   std::vector<std::unique_ptr<ast::FunctionDecl>> memberFunctions;
@@ -230,7 +229,7 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
 
   return std::make_unique<ast::TraitDecl>(
       location, identifier, std::move(*typeParamList),
-      std::move(memberFunctions), std::move(traitList));
+      std::move(memberFunctions), std::move(*traitList));
 }
 
 // <implDecl>
@@ -782,7 +781,8 @@ std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {
 
 // <traitList>
 //  ::= ':' <userDefinedDeclInstance> ('&' <userDefinedDeclInstance>)*
-std::unique_ptr<ast::TraitList> Parser::parseTraitList() {
+std::unique_ptr<std::vector<std::unique_ptr<ast::TraitInstance>>>
+Parser::parseTraitList() {
   std::vector<std::unique_ptr<ast::TraitInstance>> traits;
 
   if (nextToken.kind == TokenKind::Colon) {
@@ -800,7 +800,8 @@ std::unique_ptr<ast::TraitList> Parser::parseTraitList() {
     }
   }
 
-  return std::make_unique<ast::TraitList>(std::move(traits));
+  return std::make_unique<std::vector<std::unique_ptr<ast::TraitInstance>>>(
+      std::move(traits));
 }
 
 // <TList>

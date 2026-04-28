@@ -164,19 +164,11 @@ void ImplSpecifier::dump(size_t level) const {
   traitInstance->dump(level + 1);
 }
 
-void TraitList::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitList\n";
-
-  for (auto &&trait : traits)
-    trait->dump(level + 1);
-}
-
 void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
 
-  if (restrictions)
-    for (auto &&restriction : restrictions->traits)
-      restriction->dump(level + 1);
+  for (auto &&restriction : restrictions)
+    restriction->dump(level + 1);
 }
 
 void FieldDecl::dump(size_t level) const {
@@ -197,6 +189,9 @@ void StructDecl::dump(size_t level) const {
 
 void TraitDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TraitDecl: " << identifier << '\n';
+
+  for (auto &&requirement : requirements)
+    requirement->dump(level + 1);
 
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);

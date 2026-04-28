@@ -1089,9 +1089,9 @@ bool Sema::resolveGenericParamsInCurrentScope(
     res::TypeParamDecl *resParam = resParams[i];
     error |= !insertDeclToScope(resParam, lexicalScope);
 
-    ast::TraitList *astTraitList = astParams[i]->restrictions.get();
-    auto traits = resolveTraitInstanceList(ctx, astTraitList);
-    error |= traits.size() != astTraitList->traits.size();
+    const auto &restrictions = astParams[i]->restrictions;
+    auto traits = resolveTraitInstanceList(ctx, restrictions);
+    error |= traits.size() != restrictions.size();
 
     for (auto &&trait : traits) {
       resParam->traits.emplace_back(trait);
@@ -1103,12 +1103,12 @@ bool Sema::resolveGenericParamsInCurrentScope(
   return !error;
 }
 
-std::vector<res::TraitInstance *>
-Sema::resolveTraitInstanceList(res::Context &ctx,
-                               const ast::TraitList *traitList) {
+std::vector<res::TraitInstance *> Sema::resolveTraitInstanceList(
+    res::Context &ctx,
+    const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances) {
   std::vector<res::TraitInstance *> resolvedTraits;
 
-  for (auto &&trait : traitList->traits) {
+  for (auto &&trait : traitInstances) {
     auto *resTrait = resolveTraitInstance(ctx, trait.get());
     if (!resTrait)
       continue;
@@ -1301,8 +1301,8 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
-  auto traits = resolveTraitInstanceList(ctx, astDecl.traitList.get());
-  error |= astDecl.traitList->traits.size() != traits.size();
+  auto traits = resolveTraitInstanceList(ctx, astDecl.requirements);
+  error |= astDecl.requirements.size() != traits.size();
 
   for (auto &&trait : traits) {
     traitDecl.traits.emplace_back(trait);
