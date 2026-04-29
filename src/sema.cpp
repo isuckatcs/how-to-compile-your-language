@@ -529,9 +529,11 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  return ctx.createAndBind<res::DeclRefExpr>(typeMgr.instantiate(declTy, sub),
-                                             dre->location, *decl, kind,
-                                             typeArgs, parentTy, trait);
+  auto *resDre = ctx.createAndBind<res::DeclRefExpr>(
+      typeMgr.instantiate(declTy, sub), dre->location, *decl, kind, typeArgs,
+      parentTy, trait);
+  resDre->setConstantValue(cee->evaluate(*resDre, false));
+  return resDre;
 }
 
 template <typename Hint>
