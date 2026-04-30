@@ -2,7 +2,7 @@
 fn main(): unit {
   let x = -1;
 
-  let y = !2;
+  let y = !true;
 }
 // CHECK: main:
 // CHECK-NEXT: [2 (entry)]
@@ -15,7 +15,7 @@ fn main(): unit {
 // CHECK-NEXT:   1: 1
 // CHECK-NEXT:   2: -[1.1]
 // CHECK-NEXT:   3: let x = [1.2]
-// CHECK-NEXT:   4: 2
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: ![1.4]
 // CHECK-NEXT:   6: let y = [1.5]
 // CHECK-NEXT: 

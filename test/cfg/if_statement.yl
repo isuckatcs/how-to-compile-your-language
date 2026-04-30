@@ -1,6 +1,6 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
 fn main(): unit {
-    if 0.0 {}
+    if true {}
 }
 // CHECK: main:
 // CHECK-NEXT: [2 (entry)]
@@ -10,7 +10,7 @@ fn main(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0(U) 0 
-// CHECK-NEXT:   1: 0
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [1.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
@@ -18,7 +18,7 @@ fn main(): unit {
 // CHECK-NEXT:   succs: 
 
 fn body(): unit {
-    if 0.0 {
+    if false {
         1.0;
     }
 }
@@ -30,7 +30,7 @@ fn body(): unit {
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3 
 // CHECK-NEXT:   succs: 0 1(U) 
-// CHECK-NEXT:   1: 0
+// CHECK-NEXT:   1: false
 // CHECK-NEXT:   2: if [2.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
@@ -43,7 +43,7 @@ fn body(): unit {
 // CHECK-NEXT:   succs: 
 
 fn additionalBlockAfterIf(): unit {
-    if 0.0 {
+    if false {
         1.0;
     }
 
@@ -57,7 +57,7 @@ fn additionalBlockAfterIf(): unit {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 1 2(U) 
-// CHECK-NEXT:   1: 0
+// CHECK-NEXT:   1: false
 // CHECK-NEXT:   2: if [3.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [2]
@@ -75,11 +75,11 @@ fn additionalBlockAfterIf(): unit {
 // CHECK-NEXT:   succs: 
 
 fn multipleBranches(): unit {
-    if 8 {
+    if true {
         7;
-    } else if 6 {
+    } else if true {
         5;
-    } else if 4 {
+    } else if true {
         3;
     } else {
         2;
@@ -95,7 +95,7 @@ fn multipleBranches(): unit {
 // CHECK-NEXT: [8]
 // CHECK-NEXT:   preds: 9 
 // CHECK-NEXT:   succs: 6(U) 7 
-// CHECK-NEXT:   1: 8
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [8.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
@@ -106,7 +106,7 @@ fn multipleBranches(): unit {
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 8(U) 
 // CHECK-NEXT:   succs: 4(U) 5 
-// CHECK-NEXT:   1: 6
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [6.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [5]
@@ -117,7 +117,7 @@ fn multipleBranches(): unit {
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 6(U) 
 // CHECK-NEXT:   succs: 2(U) 3 
-// CHECK-NEXT:   1: 4
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [4.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
@@ -136,8 +136,8 @@ fn multipleBranches(): unit {
 // CHECK-NEXT:   1: 1
 
 fn nestedIfStatements(): unit {
-    if 5 {
-        if 4 {
+    if true {
+        if true {
             3;
         } else {
             2;
@@ -154,13 +154,13 @@ fn nestedIfStatements(): unit {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6 
 // CHECK-NEXT:   succs: 1(U) 4 
-// CHECK-NEXT:   1: 5
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [5.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 5 
 // CHECK-NEXT:   succs: 2(U) 3 
-// CHECK-NEXT:   1: 4
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [4.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
@@ -184,7 +184,7 @@ fn nestedIfStatements(): unit {
 
 fn orCondition(): unit {
     5.0;
-    if 5.0 || 4.0 || 3.0 {
+    if true || false || true {
         2.0;
     }
 
@@ -199,10 +199,10 @@ fn orCondition(): unit {
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   1: 5
-// CHECK-NEXT:   2: 5
-// CHECK-NEXT:   3: 4
+// CHECK-NEXT:   2: true
+// CHECK-NEXT:   3: false
 // CHECK-NEXT:   4: [3.2] || [3.3]
-// CHECK-NEXT:   5: 3
+// CHECK-NEXT:   5: true
 // CHECK-NEXT:   6: [3.4] || [3.5]
 // CHECK-NEXT:   7: if [3.6]
 // CHECK-NEXT: 
@@ -222,7 +222,7 @@ fn orCondition(): unit {
 
 fn andCondition(): unit {
     5.0;
-    if 5.0 && 4.0 && 3.0 {
+    if true && true && true {
         2.0;
     }
 
@@ -237,10 +237,10 @@ fn andCondition(): unit {
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 1(U) 2 
 // CHECK-NEXT:   1: 5
-// CHECK-NEXT:   2: 5
-// CHECK-NEXT:   3: 4
+// CHECK-NEXT:   2: true
+// CHECK-NEXT:   3: true
 // CHECK-NEXT:   4: [3.2] && [3.3]
-// CHECK-NEXT:   5: 3
+// CHECK-NEXT:   5: true
 // CHECK-NEXT:   6: [3.4] && [3.5]
 // CHECK-NEXT:   7: if [3.6]
 // CHECK-NEXT: 
@@ -258,7 +258,7 @@ fn andCondition(): unit {
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs:
 
-fn ifWhileFirstStmt(p: number): unit {
+fn ifWhileFirstStmt(p: bool): unit {
     if p {
         while p {}
     } else {
@@ -301,12 +301,12 @@ fn ifWhileFirstStmt(p: number): unit {
 // CHECK-NEXT:   succs:
 
 fn nestedInLoopConditionalOps(): unit {
-    if 8 || 8 {
-        while 7 {}
-    } else if 5 && 5 {
-        while 4 {}
+    if true || true {
+        while true {}
+    } else if true && true {
+        while true {}
     } else {
-        while 2 {}
+        while true {}
     }
 }
 // CHECK: nestedInLoopConditionalOps:
@@ -317,15 +317,15 @@ fn nestedInLoopConditionalOps(): unit {
 // CHECK-NEXT: [8]
 // CHECK-NEXT:   preds: 9 
 // CHECK-NEXT:   succs: 5(U) 7 
-// CHECK-NEXT:   1: 8
-// CHECK-NEXT:   2: 8
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: true
 // CHECK-NEXT:   3: [8.1] || [8.2]
 // CHECK-NEXT:   4: if [8.3]
 // CHECK-NEXT: 
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 6 8 
 // CHECK-NEXT:   succs: 0(U) 6 
-// CHECK-NEXT:   1: 7
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [7.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [6]
@@ -335,15 +335,15 @@ fn nestedInLoopConditionalOps(): unit {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 8(U) 
 // CHECK-NEXT:   succs: 2(U) 4 
-// CHECK-NEXT:   1: 5
-// CHECK-NEXT:   2: 5
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: true
 // CHECK-NEXT:   3: [5.1] && [5.2]
 // CHECK-NEXT:   4: if [5.3]
 // CHECK-NEXT: 
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 3 5 
 // CHECK-NEXT:   succs: 0(U) 3 
-// CHECK-NEXT:   1: 4
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [4.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [3]
@@ -353,7 +353,7 @@ fn nestedInLoopConditionalOps(): unit {
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 1 5(U) 
 // CHECK-NEXT:   succs: 0(U) 1 
-// CHECK-NEXT:   1: 2
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [2.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]

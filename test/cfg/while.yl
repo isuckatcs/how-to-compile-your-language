@@ -1,7 +1,7 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
 fn main(): unit {
     5.0;
-    while 4.0 {
+    while true {
         3.0;
     }
 
@@ -20,7 +20,7 @@ fn main(): unit {
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   1: 4
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [4.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [3]
@@ -43,7 +43,7 @@ fn main(): unit {
 
 fn orCondition(): unit {
     5;
-    while 4 || 4 || 4 {
+    while true || true || true {
         3;
     }
 
@@ -62,10 +62,10 @@ fn orCondition(): unit {
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 4
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: true
 // CHECK-NEXT:   3: [4.1] || [4.2]
-// CHECK-NEXT:   4: 4
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: [4.3] || [4.4]
 // CHECK-NEXT:   6: while [4.5]
 // CHECK-NEXT:
@@ -89,7 +89,7 @@ fn orCondition(): unit {
 
 fn andCondition(): unit {
     5;
-    while 4 && 4 && 4 {
+    while true && true && true {
         3;
     }
 
@@ -108,10 +108,10 @@ fn andCondition(): unit {
 // CHECK-NEXT: [4]
 // CHECK-NEXT:   preds: 2 5
 // CHECK-NEXT:   succs: 1(U) 3
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 4
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: true
 // CHECK-NEXT:   3: [4.1] && [4.2]
-// CHECK-NEXT:   4: 4
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: [4.3] && [4.4]
 // CHECK-NEXT:   6: while [4.5]
 // CHECK-NEXT:
@@ -135,9 +135,9 @@ fn andCondition(): unit {
 
 fn nestedLoops(): unit {
     8.0;
-    while 7.0 {
+    while true {
         6.0;
-        while 5.0 {
+        while true {
             4.0;
         }
     }
@@ -157,7 +157,7 @@ fn nestedLoops(): unit {
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8
 // CHECK-NEXT:   succs: 1(U) 6
-// CHECK-NEXT:   1: 7
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [7.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [6]
@@ -168,7 +168,7 @@ fn nestedLoops(): unit {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 3 6
 // CHECK-NEXT:   succs: 2(U) 4
-// CHECK-NEXT:   1: 5
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [5.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
@@ -195,9 +195,9 @@ fn nestedLoops(): unit {
 
 fn returnMidloop(): unit {
     8.0;
-    while 7.0 {
+    while true {
         6.0;
-        if 6.0 {
+        if true {
             5.0;
             return;
 
@@ -222,14 +222,14 @@ fn returnMidloop(): unit {
 // CHECK-NEXT: [7]
 // CHECK-NEXT:   preds: 2 8
 // CHECK-NEXT:   succs: 1(U) 6
-// CHECK-NEXT:   1: 7
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [7.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [6]
 // CHECK-NEXT:   preds: 7
 // CHECK-NEXT:   succs: 3(U) 5
 // CHECK-NEXT:   1: 6
-// CHECK-NEXT:   2: 6
+// CHECK-NEXT:   2: true
 // CHECK-NEXT:   3: if [6.2]
 // CHECK-NEXT:
 // CHECK-NEXT: [5]
@@ -262,7 +262,7 @@ fn returnMidloop(): unit {
 // CHECK-NEXT:   succs:
 
 fn whileOnly(): unit {
-    while 1.0 {
+    while true {
 
     }
 }
@@ -274,7 +274,7 @@ fn whileOnly(): unit {
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 1 3
 // CHECK-NEXT:   succs: 0(U) 1
-// CHECK-NEXT:   1: 1
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [2.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [1]
@@ -289,7 +289,7 @@ fn whileAfterReturn(): unit {
     4;
     return;
    
-    while 3 {}
+    while true {}
     1;
 }
 // CHECK: whileAfterReturn:
@@ -306,7 +306,7 @@ fn whileAfterReturn(): unit {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   1: 3
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [3.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
@@ -323,11 +323,11 @@ fn whileAfterReturn(): unit {
 // CHECK-NEXT:   succs:
 
 fn whileAfterIf(): unit {
-    if 5 {
+    if true {
         4;
     }
    
-    while 3 {}
+    while true {}
     1;
 }
 // CHECK: whileAfterIf:
@@ -338,7 +338,7 @@ fn whileAfterIf(): unit {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 6
 // CHECK-NEXT:   succs: 3(U) 4
-// CHECK-NEXT:   1: 5
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: if [5.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
@@ -349,7 +349,7 @@ fn whileAfterIf(): unit {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2 4 5(U)
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   1: 3
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [3.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [2]
@@ -366,8 +366,8 @@ fn whileAfterIf(): unit {
 // CHECK-NEXT:   succs:
 
 fn whileAfterWhile(): unit {
-    while 5 {}
-    while 3 {}
+    while true {}
+    while true {}
     1;
 }
 // CHECK: whileAfterWhile:
@@ -378,7 +378,7 @@ fn whileAfterWhile(): unit {
 // CHECK-NEXT: [5]
 // CHECK-NEXT:   preds: 4 6
 // CHECK-NEXT:   succs: 3(U) 4
-// CHECK-NEXT:   1: 5
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [5.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [4]
@@ -388,7 +388,7 @@ fn whileAfterWhile(): unit {
 // CHECK-NEXT: [3]
 // CHECK-NEXT:   preds: 2 5(U)
 // CHECK-NEXT:   succs: 1(U) 2
-// CHECK-NEXT:   1: 3
+// CHECK-NEXT:   1: true
 // CHECK-NEXT:   2: while [3.1]
 // CHECK-NEXT:
 // CHECK-NEXT: [2]

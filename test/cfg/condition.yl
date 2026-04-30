@@ -1,6 +1,6 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
 fn main(): unit {
-    3.0 || 2.0;
+    true || false;
     1.0;
 }
 // CHECK: main:
@@ -11,8 +11,8 @@ fn main(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 3
-// CHECK-NEXT:   2: 2
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
 // CHECK-NEXT:   3: [1.1] || [1.2]
 // CHECK-NEXT:   4: 1
 // CHECK-NEXT: 
@@ -21,7 +21,7 @@ fn main(): unit {
 // CHECK-NEXT:   succs:
 
 fn and(): unit {
-    3.0 && 2.0;
+    true && false;
     1.0;
 }
 // CHECK: and:
@@ -32,8 +32,8 @@ fn and(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 3
-// CHECK-NEXT:   2: 2
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
 // CHECK-NEXT:   3: [1.1] && [1.2]
 // CHECK-NEXT:   4: 1
 // CHECK-NEXT: 
@@ -42,7 +42,7 @@ fn and(): unit {
 // CHECK-NEXT:   succs: 
 
 fn multipleOr(): unit {
-    4.0 || 3.0 || 2.0;
+    true || false || true;
     1.0;
 }
 // CHECK: multipleOr:
@@ -53,10 +53,10 @@ fn multipleOr(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 3
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
 // CHECK-NEXT:   3: [1.1] || [1.2]
-// CHECK-NEXT:   4: 2
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: [1.3] || [1.4]
 // CHECK-NEXT:   6: 1
 // CHECK-NEXT: 
@@ -65,7 +65,7 @@ fn multipleOr(): unit {
 // CHECK-NEXT:   succs: 
 
 fn multipleAnd(): unit {
-    4.0 && 3.0 && 2.0;
+    true && false && true;
     1.0;
 }
 // CHECK: multipleAnd:
@@ -76,10 +76,10 @@ fn multipleAnd(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 3
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
 // CHECK-NEXT:   3: [1.1] && [1.2]
-// CHECK-NEXT:   4: 2
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: [1.3] && [1.4]
 // CHECK-NEXT:   6: 1
 // CHECK-NEXT: 
@@ -88,7 +88,7 @@ fn multipleAnd(): unit {
 // CHECK-NEXT:   succs: 
 
 fn andOr(): unit {
-    4.0 && 3.0 || 2.0;
+    true && false || true;
     1.0;
 }
 // CHECK: andOr:
@@ -99,10 +99,10 @@ fn andOr(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 3
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
 // CHECK-NEXT:   3: [1.1] && [1.2]
-// CHECK-NEXT:   4: 2
+// CHECK-NEXT:   4: true
 // CHECK-NEXT:   5: [1.3] || [1.4]
 // CHECK-NEXT:   6: 1
 // CHECK-NEXT: 
@@ -111,7 +111,7 @@ fn andOr(): unit {
 // CHECK-NEXT:   succs: 
 
 fn orAnd(): unit {
-    4.0 || 3.0 && 2.0;
+    true || false && true;
     1.0;
 }
 // CHECK: orAnd:
@@ -122,9 +122,9 @@ fn orAnd(): unit {
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 4
-// CHECK-NEXT:   2: 3
-// CHECK-NEXT:   3: 2
+// CHECK-NEXT:   1: true
+// CHECK-NEXT:   2: false
+// CHECK-NEXT:   3: true
 // CHECK-NEXT:   4: [1.2] && [1.3]
 // CHECK-NEXT:   5: [1.1] || [1.4]
 // CHECK-NEXT:   6: 1

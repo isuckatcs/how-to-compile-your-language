@@ -1,6 +1,6 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s
 fn foo(): number {
-    if 0.0 {
+    if false {
 
     } else {
         return 2.0;
@@ -14,7 +14,7 @@ fn foo(): number {
 // CHECK-NEXT: [2]
 // CHECK-NEXT:   preds: 3 
 // CHECK-NEXT:   succs: 0(U) 1 
-// CHECK-NEXT:   1: 0
+// CHECK-NEXT:   1: false
 // CHECK-NEXT:   2: if [2.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]

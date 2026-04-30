@@ -67,6 +67,9 @@ void CFG::dump() const {
       } else if (const auto *number =
                      dynamic_cast<const res::NumberLiteral *>(*it)) {
         std::cerr << number->value;
+      } else if (const auto *boolLiteral =
+                     dynamic_cast<const res::BoolLiteral *>(*it)) {
+        std::cerr << (boolLiteral->value ? "true" : "false");
       } else if (const auto *callExpr =
                      dynamic_cast<const res::CallExpr *>(*it)) {
         std::cerr << stmtToRef[callExpr->callee] << '(';
