@@ -92,8 +92,11 @@ public:
 };
 } // namespace
 
-Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
+Codegen::Codegen(res::Context &resolvedCtx,
+                 ConstExprValueStorage *constExprVals,
+                 std::string_view sourcePath)
     : resCtx(&resolvedCtx),
+      constExprVals(constExprVals),
       builder(context),
       module("<translation_unit>", context) {
   module.setSourceFileName(sourcePath);
@@ -184,8 +187,7 @@ llvm::Value *Codegen::generateIfStmt(const res::IfStmt &stmt) {
   if (stmt.falseBlock)
     elseBB = llvm::BasicBlock::Create(context, "if.false");
 
-  llvm::Value *cond = generateExpr(*stmt.condition);
-  builder.CreateCondBr(doubleToBool(cond), trueBB, elseBB);
+  builder.CreateCondBr(generateExpr(*stmt.condition), trueBB, elseBB);
 
   trueBB->insertInto(function);
   builder.SetInsertPoint(trueBB);
@@ -214,8 +216,7 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
   builder.CreateBr(header);
 
   builder.SetInsertPoint(header);
-  llvm::Value *cond = generateExpr(*stmt.condition);
-  builder.CreateCondBr(doubleToBool(cond), body, exit);
+  builder.CreateCondBr(generateExpr(*stmt.condition), body, exit);
 
   builder.SetInsertPoint(body);
   generateBlock(*stmt.body);
@@ -233,7 +234,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
-  bool isConst = !decl->isMutable && initExpr && initExpr->getConstantValue();
+  bool isConst = !decl->isMutable && initExpr && constExprVals->count(initExpr);
   if (isConst || declTy->isVoidTy()) {
     declarations[decl] = nullptr;
     return nullptr;
@@ -331,8 +332,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *unit = dynamic_cast<const res::UnitLiteral *>(&expr))
     return nullptr;
 
-  if (auto val = expr.getConstantValue())
-    return llvm::ConstantFP::get(builder.getDoubleTy(), *val);
+  if (auto it = constExprVals->find(&expr); it != constExprVals->end())
+    return generateConstantValue(it->second);
 
   if (auto *path = dynamic_cast<const res::PathExpr *>(&expr))
     return generateExpr(*path->fragments.back());
@@ -453,6 +454,16 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   llvm_unreachable("unknown unary op");
 }
 
+llvm::Value *Codegen::generateConstantValue(const ConstVal &constVal) {
+  if (const auto *boolVal = std::get_if<bool>(&constVal))
+    return builder.getInt1(*boolVal);
+
+  if (const auto *doubleVal = std::get_if<double>(&constVal))
+    return llvm::ConstantFP::get(builder.getDoubleTy(), *doubleVal);
+
+  llvm_unreachable("unhandled constant value");
+}
+
 void Codegen::generateConditionalOperator(const res::Expr &op,
                                           llvm::BasicBlock *trueBB,
                                           llvm::BasicBlock *falseBB) {
@@ -556,7 +567,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   bool outParamRef = dynamic_cast<const res::ImplicitDerefExpr *>(&expr);
 
   llvm::Type *type = generateType(resCtx->getTypeMgr().getType(&expr));
-  if (!expr.isLvalue() || expr.getConstantValue() || type->isStructTy() ||
+  if (!expr.isLvalue() || constExprVals->count(&expr) || type->isStructTy() ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef))
     return val;
 

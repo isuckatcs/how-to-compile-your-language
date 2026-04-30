@@ -111,7 +111,9 @@ int main(int argc, const char **argv) {
   if (!success)
     return 1;
 
-  ConstantExpressionEvaluator cee;
+  // FIXME: this should live elsewhere
+  ConstExprValueStorage constantExprValues;
+  ConstantExpressionEvaluator cee(constantExprValues, true);
   Sema sema(cee, ast);
   auto *resolvedTree = sema.resolveAST();
 
@@ -135,7 +137,7 @@ int main(int argc, const char **argv) {
   if (!resolvedTree)
     return 1;
 
-  Codegen codegen(*resolvedTree, options.source.c_str());
+  Codegen codegen(*resolvedTree, &constantExprValues, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.llvmDump) {

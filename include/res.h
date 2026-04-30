@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "lexer.h"
@@ -26,9 +27,7 @@ struct Stmt {
 
 struct TypedNode {};
 
-struct Expr : public TypedNode,
-              public ConstantValueContainer<double>,
-              public Stmt {
+struct Expr : public TypedNode, public Stmt {
   enum class Kind { Rvalue, MutLvalue, Lvalue };
 
   Kind kind;
@@ -470,7 +469,13 @@ struct ImplicitDerefExpr : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
+// FIXME: remove
+using ConstExprValueStorage =
+    std::unordered_map<const res::Expr *, std::variant<bool, double>>;
+
 class Context {
+  // FIXME: this should live elsewhere
+  const ConstExprValueStorage *constantExprValues;
   TypeManager *typeMgr;
 
   std::vector<std::unique_ptr<Stmt>> statements;
@@ -483,8 +488,9 @@ class Context {
   std::vector<FunctionDecl *> functions;
 
 public:
-  Context(TypeManager &typeMgr)
-      : typeMgr(&typeMgr) {}
+  Context(TypeManager &typeMgr, const ConstExprValueStorage &constantExprValues)
+      : constantExprValues(&constantExprValues),
+        typeMgr(&typeMgr) {}
 
   template <typename T, typename... Args> T *create(Args &&...args) {
     auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -521,6 +527,9 @@ public:
   }
 
   TypeManager &getTypeMgr() { return *typeMgr; }
+  const ConstExprValueStorage &getConstantValues() const {
+    return *constantExprValues;
+  }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }

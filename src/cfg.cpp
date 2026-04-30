@@ -134,9 +134,18 @@ int CFGBuilder::insertIfStmt(const res::IfStmt &stmt, int exit) {
   int trueBlock = insertBlock(*stmt.trueBlock, exit);
   int entry = cfg.insertNewBlock();
 
-  std::optional<double> val = cee.evaluate(*stmt.condition, true);
-  cfg.insertEdge(entry, trueBlock, val != 0);
-  cfg.insertEdge(entry, falseBlock, val.value_or(0) == 0);
+  bool trueReachable = true;
+  bool falseReachable = true;
+
+  if (cee->evaluate(*stmt.condition)) {
+    bool condVal = std::get<bool>(cee->getResults()->at(stmt.condition));
+
+    trueReachable = condVal;
+    falseReachable = !condVal;
+  }
+
+  cfg.insertEdge(entry, trueBlock, trueReachable);
+  cfg.insertEdge(entry, falseBlock, falseReachable);
 
   cfg.insertStmt(&stmt, entry);
   return insertExpr(*stmt.condition, entry);
@@ -149,9 +158,18 @@ int CFGBuilder::insertWhileStmt(const res::WhileStmt &stmt, int exit) {
   int header = cfg.insertNewBlock();
   cfg.insertEdge(latch, header, true);
 
-  std::optional<double> val = cee.evaluate(*stmt.condition, true);
-  cfg.insertEdge(header, body, val != 0);
-  cfg.insertEdge(header, exit, val.value_or(0) == 0);
+  bool trueReachable = true;
+  bool falseReachable = true;
+
+  if (cee->evaluate(*stmt.condition)) {
+    bool condVal = std::get<bool>(cee->getResults()->at(stmt.condition));
+
+    trueReachable = condVal;
+    falseReachable = !condVal;
+  }
+
+  cfg.insertEdge(header, body, trueReachable);
+  cfg.insertEdge(header, exit, falseReachable);
 
   cfg.insertStmt(&stmt, header);
   insertExpr(*stmt.condition, header);
@@ -272,12 +290,16 @@ int CFGBuilder::insertBlock(const res::Block &block, int succ) {
 }
 
 CFG CFGBuilder::build(const res::FunctionDecl &fn) {
+  ConstExprValueStorage constantValues;
+  ConstantExpressionEvaluator evaluator(constantValues, false);
+
+  cee = &evaluator;
   cfg = {};
+
   cfg.exit = cfg.insertNewBlock();
-
   int body = insertBlock(*fn.body, cfg.exit);
-
   cfg.entry = cfg.insertNewBlockBefore(body, true);
+
   return cfg;
 };
 } // namespace yl

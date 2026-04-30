@@ -51,9 +51,13 @@ fn main(): unit {
 // CHECK-NEXT:                 BinaryOperator '+' {number}
 // CHECK-NEXT:                 | value: 7
 // CHECK-NEXT:                   NumberLiteral '3' {number}
+// CHECK-NEXT:                   | value: 3
 // CHECK-NEXT:                   NumberLiteral '4' {number}
+// CHECK-NEXT:                   | value: 4
 // CHECK-NEXT:               FieldInitStmt @({{.*}}) y
 // CHECK-NEXT:                 BinaryOperator '*' {number}
 // CHECK-NEXT:                 | value: 36
 // CHECK-NEXT:                   NumberLiteral '4' {number}
+// CHECK-NEXT:                   | value: 4
 // CHECK-NEXT:                   NumberLiteral '9' {number}
+// CHECK-NEXT:                   | value: 9

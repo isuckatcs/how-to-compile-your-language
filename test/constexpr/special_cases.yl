@@ -1,34 +1,25 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s --match-full-lines
-fn binaryLhsKnown(y: number): number {
-    mut x: number = 2.1;
+fn binaryLhsKnown(y: bool): bool {
+    mut x: bool = true;
 
-    return (0.0 && y) + (1.0 || x);
+    return (false && y) || (true || x);
 }
-// CHECK: BinaryOperator '+' {number}
-// CHECK-NEXT: | value: 1
-// CHECK-NEXT:   GroupingExpr {number}
-// CHECK-NEXT:     BinaryOperator '&&' {number}
-// CHECK-NEXT:       NumberLiteral '0' {number}
-// CHECK-NEXT:       PathExpr {number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) y {number}
-// CHECK-NEXT:   GroupingExpr {number}
-// CHECK-NEXT:     BinaryOperator '||' {number}
-// CHECK-NEXT:       NumberLiteral '1' {number}
-// CHECK-NEXT:       PathExpr {number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+// CHECK: ReturnStmt
+// CHECK-NEXT:   BinaryOperator '||' {bool}
+// CHECK-NEXT:   | value: 1
 
-fn unaryNonConst(): number {
-    mut x: number = 2.1;
+fn unaryNonConst(): bool {
+    mut x: bool = true;
 
     return !x;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   UnaryOperator '!' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:   UnaryOperator '!' {bool}
+// CHECK-NEXT:     PathExpr {bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
 
-fn ret(): number {
-    return 1.0;
+fn ret(): bool {
+    return true;
 }
 
 fn call(): unit {
@@ -37,47 +28,48 @@ fn call(): unit {
     }
 }
 // CHECK: IfStmt
-// CHECK-NEXT:   UnaryOperator '!' {number}
-// CHECK-NEXT:     CallExpr {number}
-// CHECK-NEXT:       PathExpr {() -> number}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) ret {() -> number}
+// CHECK-NEXT:   UnaryOperator '!' {bool}
+// CHECK-NEXT:     CallExpr {bool}
+// CHECK-NEXT:       PathExpr {() -> bool}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) ret {() -> bool}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 
-fn lhsKnownRhsNot(y: number): number {
-    return 1.0 && y;
+fn lhsKnownRhsNot(y: bool): bool {
+    return true && y;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   BinaryOperator '&&' {number}
-// CHECK-NEXT:     NumberLiteral '1' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {number}
+// CHECK-NEXT:   BinaryOperator '&&' {bool}
+// CHECK-NEXT:     BoolLiteral '1' {bool}
+// CHECK-NEXT:     | value: 1
+// CHECK-NEXT:     PathExpr {bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {bool}
 
-fn lhsUnknownRhsFalse(x: number): number {
-    return x && 0.0;
+fn lhsUnknownRhsFalse(x: bool): bool {
+    return x && false;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   BinaryOperator '&&' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:     NumberLiteral '0' {number}
+// CHECK-NEXT:   BinaryOperator '&&' {bool}
+// CHECK-NEXT:     PathExpr {bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     BoolLiteral '0' {bool}
 
-fn lhsUnknownRhsTrue(x: number): number {
-    return x || 1.0;
+fn lhsUnknownRhsTrue(x: bool): bool {
+    return x || true;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   BinaryOperator '||' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:     NumberLiteral '1' {number}
+// CHECK-NEXT:   BinaryOperator '||' {bool}
+// CHECK-NEXT:     PathExpr {bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     BoolLiteral '1' {bool}
 
-fn lhsUnknownRhsFalseOr(x: number): number {
-    return x || 0.0;
+fn lhsUnknownRhsFalseOr(x: bool): bool {
+    return x || false;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   BinaryOperator '||' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:     NumberLiteral '0' {number}
+// CHECK-NEXT:   BinaryOperator '||' {bool}
+// CHECK-NEXT:     PathExpr {bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     BoolLiteral '0' {bool}
 
 fn main(): unit {}

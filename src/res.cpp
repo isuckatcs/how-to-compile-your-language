@@ -4,6 +4,9 @@
 #include "res.h"
 #include "utils.h"
 
+// FIXME: this should not be included here
+#include "constexpr.h"
+
 namespace yl {
 namespace res {
 bool DeclContext::insertDecl(res::Decl *decl) {
@@ -140,16 +143,24 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "NumberLiteral '" << value << "' {"
             << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 }
 
 void BoolLiteral::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "BoolLiteral '" << value << "' {"
             << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 }
 
 void UnitLiteral::dump(Context &ctx, size_t level) const {
@@ -170,8 +181,12 @@ void PathExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "PathExpr"
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 
   for (auto &&fragment : fragments)
     fragment->dump(ctx, level + 1);
@@ -199,8 +214,12 @@ void GroupingExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "GroupingExpr"
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 
   expr->dump(ctx, level + 1);
 }
@@ -209,8 +228,12 @@ void BinaryOperator::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\''
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 
   lhs->dump(ctx, level + 1);
   rhs->dump(ctx, level + 1);
@@ -220,8 +243,12 @@ void UnaryOperator::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\''
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (auto val = getConstantValue())
-    std::cerr << indent(level) << "| value: " << *val << '\n';
+  if (ctx.getConstantValues().count(this))
+    std::visit(
+        [&](auto &&val) {
+          std::cerr << indent(level) << "| value: " << val << '\n';
+        },
+        ctx.getConstantValues().at(this));
 
   operand->dump(ctx, level + 1);
 }

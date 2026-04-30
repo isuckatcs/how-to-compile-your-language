@@ -173,7 +173,7 @@ public:
   explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)
       : cee(&cee),
         ast(&ast),
-        ctx(typeMgr) {}
+        ctx(typeMgr, *cee.getResults()) {}
 
   res::Context *resolveAST();
 };

@@ -529,11 +529,9 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  auto *resDre = ctx.createAndBind<res::DeclRefExpr>(
-      typeMgr.instantiate(declTy, sub), dre->location, *decl, kind, typeArgs,
-      parentTy, trait);
-  resDre->setConstantValue(cee->evaluate(*resDre, false));
-  return resDre;
+  return ctx.createAndBind<res::DeclRefExpr>(typeMgr.instantiate(declTy, sub),
+                                             dre->location, *decl, kind,
+                                             typeArgs, parentTy, trait);
 }
 
 template <typename Hint>
@@ -632,7 +630,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       return nullptr;
     }
 
-    resolvedArg->setConstantValue(cee->evaluate(*resolvedArg, false));
+    cee->evaluate(*resolvedArg);
     resolvedArgs.emplace_back(resolvedArg);
   }
 
@@ -708,9 +706,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    auto &initStmt = inits[fieldDecl->identifier];
-    initStmt->initializer->setConstantValue(
-        cee->evaluate(*initStmt->initializer, false));
+    cee->evaluate(*inits[fieldDecl->identifier]->initializer);
   }
 
   if (error)
@@ -773,8 +769,7 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
       return nullptr;
   }
 
-  cond->setConstantValue(cee->evaluate(*cond, false));
-
+  cee->evaluate(*cond);
   return ctx.create<res::IfStmt>(ifStmt.location, cond, trueBlock, falseBlock);
 }
 
@@ -787,8 +782,7 @@ res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
-  cond->setConstantValue(cee->evaluate(*cond, false));
-
+  cee->evaluate(*cond);
   return ctx.create<res::WhileStmt>(whileStmt.location, cond, body);
 }
 
@@ -822,7 +816,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
                                      "' instead");
   }
 
-  rhs->setConstantValue(cee->evaluate(*rhs, false));
+  cee->evaluate(*rhs);
   return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
 }
 
@@ -852,7 +846,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                         retTy->getName() + "'");
     }
 
-    expr->setConstantValue(cee->evaluate(*expr, false));
+    cee->evaluate(*expr);
   }
 
   return ctx.create<res::ReturnStmt>(returnStmt.location, expr);
@@ -1065,7 +1059,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                         declTy->getName() + "'");
     }
 
-    initializer->setConstantValue(cee->evaluate(*initializer, false));
+    cee->evaluate(*initializer);
   }
 
   return decl;

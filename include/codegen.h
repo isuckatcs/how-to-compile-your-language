@@ -8,6 +8,7 @@
 #include <map>
 #include <queue>
 
+#include "constexpr.h"
 #include "res.h"
 
 namespace yl {
@@ -59,6 +60,7 @@ class Codegen {
   };
 
   res::Context *resCtx;
+  ConstExprValueStorage *constExprVals;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
@@ -90,6 +92,8 @@ class Codegen {
   llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr);
   llvm::Value *generateTemporaryStruct(const res::StructInstantiationExpr &sie);
 
+  llvm::Value *generateConstantValue(const ConstVal &constVal);
+
   void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,
                                    llvm::BasicBlock *falseBlock);
@@ -118,7 +122,9 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  Codegen(res::Context &resolvedCtx, std::string_view sourcePath);
+  Codegen(res::Context &resolvedCtx,
+          ConstExprValueStorage *constExprVals,
+          std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };

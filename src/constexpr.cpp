@@ -1,147 +1,153 @@
-#include <optional>
-
 #include "constexpr.h"
 
-namespace {
-std::optional<bool> toBool(std::optional<double> d) {
-  if (!d)
-    return std::nullopt;
-
-  return d != 0.0;
-}
-} // namespace
-
 namespace yl {
-std::optional<double> ConstantExpressionEvaluator::evaluateBinaryOperator(
-    const res::BinaryOperator &binop, bool allowSideEffects) {
-  std::optional<double> lhs = evaluate(*binop.lhs, allowSideEffects);
+bool ConstantExpressionEvaluator::evaluateBinaryOperator(
+    const res::BinaryOperator &binop) {
 
-  if (!lhs && !allowSideEffects)
-    return std::nullopt;
+  ConstVal *lhsResult = nullptr;
+  ConstVal *rhsResult = nullptr;
+
+  if (evaluate(*binop.lhs))
+    lhsResult = &results->at(binop.lhs);
+
+  if (shortCircuitLogicalOperators && !lhsResult)
+    return false;
 
   if (binop.op == TokenKind::PipePipe) {
-    // If the LHS of || is true, we don't need to evaluate the RHS.
-    if (toBool(lhs) == true)
-      return 1.0;
+    bool binopResult = lhsResult && std::get<bool>(*lhsResult);
+    if (shortCircuitLogicalOperators && binopResult)
+      return results->emplace(&binop, true).second;
 
-    // If the LHS is false, or side effects are allowed and the RHS is true, the
-    // result is true.
-    std::optional<double> rhs = evaluate(*binop.rhs, allowSideEffects);
-    if (toBool(rhs) == true)
-      return 1.0;
+    if (evaluate(*binop.rhs)) {
+      rhsResult = &results->at(binop.rhs);
+      binopResult |= std::get<bool>(*rhsResult);
+    }
 
-    // If both sides are known but none of them is true, the result is false.
-    if (lhs && rhs)
-      return 0.0;
+    if ((lhsResult && rhsResult) || binopResult)
+      return results->emplace(&binop, binopResult).second;
 
-    // Otherwise one of the sides is unknown, so the result is unknown too.
-    return std::nullopt;
+    return false;
   }
 
   if (binop.op == TokenKind::AmpAmp) {
-    // If the LHS of && is false, we don't need to evaluate the RHS.
-    if (toBool(lhs) == false)
-      return 0.0;
+    bool binopResult = lhsResult ? std::get<bool>(*lhsResult) : true;
+    if (shortCircuitLogicalOperators && !binopResult)
+      return results->emplace(&binop, false).second;
 
-    std::optional<double> rhs = evaluate(*binop.rhs, allowSideEffects);
-    if (toBool(rhs) == false)
-      return 0.0;
+    if (evaluate(*binop.rhs)) {
+      rhsResult = &results->at(binop.rhs);
+      binopResult &= std::get<bool>(*rhsResult);
+    }
 
-    if (lhs && rhs)
-      return 1.0;
+    if ((lhsResult && rhsResult) || !binopResult)
+      return results->emplace(&binop, binopResult).second;
 
-    return std::nullopt;
+    return false;
   }
 
-  if (!lhs)
-    return std::nullopt;
+  if (!lhsResult || !evaluate(*binop.rhs))
+    return false;
 
-  std::optional<double> rhs = evaluate(*binop.rhs, allowSideEffects);
-  if (!rhs)
-    return std::nullopt;
+  TokenKind op = binop.op;
+  rhsResult = &results->at(binop.rhs);
 
-  switch (binop.op) {
-  case TokenKind::Asterisk:
-    return *lhs * *rhs;
-  case TokenKind::Slash:
-    return *lhs / *rhs;
-  case TokenKind::Plus:
-    return *lhs + *rhs;
-  case TokenKind::Minus:
-    return *lhs - *rhs;
-  case TokenKind::Lt:
-    return *lhs < *rhs;
-  case TokenKind::Gt:
-    return *lhs > *rhs;
-  case TokenKind::EqualEqual:
-    return *lhs == *rhs;
-  default:
-    llvm_unreachable("unexpected binary operator");
-  }
+  if (op == TokenKind::EqualEqual)
+    return results->emplace(&binop, *lhsResult == *rhsResult).second;
+
+  double lhs = std::get<double>(*lhsResult);
+  double rhs = std::get<double>(*rhsResult);
+
+  if (op == TokenKind::Asterisk)
+    return results->emplace(&binop, lhs * rhs).second;
+
+  if (op == TokenKind::Slash)
+    return results->emplace(&binop, lhs / rhs).second;
+
+  if (op == TokenKind::Plus)
+    return results->emplace(&binop, lhs + rhs).second;
+
+  if (op == TokenKind::Minus)
+    return results->emplace(&binop, lhs - rhs).second;
+
+  if (op == TokenKind::Lt)
+    return results->emplace(&binop, lhs < rhs).second;
+
+  if (op == TokenKind::Gt)
+    return results->emplace(&binop, lhs > rhs).second;
+
+  if (op == TokenKind::EqualEqual)
+    return results->emplace(&binop, lhs == rhs).second;
+
+  return false;
 }
 
-std::optional<double> ConstantExpressionEvaluator::evaluateUnaryOperator(
-    const res::UnaryOperator &unop, bool allowSideEffects) {
-  std::optional<double> operand = evaluate(*unop.operand, allowSideEffects);
-  if (!operand)
-    return std::nullopt;
+bool ConstantExpressionEvaluator::evaluateUnaryOperator(
+    const res::UnaryOperator &unop) {
+  if (!evaluate(*unop.operand))
+    return false;
 
+  ConstVal result = results->at(unop.operand);
   if (unop.op == TokenKind::Excl)
-    return !*toBool(operand);
+    return results->emplace(&unop, !std::get<bool>(result)).second;
 
   if (unop.op == TokenKind::Minus)
-    return -*operand;
+    return results->emplace(&unop, -std::get<double>(result)).second;
 
-  return std::nullopt;
+  return false;
 }
 
-std::optional<double>
-ConstantExpressionEvaluator::evaluateDeclRefExpr(const res::DeclRefExpr &dre,
-                                                 bool allowSideEffects) {
-  // We only care about reference to immutable variables with an initializer.
-  const auto *rvd = dre.decl->getAs<res::VarDecl>();
-  if (!rvd || rvd->isMutable || !rvd->initializer)
-    return std::nullopt;
+bool ConstantExpressionEvaluator::evaluateGroupingExpr(
+    const res::GroupingExpr &grouping) {
+  if (!evaluate(*grouping.expr))
+    return false;
 
-  return evaluate(*rvd->initializer, allowSideEffects);
+  return results->emplace(&grouping, results->at(grouping.expr)).second;
 }
 
-std::optional<double>
-ConstantExpressionEvaluator::evaluate(const res::Expr &expr,
-                                      bool allowSideEffects) {
-  // Don't evaluate the same expression multiple times.
-  if (std::optional<double> val = expr.getConstantValue())
-    return val;
+bool ConstantExpressionEvaluator::evaluatePathExpr(const res::PathExpr &path) {
+  if (!evaluate(*path.fragments.back()))
+    return false;
 
-  if (const auto *numberLiteral =
-          dynamic_cast<const res::NumberLiteral *>(&expr))
-    return numberLiteral->value;
+  return results->emplace(&path, results->at(path.fragments.back())).second;
+}
+
+bool ConstantExpressionEvaluator::evaluateDeclRefExpr(
+    const res::DeclRefExpr &dre) {
+  const auto *varDecl = dre.decl->getAs<res::VarDecl>();
+  if (!varDecl || varDecl->isMutable || !varDecl->initializer)
+    return false;
+
+  if (!evaluate(*varDecl->initializer))
+    return false;
+
+  return results->emplace(&dre, results->at(varDecl->initializer)).second;
+}
+
+bool ConstantExpressionEvaluator::evaluate(const res::Expr &expr) {
+  if (results->count(&expr))
+    return true;
+
+  if (const auto *numberLit = dynamic_cast<const res::NumberLiteral *>(&expr))
+    return results->emplace(numberLit, numberLit->value).second;
+
+  if (const auto *boolLit = dynamic_cast<const res::BoolLiteral *>(&expr))
+    return results->emplace(boolLit, boolLit->value).second;
 
   if (const auto *groupingExpr = dynamic_cast<const res::GroupingExpr *>(&expr))
-    return evaluate(*groupingExpr->expr, allowSideEffects);
+    return evaluateGroupingExpr(*groupingExpr);
 
-  if (const auto *binaryOperator =
-          dynamic_cast<const res::BinaryOperator *>(&expr))
-    return evaluateBinaryOperator(*binaryOperator, allowSideEffects);
+  if (const auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
+    return evaluateBinaryOperator(*binop);
 
-  if (const auto *unaryOperator =
-          dynamic_cast<const res::UnaryOperator *>(&expr))
-    return evaluateUnaryOperator(*unaryOperator, allowSideEffects);
+  if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
+    return evaluateUnaryOperator(*unop);
 
-  if (const auto *pathExpr = dynamic_cast<const res::PathExpr *>(&expr)) {
-    for (auto &&fragment : pathExpr->fragments) {
-      auto res = evaluate(*fragment, allowSideEffects);
-      if (!res)
-        return std::nullopt;
-
-      if (fragment == pathExpr->fragments.back())
-        return res;
-    }
-  }
+  if (const auto *path = dynamic_cast<const res::PathExpr *>(&expr))
+    return evaluatePathExpr(*path);
 
   if (const auto *declRefExpr = dynamic_cast<const res::DeclRefExpr *>(&expr))
-    return evaluateDeclRefExpr(*declRefExpr, allowSideEffects);
+    return evaluateDeclRefExpr(*declRefExpr);
 
-  return std::nullopt;
+  return false;
 }
 } // namespace yl

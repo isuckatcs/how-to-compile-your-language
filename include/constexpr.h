@@ -1,21 +1,34 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_CONSTEXPR_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_CONSTEXPR_H
 
-#include <optional>
+#include <unordered_map>
+#include <variant>
 
 #include "res.h"
 
 namespace yl {
+using ConstVal = std::variant<bool, double>;
+using ConstExprValueStorage = std::unordered_map<const res::Expr *, ConstVal>;
+
 class ConstantExpressionEvaluator {
-  std::optional<double> evaluateBinaryOperator(const res::BinaryOperator &binop,
-                                               bool allowSideEffects);
-  std::optional<double> evaluateUnaryOperator(const res::UnaryOperator &unop,
-                                              bool allowSideEffects);
-  std::optional<double> evaluateDeclRefExpr(const res::DeclRefExpr &dre,
-                                            bool allowSideEffects);
+  ConstExprValueStorage *results;
+  bool shortCircuitLogicalOperators;
+
+  bool evaluateBinaryOperator(const res::BinaryOperator &binop);
+  bool evaluateUnaryOperator(const res::UnaryOperator &unop);
+  bool evaluateGroupingExpr(const res::GroupingExpr &grouping);
+  bool evaluatePathExpr(const res::PathExpr &path);
+  bool evaluateDeclRefExpr(const res::DeclRefExpr &dre);
 
 public:
-  std::optional<double> evaluate(const res::Expr &expr, bool allowSideEffects);
+  ConstantExpressionEvaluator(ConstExprValueStorage &results,
+                              bool shortCircuitLogicalOperators)
+      : results(&results),
+        shortCircuitLogicalOperators(shortCircuitLogicalOperators){};
+
+  const ConstExprValueStorage *getResults() const { return results; }
+
+  bool evaluate(const res::Expr &expr);
 };
 } // namespace yl
 

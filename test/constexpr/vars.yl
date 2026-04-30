@@ -7,8 +7,10 @@ fn pass(): number {
 // CHECK-NEXT:   BinaryOperator '*' {number}
 // CHECK-NEXT:   | value: 20
 // CHECK-NEXT:     PathExpr {number}
+// CHECK-NEXT:     | value: 2
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '10' {number}
+// CHECK-NEXT:     | value: 10
 
 fn pass2(): number {
     let x: number = 2.0;
