@@ -10,7 +10,7 @@ fn foo(mut x: number): number {
 
             return 1.0;
             
-            if 0.0 {
+            if false {
 
             } else {
                 return 2.0;

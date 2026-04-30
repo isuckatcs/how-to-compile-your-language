@@ -14,9 +14,7 @@ fn foo(mut x: number): unit {
 // CHECK-NEXT: while.cond:                                       ; preds = %entry
 // CHECK-NEXT:   %0 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %1 = fcmp ogt double %0, 1.000000e+00
-// CHECK-NEXT:   %to.double = uitofp i1 %1 to double
-// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %while.body, label %while.exit
+// CHECK-NEXT:   br i1 %1, label %while.body, label %while.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                       ; preds = %while.cond
 // CHECK-NEXT:   br label %return

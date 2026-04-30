@@ -8,11 +8,18 @@ fn foo(x: number): number {
 
     let x: number = 2.0 + 3.0;
     
-    mut y: number = !x;
+    let y: bool = x == 0;
     
-    y = 3.0 * !y / (1.5 + 1.5);
+    mut r: number;
+    if !y {
+        r = 1;
+    } else {
+        r = 0;
+    }
 
-    return y - 10.0;
+    r = 3.0 * r / (1.5 + 1.5);
+
+    return r - 10.0;
 }
 
 fn main(): unit {

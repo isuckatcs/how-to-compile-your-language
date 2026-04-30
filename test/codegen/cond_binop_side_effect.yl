@@ -1,13 +1,13 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o cond_binop_side_effect && ./cond_binop_side_effect | grep -Plzx '1\n2\n3\n4\n5\n7\n10\n13\n14\n15\n16\n'
-fn True(x: number): number {
+fn True(x: number): bool {
     println(x);
-    return 1.0;
+    return true;
 }
 
-fn False(x: number): number {
+fn False(x: number): bool {
     println(x);
-    return 0.0;
+    return false;
 }
 
 fn test1(): unit {
@@ -15,29 +15,23 @@ fn test1(): unit {
 }
 // CHECK: define void @test1() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @False(double 1.000000e+00)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.000000e+00)
+// CHECK-NEXT:   br i1 %0, label %or.merge, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %entry
-// CHECK-NEXT:   %1 = call double @True(double 2.000000e+00)
-// CHECK-NEXT:   %to.bool1 = fcmp one double %1, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool1, label %and.rhs, label %and.merge
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 2.000000e+00)
+// CHECK-NEXT:   br i1 %1, label %and.rhs, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %and.merge, %entry
-// CHECK-NEXT:   %2 = phi i1 [ %to.bool3, %and.merge ], [ true, %entry ]
-// CHECK-NEXT:   %to.double4 = uitofp i1 %2 to double
+// CHECK-NEXT:   %2 = phi i1 [ %4, %and.merge ], [ true, %entry ]
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %or.rhs
-// CHECK-NEXT:   %3 = call double @False(double 3.000000e+00)
-// CHECK-NEXT:   %to.bool2 = fcmp one double %3, 0.000000e+00
+// CHECK-NEXT:   %3 = call zeroext i1 @False(double 3.000000e+00)
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %or.rhs
-// CHECK-NEXT:   %4 = phi i1 [ %to.bool2, %and.rhs ], [ false, %or.rhs ]
-// CHECK-NEXT:   %to.double = uitofp i1 %4 to double
-// CHECK-NEXT:   %to.bool3 = fcmp one double %to.double, 0.000000e+00
+// CHECK-NEXT:   %4 = phi i1 [ %3, %and.rhs ], [ false, %or.rhs ]
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: }
 
@@ -46,24 +40,20 @@ fn test2(): unit {
 }
 // CHECK: define void @test2() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @False(double 4.000000e+00)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 4.000000e+00)
+// CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
-// CHECK-NEXT:   %1 = call double @True(double 6.000000e+00)
-// CHECK-NEXT:   %to.bool2 = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 6.000000e+00)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %entry
-// CHECK-NEXT:   %2 = phi i1 [ %to.bool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %entry ]
-// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %2 = phi i1 [ %1, %or.rhs ], [ true, %or.lhs.false ], [ true, %entry ]
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call double @True(double 5.000000e+00)
-// CHECK-NEXT:   %to.bool1 = fcmp one double %3, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool1, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 5.000000e+00)
+// CHECK-NEXT:   br i1 %3, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test3(): unit {
@@ -71,24 +61,20 @@ fn test3(): unit {
 }
 // CHECK: define void @test3() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @False(double 7.000000e+00)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %and.lhs.true, label %and.merge
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 7.000000e+00)
+// CHECK-NEXT:   br i1 %0, label %and.lhs.true, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %and.lhs.true
-// CHECK-NEXT:   %1 = call double @True(double 9.000000e+00)
-// CHECK-NEXT:   %to.bool2 = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 9.000000e+00)
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %and.lhs.true, %entry
-// CHECK-NEXT:   %2 = phi i1 [ %to.bool2, %and.rhs ], [ false, %and.lhs.true ], [ false, %entry ]
-// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %2 = phi i1 [ %1, %and.rhs ], [ false, %and.lhs.true ], [ false, %entry ]
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call double @False(double 8.000000e+00)
-// CHECK-NEXT:   %to.bool1 = fcmp one double %3, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool1, label %and.rhs, label %and.merge
+// CHECK-NEXT:   %3 = call zeroext i1 @False(double 8.000000e+00)
+// CHECK-NEXT:   br i1 %3, label %and.rhs, label %and.merge
 // CHECK-NEXT: }
 
 fn test4(): unit {
@@ -96,24 +82,20 @@ fn test4(): unit {
 }
 // CHECK: define void @test4() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @True(double 1.000000e+01)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %0 = call zeroext i1 @True(double 1.000000e+01)
+// CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
-// CHECK-NEXT:   %1 = call double @True(double 1.200000e+01)
-// CHECK-NEXT:   %to.bool2 = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.200000e+01)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %entry
-// CHECK-NEXT:   %2 = phi i1 [ %to.bool2, %or.rhs ], [ true, %or.lhs.false ], [ true, %entry ]
-// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %2 = phi i1 [ %1, %or.rhs ], [ true, %or.lhs.false ], [ true, %entry ]
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call double @True(double 1.100000e+01)
-// CHECK-NEXT:   %to.bool1 = fcmp one double %3, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool1, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.100000e+01)
+// CHECK-NEXT:   br i1 %3, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test5(): unit {
@@ -121,29 +103,24 @@ fn test5(): unit {
 }
 // CHECK: define void @test5() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @False(double 1.300000e+01)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.lhs.false
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.300000e+01)
+// CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %and.lhs.true, %or.lhs.false
-// CHECK-NEXT:   %1 = call double @True(double 1.600000e+01)
-// CHECK-NEXT:   %to.bool3 = fcmp one double %1, 0.000000e+00
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.600000e+01)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %and.lhs.true, %entry
-// CHECK-NEXT:   %2 = phi i1 [ %to.bool3, %or.rhs ], [ true, %and.lhs.true ], [ true, %entry ]
-// CHECK-NEXT:   %to.double = uitofp i1 %2 to double
+// CHECK-NEXT:   %2 = phi i1 [ %1, %or.rhs ], [ true, %and.lhs.true ], [ true, %entry ]
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call double @True(double 1.400000e+01)
-// CHECK-NEXT:   %to.bool1 = fcmp one double %3, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool1, label %and.lhs.true, label %or.rhs
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.400000e+01)
+// CHECK-NEXT:   br i1 %3, label %and.lhs.true, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %or.lhs.false
-// CHECK-NEXT:   %4 = call double @False(double 1.500000e+01)
-// CHECK-NEXT:   %to.bool2 = fcmp one double %4, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool2, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %4 = call zeroext i1 @False(double 1.500000e+01)
+// CHECK-NEXT:   br i1 %4, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn main(): unit {

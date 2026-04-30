@@ -15,9 +15,7 @@ fn main(): unit {
 // CHECK-NEXT:   store double %x, ptr %x1, align 8
 // CHECK-NEXT:   %0 = load double, ptr %x1, align 8
 // CHECK-NEXT:   %1 = fcmp oeq double %0, 0.000000e+00
-// CHECK-NEXT:   %to.double = uitofp i1 %1 to double
-// CHECK-NEXT:   %to.bool = fcmp one double %to.double, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %if.true, label %if.exit
+// CHECK-NEXT:   br i1 %1, label %if.true, label %if.exit
 // CHECK-NEXT: 
 // CHECK-NEXT: if.true:                                          ; preds = %entry
 // CHECK-NEXT:   br label %return

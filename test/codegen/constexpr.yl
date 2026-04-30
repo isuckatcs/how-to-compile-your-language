@@ -1,57 +1,62 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o constexpr && ./constexpr | grep -Plzx '3\n4\n'
-fn sideEffect(x: number): number {
+fn sideEffect(x: number): bool {
     println(x);
-    return x;
+    
+    if x == 0 {
+        return false;
+    }
+
+    return true;
 }
 
-fn constant(): number {
-    return 1 || sideEffect(2);
+fn constant(): bool {
+    return true || sideEffect(2);
 }
-// CHECK: define double @constant() {
+// CHECK: define zeroext i1 @constant() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   store double 1.000000e+00, ptr %retval, align 8
+// CHECK-NEXT:   %retval = alloca i8, align 1
+// CHECK-NEXT:   store i8 1, ptr %retval, align 1
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
-// CHECK-NEXT:   ret double %0
+// CHECK-NEXT:   %0 = load i8, ptr %retval, align 1
+// CHECK-NEXT:   %1 = trunc i8 %0 to i1
+// CHECK-NEXT:   ret i1 %1
 // CHECK-NEXT: }
 
-fn constant2(): number {
-    return 0 && sideEffect(2);
+fn constant2(): bool {
+    return false && sideEffect(2);
 }
-// CHECK: define double @constant2() {
+// CHECK: define zeroext i1 @constant2() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   store double 0.000000e+00, ptr %retval, align 8
+// CHECK-NEXT:   %retval = alloca i8, align 1
+// CHECK-NEXT:   store i8 0, ptr %retval, align 1
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load double, ptr %retval, align 8
-// CHECK-NEXT:   ret double %0
+// CHECK-NEXT:   %0 = load i8, ptr %retval, align 1
+// CHECK-NEXT:   %1 = trunc i8 %0 to i1
+// CHECK-NEXT:   ret i1 %1
 // CHECK-NEXT: }
 
-fn nonConstant(): number {
-    return sideEffect(3) || 1;
+fn nonConstant(): bool {
+    return sideEffect(3) || true;
 }
-// CHECK: define double @nonConstant() {
+// CHECK: define zeroext i1 @nonConstant() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   %0 = call double @sideEffect(double 3.000000e+00)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %or.merge, label %or.rhs
+// CHECK-NEXT:   %retval = alloca i8, align 1
+// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 3.000000e+00)
+// CHECK-NEXT:   br i1 %0, label %or.merge, label %or.rhs
 
-fn nonConstant2(): number {
-    return sideEffect(4) && 0;
+fn nonConstant2(): bool {
+    return sideEffect(4) && false;
 }
-// CHECK: define double @nonConstant2() {
+// CHECK: define zeroext i1 @nonConstant2() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   %0 = call double @sideEffect(double 4.000000e+00)
-// CHECK-NEXT:   %to.bool = fcmp one double %0, 0.000000e+00
-// CHECK-NEXT:   br i1 %to.bool, label %and.rhs, label %and.merge
+// CHECK-NEXT:   %retval = alloca i8, align 1
+// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 4.000000e+00)
+// CHECK-NEXT:   br i1 %0, label %and.rhs, label %and.merge
 
 fn main(): unit {
     constant();
@@ -60,3 +65,11 @@ fn main(): unit {
     nonConstant();
     nonConstant2();
 }
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = call zeroext i1 @constant()
+// CHECK-NEXT:   %1 = call zeroext i1 @constant2()
+// CHECK-NEXT:   %2 = call zeroext i1 @nonConstant()
+// CHECK-NEXT:   %3 = call zeroext i1 @nonConstant2()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

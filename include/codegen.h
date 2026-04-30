@@ -99,9 +99,8 @@ class Codegen {
                                    llvm::BasicBlock *falseBlock);
 
   llvm::Value *generateExprAndLoadValue(const res::Expr &expr);
+  llvm::Value *loadValue(llvm::Value *val, llvm::Type *type);
   llvm::Value *storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type);
-  llvm::Value *doubleToBool(llvm::Value *v);
-  llvm::Value *boolToDouble(llvm::Value *v);
   void breakIntoBB(llvm::BasicBlock *targetBB);
 
   llvm::Function *getCurrentFunction();

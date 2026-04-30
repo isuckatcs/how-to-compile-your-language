@@ -112,6 +112,9 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (type->getAs<res::BuiltinUnitType>())
     return builder.getVoidTy();
 
+  if (type->getAs<res::BuiltinBoolType>())
+    return builder.getInt1Ty();
+
   if (const auto *s = type->getAs<res::StructType>())
     return generateStructType(s);
 
@@ -187,7 +190,8 @@ llvm::Value *Codegen::generateIfStmt(const res::IfStmt &stmt) {
   if (stmt.falseBlock)
     elseBB = llvm::BasicBlock::Create(context, "if.false");
 
-  builder.CreateCondBr(generateExpr(*stmt.condition), trueBB, elseBB);
+  builder.CreateCondBr(generateExprAndLoadValue(*stmt.condition), trueBB,
+                       elseBB);
 
   trueBB->insertInto(function);
   builder.SetInsertPoint(trueBB);
@@ -216,7 +220,7 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
   builder.CreateBr(header);
 
   builder.SetInsertPoint(header);
-  builder.CreateCondBr(generateExpr(*stmt.condition), body, exit);
+  builder.CreateCondBr(generateExprAndLoadValue(*stmt.condition), body, exit);
 
   builder.SetInsertPoint(body);
   generateBlock(*stmt.body);
@@ -328,6 +332,9 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
 llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *number = dynamic_cast<const res::NumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
+
+  if (auto *boolLiteral = dynamic_cast<const res::BoolLiteral *>(&expr))
+    return builder.getInt1(boolLiteral->value);
 
   if (auto *unit = dynamic_cast<const res::UnitLiteral *>(&expr))
     return nullptr;
@@ -446,7 +453,7 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 
   if (unop.op == TokenKind::Excl)
-    return boolToDouble(builder.CreateNot(doubleToBool(rhs)));
+    return builder.CreateNot(rhs);
 
   if (unop.op == TokenKind::Minus)
     return builder.CreateFNeg(rhs);
@@ -490,8 +497,7 @@ void Codegen::generateConditionalOperator(const res::Expr &op,
     return;
   }
 
-  llvm::Value *val = doubleToBool(generateExpr(op));
-  builder.CreateCondBr(val, trueBB, falseBB);
+  builder.CreateCondBr(generateExpr(op), trueBB, falseBB);
 };
 
 llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
@@ -512,7 +518,7 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
     generateConditionalOperator(*binop.lhs, trueBB, falseBB);
 
     builder.SetInsertPoint(rhsBB);
-    llvm::Value *rhs = doubleToBool(generateExprAndLoadValue(*binop.rhs));
+    llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
     assert(!builder.GetInsertBlock()->getTerminator() &&
            "a binop terminated the current block");
@@ -529,20 +535,24 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
         phi->addIncoming(builder.getInt1(isOr), *it);
     }
 
-    return boolToDouble(phi);
+    return phi;
   }
 
   llvm::Value *lhs = generateExprAndLoadValue(*binop.lhs);
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
+  if (op == TokenKind::EqualEqual) {
+    if (lhs->getType()->isIntegerTy())
+      return builder.CreateICmpEQ(lhs, rhs);
+
+    return builder.CreateFCmpOEQ(lhs, rhs);
+  }
+
   if (op == TokenKind::Lt)
-    return boolToDouble(builder.CreateFCmpOLT(lhs, rhs));
+    return builder.CreateFCmpOLT(lhs, rhs);
 
   if (op == TokenKind::Gt)
-    return boolToDouble(builder.CreateFCmpOGT(lhs, rhs));
-
-  if (op == TokenKind::EqualEqual)
-    return boolToDouble(builder.CreateFCmpOEQ(lhs, rhs));
+    return builder.CreateFCmpOGT(lhs, rhs);
 
   if (op == TokenKind::Plus)
     return builder.CreateFAdd(lhs, rhs);
@@ -571,6 +581,15 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
       (llvm::isa<llvm::Argument>(val) && !outParamRef))
     return val;
 
+  return loadValue(val, type);
+}
+
+llvm::Value *Codegen::loadValue(llvm::Value *val, llvm::Type *type) {
+  if (type->isIntegerTy(1)) {
+    llvm::Value *loadedVal = builder.CreateLoad(builder.getInt8Ty(), val);
+    return builder.CreateTrunc(loadedVal, type);
+  }
+
   return builder.CreateLoad(type, val);
 }
 
@@ -578,6 +597,9 @@ llvm::Value *
 Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
   if (type->isVoidTy())
     return nullptr;
+
+  if (type->isIntegerTy(1))
+    val = builder.CreateZExt(val, builder.getInt8Ty());
 
   if (!type->isStructTy())
     return builder.CreateStore(val, ptr);
@@ -588,15 +610,6 @@ Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
 
   return builder.CreateMemCpy(ptr, sl->getAlignment(), val, sl->getAlignment(),
                               sl->getSizeInBytes());
-}
-
-llvm::Value *Codegen::doubleToBool(llvm::Value *v) {
-  return builder.CreateFCmpONE(
-      v, llvm::ConstantFP::get(builder.getDoubleTy(), 0.0), "to.bool");
-}
-
-llvm::Value *Codegen::boolToDouble(llvm::Value *v) {
-  return builder.CreateUIToFP(v, builder.getDoubleTy(), "to.double");
 }
 
 void Codegen::breakIntoBB(llvm::BasicBlock *targetBB) {
@@ -618,14 +631,17 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(allocaInsertPoint);
 
+  if (type->isIntegerTy(1))
+    type = builder.getInt8Ty();
+
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
 llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
-  std::vector<llvm::AttributeSet> argsAttrSets;
+  llvm::Type *retTy = generateType(ty->getReturnType());
 
-  if (llvm::Type *retTy = generateType(ty->getReturnType());
-      retTy && retTy->isStructTy()) {
+  std::vector<llvm::AttributeSet> argsAttrSets;
+  if (retTy && retTy->isStructTy()) {
     llvm::AttrBuilder retAttrs(context);
     retAttrs.addStructRetAttr(retTy);
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
@@ -637,14 +653,20 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
       continue;
 
     llvm::AttrBuilder paramAttrs(context);
-    if (llvmTy->isStructTy())
+    if (argTy->getAs<res::StructType>())
       paramAttrs.addByValAttr(llvmTy);
+    else if (argTy->getAs<res::BuiltinBoolType>())
+      paramAttrs.addAttribute(llvm::Attribute::ZExt);
 
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
   }
 
-  return llvm::AttributeList::get(context, llvm::AttributeSet{},
-                                  llvm::AttributeSet{}, argsAttrSets);
+  llvm::AttributeSet retAttrSet;
+  if (retTy && retTy->isIntegerTy(1))
+    retAttrSet = retAttrSet.addAttribute(context, llvm::Attribute::ZExt);
+
+  return llvm::AttributeList::get(context, llvm::AttributeSet{}, retAttrSet,
+                                  argsAttrSets);
 }
 
 void Codegen::generateBlock(const res::Block &block) {
@@ -730,7 +752,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   if (returnTy->isVoidTy())
     builder.CreateRetVoid();
   else
-    builder.CreateRet(builder.CreateLoad(returnTy, retVal));
+    builder.CreateRet(loadValue(retVal, returnTy));
 }
 
 void Codegen::generateBuiltinPrintlnBody(const res::FunctionDecl &println) {

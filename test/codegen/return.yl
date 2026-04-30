@@ -14,7 +14,7 @@ fn noInsertPoint(): unit {
 // CHECK-NEXT: }
 
 fn insertPointEmptyBlock(): unit {
-    if 1.0 {
+    if true {
         return;
     }
 }
@@ -33,7 +33,7 @@ fn insertPointEmptyBlock(): unit {
 // CHECK-NEXT: }
 
 fn insertPointEmptyBlock2(): unit {
-    while 1.0 {
+    while true {
         return;
     }
 }
@@ -55,7 +55,7 @@ fn insertPointEmptyBlock2(): unit {
 // CHECK-NEXT: }
 
 fn insertPointNonEmptyBlock(): unit {
-    if 1.0 {
+    if true {
         return;
     }
 
@@ -76,7 +76,7 @@ fn insertPointNonEmptyBlock(): unit {
 // CHECK-NEXT: }
 
 fn insertPointNonEmptyBlock2(): unit {
-    while 1.0 {
+    while true {
         return;
     }
 

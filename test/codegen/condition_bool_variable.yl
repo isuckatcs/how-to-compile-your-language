@@ -1,0 +1,64 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o condition_bool_variable && ./condition_bool_variable | grep -Plzx '123\n456\n'
+
+fn pred(n: number): bool {
+// CHECK: define zeroext i1 @pred(double %n) {
+// CHECK-NEXT: entry:
+
+  // CHECK-NEXT:   %retval = alloca i8, align 1
+
+  let isZero = n == 0;
+  // CHECK-NEXT: %isZero = alloca i8, align 1
+  // CHECK-NEXT: %0 = fcmp oeq double %n, 0.000000e+00
+  // CHECK-NEXT: %1 = zext i1 %0 to i8
+  // CHECK-NEXT: store i8 %1, ptr %isZero, align 1
+
+  if isZero {
+  // CHECK-NEXT: %2 = load i8, ptr %isZero, align 1
+  // CHECK-NEXT: %3 = trunc i8 %2 to i1
+  // CHECK-NEXT: br i1 %3, label %if.true, label %if.false
+    println(123);
+  } else {
+    println(456);
+  }
+
+  return isZero;
+  // CHECK:if.exit:                                          ; preds = %if.false, %if.true
+  // CHECK-NEXT:  %4 = load i8, ptr %isZero, align 1
+  // CHECK-NEXT:  %5 = trunc i8 %4 to i1
+  // CHECK-NEXT:  %6 = zext i1 %5 to i8
+  // CHECK-NEXT:  store i8 %6, ptr %retval, align 1
+  // CHECK-NEXT:  br label %return
+  // CHECK-NEXT:
+  // CHECK-NEXT:return:                                           ; preds = %if.exit
+  // CHECK-NEXT:  %7 = load i8, ptr %retval, align 1
+  // CHECK-NEXT:  %8 = trunc i8 %7 to i1
+  // CHECK-NEXT:  ret i1 %8
+}
+
+fn main() {
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+
+  mut n = 1;
+  mut cond = true;
+  // CHECK-NEXT: %n = alloca double, align 8
+  // CHECK-NEXT: %cond = alloca i8, align 1
+  // CHECK-NEXT: store double 1.000000e+00, ptr %n, align 8
+  // CHECK-NEXT: store i8 1, ptr %cond, align 1
+  // CHECK-NEXT: br label %while.cond
+  // CHECK-NEXT:
+
+  while cond {
+  // CHECK-NEXT: while.cond:                                       ; preds = %while.body, %entry
+  // CHECK-NEXT:   %0 = load i8, ptr %cond, align 1
+  // CHECK-NEXT:   %1 = trunc i8 %0 to i1
+  // CHECK-NEXT:   br i1 %1, label %while.body, label %while.exit
+
+    n = n - 1;
+    cond = pred(n);
+    // CHECK: %5 = call zeroext i1 @pred(double %4)
+    // CHECK-NEXT: %6 = zext i1 %5 to i8
+    // CHECK-NEXT: store i8 %6, ptr %cond, align 1
+  }
+}
