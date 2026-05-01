@@ -21,4 +21,13 @@ fn bar(): number {
 // CHECK-NEXT:     | value: 2.1
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 
+fn baz(x: number) {
+    let y = (x);
+    // CHECK: DeclStmt
+    // CHECK-NEXT:   VarDecl @({{.*}}) y {number}
+    // CHECK-NEXT:     GroupingExpr {number}
+    // CHECK-NEXT:       PathExpr {number}
+    // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+}
+
 fn main(): unit {}
