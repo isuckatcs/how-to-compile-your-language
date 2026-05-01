@@ -166,6 +166,11 @@ fn comparison(): unit {
 fn equality(): unit {
     bar(2.0 == 2.0);
     bar(5.0 == 3.0);
+
+    bar(true == true);
+    bar(false == false);
+    bar(true == false);
+    bar(false == true);
 }
 // CHECK-NEXT: FunctionDecl @({{.*}}) equality {() -> unit}
 // CHECK-NEXT:   Block
@@ -187,6 +192,42 @@ fn equality(): unit {
 // CHECK-NEXT:         | value: 5
 // CHECK-NEXT:         NumberLiteral '3' {number}
 // CHECK-NEXT:         | value: 3
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {(bool) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
+// CHECK-NEXT:       BinaryOperator '==' {bool}
+// CHECK-NEXT:       | value: 1
+// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         | value: 1
+// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         | value: 1
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {(bool) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
+// CHECK-NEXT:       BinaryOperator '==' {bool}
+// CHECK-NEXT:       | value: 1
+// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         | value: 0
+// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         | value: 0
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {(bool) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
+// CHECK-NEXT:       BinaryOperator '==' {bool}
+// CHECK-NEXT:       | value: 0
+// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         | value: 1
+// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         | value: 0
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {(bool) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
+// CHECK-NEXT:       BinaryOperator '==' {bool}
+// CHECK-NEXT:       | value: 0
+// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         | value: 0
+// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         | value: 1
 
 fn conjunction(): unit {
     bar(true && true);
