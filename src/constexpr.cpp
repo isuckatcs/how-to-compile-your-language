@@ -75,9 +75,6 @@ bool ConstantExpressionEvaluator::evaluateBinaryOperator(
   if (op == TokenKind::Gt)
     return results->emplace(&binop, lhs > rhs).second;
 
-  if (op == TokenKind::EqualEqual)
-    return results->emplace(&binop, lhs == rhs).second;
-
   return false;
 }
 
