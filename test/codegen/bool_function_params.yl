@@ -1,0 +1,64 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o bool_function_params && ./bool_function_params | grep -Plzx '123\n456\n'
+fn foo(out: &bool, in: bool): bool {
+// CHECK: define zeroext i1 @foo(ptr %out, i1 zeroext %in) {
+// CHECK-NEXT: entry:
+
+  // CHECK-NEXT: %retval = alloca i8, align 1
+
+  let cache = out;
+  // CHECK-NEXT: %cache = alloca i8, align 1
+  // CHECK-NEXT: %0 = load i8, ptr %out, align 1
+  // CHECK-NEXT: %1 = trunc i8 %0 to i1
+  // CHECK-NEXT: %2 = zext i1 %1 to i8
+  // CHECK-NEXT: store i8 %2, ptr %cache, align 1
+
+  out = in || true;
+  // CHECK-NEXT:   br i1 %in, label %or.merge, label %or.rhs
+  // CHECK-NEXT: 
+  // CHECK-NEXT: or.rhs:                                           ; preds = %entry
+  // CHECK-NEXT:   br label %or.merge
+  // CHECK-NEXT: 
+  // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %entry
+  // CHECK-NEXT:   %3 = phi i1 [ true, %or.rhs ], [ true, %entry ]
+  // CHECK-NEXT:   %4 = zext i1 %3 to i8
+  // CHECK-NEXT:   store i8 %4, ptr %out, align 1
+
+  return cache;
+  // CHECK-NEXT:   %5 = load i8, ptr %cache, align 1
+  // CHECK-NEXT:   %6 = trunc i8 %5 to i1
+  // CHECK-NEXT:   %7 = zext i1 %6 to i8
+  // CHECK-NEXT:   store i8 %7, ptr %retval, align 1
+  // CHECK-NEXT:   br label %return
+  // CHECK-NEXT: 
+  // CHECK-NEXT: return:                                           ; preds = %or.merge
+  // CHECK-NEXT:   %8 = load i8, ptr %retval, align 1
+  // CHECK-NEXT:   %9 = trunc i8 %8 to i1
+  // CHECK-NEXT:   ret i1 %9
+}
+
+fn main() {
+// CHECK: define void @__builtin_main() {
+// CHECK-NEXT: entry:
+
+  // CHECK-NEXT: %out = alloca i8, align 1
+  // CHECK-NEXT: %res = alloca i8, align 1
+  
+  let b = false;
+  mut out = false;
+  // CHECK-NEXT: store i8 0, ptr %out, align 1
+
+
+  let res = foo(&out, b);
+  // CHECK-NEXT: %0 = call zeroext i1 @foo(ptr %out, i1 zeroext false)
+  // CHECK-NEXT: %1 = zext i1 %0 to i8
+  // CHECK-NEXT: store i8 %1, ptr %res, align 1
+
+  if out {
+    println(123);
+  }
+
+  if !res {
+    println(456);
+  }
+}
