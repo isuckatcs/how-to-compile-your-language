@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct Color {
-// CHECK: [[# @LINE - 1 ]]:1: error: struct 'Color' contains itself
+// CHECK: [[# @LINE - 1 ]]:8: error: struct 'Color' contains itself
   r: number,
   g: number,
   b: number,

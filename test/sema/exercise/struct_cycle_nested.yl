@@ -4,7 +4,7 @@ struct S1 {
 }
 
 struct S2 {
-// CHECK: [[# @LINE - 1 ]]:1: error: struct 'S2' contains itself
+// CHECK: [[# @LINE - 1 ]]:8: error: struct 'S2' contains itself
   nested: S3
 }
 

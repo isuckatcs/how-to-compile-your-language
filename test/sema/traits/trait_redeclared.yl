@@ -1,7 +1,7 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {}
 
-// CHECK: [[# @LINE + 1 ]]:1: error: redeclaration of 'A'
+// CHECK: [[# @LINE + 1 ]]:7: error: redeclaration of 'A'
 trait A {}
 
 fn main() {}

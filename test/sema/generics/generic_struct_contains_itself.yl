@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-// CHECK: [[# @LINE + 1 ]]:1: error: struct 'S' contains itself
+// CHECK: [[# @LINE + 1 ]]:8: error: struct 'S' contains itself
 struct S<T> { x: S<T> }
 
 fn main(): unit {}

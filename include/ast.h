@@ -70,7 +70,6 @@ struct OutParamType : public Type {
 };
 
 struct Decl {
-  // FIXME: the location should point to the identifier of the declaration
   SourceLocation location;
   std::string identifier;
 

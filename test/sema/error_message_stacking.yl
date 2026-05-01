@@ -3,7 +3,7 @@
 struct S<T> { x: invalid, y: T }
 
 struct S { x: T, y: S }
-// CHECK: [[# @LINE - 1 ]]:1: error: redeclaration of 'S'
+// CHECK: [[# @LINE - 1 ]]:8: error: redeclaration of 'S'
 // CHECK: [[# @LINE - 2 ]]:15: error: failed to resolve type 'T'
 // CHECK: [[# @LINE - 3 ]]:21: error: expected '1' type argument but received '0'
 

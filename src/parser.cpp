@@ -150,9 +150,9 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
 // <memberFunctionList>
 //  ::= <functionDecl>*
 std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
-  SourceLocation location = nextToken.location;
   eatNextToken(); // eat struct
 
+  SourceLocation location = nextToken.location;
   matchOrReturn(TokenKind::Identifier, "expected identifier");
 
   assert(nextToken.value && "identifier token without value");
@@ -202,9 +202,9 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
 // <traitFunctionDecl>
 //     ::= <functionHeader> (';' | <block>)
 std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
-  SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'trait'
 
+  SourceLocation location = nextToken.location;
   matchOrReturn(TokenKind::Identifier, "expected identifier");
 
   assert(nextToken.value && "identifier token without value");
@@ -339,12 +339,11 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
 // <paramDecl>
 //  ::= 'mut'? <identifier> ':' <type>
 std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
-  SourceLocation location = nextToken.location;
-
   bool isMut = nextToken.kind == TokenKind::KwMut;
   if (isMut)
     eatNextToken(); // eat 'mut'
 
+  SourceLocation location = nextToken.location;
   matchOrReturn(TokenKind::Identifier, "expected parameter declaration");
   assert(nextToken.value && "identifier token without value");
 

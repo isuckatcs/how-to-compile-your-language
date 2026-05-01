@@ -7,7 +7,7 @@ fn S(): unit {
 }
 
 struct S {
-// CHECK: [[# @LINE - 1 ]]:1: error: redeclaration of 'S'
+// CHECK: [[# @LINE - 1 ]]:8: error: redeclaration of 'S'
   x: number,
 }
 
