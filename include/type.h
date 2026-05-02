@@ -2,7 +2,6 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_TYPE_H
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -152,17 +151,12 @@ class Substitution : public std::unordered_map<res::Type *, res::Type *> {
 
 class TypeManager {
   std::vector<std::unique_ptr<Type>> types;
-  std::unordered_map<const TypedNode *, Type *> env;
-
   std::vector<std::pair<Type *, TraitType *>> upperBounds;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
   bool unifyImpl(Type *t1, Type *t2, std::vector<std::string> &errors);
 
 public:
-  void bind(const TypedNode *node, Type *type) { env[node] = type; }
-  Type *getType(const TypedNode *expr) { return env[expr]; }
-
   void addUpperBound(Decl *decl, TraitType *trait);
   UninferredType *withObligation(UninferredType *type, TraitType *obligation);
   std::vector<TraitType *> getUpperBounds(Type *type);

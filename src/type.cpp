@@ -116,11 +116,12 @@ Substitution TypeManager::extractSubstitutionFrom(Type *ty) {
 
   if (auto *structTy = ty->getAs<res::StructType>())
     for (int i = 0; i < structTy->getTypeArgs().size(); ++i)
-      sub[getType(structTy->decl->typeParams[i])] = structTy->getTypeArgs()[i];
+      sub[structTy->decl->typeParams[i]->getType()] =
+          structTy->getTypeArgs()[i];
 
   if (auto *traitTy = ty->getAs<res::TraitType>())
     for (int i = 0; i < traitTy->getTypeArgs().size(); ++i)
-      sub[getType(traitTy->decl->typeParams[i])] = traitTy->getTypeArgs()[i];
+      sub[traitTy->decl->typeParams[i]->getType()] = traitTy->getTypeArgs()[i];
 
   return sub;
 }
@@ -181,7 +182,7 @@ OutParamType *TypeManager::getOutParamType(Type *pointeeType) {
 }
 
 void TypeManager::addUpperBound(res::Decl *decl, TraitType *trait) {
-  upperBounds.emplace_back(getType(decl), trait);
+  upperBounds.emplace_back(decl->getType(), trait);
 }
 
 std::vector<TraitType *> TypeManager::getUpperBounds(res::Type *type) {

@@ -23,7 +23,7 @@ bool Sema::runFlowSensitiveChecks(res::Context &ctx,
 bool Sema::checkReturnOnAllPaths(res::Context &ctx,
                                  const res::FunctionDecl &fn,
                                  const CFG &cfg) {
-  if (typeMgr.getType(&fn)
+  if (fn.getType()
           ->getAs<res::FunctionType>()
           ->getReturnType()
           ->getAs<res::BuiltinUnitType>())
@@ -174,8 +174,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
   }
 
   for (auto &&[d, s] : curLattices[cfg.exit + 1])
-    if (s == State::Unassigned &&
-        typeMgr.getType(d)->getAs<res::UninferredType>())
+    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>())
       report(d->location, "the type of '" + d->identifier + "' is unknown");
 
   for (auto &&[loc, msg] : pendingErrors)
@@ -200,14 +199,13 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
   auto *numTy = typeMgr.getBuiltinNumberType();
-  auto *param = ctx.createAndBind<res::ParamDecl>(numTy, loc, "n", false);
+  auto *param = ctx.create<res::ParamDecl>(loc, numTy, "n", false);
 
-  auto *fn = ctx.create<res::FunctionDecl>(
-      loc, "println", std::vector<res::TypeParamDecl *>{}, std::vector{param});
+  auto *fnTy = typeMgr.getFunctionType({numTy}, typeMgr.getBuiltinUnitType());
+  auto *fn = ctx.create<res::FunctionDecl>(loc, fnTy, "println",
+                                           std::vector<res::TypeParamDecl *>{},
+                                           std::vector{param});
   fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
-
-  typeMgr.bind(fn,
-               typeMgr.getFunctionType({numTy}, typeMgr.getBuiltinUnitType()));
   return fn;
 };
 
@@ -286,7 +284,7 @@ res::UnaryOperator *
 Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
-  auto *rhsTy = typeMgr.getType(rhs);
+  auto *rhsTy = rhs->getType();
   if (rhsTy->getAs<res::UninferredType>())
     return report(rhs->location,
                   "type of operand to unary operator is unknown");
@@ -309,8 +307,7 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
     rhsTy = typeMgr.getOutParamType(rhsTy);
   }
 
-  return ctx.createAndBind<res::UnaryOperator>(rhsTy, unary.location, unary.op,
-                                               rhs);
+  return ctx.create<res::UnaryOperator>(unary.location, rhsTy, unary.op, rhs);
 }
 
 res::BinaryOperator *
@@ -319,8 +316,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   varOrReturn(lhs, resolveExpr(ctx, *binop.lhs));
   varOrReturn(rhs, resolveExpr(ctx, *binop.rhs));
 
-  auto *lhsTy = typeMgr.getType(lhs);
-  auto *rhsTy = typeMgr.getType(rhs);
+  auto *lhsTy = lhs->getType();
+  auto *rhsTy = rhs->getType();
 
   if (auto *uninferredLHS = lhsTy->getAs<res::UninferredType>();
       uninferredLHS || rhsTy->getAs<res::UninferredType>())
@@ -346,15 +343,14 @@ Sema::resolveBinaryOperator(res::Context &ctx,
                       op == TokenKind::Gt)
                          ? typeMgr.getBuiltinBoolType()
                          : lhsTy;
-  return ctx.createAndBind<res::BinaryOperator>(resTy, loc, binop.op, lhs, rhs);
+  return ctx.create<res::BinaryOperator>(loc, resTy, binop.op, lhs, rhs);
 }
 
 res::GroupingExpr *
 Sema::resolveGroupingExpr(res::Context &ctx,
                           const ast::GroupingExpr &grouping) {
   varOrReturn(expr, resolveExpr(ctx, *grouping.expr));
-  return ctx.createAndBind<res::GroupingExpr>(typeMgr.getType(expr),
-                                              grouping.location, expr);
+  return ctx.create<res::GroupingExpr>(grouping.location, expr);
 }
 
 template <typename Hint>
@@ -368,7 +364,7 @@ res::PathExpr *Sema::resolvePathExpr(res::Context &ctx,
 
     res::Type *parentTy = nullptr;
     if (!resFragments.empty())
-      parentTy = typeMgr.getType(resFragments.back());
+      parentTy = resFragments.back()->getType();
 
     if (fragment != path.back()) {
       varOrReturn(dre, resolveDeclRefExpr<res::TypeDecl>(
@@ -382,8 +378,7 @@ res::PathExpr *Sema::resolvePathExpr(res::Context &ctx,
     resFragments.emplace_back(dre);
   }
 
-  return ctx.createAndBind<res::PathExpr>(
-      ctx.getTypeMgr().getType(resFragments.back()), std::move(resFragments));
+  return ctx.create<res::PathExpr>(std::move(resFragments));
 }
 
 template <typename Hint>
@@ -397,9 +392,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     varOrReturn(traitInstance,
                 resolveTraitInstance(ctx, impl->traitInstance.get()));
 
-    res::TraitType *traitTy =
-        typeMgr.getType(traitInstance)->getAs<res::TraitType>();
-
+    res::TraitType *traitTy = traitInstance->getType()->getAs<res::TraitType>();
     auto *checkTy =
         typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
 
@@ -471,7 +464,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
                                           res::Type *parentTy,
                                           res::Decl *decl,
                                           res::TraitType *trait) {
-  res::Type *declTy = typeMgr.getType(decl);
+  res::Type *declTy = decl->getType();
   declTy = typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(trait));
   declTy =
       typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(parentTy));
@@ -491,7 +484,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     bool isImplicitSelf = typeParam == typeParams.front() &&
                           typeParam->identifier == implicitSelfId;
 
-    res::Type *typeParamTy = typeMgr.getType(typeParam);
+    res::Type *typeParamTy = typeParam->getType();
     res::Type *subTy =
         isImplicitSelf ? parentTy : typeMgr.getNewUninferredType();
 
@@ -529,9 +522,9 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  return ctx.createAndBind<res::DeclRefExpr>(typeMgr.instantiate(declTy, sub),
-                                             dre->location, *decl, kind,
-                                             typeArgs, parentTy, trait);
+  return ctx.create<res::DeclRefExpr>(dre->location,
+                                      typeMgr.instantiate(declTy, sub), *decl,
+                                      kind, typeArgs, parentTy, trait);
 }
 
 template <typename Hint>
@@ -555,7 +548,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       return nullptr;
   }
 
-  res::Type *calleeType = typeMgr.getType(callee);
+  res::Type *calleeType = callee->getType();
   auto *fnType = calleeType->getAs<res::FunctionType>();
   if (!fnType)
     return report(call.location, "calling expression of type '" +
@@ -574,29 +567,29 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
       SourceLocation baseLoc = base->location;
       res::Expr::Kind baseKind = base->kind;
-      res::Type *baseTy = typeMgr.getType(base);
+      res::Type *baseTy = base->getType();
 
       selfArg = base;
-      if (typeMgr.getType(selfParam)->getAs<res::OutParamType>()) {
+      if (selfParam->getType()->getAs<res::OutParamType>()) {
         if (selfArg->isLvalue() && !selfArg->isMutable())
           return report(baseLoc, "expected mutable struct instance");
 
-        selfArg = ctx.createAndBind<res::UnaryOperator>(
-            typeMgr.getOutParamType(baseTy), baseLoc, TokenKind::Amp, selfArg);
+        selfArg = ctx.create<res::UnaryOperator>(
+            baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg);
       }
 
       res::DeclRefExpr *baseDre = nullptr;
       if (auto *structTy = baseTy->getAs<res::StructType>())
-        baseDre = ctx.createAndBind<res::DeclRefExpr>(
-            structTy, baseLoc, *structTy->getDecl(), baseKind,
-            structTy->getTypeArgs());
+        baseDre = ctx.create<res::DeclRefExpr>(baseLoc, structTy,
+                                               *structTy->getDecl(), baseKind,
+                                               structTy->getTypeArgs());
 
       if (auto *typeParamTy = baseTy->getAs<res::TypeParamType>())
-        baseDre = ctx.createAndBind<res::DeclRefExpr>(
-            typeParamTy, baseLoc, *typeParamTy->decl, baseKind);
+        baseDre = ctx.create<res::DeclRefExpr>(baseLoc, typeParamTy,
+                                               *typeParamTy->decl, baseKind);
 
       std::vector<res::DeclRefExpr *> fragments = {baseDre, member};
-      callee = ctx.createAndBind<res::PathExpr>(fnType, std::move(fragments));
+      callee = ctx.create<res::PathExpr>(std::move(fragments));
     }
   }
 
@@ -621,7 +614,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
-    res::Type *actualTy = typeMgr.getType(resolvedArg);
+    res::Type *actualTy = resolvedArg->getType();
 
     if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
         !errors.empty()) {
@@ -634,8 +627,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     resolvedArgs.emplace_back(resolvedArg);
   }
 
-  return ctx.createAndBind<res::CallExpr>(
-      fnType->getReturnType(), call.location, callee, std::move(resolvedArgs));
+  return ctx.create<res::CallExpr>(call.location, fnType->getReturnType(),
+                                   callee, std::move(resolvedArgs));
 }
 
 res::StructInstantiationExpr *Sema::resolveStructInstantiation(
@@ -647,7 +640,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   if (!path->fragments.back()->decl->getAs<res::StructDecl>())
     return report(path->location, "expected struct declaration to instantiate");
 
-  auto *structTy = typeMgr.getType(path)->getAs<res::StructType>();
+  auto *structTy = path->getType()->getAs<res::StructType>();
   auto *sd = structTy->getDecl();
 
   std::vector<res::FieldInitStmt *> resolvedFieldInits;
@@ -682,9 +675,9 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    res::Type *initTy = typeMgr.getType(resolvedInitExpr);
+    res::Type *initTy = resolvedInitExpr->getType();
     res::Type *fieldTy = typeMgr.instantiate(
-        typeMgr.getType(fieldDecl), typeMgr.extractSubstitutionFrom(structTy));
+        fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
 
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
       for (auto &&error : msg) {
@@ -713,24 +706,22 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   if (error)
     return nullptr;
 
-  return ctx.createAndBind<res::StructInstantiationExpr>(
-      structTy, structInstantiation.location, path,
+  return ctx.create<res::StructInstantiationExpr>(
+      structInstantiation.location, structTy, path,
       std::move(resolvedFieldInits));
 }
 
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                                          const ast::MemberExpr &memberExpr) {
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
-  varOrReturn(memberDre,
-              resolveDeclRefExpr<res::ValueDecl>(ctx, typeMgr.getType(base),
-                                                 memberExpr.member.get()));
+  varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
+                             ctx, base->getType(), memberExpr.member.get()));
 
   if (memberDre->decl->getAs<res::FunctionDecl>() &&
       !(resolutionContext & Call))
     return report(memberExpr.location, "expected to call method");
 
-  return ctx.createAndBind<res::MemberExpr>(
-      typeMgr.getType(memberDre), memberExpr.location, base, memberDre);
+  return ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre);
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -757,8 +748,7 @@ res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
 
 res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
   varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition));
-  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinBoolType())
-           .empty())
+  if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
     return report(cond->location, "expected 'bool' in condition");
 
   varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
@@ -777,8 +767,7 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
 res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
                                        const ast::WhileStmt &whileStmt) {
   varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition));
-  if (!typeMgr.unify(typeMgr.getType(cond), typeMgr.getBuiltinBoolType())
-           .empty())
+  if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
     return report(cond->location, "expected 'bool' in condition");
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
@@ -805,8 +794,8 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   if (!lhs->isLvalue())
     return report(lhs->location, "cannot assign to rvalue");
 
-  auto *lhsTy = typeMgr.getType(lhs);
-  auto *rhsTy = typeMgr.getType(rhs);
+  auto *lhsTy = lhs->getType();
+  auto *rhsTy = rhs->getType();
 
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
@@ -825,8 +814,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                          const ast::ReturnStmt &returnStmt) {
   assert(currentFunction && "return stmt outside a function");
 
-  auto *fnTy = typeMgr.getType(currentFunction)->getAs<res::FunctionType>();
-
+  auto *fnTy = currentFunction->getType()->getAs<res::FunctionType>();
   auto *retTy = fnTy->getReturnType();
   if (!retTy->getAs<res::BuiltinUnitType>() && !returnStmt.expr)
     return report(returnStmt.location, "expected a return value");
@@ -837,15 +825,11 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    res::Type *exprTy = typeMgr.getType(expr);
-    if (!typeMgr.unify(retTy, exprTy).empty()) {
-      exprTy = typeMgr.getType(expr);
-      retTy = fnTy->getReturnType();
-
+    res::Type *exprTy = expr->getType();
+    if (!typeMgr.unify(retTy, exprTy).empty())
       return report(expr->location, "cannot return '" + exprTy->getName() +
                                         "' from a function returning '" +
                                         retTy->getName() + "'");
-    }
 
     expr->setConstantValue(cee->evaluate(*expr));
   }
@@ -855,18 +839,18 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
 res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
   if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr))
-    return ctx.createAndBind<res::NumberLiteral>(typeMgr.getBuiltinNumberType(),
-                                                 number->location,
-                                                 std::stod(number->value));
+    return ctx.create<res::NumberLiteral>(number->location,
+                                          typeMgr.getBuiltinNumberType(),
+                                          std::stod(number->value));
 
   if (const auto *boolLiteral = dynamic_cast<const ast::BoolLiteral *>(&expr))
-    return ctx.createAndBind<res::BoolLiteral>(typeMgr.getBuiltinBoolType(),
-                                               boolLiteral->location,
-                                               boolLiteral->value == "true");
+    return ctx.create<res::BoolLiteral>(boolLiteral->location,
+                                        typeMgr.getBuiltinBoolType(),
+                                        boolLiteral->value == "true");
 
   if (const auto *unit = dynamic_cast<const ast::UnitLiteral *>(&expr))
-    return ctx.createAndBind<res::UnitLiteral>(typeMgr.getBuiltinUnitType(),
-                                               unit->location);
+    return ctx.create<res::UnitLiteral>(unit->location,
+                                        typeMgr.getBuiltinUnitType());
 
   if (const auto *callExpr = dynamic_cast<const ast::CallExpr *>(&expr))
     return resolveCallExpr(ctx, *callExpr);
@@ -906,10 +890,10 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
                             ->decl->identifier +
                         "'");
 
-    auto *outType = typeMgr.getType(resPath)->getAs<res::OutParamType>();
+    auto *outType = resPath->getType()->getAs<res::OutParamType>();
     if (outType)
-      return ctx.createAndBind<res::ImplicitDerefExpr>(
-          outType->getParamType(), resPath->location, resPath);
+      return ctx.create<res::ImplicitDerefExpr>(
+          resPath->location, outType->getParamType(), resPath);
 
     return resPath;
   }
@@ -954,11 +938,11 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
                                      res::StructDecl *parent) {
   varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
 
-  auto *traitTy = typeMgr.getType(traitInstance)->getAs<res::TraitType>();
+  auto *traitTy = traitInstance->getType()->getAs<res::TraitType>();
   typeMgr.addUpperBound(parent, traitTy);
 
-  auto *resDecl = ctx.createAndBind<res::ImplDecl>(
-      traitTy, decl.location, traitTy->getName(), traitInstance);
+  auto *resDecl = ctx.create<res::ImplDecl>(decl.location, traitTy->getName(),
+                                            traitInstance);
 
   for (auto &&astFunction : decl.functions) {
     auto *traitFn = traitTy->getDecl()->lookupDecl<res::FunctionDecl>(
@@ -985,8 +969,8 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
     res::Substitution reverseSub;
 
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
-      res::Type *traitParamTy = typeMgr.getType(traitFn->typeParams[i + 1]);
-      res::Type *implParamTy = typeMgr.getType(implFn->typeParams[i]);
+      res::Type *traitParamTy = traitFn->typeParams[i + 1]->getType();
+      res::Type *implParamTy = implFn->typeParams[i]->getType();
 
       auto *checkTy = typeMgr.getNewUninferredType();
       sub[implParamTy] = traitParamTy;
@@ -1010,11 +994,11 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
     }
 
     auto traitSub = typeMgr.extractSubstitutionFrom(traitTy);
-    sub[typeMgr.getType(traitFn->typeParams[0])] = typeMgr.getType(parent);
+    sub[traitFn->typeParams[0]->getType()] = parent->getType();
 
     res::Type *expectedType = typeMgr.instantiate(
-        typeMgr.instantiate(typeMgr.getType(traitFn), traitSub), sub);
-    res::Type *actualType = typeMgr.getType(implFn);
+        typeMgr.instantiate(traitFn->getType(), traitSub), sub);
+    res::Type *actualType = implFn->getType();
 
     if (!typeMgr.unify(expectedType, actualType).empty())
       report(implFn->location,
@@ -1040,19 +1024,18 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
       return nullptr;
   }
 
-  auto *decl = ctx.createAndBind<res::VarDecl>(
-      typeMgr.getNewUninferredType(), varDecl.location, varDecl.identifier,
-      varDecl.isMutable, initializer);
+  auto *declTy = typeMgr.getNewUninferredType();
+  auto *decl =
+      ctx.create<res::VarDecl>(varDecl.location, declTy, varDecl.identifier,
+                               varDecl.isMutable, initializer);
 
   if (varDecl.type) {
     varOrReturn(type, resolveType(ctx, *varDecl.type));
-    typeMgr.unify(typeMgr.getType(decl), type);
+    typeMgr.unify(declTy, type);
   }
 
   if (initializer) {
-    auto *declTy = typeMgr.getType(decl);
-    auto *initTy = typeMgr.getType(initializer);
-
+    auto *initTy = initializer->getType();
     if (!typeMgr.unify(declTy, initTy).empty()) {
       return report(decl->initializer->location,
                     "an expression of type '" + initTy->getName() +
@@ -1089,8 +1072,10 @@ std::vector<res::TypeParamDecl *> Sema::resolveTypeParamsWithoutBounds(
   std::vector<res::TypeParamDecl *> resTypeParams;
 
   for (auto &&tp : typeParamDecls) {
-    auto *resTP = ctx.create<res::TypeParamDecl>(tp->location, tp->identifier);
-    typeMgr.bind(resTP, typeMgr.getTypeParamType(*resTP));
+    auto *tpTy = typeMgr.getNewUninferredType();
+    auto *resTP =
+        ctx.create<res::TypeParamDecl>(tp->location, tpTy, tp->identifier);
+    typeMgr.unify(tpTy, typeMgr.getTypeParamType(*resTP));
     resTypeParams.emplace_back(resTP);
   }
 
@@ -1114,7 +1099,7 @@ bool Sema::resolveGenericParamsInCurrentScope(
     for (auto &&trait : traits) {
       resParam->traits.emplace_back(trait);
       typeMgr.addUpperBound(resParam,
-                            typeMgr.getType(trait)->getAs<res::TraitType>());
+                            trait->getType()->getAs<res::TraitType>());
     }
   }
 
@@ -1141,7 +1126,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                                 res::StructDecl *structDecl) {
   bool error = false;
 
-  for (auto &&trait : typeMgr.getUpperBounds(typeMgr.getType(structDecl))) {
+  for (auto &&trait : typeMgr.getUpperBounds(structDecl->getType())) {
     res::DeclContext *implCtx =
         structDecl->lookupDecl<res::ImplDecl>(trait->getName());
 
@@ -1178,13 +1163,13 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   res::Type *currentSelfType = selfType;
   res::TypeParamDecl *implicitSelf = nullptr;
   if (parent && parent->getAs<res::TraitDecl>()) {
+    selfType = typeMgr.getNewUninferredType();
     implicitSelf =
-        ctx.create<res::TypeParamDecl>(decl.location, implicitSelfId);
-    selfType = typeMgr.getTypeParamType(*implicitSelf);
+        ctx.create<res::TypeParamDecl>(decl.location, selfType, implicitSelfId);
 
-    typeMgr.bind(implicitSelf, selfType);
+    typeMgr.unify(selfType, typeMgr.getTypeParamType(*implicitSelf));
     typeMgr.addUpperBound(implicitSelf,
-                          typeMgr.getType(parent)->getAs<res::TraitType>());
+                          parent->getType()->getAs<res::TraitType>());
 
     insertDeclToScope(implicitSelf, lexicalScope);
   }
@@ -1208,11 +1193,10 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
       error = true;
     }
 
+    auto *paramTy = type ? type : typeMgr.getNewUninferredType();
     auto *resolvedParam = resolvedParams.emplace_back(
-        ctx.create<res::ParamDecl>(param->location, param->identifier,
+        ctx.create<res::ParamDecl>(param->location, paramTy, param->identifier,
                                    param->isMutable || isOutputType));
-    if (type)
-      typeMgr.bind(resolvedParam, type);
 
     error |= !insertDeclToScope(resolvedParam, lexicalScope);
     error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
@@ -1227,9 +1211,9 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     return nullptr;
 
   auto *fnTy = typeMgr.getFunctionType(std::move(paramTypes), retTy);
-  return ctx.createAndBind<res::FunctionDecl>(
-      fnTy, decl.location, decl.identifier, typeParams,
-      std::move(resolvedParams), parent, implements);
+  return ctx.create<res::FunctionDecl>(decl.location, fnTy, decl.identifier,
+                                       typeParams, std::move(resolvedParams),
+                                       parent, implements);
 }
 
 res::FunctionDecl *
@@ -1293,22 +1277,23 @@ Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
     return nullptr;
 
   auto *traitTy = typeMgr.getTraitType(*traitDecl, resTypeArgs);
-  return ctx.createAndBind<res::TraitInstance>(traitTy, location, traitDecl,
-                                               std::move(resTypeArgs),
-                                               std::move(resTypeArgsLocs));
+  return ctx.create<res::TraitInstance>(location, traitTy, traitDecl,
+                                        std::move(resTypeArgs),
+                                        std::move(resTypeArgsLocs));
 }
 
 res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
                                        const ast::TraitDecl &decl) {
+  auto *traitTy = typeMgr.getNewUninferredType();
   auto *traitDecl = ctx.create<res::TraitDecl>(
-      decl.location, decl.identifier,
+      decl.location, traitTy, decl.identifier,
       resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
 
   std::vector<res::Type *> typeParamTys;
   for (auto &&typeParam : traitDecl->typeParams)
-    typeParamTys.emplace_back(typeMgr.getType(typeParam));
+    typeParamTys.emplace_back(typeParam->getType());
 
-  typeMgr.bind(traitDecl, typeMgr.getTraitType(*traitDecl, typeParamTys));
+  typeMgr.unify(traitTy, typeMgr.getTraitType(*traitDecl, typeParamTys));
   return traitDecl;
 }
 
@@ -1325,7 +1310,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   for (auto &&trait : traits) {
     traitDecl.traits.emplace_back(trait);
     typeMgr.addUpperBound(&traitDecl,
-                          typeMgr.getType(trait)->getAs<res::TraitType>());
+                          trait->getType()->getAs<res::TraitType>());
   }
 
   for (auto &&fn : astDecl.traitFunctions)
@@ -1345,7 +1330,7 @@ bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
   bool error = false;
   int idx = 0;
   for (auto &&fn : traitDecl.getAll<res::FunctionDecl>()) {
-    selfType = typeMgr.getType(fn->typeParams[0]);
+    selfType = fn->typeParams[0]->getType();
     error |= !resolveFunctionBody(ctx, *astDecl.traitFunctions[idx], fn);
     selfType = nullptr;
     ++idx;
@@ -1356,15 +1341,17 @@ bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
 
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &decl) {
-  auto *rs = ctx.create<res::StructDecl>(
-      decl.location, decl.identifier,
+  auto *structTy = typeMgr.getNewUninferredType();
+  auto *structDecl = ctx.create<res::StructDecl>(
+      decl.location, structTy, decl.identifier,
       resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
 
   std::vector<res::Type *> typeParamTys;
-  for (auto &&typeParam : rs->typeParams)
-    typeParamTys.emplace_back(typeMgr.getType(typeParam));
-  typeMgr.bind(rs, typeMgr.getStructType(*rs, std::move(typeParamTys)));
-  return rs;
+  for (auto &&typeParam : structDecl->typeParams)
+    typeParamTys.emplace_back(typeParam->getType());
+
+  typeMgr.unify(structTy, typeMgr.getStructType(*structDecl, typeParamTys));
+  return structDecl;
 }
 
 bool Sema::resolveStructBody(res::Context &ctx,
@@ -1376,7 +1363,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
   std::vector<res::TraitInstance *> traitInstances;
 
-  selfType = typeMgr.getType(&structDecl);
+  selfType = structDecl.getType();
   for (auto &&decl : astDecl.decls) {
     if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
       res::Type *fieldTy = resolveType(ctx, *field->type);
@@ -1385,8 +1372,8 @@ bool Sema::resolveStructBody(res::Context &ctx,
         continue;
       }
 
-      auto *fieldDecl = ctx.createAndBind<res::FieldDecl>(
-          fieldTy, field->location, field->identifier);
+      auto *fieldDecl = ctx.create<res::FieldDecl>(field->location, fieldTy,
+                                                   field->identifier);
       error |= !insertDeclToScope(fieldDecl, &structDecl);
       continue;
     }
@@ -1409,8 +1396,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
       }
 
       if (!structDecl.insertDecl(resImpl)) {
-        report(resImpl->location, "trait '" +
-                                      typeMgr.getType(resImpl)->getName() +
+        report(resImpl->location, "trait '" + resImpl->getType()->getName() +
                                       "' is already implemented for struct '" +
                                       structDecl.identifier + "'");
         error = true;
@@ -1423,12 +1409,12 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
   auto impls = structDecl.getAll<res::ImplDecl>();
   for (auto &&impl : impls) {
-    auto *traitTy = typeMgr.getType(impl)->getAs<res::TraitType>();
+    auto *traitTy = impl->getType()->getAs<res::TraitType>();
     res::Substitution sub = typeMgr.extractSubstitutionFrom(traitTy);
 
     for (auto &&moreSpecificImpl : impls) {
       res::Type *moreSpecificTy =
-          typeMgr.instantiate(typeMgr.getType(moreSpecificImpl), sub);
+          typeMgr.instantiate(moreSpecificImpl->getType(), sub);
 
       if (typeMgr.moreGeneral(traitTy, moreSpecificTy)) {
         report(impl->location,
@@ -1440,12 +1426,12 @@ bool Sema::resolveStructBody(res::Context &ctx,
     }
 
     for (res::Type *req :
-         typeMgr.getUpperBounds(typeMgr.getType(impl->traitInstance->decl))) {
+         typeMgr.getUpperBounds(impl->traitInstance->decl->getType())) {
       req = typeMgr.instantiate(req, sub);
 
       bool found = false;
       for (auto &&impl : impls)
-        found |= typeMgr.unify(typeMgr.getType(impl), req).empty();
+        found |= typeMgr.unify(impl->getType(), req).empty();
 
       if (!found) {
         report(impl->location, "implementing trait '" + traitTy->getName() +
@@ -1467,7 +1453,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   for (auto &&typeParamDecl : decl.typeParams)
     insertDeclToScope(typeParamDecl, lexicalScope);
 
-  selfType = typeMgr.getType(&decl);
+  selfType = decl.getType();
   bool error = false;
 
   for (auto &&memberDecl : astDecl.decls) {
@@ -1485,8 +1471,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
 
       for (auto &&fn : implBlock->functions) {
         res::FunctionDecl *implFn =
-            decl.lookupDecl<res::ImplDecl>(
-                    typeMgr.getType(traitInstance)->getName())
+            decl.lookupDecl<res::ImplDecl>(traitInstance->getType()->getName())
                 ->lookupDecl<res::FunctionDecl>(fn->identifier);
 
         error |= !resolveFunctionBody(ctx, *fn, implFn);
@@ -1569,7 +1554,7 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
     return false;
 
   if (fnDecl->identifier == "main") {
-    if (!typeMgr.getType(fnDecl)
+    if (!fnDecl->getType()
              ->getAs<res::FunctionType>()
              ->getReturnType()
              ->getAs<res::BuiltinUnitType>()) {
@@ -1599,7 +1584,7 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
   return false;
 }
 
-bool Sema::checkSelfParameter(const res::ParamDecl *param, size_t idx) {
+bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
   if (param->identifier != selfParamId)
     return true;
 
@@ -1613,11 +1598,9 @@ bool Sema::checkSelfParameter(const res::ParamDecl *param, size_t idx) {
     return false;
   }
 
-  auto *type = typeMgr.getType(param);
-  if (!type)
-    return true;
-
+  auto *type = param->getType();
   auto *outTy = type->getAs<res::OutParamType>();
+
   if (!typeMgr.unify(type, selfType).empty() &&
       !(outTy && typeMgr.unify(outTy->getParamType(), selfType).empty())) {
     report(param->location, "the type of 'self' must reference 'Self'");
@@ -1645,8 +1628,7 @@ bool Sema::hasSelfContainingStructs(const res::Context &ctx) {
       }
 
       for (auto &&field : decl->getAll<res::FieldDecl>())
-        if (const auto *structTy =
-                typeMgr.getType(field)->getAs<res::StructType>())
+        if (const auto *structTy = field->getType()->getAs<res::StructType>())
           worklist.emplace(structTy->getDecl());
     }
   }
@@ -1661,13 +1643,13 @@ bool Sema::checkTraitInstances(res::Context &ctx) {
   bool error = false;
 
   for (auto &&traitInstance : ctx.getTraitInstances()) {
-    auto sub = typeMgr.extractSubstitutionFrom(typeMgr.getType(traitInstance));
+    auto sub = typeMgr.extractSubstitutionFrom(traitInstance->getType());
 
     for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
       auto *subTy = typeMgr.getNewUninferredType();
 
       for (auto &&trait : typeMgr.getUpperBounds(
-               typeMgr.getType(traitInstance->decl->typeParams[i])))
+               traitInstance->decl->typeParams[i]->getType()))
         typeMgr.withObligation(
             subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 

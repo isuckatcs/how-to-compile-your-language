@@ -58,7 +58,7 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
-  res::Context *resCtx;
+  const res::Context *resCtx;
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
@@ -91,6 +91,7 @@ class Codegen {
   llvm::Value *generateTemporaryStruct(const res::StructInstantiationExpr &sie);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
+  bool isImplOf(const res::ImplDecl *impl, const res::TraitType *trait);
 
   void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,
@@ -119,7 +120,7 @@ class Codegen {
   void generateMainWrapper();
 
 public:
-  Codegen(res::Context &resolvedCtx, std::string_view sourcePath);
+  Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };

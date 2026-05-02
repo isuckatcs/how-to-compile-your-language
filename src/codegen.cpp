@@ -92,7 +92,7 @@ public:
 };
 } // namespace
 
-Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
+Codegen::Codegen(const res::Context &resolvedCtx, std::string_view sourcePath)
     : resCtx(&resolvedCtx),
       builder(context),
       module("<translation_unit>", context) {
@@ -229,7 +229,7 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
 
 llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   const res::VarDecl *decl = stmt.varDecl;
-  llvm::Type *declTy = generateType(resCtx->getTypeMgr().getType(decl));
+  llvm::Type *declTy = generateType(decl->getType());
 
   const res::Expr *initExpr = decl->initializer;
   llvm::Value *initVal =
@@ -252,13 +252,13 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
 llvm::Value *Codegen::generateAssignment(const res::Assignment &stmt) {
   llvm::Value *val = generateExprAndLoadValue(*stmt.expr);
   return storeValue(val, generateExpr(*stmt.assignee),
-                    generateType(resCtx->getTypeMgr().getType(stmt.assignee)));
+                    generateType(stmt.assignee->getType()));
 }
 
 llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
   if (stmt.expr)
     storeValue(generateExprAndLoadValue(*stmt.expr), retVal,
-               generateType(resCtx->getTypeMgr().getType(stmt.expr)));
+               generateType(stmt.expr->getType()));
 
   assert(retBB && "function with return stmt doesn't have a return block");
   breakIntoBB(retBB);
@@ -268,11 +268,10 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
 llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
 
-  auto *structTy =
-      resCtx->getTypeMgr().getType(memberExpr.base)->getAs<res::StructType>();
+  auto *structTy = memberExpr.base->getType()->getAs<res::StructType>();
   llvm::Type *baseTy = generateType(structTy);
 
-  if (generateType(resCtx->getTypeMgr().getType(&memberExpr))->isVoidTy())
+  if (generateType(memberExpr.getType())->isVoidTy())
     return nullptr;
 
   unsigned index = 0;
@@ -283,7 +282,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
     if (field == memberExpr.member->decl)
       break;
 
-    if (!generateType(resCtx->getTypeMgr().getType(field))->isVoidTy())
+    if (!generateType(field->getType())->isVoidTy())
       ++index;
   }
 
@@ -297,8 +296,7 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
 
   for (auto &&initStmt : sie.fieldInitializers) {
     llvm::Value *init = generateExprAndLoadValue(*initStmt->initializer);
-    llvm::Type *ty =
-        generateType(resCtx->getTypeMgr().getType(initStmt->initializer));
+    llvm::Type *ty = generateType(initStmt->initializer->getType());
 
     if (!ty->isVoidTy())
       fieldInits[initStmt->field] = {init, ty};
@@ -307,8 +305,7 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
   if (fieldInits.empty())
     return nullptr;
 
-  const auto *structTy =
-      resCtx->getTypeMgr().getType(sie.structPath)->getAs<res::StructType>();
+  const auto *structTy = sie.structPath->getType()->getAs<res::StructType>();
   llvm::Type *type = generateType(structTy);
   llvm::Value *tmp = allocateStackVariable(
       sie.structPath->fragments.back()->decl->identifier + ".tmp", type);
@@ -377,14 +374,13 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   EnterInstantiationRAII instantiation(this, &dre);
 
   if (auto *trait = dre.trait) {
-    auto &typeMgr = resCtx->getTypeMgr();
-    res::StructDecl *structDecl =
-        instCtx[dre.decl->typeParams[0]]->getAs<res::StructType>()->getDecl();
+    res::StructType *structTy =
+        instCtx[dre.decl->typeParams[0]]->getAs<res::StructType>();
 
-    for (auto &&impl : structDecl->getAll<res::ImplDecl>()) {
-      res::Type *implTy = typeMgr.getType(impl);
-      if (!typeMgr.unify(implTy, trait).empty() &&
-          !typeMgr.moreGeneral(implTy, trait))
+    EnterInstantiationRAII structInst(this, structTy);
+
+    for (auto &&impl : structTy->getDecl()->getAll<res::ImplDecl>()) {
+      if (!isImplOf(impl, trait))
         continue;
 
       if (auto *fn = impl->lookupDecl<res::FunctionDecl>(fnDecl->identifier))
@@ -400,13 +396,30 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (!parentTy)
     parentTy = dre.parentTy;
 
-  return generateFunctionDecl(
-      *fnDecl, resCtx->getTypeMgr().getType(&dre)->getAs<res::FunctionType>(),
-      parentTy, dre.typeArgs);
+  return generateFunctionDecl(*fnDecl,
+                              dre.getType()->getAs<res::FunctionType>(),
+                              parentTy, dre.typeArgs);
+}
+
+bool Codegen::isImplOf(const res::ImplDecl *impl, const res::TraitType *trait) {
+  const res::TraitType *implTy = impl->getType()->getAs<res::TraitType>();
+
+  const auto &traitTyArgs = trait->getTypeArgs();
+  const auto &implTyArgs = implTy->getTypeArgs();
+
+  if (trait->getDecl() != implTy->getDecl() ||
+      traitTyArgs.size() != implTyArgs.size())
+    return false;
+
+  for (int i = 0; i < traitTyArgs.size(); ++i)
+    if (generateType(traitTyArgs[i]) != generateType(implTyArgs[i]))
+      return false;
+
+  return true;
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
-  llvm::Type *retTy = generateType(resCtx->getTypeMgr().getType(&call));
+  llvm::Type *retTy = generateType(call.getType());
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
@@ -417,7 +430,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   size_t argIdx = 0;
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
-    llvm::Type *argTy = generateType(resCtx->getTypeMgr().getType(arg));
+    llvm::Type *argTy = generateType(arg->getType());
 
     if (argTy->isVoidTy())
       continue;
@@ -432,8 +445,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  const auto *fnTy =
-      resCtx->getTypeMgr().getType(call.callee)->getAs<res::FunctionType>();
+  const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   llvm::CallInst *callInst =
@@ -573,7 +585,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
 
   bool outParamRef = dynamic_cast<const res::ImplicitDerefExpr *>(&expr);
 
-  llvm::Type *type = generateType(resCtx->getTypeMgr().getType(&expr));
+  llvm::Type *type = generateType(expr.getType());
   if (!expr.isLvalue() || expr.hasConstantValue() || type->isStructTy() ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef))
     return val;
@@ -711,7 +723,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    const res::Type *paramDeclTy = resCtx->getTypeMgr().getType(paramDecl);
+    const res::Type *paramDeclTy = paramDecl->getType();
     llvm::Type *argTy = generateType(paramDeclTy);
     if (argTy->isVoidTy()) {
       declarations[paramDecl] = nullptr;
@@ -802,7 +814,7 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
 
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
-    llvm::Type *fieldTy = generateType(resCtx->getTypeMgr().getType(field));
+    llvm::Type *fieldTy = generateType(field->getType());
     if (fieldTy->isVoidTy())
       continue;
 
@@ -820,15 +832,13 @@ llvm::Module *Codegen::generateIR() {
     if (!st->isGeneric())
       for (auto &&fn : st->getAll<res::FunctionDecl>())
         if (!fn->isGeneric())
-          generateFunctionDecl(
-              *fn, resCtx->getTypeMgr().getType(fn)->getAs<res::FunctionType>(),
-              resCtx->getTypeMgr().getType(st), {});
+          generateFunctionDecl(*fn, fn->getType()->getAs<res::FunctionType>(),
+                               st->getType(), {});
 
   for (auto &&fn : resCtx->getFunctions())
     if (!fn->isGeneric())
-      generateFunctionDecl(
-          *fn, resCtx->getTypeMgr().getType(fn)->getAs<res::FunctionType>(), {},
-          {});
+      generateFunctionDecl(*fn, fn->getType()->getAs<res::FunctionType>(), {},
+                           {});
 
   while (!pendingFunctions.empty()) {
     generateFunctionBody(pendingFunctions.front());

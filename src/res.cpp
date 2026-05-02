@@ -37,45 +37,45 @@ bool DeclContext::insertDecl(res::Decl *decl) {
   return true;
 }
 
-void Block::dump(Context &ctx, size_t level) const {
+void Block::dump(size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
   for (auto &&stmt : statements)
-    stmt->dump(ctx, level + 1);
+    stmt->dump(level + 1);
 }
 
-void IfStmt::dump(Context &ctx, size_t level) const {
+void IfStmt::dump(size_t level) const {
   std::cerr << indent(level) << "IfStmt\n";
 
-  condition->dump(ctx, level + 1);
-  trueBlock->dump(ctx, level + 1);
+  condition->dump(level + 1);
+  trueBlock->dump(level + 1);
   if (falseBlock)
-    falseBlock->dump(ctx, level + 1);
+    falseBlock->dump(level + 1);
 }
 
-void WhileStmt::dump(Context &ctx, size_t level) const {
+void WhileStmt::dump(size_t level) const {
   std::cerr << indent(level) << "WhileStmt\n";
 
-  condition->dump(ctx, level + 1);
-  body->dump(ctx, level + 1);
+  condition->dump(level + 1);
+  body->dump(level + 1);
 }
 
-void ParamDecl::dump(Context &ctx, size_t level) const {
+void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl @(" << this << ") " << identifier
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 }
 
-void FieldDecl::dump(Context &ctx, size_t level) const {
+void FieldDecl::dump(size_t level) const {
   std::cerr << indent(level) << "FieldDecl @(" << this << ") " << identifier
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 }
 
-void VarDecl::dump(Context &ctx, size_t level) const {
+void VarDecl::dump(size_t level) const {
   std::cerr << indent(level) << "VarDecl @(" << this << ") " << identifier
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   if (initializer)
-    initializer->dump(ctx, level + 1);
+    initializer->dump(level + 1);
 }
 
 void FunctionDecl::setBody(Block *body) {
@@ -86,219 +86,217 @@ void FunctionDecl::setBody(Block *body) {
   isComplete = true;
 }
 
-void FunctionDecl::dump(Context &ctx, size_t level) const {
+void FunctionDecl::dump(size_t level) const {
   std::cerr << indent(level) << "FunctionDecl @(" << this << ") " << identifier
             << (!isComplete ? " [incomplete]" : "") << " {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << getType()->getName() << '}' << '\n';
 
   if (implements)
     std::cerr << indent(level) << "| implements '" << implements->identifier
               << "' @(" << implements << ")\n";
 
   for (auto &&typeParam : typeParams)
-    typeParam->dump(ctx, level + 1);
+    typeParam->dump(level + 1);
 
   for (auto &&param : params)
-    param->dump(ctx, level + 1);
+    param->dump(level + 1);
 
   if (body)
-    body->dump(ctx, level + 1);
+    body->dump(level + 1);
 }
 
-void ImplDecl::dump(Context &ctx, size_t level) const {
+void ImplDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ImplDecl @(" << this << ") "
-            << traitInstance->decl->identifier << " {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << traitInstance->decl->identifier << " {" << getType()->getName()
+            << '}' << '\n';
 
-  traitInstance->dump(ctx, level + 1);
+  traitInstance->dump(level + 1);
 
   for (auto &&decl : decls)
-    decl->dump(ctx, level + 1);
+    decl->dump(level + 1);
 }
 
-void StructDecl::dump(Context &ctx, size_t level) const {
+void StructDecl::dump(size_t level) const {
   std::cerr << indent(level) << "StructDecl @(" << this << ") " << identifier
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   for (auto &&typeParam : typeParams)
-    typeParam->dump(ctx, level + 1);
+    typeParam->dump(level + 1);
 
   for (auto &&decl : decls)
-    decl->dump(ctx, level + 1);
+    decl->dump(level + 1);
 }
 
-void TraitInstance::dump(Context &ctx, size_t level) const {
+void TraitInstance::dump(size_t level) const {
   std::cerr << indent(level) << "TraitInstance @(" << decl
-            << ") " + decl->identifier << " {"
-            << ctx.getTypeMgr().getType(this)->getName() << "}\n";
+            << ") " + decl->identifier << " {" << getType()->getName() << "}\n";
 }
 
-void TraitDecl::dump(Context &ctx, size_t level) const {
+void TraitDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TraitDecl @(" << this << ") " << identifier
             << '\n';
 
   for (auto &&trait : traits)
-    trait->dump(ctx, level + 1);
+    trait->dump(level + 1);
 
   for (auto &&typeParam : typeParams)
-    typeParam->dump(ctx, level + 1);
+    typeParam->dump(level + 1);
 
   for (auto &&decl : decls)
-    decl->dump(ctx, level + 1);
+    decl->dump(level + 1);
 }
 
-void TypeParamDecl::dump(Context &ctx, size_t level) const {
+void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl @(" << this << ") " << identifier
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << "}\n";
+            << " {" << getType()->getName() << "}\n";
 
   for (auto &&trait : traits)
-    trait->dump(ctx, level + 1);
+    trait->dump(level + 1);
 }
 
-void NumberLiteral::dump(Context &ctx, size_t level) const {
+void NumberLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "NumberLiteral '" << value << "' {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 }
 
-void BoolLiteral::dump(Context &ctx, size_t level) const {
+void BoolLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "BoolLiteral '" << (value ? "true" : "false")
-            << "' {" << ctx.getTypeMgr().getType(this)->getName() << '}'
-            << '\n';
+            << "' {" << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 }
 
-void UnitLiteral::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "UnitLiteral {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+void UnitLiteral::dump(size_t level) const {
+  std::cerr << indent(level) << "UnitLiteral {" << getType()->getName() << '}'
+            << '\n';
 }
 
-void DeclRefExpr::dump(Context &ctx, size_t level) const {
+void DeclRefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") ";
   if (trait)
     std::cerr << trait->getName() << ':' << ':';
   std::cerr << decl->identifier;
 
-  std::cerr << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+  std::cerr << " {" << getType()->getName() << '}' << '\n';
 }
 
-void PathExpr::dump(Context &ctx, size_t level) const {
+void PathExpr::dump(size_t level) const {
   std::cerr << indent(level) << "PathExpr"
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
   for (auto &&fragment : fragments)
-    fragment->dump(ctx, level + 1);
+    fragment->dump(level + 1);
 }
 
-void CallExpr::dump(Context &ctx, size_t level) const {
+void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
-  callee->dump(ctx, level + 1);
+  callee->dump(level + 1);
 
   for (auto &&arg : arguments)
-    arg->dump(ctx, level + 1);
+    arg->dump(level + 1);
 }
 
-void MemberExpr::dump(Context &ctx, size_t level) const {
+void MemberExpr::dump(size_t level) const {
   std::cerr << indent(level) << "MemberExpr @(" << member << ')' << ' '
-            << member->decl->identifier << " {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << member->decl->identifier << " {" << getType()->getName() << '}'
+            << '\n';
 
-  base->dump(ctx, level + 1);
+  base->dump(level + 1);
 }
 
-void GroupingExpr::dump(Context &ctx, size_t level) const {
+void GroupingExpr::dump(size_t level) const {
   std::cerr << indent(level) << "GroupingExpr"
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
-  expr->dump(ctx, level + 1);
+  expr->dump(level + 1);
 }
 
-void BinaryOperator::dump(Context &ctx, size_t level) const {
+void BinaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\''
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
-  lhs->dump(ctx, level + 1);
-  rhs->dump(ctx, level + 1);
+  lhs->dump(level + 1);
+  rhs->dump(level + 1);
 }
 
-void UnaryOperator::dump(Context &ctx, size_t level) const {
+void UnaryOperator::dump(size_t level) const {
   std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\''
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
-  operand->dump(ctx, level + 1);
+  operand->dump(level + 1);
 }
 
-void DeclStmt::dump(Context &ctx, size_t level) const {
+void DeclStmt::dump(size_t level) const {
   std::cerr << indent(level) << "DeclStmt\n";
 
-  varDecl->dump(ctx, level + 1);
+  varDecl->dump(level + 1);
 }
 
-void Assignment::dump(Context &ctx, size_t level) const {
+void Assignment::dump(size_t level) const {
   std::cerr << indent(level) << "Assignment\n";
 
-  assignee->dump(ctx, level + 1);
-  expr->dump(ctx, level + 1);
+  assignee->dump(level + 1);
+  expr->dump(level + 1);
 }
 
-void ReturnStmt::dump(Context &ctx, size_t level) const {
+void ReturnStmt::dump(size_t level) const {
   std::cerr << indent(level) << "ReturnStmt\n";
 
   if (expr)
-    expr->dump(ctx, level + 1);
+    expr->dump(level + 1);
 }
 
-void FieldInitStmt::dump(Context &ctx, size_t level) const {
+void FieldInitStmt::dump(size_t level) const {
   std::cerr << indent(level) << "FieldInitStmt @(" << field << ')' << ' '
             << field->identifier << '\n';
 
-  initializer->dump(ctx, level + 1);
+  initializer->dump(level + 1);
 }
 
-void StructInstantiationExpr::dump(Context &ctx, size_t level) const {
+void StructInstantiationExpr::dump(size_t level) const {
   std::cerr << indent(level) << "StructInstantiationExpr"
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
-  structPath->dump(ctx, level + 1);
+  structPath->dump(level + 1);
 
   for (auto &&field : fieldInitializers)
-    field->dump(ctx, level + 1);
+    field->dump(level + 1);
 }
 
-void ImplicitDerefExpr::dump(Context &ctx, size_t level) const {
+void ImplicitDerefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ImplicitDerefExpr"
-            << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+            << " {" << getType()->getName() << '}' << '\n';
 
-  outParamRef->dump(ctx, level + 1);
+  outParamRef->dump(level + 1);
 }
 
 void Context::dump() const {
   for (auto &&trait : traits)
-    trait->dump(*(Context *)this, 0);
+    trait->dump(0);
 
   for (auto &&decl : structs)
-    decl->dump(*(Context *)this, 0);
+    decl->dump(0);
 
   for (auto &&decl : functions)
-    decl->dump(*(Context *)this, 0);
+    decl->dump(0);
 }
 } // namespace res
 } // namespace yl

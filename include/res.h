@@ -19,7 +19,16 @@ struct ConstVal : public std::variant<std::monostate, bool, double> {
   std::string asString() const;
 };
 
-class Context;
+class TypedNode {
+  Type *type;
+
+public:
+  explicit TypedNode(Type *type)
+      : type(type) {}
+
+  Type *getType() { return type; }
+  const Type *getType() const { return type; }
+};
 
 struct Stmt {
   SourceLocation location;
@@ -29,10 +38,8 @@ struct Stmt {
 
   virtual ~Stmt() = default;
 
-  virtual void dump(Context &ctx, size_t level = 0) const = 0;
+  virtual void dump(size_t level = 0) const = 0;
 };
-
-struct TypedNode {};
 
 struct Expr : public TypedNode, public Stmt {
   enum class Kind { Rvalue, MutLvalue, Lvalue };
@@ -40,8 +47,9 @@ struct Expr : public TypedNode, public Stmt {
   Kind kind;
   ConstVal constVal;
 
-  Expr(SourceLocation location, Kind kind)
-      : Stmt(location),
+  Expr(SourceLocation location, Type *type, Kind kind)
+      : TypedNode(type),
+        Stmt(location),
         kind(kind) {}
 
   bool isLvalue() const { return kind != Kind::Rvalue; }
@@ -57,14 +65,17 @@ struct Expr : public TypedNode, public Stmt {
 struct TypeParamDecl;
 
 struct Decl : public TypedNode {
-  std::vector<TypeParamDecl *> typeParams;
   SourceLocation location;
+
   std::string identifier;
+  std::vector<TypeParamDecl *> typeParams;
 
   Decl(SourceLocation location,
+       Type *type,
        std::string identifier,
        std::vector<TypeParamDecl *> typeParams = {})
-      : location(location),
+      : TypedNode(type),
+        location(location),
         identifier(std::move(identifier)),
         typeParams(std::move(typeParams)) {}
   virtual ~Decl() = default;
@@ -79,7 +90,7 @@ struct Decl : public TypedNode {
   }
 
   bool isGeneric() const { return !typeParams.empty(); }
-  virtual void dump(Context &ctx, size_t level = 0) const = 0;
+  virtual void dump(size_t level = 0) const = 0;
 };
 
 struct DeclContext {
@@ -122,19 +133,21 @@ struct DeclContext {
 
 struct TypeDecl : public Decl {
   TypeDecl(SourceLocation location,
+           Type *type,
            std::string identifier,
            std::vector<TypeParamDecl *> typeParams = {})
-      : Decl(location, std::move(identifier), std::move(typeParams)) {}
+      : Decl(location, type, std::move(identifier), std::move(typeParams)) {}
 };
 
 struct ValueDecl : public Decl {
   bool isMutable;
 
   ValueDecl(SourceLocation location,
+            Type *type,
             std::string identifier,
             bool isMutable,
             std::vector<TypeParamDecl *> typeParams = {})
-      : Decl(location, std::move(identifier), std::move(typeParams)),
+      : Decl(location, type, std::move(identifier), std::move(typeParams)),
         isMutable(isMutable) {}
 };
 
@@ -146,7 +159,7 @@ struct Block {
       : location(location),
         statements(std::move(statements)) {}
 
-  void dump(Context &ctx, size_t level = 0) const;
+  void dump(size_t level = 0) const;
 };
 
 struct IfStmt : public Stmt {
@@ -163,7 +176,7 @@ struct IfStmt : public Stmt {
         trueBlock(trueBlock),
         falseBlock(falseBlock) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct WhileStmt : public Stmt {
@@ -175,14 +188,17 @@ struct WhileStmt : public Stmt {
         condition(condition),
         body(body) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct ParamDecl : public ValueDecl {
-  ParamDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : ValueDecl(location, std::move(identifier), isMutable) {}
+  ParamDecl(SourceLocation location,
+            Type *type,
+            std::string identifier,
+            bool isMutable)
+      : ValueDecl(location, type, std::move(identifier), isMutable) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct TraitInstance;
@@ -190,12 +206,13 @@ struct TraitDecl : public Decl, public DeclContext {
   std::vector<TraitInstance *> traits;
 
   TraitDecl(SourceLocation location,
+            Type *type,
             std::string identifier,
             std::vector<TypeParamDecl *> typeParams)
-      : Decl(location, std::move(identifier), std::move(typeParams)),
+      : Decl(location, type, std::move(identifier), std::move(typeParams)),
         DeclContext(nullptr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct TraitInstance : public TypedNode {
@@ -206,44 +223,47 @@ struct TraitInstance : public TypedNode {
   std::vector<yl::SourceLocation> typeLocations;
 
   TraitInstance(yl::SourceLocation location,
+                Type *type,
                 TraitDecl *decl,
                 std::vector<res::Type *> typeArgs,
                 std::vector<yl::SourceLocation> typeLocations)
-      : location(location),
+      : TypedNode(type),
+        location(location),
         decl(decl),
         typeArgs(std::move(typeArgs)),
         typeLocations(std::move(typeLocations)) {}
 
-  void dump(Context &ctx, size_t level = 0) const;
+  void dump(size_t level = 0) const;
 };
 
 struct TypeParamDecl : public TypeDecl {
   std::vector<TraitInstance *> traits;
 
-  TypeParamDecl(SourceLocation location, std::string identifier)
-      : TypeDecl(location, std::move(identifier)) {}
+  TypeParamDecl(SourceLocation location, Type *type, std::string identifier)
+      : TypeDecl(location, type, std::move(identifier)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct FieldDecl : public ValueDecl {
-  FieldDecl(SourceLocation location, std::string identifier)
-      : ValueDecl(location, std::move(identifier), false) {}
+  FieldDecl(SourceLocation location, Type *type, std::string identifier)
+      : ValueDecl(location, type, std::move(identifier), false) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct VarDecl : public ValueDecl {
   Expr *initializer;
 
   VarDecl(SourceLocation location,
+          Type *type,
           std::string identifier,
           bool isMutable,
           Expr *initializer = nullptr)
-      : ValueDecl(location, std::move(identifier), isMutable),
+      : ValueDecl(location, type, std::move(identifier), isMutable),
         initializer(initializer) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct ImplDecl : public Decl, public DeclContext {
@@ -252,21 +272,22 @@ struct ImplDecl : public Decl, public DeclContext {
   ImplDecl(SourceLocation location,
            std::string identifier,
            TraitInstance *traitInstance)
-      : Decl(location, identifier),
+      : Decl(location, traitInstance->getType(), identifier),
         DeclContext(nullptr),
         traitInstance(traitInstance) {}
 
-  void dump(Context &ctx, size_t level = 0) const;
+  void dump(size_t level = 0) const;
 };
 
 struct StructDecl : public TypeDecl, public DeclContext {
   StructDecl(SourceLocation location,
+             Type *type,
              std::string identifier,
              std::vector<TypeParamDecl *> typeParams)
-      : TypeDecl(location, std::move(identifier), std::move(typeParams)),
+      : TypeDecl(location, type, std::move(identifier), std::move(typeParams)),
         DeclContext(nullptr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct FunctionDecl : public ValueDecl {
@@ -277,60 +298,66 @@ struct FunctionDecl : public ValueDecl {
   bool isComplete = false;
 
   FunctionDecl(SourceLocation location,
+               Type *type,
                std::string identifier,
                std::vector<TypeParamDecl *> typeParams,
                std::vector<ParamDecl *> params,
                Decl *parent = nullptr,
                FunctionDecl *implements = nullptr)
-      : ValueDecl(
-            location, std::move(identifier), false, std::move(typeParams)),
+      : ValueDecl(location,
+                  type,
+                  std::move(identifier),
+                  false,
+                  std::move(typeParams)),
         params(std::move(params)),
         parent(parent),
         implements(implements) {}
 
   void setBody(Block *body);
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct NumberLiteral : public Expr {
   double value;
 
-  NumberLiteral(SourceLocation location, double value)
-      : Expr(location, Expr::Kind::Rvalue),
+  NumberLiteral(SourceLocation location, Type *type, double value)
+      : Expr(location, type, Expr::Kind::Rvalue),
         value(value) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct BoolLiteral : public Expr {
   bool value;
 
-  BoolLiteral(SourceLocation location, bool value)
-      : Expr(location, Expr::Kind::Rvalue),
+  BoolLiteral(SourceLocation location, Type *type, bool value)
+      : Expr(location, type, Expr::Kind::Rvalue),
         value(value) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct UnitLiteral : public Expr {
+  UnitLiteral(SourceLocation location, Type *type)
+      : Expr(location, type, Expr::Kind::Rvalue) {}
 
-  UnitLiteral(SourceLocation location)
-      : Expr(location, Expr::Kind::Rvalue) {}
-
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct CallExpr : public Expr {
   Expr *callee;
   std::vector<Expr *> arguments;
 
-  CallExpr(SourceLocation location, Expr *callee, std::vector<Expr *> arguments)
-      : Expr(location, Expr::Kind::Rvalue),
+  CallExpr(SourceLocation location,
+           Type *type,
+           Expr *callee,
+           std::vector<Expr *> arguments)
+      : Expr(location, type, Expr::Kind::Rvalue),
         callee(callee),
         arguments(std::move(arguments)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct DeclRefExpr : public Expr {
@@ -341,28 +368,31 @@ struct DeclRefExpr : public Expr {
   TraitType *trait;
 
   DeclRefExpr(SourceLocation location,
+              Type *type,
               Decl &decl,
               Expr::Kind kind,
               std::vector<Type *> typeArgs = {},
               Type *parentTy = nullptr,
               TraitType *trait = nullptr)
-      : Expr(location, kind),
+      : Expr(location, type, kind),
         typeArgs(std::move(typeArgs)),
         decl(&decl),
         parentTy(parentTy),
         trait(trait) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct PathExpr : public Expr {
   std::vector<DeclRefExpr *> fragments;
 
-  PathExpr(std::vector<DeclRefExpr *> fragments)
-      : Expr(fragments.back()->location, fragments.back()->kind),
+  explicit PathExpr(std::vector<DeclRefExpr *> fragments)
+      : Expr(fragments.back()->location,
+             fragments.back()->getType(),
+             fragments.back()->kind),
         fragments(std::move(fragments)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct MemberExpr : public Expr {
@@ -370,21 +400,23 @@ struct MemberExpr : public Expr {
   DeclRefExpr *member;
 
   MemberExpr(SourceLocation location, Expr *base, DeclRefExpr *member)
-      : Expr(location, !base->isLvalue() ? Expr::Kind::MutLvalue : base->kind),
+      : Expr(location,
+             member->getType(),
+             !base->isLvalue() ? Expr::Kind::MutLvalue : base->kind),
         base(base),
         member(member) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct GroupingExpr : public Expr {
   Expr *expr;
 
   GroupingExpr(SourceLocation location, Expr *expr)
-      : Expr(location, expr->kind),
+      : Expr(location, expr->getType(), expr->kind),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct BinaryOperator : public Expr {
@@ -392,25 +424,29 @@ struct BinaryOperator : public Expr {
   Expr *lhs;
   Expr *rhs;
 
-  BinaryOperator(SourceLocation location, TokenKind op, Expr *lhs, Expr *rhs)
-      : Expr(location, Expr::Kind::Rvalue),
+  BinaryOperator(
+      SourceLocation location, Type *type, TokenKind op, Expr *lhs, Expr *rhs)
+      : Expr(location, type, Expr::Kind::Rvalue),
         op(op),
         lhs(lhs),
         rhs(rhs) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct UnaryOperator : public Expr {
   TokenKind op;
   Expr *operand;
 
-  UnaryOperator(SourceLocation location, TokenKind op, Expr *operand)
-      : Expr(location, Expr::Kind::Rvalue),
+  UnaryOperator(SourceLocation location,
+                Type *type,
+                TokenKind op,
+                Expr *operand)
+      : Expr(location, type, Expr::Kind::Rvalue),
         op(op),
         operand(operand) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct DeclStmt : public Stmt {
@@ -420,7 +456,7 @@ struct DeclStmt : public Stmt {
       : Stmt(location),
         varDecl(varDecl) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct Assignment : public Stmt {
@@ -432,7 +468,7 @@ struct Assignment : public Stmt {
         assignee(assignee),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct ReturnStmt : public Stmt {
@@ -442,7 +478,7 @@ struct ReturnStmt : public Stmt {
       : Stmt(location),
         expr(expr) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct FieldInitStmt : public Stmt {
@@ -454,7 +490,7 @@ struct FieldInitStmt : public Stmt {
         field(field),
         initializer(initializer) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct StructInstantiationExpr : public Expr {
@@ -462,28 +498,29 @@ struct StructInstantiationExpr : public Expr {
   std::vector<FieldInitStmt *> fieldInitializers;
 
   StructInstantiationExpr(SourceLocation location,
+                          Type *type,
                           const PathExpr *structPath,
                           std::vector<FieldInitStmt *> fieldInitializers)
-      : Expr(location, Expr::Kind::Rvalue),
+      : Expr(location, type, Expr::Kind::Rvalue),
         structPath(structPath),
         fieldInitializers(std::move(fieldInitializers)) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 struct ImplicitDerefExpr : public Expr {
   const PathExpr *outParamRef;
 
-  ImplicitDerefExpr(SourceLocation location, const PathExpr *outParamRef)
-      : Expr(location, outParamRef->kind),
+  ImplicitDerefExpr(SourceLocation location,
+                    Type *type,
+                    const PathExpr *outParamRef)
+      : Expr(location, type, outParamRef->kind),
         outParamRef(outParamRef) {}
 
-  void dump(Context &ctx, size_t level = 0) const override;
+  void dump(size_t level = 0) const override;
 };
 
 class Context {
-  TypeManager *typeMgr;
-
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
@@ -494,9 +531,6 @@ class Context {
   std::vector<FunctionDecl *> functions;
 
 public:
-  explicit Context(TypeManager &typeMgr)
-      : typeMgr(&typeMgr) {}
-
   template <typename T, typename... Args> T *create(Args &&...args) {
     auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
     T *raw = static_cast<T *>(ptr.get());
@@ -523,15 +557,6 @@ public:
 
     return raw;
   }
-
-  template <typename T, typename... Args>
-  T *createAndBind(Type *type, Args &&...args) {
-    T *node = create<T>(std::forward<Args>(args)...);
-    typeMgr->bind(node, type);
-    return node;
-  }
-
-  TypeManager &getTypeMgr() { return *typeMgr; }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }

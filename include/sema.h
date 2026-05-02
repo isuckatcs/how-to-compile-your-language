@@ -165,15 +165,14 @@ class Sema {
   bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
 
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
-  bool checkSelfParameter(const res::ParamDecl *param, size_t idx);
+  bool checkSelfParameter(res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(const res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
 
 public:
   explicit Sema(ConstExprEvaluator &cee, const ast::Context &ast)
       : cee(&cee),
-        ast(&ast),
-        ctx(typeMgr) {}
+        ast(&ast) {}
 
   res::Context *resolveAST();
 };
