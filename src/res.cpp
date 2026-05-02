@@ -164,8 +164,9 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
 }
 
 void BoolLiteral::dump(Context &ctx, size_t level) const {
-  std::cerr << indent(level) << "BoolLiteral '" << value << "' {"
-            << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
+  std::cerr << indent(level) << "BoolLiteral '" << (value ? "true" : "false")
+            << "' {" << ctx.getTypeMgr().getType(this)->getName() << '}'
+            << '\n';
 
   if (constVal.isKnown())
     std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';

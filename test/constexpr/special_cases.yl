@@ -40,7 +40,7 @@ fn lhsKnownRhsNot(y: bool): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
-// CHECK-NEXT:     BoolLiteral '1' {bool}
+// CHECK-NEXT:     BoolLiteral 'true' {bool}
 // CHECK-NEXT:     PathExpr {bool}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) y {bool}
 
@@ -51,7 +51,7 @@ fn lhsUnknownRhsFalse(x: bool): bool {
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
 // CHECK-NEXT:     PathExpr {bool}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
-// CHECK-NEXT:     BoolLiteral '0' {bool}
+// CHECK-NEXT:     BoolLiteral 'false' {bool}
 
 fn lhsUnknownRhsTrue(x: bool): bool {
     return x || true;
@@ -60,7 +60,7 @@ fn lhsUnknownRhsTrue(x: bool): bool {
 // CHECK-NEXT:   BinaryOperator '||' {bool}
 // CHECK-NEXT:     PathExpr {bool}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
-// CHECK-NEXT:     BoolLiteral '1' {bool}
+// CHECK-NEXT:     BoolLiteral 'true' {bool}
 
 fn lhsUnknownRhsFalseOr(x: bool): bool {
     return x || false;
@@ -69,6 +69,6 @@ fn lhsUnknownRhsFalseOr(x: bool): bool {
 // CHECK-NEXT:   BinaryOperator '||' {bool}
 // CHECK-NEXT:     PathExpr {bool}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
-// CHECK-NEXT:     BoolLiteral '0' {bool}
+// CHECK-NEXT:     BoolLiteral 'false' {bool}
 
 fn main(): unit {}

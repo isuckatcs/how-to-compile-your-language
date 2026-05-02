@@ -19,13 +19,13 @@ fn prefix(x: number, y: bool): unit {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       UnaryOperator '!' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       UnaryOperator '!' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
@@ -173,29 +173,29 @@ fn equality(): unit {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '==' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 
 fn conjunction(): unit {
     bar(true && true);
@@ -210,29 +210,29 @@ fn conjunction(): unit {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '&&' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 
 fn disjunction(): unit {
     bar(true || false);
@@ -247,28 +247,28 @@ fn disjunction(): unit {
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {bool}
 // CHECK-NEXT:       | value: true
-// CHECK-NEXT:         BoolLiteral '1' {bool}
-// CHECK-NEXT:         BoolLiteral '1' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
+// CHECK-NEXT:         BoolLiteral 'true' {bool}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       PathExpr {(bool) -> unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) bar {(bool) -> unit}
 // CHECK-NEXT:       BinaryOperator '||' {bool}
 // CHECK-NEXT:       | value: false
-// CHECK-NEXT:         BoolLiteral '0' {bool}
-// CHECK-NEXT:         BoolLiteral '0' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
+// CHECK-NEXT:         BoolLiteral 'false' {bool}
 
 fn main(): unit {}
