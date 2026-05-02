@@ -92,11 +92,8 @@ public:
 };
 } // namespace
 
-Codegen::Codegen(res::Context &resolvedCtx,
-                 ConstExprValueStorage *constExprVals,
-                 std::string_view sourcePath)
+Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
     : resCtx(&resolvedCtx),
-      constExprVals(constExprVals),
       builder(context),
       module("<translation_unit>", context) {
   module.setSourceFileName(sourcePath);
@@ -238,7 +235,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
-  bool isConst = !decl->isMutable && initExpr && constExprVals->count(initExpr);
+  bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
   if (isConst || declTy->isVoidTy()) {
     declarations[decl] = nullptr;
     return nullptr;
@@ -339,8 +336,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *unit = dynamic_cast<const res::UnitLiteral *>(&expr))
     return nullptr;
 
-  if (auto it = constExprVals->find(&expr); it != constExprVals->end())
-    return generateConstantValue(it->second);
+  if (expr.hasConstantValue())
+    return generateConstantValue(expr.getConstantValue());
 
   if (auto *path = dynamic_cast<const res::PathExpr *>(&expr))
     return generateExpr(*path->fragments.back());
@@ -461,7 +458,7 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   llvm_unreachable("unknown unary op");
 }
 
-llvm::Value *Codegen::generateConstantValue(const ConstVal &constVal) {
+llvm::Value *Codegen::generateConstantValue(const res::ConstVal &constVal) {
   if (const auto *boolVal = std::get_if<bool>(&constVal))
     return builder.getInt1(*boolVal);
 
@@ -577,7 +574,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   bool outParamRef = dynamic_cast<const res::ImplicitDerefExpr *>(&expr);
 
   llvm::Type *type = generateType(resCtx->getTypeMgr().getType(&expr));
-  if (!expr.isLvalue() || constExprVals->count(&expr) || type->isStructTy() ||
+  if (!expr.isLvalue() || expr.hasConstantValue() || type->isStructTy() ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef))
     return val;
 

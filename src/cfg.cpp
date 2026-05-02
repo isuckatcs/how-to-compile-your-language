@@ -140,8 +140,9 @@ int CFGBuilder::insertIfStmt(const res::IfStmt &stmt, int exit) {
   bool trueReachable = true;
   bool falseReachable = true;
 
-  if (cee->evaluate(*stmt.condition)) {
-    bool condVal = std::get<bool>(cee->getResults()->at(stmt.condition));
+  res::ConstVal constVal = ConstExprEvaluator(false).evaluate(*stmt.condition);
+  if (constVal.isKnown()) {
+    bool condVal = std::get<bool>(constVal);
 
     trueReachable = condVal;
     falseReachable = !condVal;
@@ -164,8 +165,9 @@ int CFGBuilder::insertWhileStmt(const res::WhileStmt &stmt, int exit) {
   bool trueReachable = true;
   bool falseReachable = true;
 
-  if (cee->evaluate(*stmt.condition)) {
-    bool condVal = std::get<bool>(cee->getResults()->at(stmt.condition));
+  res::ConstVal constVal = ConstExprEvaluator(false).evaluate(*stmt.condition);
+  if (constVal.isKnown()) {
+    bool condVal = std::get<bool>(constVal);
 
     trueReachable = condVal;
     falseReachable = !condVal;
@@ -293,10 +295,6 @@ int CFGBuilder::insertBlock(const res::Block &block, int succ) {
 }
 
 CFG CFGBuilder::build(const res::FunctionDecl &fn) {
-  ConstExprValueStorage constantValues;
-  ConstantExpressionEvaluator evaluator(constantValues, false);
-
-  cee = &evaluator;
   cfg = {};
 
   cfg.exit = cfg.insertNewBlock();

@@ -7,7 +7,7 @@ fn foo(): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
-// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   | value: true
 
 fn bar(): number {
     let x: number = 2.1;
@@ -18,7 +18,6 @@ fn bar(): number {
 // CHECK-NEXT:   GroupingExpr {number}
 // CHECK-NEXT:   | value: 2.1
 // CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:     | value: 2.1
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
 
 fn baz(x: number) {

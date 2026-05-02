@@ -43,7 +43,6 @@ struct CFG {
 };
 
 class CFGBuilder {
-  ConstantExpressionEvaluator *cee;
   CFG cfg;
 
   int insertBlock(const res::Block &block, int successor);

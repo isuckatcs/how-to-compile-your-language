@@ -6,7 +6,7 @@ fn binaryLhsKnown(y: bool): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '||' {bool}
-// CHECK-NEXT:   | value: 1
+// CHECK-NEXT:   | value: true
 
 fn unaryNonConst(): bool {
     mut x: bool = true;
@@ -41,7 +41,6 @@ fn lhsKnownRhsNot(y: bool): bool {
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
 // CHECK-NEXT:     BoolLiteral '1' {bool}
-// CHECK-NEXT:     | value: 1
 // CHECK-NEXT:     PathExpr {bool}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) y {bool}
 

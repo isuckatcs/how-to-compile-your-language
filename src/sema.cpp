@@ -630,7 +630,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       return nullptr;
     }
 
-    cee->evaluate(*resolvedArg);
+    resolvedArg->setConstantValue(cee->evaluate(*resolvedArg));
     resolvedArgs.emplace_back(resolvedArg);
   }
 
@@ -706,7 +706,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    cee->evaluate(*inits[fieldDecl->identifier]->initializer);
+    auto *initExpr = inits[fieldDecl->identifier]->initializer;
+    initExpr->setConstantValue(cee->evaluate(*initExpr));
   }
 
   if (error)
@@ -769,7 +770,7 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
       return nullptr;
   }
 
-  cee->evaluate(*cond);
+  cond->setConstantValue(cee->evaluate(*cond));
   return ctx.create<res::IfStmt>(ifStmt.location, cond, trueBlock, falseBlock);
 }
 
@@ -782,7 +783,7 @@ res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
-  cee->evaluate(*cond);
+  cond->setConstantValue(cee->evaluate(*cond));
   return ctx.create<res::WhileStmt>(whileStmt.location, cond, body);
 }
 
@@ -816,7 +817,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
                                      "' instead");
   }
 
-  cee->evaluate(*rhs);
+  rhs->setConstantValue(cee->evaluate(*rhs));
   return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
 }
 
@@ -846,7 +847,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                         retTy->getName() + "'");
     }
 
-    cee->evaluate(*expr);
+    expr->setConstantValue(cee->evaluate(*expr));
   }
 
   return ctx.create<res::ReturnStmt>(returnStmt.location, expr);
@@ -1059,7 +1060,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                         declTy->getName() + "'");
     }
 
-    cee->evaluate(*initializer);
+    initializer->setConstantValue(cee->evaluate(*initializer));
   }
 
   return decl;

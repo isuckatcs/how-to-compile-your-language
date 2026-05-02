@@ -1,14 +1,30 @@
 #include <iostream>
+#include <sstream>
 
 #include "lexer.h"
 #include "res.h"
 #include "utils.h"
 
-// FIXME: this should not be included here
-#include "constexpr.h"
-
 namespace yl {
 namespace res {
+std::string ConstVal::asString() const {
+  return std::visit(
+      [](auto &&value) {
+        std::stringstream ss;
+
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, std::monostate>)
+          ss << "unknown";
+        else if constexpr (std::is_same_v<T, bool>)
+          ss << (value ? "true" : "false");
+        else if constexpr (std::is_same_v<T, double>)
+          ss << value;
+
+        return ss.str();
+      },
+      *this);
+}
+
 bool DeclContext::insertDecl(res::Decl *decl) {
   bool isValueDecl = decl->getAs<res::ValueDecl>();
 
@@ -143,24 +159,16 @@ void NumberLiteral::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "NumberLiteral '" << value << "' {"
             << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 }
 
 void BoolLiteral::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "BoolLiteral '" << value << "' {"
             << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 }
 
 void UnitLiteral::dump(Context &ctx, size_t level) const {
@@ -181,12 +189,8 @@ void PathExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "PathExpr"
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
   for (auto &&fragment : fragments)
     fragment->dump(ctx, level + 1);
@@ -214,12 +218,8 @@ void GroupingExpr::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "GroupingExpr"
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
   expr->dump(ctx, level + 1);
 }
@@ -228,12 +228,8 @@ void BinaryOperator::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << '\''
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
   lhs->dump(ctx, level + 1);
   rhs->dump(ctx, level + 1);
@@ -243,12 +239,8 @@ void UnaryOperator::dump(Context &ctx, size_t level) const {
   std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << '\''
             << " {" << ctx.getTypeMgr().getType(this)->getName() << '}' << '\n';
 
-  if (ctx.getConstantValues().count(this))
-    std::visit(
-        [&](auto &&val) {
-          std::cerr << indent(level) << "| value: " << val << '\n';
-        },
-        ctx.getConstantValues().at(this));
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 
   operand->dump(ctx, level + 1);
 }

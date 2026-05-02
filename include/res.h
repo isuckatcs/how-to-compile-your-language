@@ -12,6 +12,13 @@
 
 namespace yl {
 namespace res {
+struct ConstVal : public std::variant<std::monostate, bool, double> {
+  using std::variant<std::monostate, bool, double>::variant;
+
+  bool isKnown() const { return index() != 0; }
+  std::string asString() const;
+};
+
 class Context;
 
 struct Stmt {
@@ -31,6 +38,7 @@ struct Expr : public TypedNode, public Stmt {
   enum class Kind { Rvalue, MutLvalue, Lvalue };
 
   Kind kind;
+  ConstVal constVal;
 
   Expr(SourceLocation location, Kind kind)
       : Stmt(location),
@@ -38,6 +46,10 @@ struct Expr : public TypedNode, public Stmt {
 
   bool isLvalue() const { return kind != Kind::Rvalue; }
   bool isMutable() const { return kind == Kind::MutLvalue; }
+
+  bool hasConstantValue() const { return constVal.isKnown(); }
+  ConstVal getConstantValue() const { return constVal; }
+  void setConstantValue(ConstVal val) { constVal = val; }
 
   virtual ~Expr() = default;
 };
@@ -469,13 +481,7 @@ struct ImplicitDerefExpr : public Expr {
   void dump(Context &ctx, size_t level = 0) const override;
 };
 
-// FIXME: remove
-using ConstExprValueStorage =
-    std::unordered_map<const res::Expr *, std::variant<bool, double>>;
-
 class Context {
-  // FIXME: this should live elsewhere
-  const ConstExprValueStorage *constantExprValues;
   TypeManager *typeMgr;
 
   std::vector<std::unique_ptr<Stmt>> statements;
@@ -488,9 +494,8 @@ class Context {
   std::vector<FunctionDecl *> functions;
 
 public:
-  Context(TypeManager &typeMgr, const ConstExprValueStorage &constantExprValues)
-      : constantExprValues(&constantExprValues),
-        typeMgr(&typeMgr) {}
+  explicit Context(TypeManager &typeMgr)
+      : typeMgr(&typeMgr) {}
 
   template <typename T, typename... Args> T *create(Args &&...args) {
     auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -527,9 +532,6 @@ public:
   }
 
   TypeManager &getTypeMgr() { return *typeMgr; }
-  const ConstExprValueStorage &getConstantValues() const {
-    return *constantExprValues;
-  }
 
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }

@@ -14,7 +14,7 @@ class Sema {
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";
 
-  ConstantExpressionEvaluator *cee;
+  ConstExprEvaluator *cee;
   const ast::Context *ast;
 
   res::TypeManager typeMgr;
@@ -170,10 +170,10 @@ class Sema {
   bool checkTraitInstances(res::Context &ctx);
 
 public:
-  explicit Sema(ConstantExpressionEvaluator &cee, const ast::Context &ast)
+  explicit Sema(ConstExprEvaluator &cee, const ast::Context &ast)
       : cee(&cee),
         ast(&ast),
-        ctx(typeMgr, *cee.getResults()) {}
+        ctx(typeMgr) {}
 
   res::Context *resolveAST();
 };
