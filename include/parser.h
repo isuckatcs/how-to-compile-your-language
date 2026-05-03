@@ -7,11 +7,14 @@
 #include <vector>
 
 #include "ast.h"
+#include "diag.h"
 #include "lexer.h"
 
 namespace yl {
 class Parser {
+  diag::DiagnosticReporter *reporter;
   Lexer *lexer;
+
   Token nextToken;
   bool incompleteAST = false;
 
@@ -103,8 +106,9 @@ class Parser {
   std::unique_ptr<std::vector<std::unique_ptr<ast::Type>>> parseTypeList();
 
 public:
-  explicit Parser(Lexer &lexer)
-      : lexer(&lexer),
+  Parser(diag::DiagnosticReporter &reporter, Lexer &lexer)
+      : reporter(&reporter),
+        lexer(&lexer),
         nextToken(lexer.getNextToken()) {}
 
   std::pair<ast::Context, bool> parseSourceFile();

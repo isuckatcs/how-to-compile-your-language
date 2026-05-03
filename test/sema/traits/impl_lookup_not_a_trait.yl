@@ -2,6 +2,6 @@
 struct S {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:11: error: A is not a trait
+  // CHECK: [[# @LINE + 1]]:11: error: 'A' is not a trait
   S::impl A::foo();
 }

@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "cfg.h"
 #include "constexpr.h"
+#include "diag.h"
 #include "res.h"
 
 namespace yl {
@@ -14,6 +15,7 @@ class Sema {
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";
 
+  diag::DiagnosticReporter *reporter;
   ConstExprEvaluator *cee;
   const ast::Context *ast;
 
@@ -170,8 +172,11 @@ class Sema {
   bool checkTraitInstances(res::Context &ctx);
 
 public:
-  explicit Sema(ConstExprEvaluator &cee, const ast::Context &ast)
-      : cee(&cee),
+  explicit Sema(diag::DiagnosticReporter &reporter,
+                ConstExprEvaluator &cee,
+                const ast::Context &ast)
+      : reporter(&reporter),
+        cee(&cee),
         ast(&ast) {}
 
   res::Context *resolveAST();

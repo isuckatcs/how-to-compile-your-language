@@ -4,10 +4,10 @@ struct S<T> { x: number }
 fn foo<T, U>(): unit {}
 
 fn main(): unit {
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected '1' type argument but received '2'
+  // CHECK: [[# @LINE + 1 ]]:4: error: type argument count mismatch, expected 1, but received 2
   S@<number, number>{ x: 1 };
 
-  // CHECK: [[# @LINE + 1 ]]:6: error: expected '2' type arguments but received '1'
+  // CHECK: [[# @LINE + 1 ]]:6: error: type argument count mismatch, expected 2, but received 1
   foo@<unit>();
 }
 

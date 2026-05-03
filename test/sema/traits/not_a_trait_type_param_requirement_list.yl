@@ -1,11 +1,11 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-// CHECK: [[# @LINE + 1 ]]:13: error: NotATrait is not a trait
+// CHECK: [[# @LINE + 1 ]]:13: error: 'NotATrait' is not a trait
 trait A<T : NotATrait> {}
 
-// CHECK: [[# @LINE + 1 ]]:14: error: NotATrait is not a trait
+// CHECK: [[# @LINE + 1 ]]:14: error: 'NotATrait' is not a trait
 struct S<T : NotATrait> {}
 
-// CHECK: [[# @LINE + 1 ]]:12: error: NotATrait is not a trait
+// CHECK: [[# @LINE + 1 ]]:12: error: 'NotATrait' is not a trait
 fn foo<T : NotATrait>() {}
 
 fn main() {}

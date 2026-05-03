@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-    // CHECK: [[# @LINE + 1 ]]:10: error: NotATrait is not a trait
+    // CHECK: [[# @LINE + 1 ]]:10: error: 'NotATrait' is not a trait
     impl NotATrait;
 }
 

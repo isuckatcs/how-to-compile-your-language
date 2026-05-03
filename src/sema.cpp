@@ -1,10 +1,10 @@
 #include <cassert>
 #include <map>
 #include <set>
-#include <sstream>
 #include <stack>
 
 #include "cfg.h"
+#include "diag.h"
 #include "sema.h"
 #include "utils.h"
 
@@ -57,11 +57,10 @@ bool Sema::checkReturnOnAllPaths(res::Context &ctx,
         worklist.emplace_back(succ);
   }
 
-  if (exitReached || returnCount == 0) {
-    report(fn.location,
-           returnCount > 0 ? "expected function to return a value on every path"
-                           : "expected function to return a value");
-  }
+  if (exitReached || returnCount == 0)
+    (returnCount > 0
+         ? reporter->report(err::expectedReturnValueOnEveryPath(fn.location))
+         : reporter->report(err::expectedReturnValue(fn.location)));
 
   return exitReached || returnCount == 0;
 }
@@ -86,7 +85,7 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
   };
 
   std::vector<Lattice> curLattices(cfg.basicBlocks.size());
-  std::vector<std::pair<SourceLocation, std::string>> pendingErrors;
+  std::vector<diag::Diagnostic> pendingErrors;
 
   bool changed = true;
   while (changed) {
@@ -132,10 +131,9 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 
           const auto *decl =
               path->fragments.back()->decl->getAs<res::ValueDecl>();
-          if (!decl->isMutable && tmp[decl] != State::Unassigned) {
-            std::string msg = '\'' + decl->identifier + "' cannot be mutated";
-            pendingErrors.emplace_back(assignment->location, std::move(msg));
-          }
+          if (!decl->isMutable && tmp[decl] != State::Unassigned)
+            pendingErrors.emplace_back(
+                err::cannotBeMutated(assignment->location, decl->identifier));
 
           tmp[decl] = State::Assigned;
           continue;
@@ -148,19 +146,16 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
               if (!typeArg->getRootType()->getAs<res::UninferredType>())
                 continue;
 
-              std::string msg = "explicit type annotations are needed to infer "
-                                "the type of '" +
-                                fragment->decl->identifier + "'";
-              pendingErrors.emplace_back(fragment->location, std::move(msg));
+              pendingErrors.emplace_back(err::annotationsNeeded(
+                  fragment->location, fragment->decl->identifier));
             }
           }
 
           const auto *dre = path->fragments.back();
           const auto *var = dre->decl->getAs<res::VarDecl>();
-          if (var && tmp[var] != State::Assigned) {
-            std::string msg = '\'' + var->identifier + "' is not initialized";
-            pendingErrors.emplace_back(dre->location, std::move(msg));
-          }
+          if (var && tmp[var] != State::Assigned)
+            pendingErrors.emplace_back(
+                err::notInitialized(dre->location, var->identifier));
 
           continue;
         }
@@ -175,10 +170,10 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 
   for (auto &&[d, s] : curLattices[cfg.exit + 1])
     if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>())
-      report(d->location, "the type of '" + d->identifier + "' is unknown");
+      reporter->report(err::unknownType(d->location, d->identifier));
 
-  for (auto &&[loc, msg] : pendingErrors)
-    report(loc, msg);
+  for (auto &&err : pendingErrors)
+    reporter->report(err);
 
   return !pendingErrors.empty();
 }
@@ -188,7 +183,7 @@ bool Sema::insertDeclToScope(res::Decl *decl, res::DeclContext *scope) {
     return false;
 
   if (!scope->insertDecl(decl)) {
-    report(decl->location, "redeclaration of '" + decl->identifier + '\'');
+    reporter->report(err::redeclaration(decl->location, decl->identifier));
     return false;
   }
 
@@ -221,8 +216,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
       return typeMgr.getBuiltinBoolType();
     case ast::BuiltinType::Kind::Self:
       if (!selfType)
-        return report(parsedType.location,
-                      "'Self' is only allowed inside structs and traits");
+        return reporter->report(err::selfTyNotAllowed(parsedType.location));
       return selfType;
     }
   }
@@ -231,8 +225,8 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
     res::Decl *decl = lexicalScope->lookupDecl<res::TypeDecl>(udt->identifier);
     if (!decl)
-      return report(udt->location,
-                    "failed to resolve type '" + udt->identifier + "'");
+      return reporter->report(
+          err::failedToResolveType(udt->location, udt->identifier));
 
     if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
       return typeMgr.getTypeParamType(*typeParamDecl);
@@ -268,7 +262,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
 
   if (const auto *out = dynamic_cast<const ast::OutParamType *>(&parsedType)) {
     if (!(resolutionContext & ParamList))
-      return report(out->location, "only parameters can have '&' type");
+      return reporter->report(err::unexpectedAmpParam(out->location));
 
     varOrReturn(paramType, resolveType(ctx, *out->paramType));
     assert(!paramType->getAs<res::OutParamType>() &&
@@ -286,23 +280,20 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
 
   auto *rhsTy = rhs->getType();
   if (rhsTy->getAs<res::UninferredType>())
-    return report(rhs->location,
-                  "type of operand to unary operator is unknown");
+    return reporter->report(err::unaryOperandUnknown(rhs->location));
 
   if (unary.op == TokenKind::Excl && !rhsTy->getAs<res::BuiltinBoolType>())
-    return report(rhs->location, "expected 'bool' operand");
+    return reporter->report(err::expectedOperandTy(rhs->location, "bool"));
 
   if (unary.op == TokenKind::Minus && !rhsTy->getAs<res::BuiltinNumberType>())
-    return report(rhs->location, "expected 'number' operand");
+    return reporter->report(err::expectedOperandTy(rhs->location, "number"));
 
   if (unary.op == TokenKind::Amp) {
     if (!(resolutionContext & ArgList))
-      return report(unary.location,
-                    "'&' can only be used to pass arguments to '&' parameters");
+      return reporter->report(err::ampOutsideArgList(unary.location));
 
     if (!rhs->isMutable())
-      return report(rhs->location,
-                    "only mutable lvalues can be passed to '&' parameters");
+      return reporter->report(err::ampWrongCategory(rhs->location));
 
     rhsTy = typeMgr.getOutParamType(rhsTy);
   }
@@ -321,9 +312,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
 
   if (auto *uninferredLHS = lhsTy->getAs<res::UninferredType>();
       uninferredLHS || rhsTy->getAs<res::UninferredType>())
-    return report((uninferredLHS ? lhs : rhs)->location,
-                  "type of " + std::string(uninferredLHS ? "LHS" : "RHS") +
-                      " to binary operator is unknown");
+    return reporter->report(err::binopOperandUnknown(
+        (uninferredLHS ? lhs : rhs)->location, uninferredLHS ? "LHS" : "RHS"));
 
   const auto &loc = binop.location;
   TokenKind op = binop.op;
@@ -335,9 +325,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
   typeError |= isNumbericOp && !rhsTy->getAs<res::BuiltinNumberType>();
   if (typeError)
-    return report(loc, "incompatible operands to binary operator ('" +
-                           lhsTy->getName() + "' and '" + rhsTy->getName() +
-                           "')");
+    return reporter->report(err::binopIncompatibleOperands(
+        loc, lhsTy->getName(), rhsTy->getName()));
 
   res::Type *resTy = (op == TokenKind::EqualEqual || op == TokenKind::Lt ||
                       op == TokenKind::Gt)
@@ -397,16 +386,14 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
         typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
 
     if (!typeMgr.unify(parent, checkTy).empty())
-      return report(impl->location, "'" + parent->getName() +
-                                        "' doesn't implement trait '" +
-                                        traitTy->getName() + "'");
+      return reporter->report(err::traitNotImplemented(
+          impl->location, parent->getName(), traitTy->getName()));
 
     if (auto *decl = lookupSymbolWithFallback<Hint>(traitInstance->decl, dre))
       return createDeclRefExpr(ctx, dre, parent, decl, traitTy);
 
-    return report(dre->location, "trait '" + traitInstance->decl->identifier +
-                                     "' has no member '" + dre->identifier +
-                                     "'");
+    return reporter->report(err::traitMissingMember(
+        dre->location, traitInstance->decl->identifier, dre->identifier));
   }
 
   if (!parent && dre->identifier == selfTypeId) {
@@ -418,15 +405,14 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (paramTy)
       return createDeclRefExpr(ctx, dre, nullptr, paramTy->decl, nullptr);
 
-    return report(dre->location,
-                  "'Self' is only allowed inside structs and traits");
+    return reporter->report(err::selfTyNotAllowed(dre->location));
   }
 
   if (!parent) {
     if (auto *decl = lookupSymbolWithFallback<Hint>(lexicalScope, dre))
       return createDeclRefExpr(ctx, dre, nullptr, decl, nullptr);
 
-    return report(dre->location, "symbol '" + dre->identifier + "' not found");
+    return reporter->report(err::missingSymbol(dre->location, dre->identifier));
   }
 
   auto *structTy = parent->getAs<res::StructType>();
@@ -435,8 +421,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
       return createDeclRefExpr(ctx, dre, parent, decl, nullptr);
 
   if (!structTy && !parent->getAs<res::TypeParamType>())
-    return report(dre->location,
-                  "cannot access member of '" + parent->getName() + '\'');
+    return reporter->report(
+        err::cannotAccessMember(dre->location, parent->getName()));
 
   res::Decl *decl = nullptr;
   res::TraitType *trait = nullptr;
@@ -446,7 +432,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (auto *traitDecl =
             lookupSymbolWithFallback<Hint>(implementedTrait->getDecl(), dre)) {
       if (decl)
-        return report(dre->location, "ambigous member function reference");
+        return reporter->report(err::ambigousMemberFn(dre->location));
 
       decl = traitDecl;
       trait = implementedTrait;
@@ -454,8 +440,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   }
 
   if (!decl)
-    return report(dre->location, "failed to find member '" + dre->identifier +
-                                     "' in '" + parent->getName() + "'");
+    return reporter->report(err::lookupInTypeFailed(
+        dre->location, dre->identifier, parent->getName()));
   return createDeclRefExpr(ctx, dre, parent, decl, trait);
 }
 
@@ -498,8 +484,8 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
 
   if (const auto *typeArgList = dre->typeArgumentList.get()) {
     if (!decl->isGeneric())
-      return report(typeArgList->location,
-                    "'" + decl->identifier + "' is not a generic");
+      return reporter->report(
+          err::notGeneric(typeArgList->location, decl->identifier));
 
     bool hasImplicitSelf = typeParams.front()->identifier == implicitSelfId;
     varOrReturn(res, checkTypeParameterCount(
@@ -513,7 +499,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
       if (const auto &errors = typeMgr.unify(typeArgTy, typeArgs[idx]);
           !errors.empty()) {
         for (auto &&error : errors)
-          report(astArg->location, error);
+          reporter->report(err::inferenceError(astArg->location, error));
 
         return nullptr;
       }
@@ -551,8 +537,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   res::Type *calleeType = callee->getType();
   auto *fnType = calleeType->getAs<res::FunctionType>();
   if (!fnType)
-    return report(call.location, "calling expression of type '" +
-                                     calleeType->getName() + '\'');
+    return reporter->report(
+        err::invalidCallTy(call.location, calleeType->getName()));
 
   if (auto *me = dynamic_cast<res::MemberExpr *>(callee)) {
     res::Expr *base = me->base;
@@ -562,8 +548,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       res::ParamDecl *selfParam =
           function->params.empty() ? nullptr : function->params[0];
       if (!selfParam || selfParam->identifier != selfParamId)
-        return report(call.location,
-                      "class level methods cannot be called on an instance");
+        return reporter->report(err::classMethodCallOnInstance(call.location));
 
       SourceLocation baseLoc = base->location;
       res::Expr::Kind baseKind = base->kind;
@@ -572,7 +557,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       selfArg = base;
       if (selfParam->getType()->getAs<res::OutParamType>()) {
         if (selfArg->isLvalue() && !selfArg->isMutable())
-          return report(baseLoc, "expected mutable struct instance");
+          return reporter->report(err::structImmutable(baseLoc));
 
         selfArg = ctx.create<res::UnaryOperator>(
             baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg);
@@ -604,10 +589,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   size_t astArgCnt = call.arguments.size();
 
   if ((astArgCnt + resolvedArgCnt) != fnTypeArgCnt)
-    return report(call.location,
-                  "wrong number of arguments in function call, expected " +
-                      std::to_string(fnTypeArgCnt - resolvedArgCnt) +
-                      ", but received " + std::to_string(astArgCnt));
+    return reporter->report(err::wrongArgCount(
+        call.location, fnTypeArgCnt - resolvedArgCnt, astArgCnt));
 
   for (auto &&arg : call.arguments) {
     ResolutionContextRAII argCtx(this, ArgList);
@@ -619,7 +602,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
         !errors.empty()) {
       for (auto &&error : errors)
-        report(resolvedArg->location, error);
+        reporter->report(err::inferenceError(resolvedArg->location, error));
       return nullptr;
     }
 
@@ -638,7 +621,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
                         ctx, *structInstantiation.structRef));
 
   if (!path->fragments.back()->decl->getAs<res::StructDecl>())
-    return report(path->location, "expected struct declaration to instantiate");
+    return reporter->report(err::notStructInstance(path->location));
 
   auto *structTy = path->getType()->getAs<res::StructType>();
   auto *sd = structTy->getDecl();
@@ -656,15 +639,14 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     const SourceLocation &loc = initStmt->location;
 
     if (inits.count(id)) {
-      report(loc, "field '" + std::string{id} + "' is already initialized");
+      reporter->report(err::fieldAlreadyInitialized(loc, id));
       error = true;
       continue;
     }
 
     res::FieldDecl *fieldDecl = fields[id];
     if (!fieldDecl) {
-      report(loc, "'" + sd->identifier + "' has no field named '" +
-                      std::string{id} + "'");
+      reporter->report(err::noFieldWithName(loc, sd->identifier, id));
       error = true;
       continue;
     }
@@ -680,9 +662,9 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
         fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
 
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
-      for (auto &&error : msg) {
-        report(resolvedInitExpr->location, error);
-      }
+      for (auto &&error : msg)
+        reporter->report(
+            err::inferenceError(resolvedInitExpr->location, error));
       error = true;
       continue;
     }
@@ -693,8 +675,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
   for (auto &&fieldDecl : sd->getAll<res::FieldDecl>()) {
     if (!inits.count(fieldDecl->identifier)) {
-      report(structInstantiation.location,
-             "field '" + fieldDecl->identifier + "' is not initialized");
+      reporter->report(err::fieldNotInitialized(structInstantiation.location,
+                                                fieldDecl->identifier));
       error = true;
       continue;
     }
@@ -719,7 +701,7 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
 
   if (memberDre->decl->getAs<res::FunctionDecl>() &&
       !(resolutionContext & Call))
-    return report(memberExpr.location, "expected to call method");
+    return reporter->report(err::expectedMethodCall(memberExpr.location));
 
   return ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre);
 }
@@ -749,7 +731,7 @@ res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
 res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
   varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition));
   if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
-    return report(cond->location, "expected 'bool' in condition");
+    return reporter->report(err::expectedBoolCondition(cond->location));
 
   varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
 
@@ -768,7 +750,7 @@ res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
                                        const ast::WhileStmt &whileStmt) {
   varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition));
   if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
-    return report(cond->location, "expected 'bool' in condition");
+    return reporter->report(err::expectedBoolCondition(cond->location));
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
@@ -792,18 +774,17 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   varOrReturn(lhs, resolveExpr(ctx, *assignment.assignee));
 
   if (!lhs->isLvalue())
-    return report(lhs->location, "cannot assign to rvalue");
+    return reporter->report(err::rvalueAssignment(lhs->location));
 
   auto *lhsTy = lhs->getType();
   auto *rhsTy = rhs->getType();
 
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
-      report(rhs->location, error);
+      reporter->report(err::inferenceError(rhs->location, error));
 
-    return report(rhs->location, "expected to assign '" + lhsTy->getName() +
-                                     "' but received '" + rhsTy->getName() +
-                                     "' instead");
+    return reporter->report(err::incompatibleAssignment(
+        rhs->location, lhsTy->getName(), rhsTy->getName()));
   }
 
   rhs->setConstantValue(cee->evaluate(*rhs));
@@ -817,7 +798,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   auto *fnTy = currentFunction->getType()->getAs<res::FunctionType>();
   auto *retTy = fnTy->getReturnType();
   if (!retTy->getAs<res::BuiltinUnitType>() && !returnStmt.expr)
-    return report(returnStmt.location, "expected a return value");
+    return reporter->report(err::noReturnValue(returnStmt.location));
 
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
@@ -827,9 +808,8 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
     res::Type *exprTy = expr->getType();
     if (!typeMgr.unify(retTy, exprTy).empty())
-      return report(expr->location, "cannot return '" + exprTy->getName() +
-                                        "' from a function returning '" +
-                                        retTy->getName() + "'");
+      return reporter->report(err::invalidReturnValue(
+          expr->location, exprTy->getName(), retTy->getName()));
 
     expr->setConstantValue(cee->evaluate(*expr));
   }
@@ -876,19 +856,16 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
     const res::Decl *decl = resPath->fragments.back()->decl;
 
     if (decl->getAs<res::TypeParamDecl>())
-      return report(resPath->location, "expected value, found type parameter");
+      return reporter->report(err::unexpectedTypeParam(resPath->location));
 
     if (decl->getAs<res::StructDecl>())
-      return report(resPath->location,
-                    "expected an instance of '" + decl->identifier + '\'');
+      return reporter->report(
+          err::expectedInstance(resPath->location, decl->identifier));
 
     if (resPath->fragments.size() > 1 && !decl->getAs<res::FunctionDecl>())
-      return report(resPath->location,
-                    "failed to find member function '" + decl->identifier +
-                        "' in '" +
-                        resPath->fragments[resPath->fragments.size() - 2]
-                            ->decl->identifier +
-                        "'");
+      return reporter->report(err::memberFnLookupFailed(
+          resPath->location, decl->identifier,
+          resPath->fragments[resPath->fragments.size() - 2]->decl->identifier));
 
     auto *outType = resPath->getType()->getAs<res::OutParamType>();
     if (outType)
@@ -919,7 +896,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
       continue;
 
     if (reportUnreachableCount == 1) {
-      report(stmt->location, "unreachable statement", true);
+      reporter->report(wrn::unreachableStmt(stmt->location));
       ++reportUnreachableCount;
     }
 
@@ -948,9 +925,9 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
     auto *traitFn = traitTy->getDecl()->lookupDecl<res::FunctionDecl>(
         astFunction->identifier);
     if (!traitFn) {
-      report(astFunction->location, "'" + traitTy->getDecl()->identifier +
-                                        "' has no member function called '" +
-                                        astFunction->identifier + "'");
+      reporter->report(err::memberFnLookupFailed(
+          astFunction->location, astFunction->identifier,
+          traitTy->getDecl()->identifier));
       continue;
     }
 
@@ -984,12 +961,12 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
           !errors.empty()) {
 
         for (auto &&error : errors)
-          report(implFn->typeParams[i]->location, error);
+          reporter->report(
+              err::inferenceError(implFn->typeParams[i]->location, error));
 
-        report(implFn->typeParams[i]->location,
-               "cannot replace parameter of type '" + traitParamTy->getName() +
-                   "' with stricter implementation type '" +
-                   implParamTy->getName() + "'");
+        reporter->report(err::stricterParamTy(implFn->typeParams[i]->location,
+                                              traitParamTy->getName(),
+                                              implParamTy->getName()));
       }
     }
 
@@ -1001,15 +978,12 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
     res::Type *actualType = implFn->getType();
 
     if (!typeMgr.unify(expectedType, actualType).empty())
-      report(implFn->location,
-             "trait function declaration has '" + expectedType->getName() +
-                 "' signature, but the given implementation is '" +
-                 actualType->getName() + "'");
+      reporter->report(err::fnSignatureMismatch(
+          implFn->location, expectedType->getName(), actualType->getName()));
 
     if (!resDecl->insertDecl(implFn))
-      report(implFn->location, "function '" + implFn->identifier +
-                                   "' is already implemented for trait '" +
-                                   traitTy->getName() + "'");
+      reporter->report(err::alreadyImplementedFn(
+          implFn->location, implFn->identifier, traitTy->getName()));
   }
 
   return resDecl;
@@ -1036,12 +1010,9 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
 
   if (initializer) {
     auto *initTy = initializer->getType();
-    if (!typeMgr.unify(declTy, initTy).empty()) {
-      return report(decl->initializer->location,
-                    "an expression of type '" + initTy->getName() +
-                        "' cannot be used to initialize a variable of type '" +
-                        declTy->getName() + "'");
-    }
+    if (!typeMgr.unify(declTy, initTy).empty())
+      return reporter->report(err::initTyMismatch(
+          decl->initializer->location, initTy->getName(), declTy->getName()));
 
     initializer->setConstantValue(cee->evaluate(*initializer));
   }
@@ -1053,13 +1024,7 @@ bool Sema::checkTypeParameterCount(SourceLocation loc,
                                    size_t received,
                                    size_t expected) const {
   if (received != expected) {
-    std::stringstream msg;
-    msg << "expected '" << expected << "' type argument";
-    if (expected != 1)
-      msg << 's';
-    msg << " but received '" << received << '\'';
-
-    report(loc, msg.str());
+    reporter->report(err::typeArgCntMismatch(loc, expected, received));
     return false;
   }
 
@@ -1134,9 +1099,8 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
       if (fn->body || implCtx->lookupDecl<res::FunctionDecl>(fn->identifier))
         continue;
 
-      report(fn->location, "struct '" + structDecl->identifier +
-                               "' must implement function '" + fn->identifier +
-                               "' from trait '" + trait->getName() + "'");
+      reporter->report(err::missingTraitFn(fn->location, structDecl->identifier,
+                                           fn->identifier, trait->getName()));
       error = true;
     }
   }
@@ -1155,8 +1119,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
       !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
   for (auto &&tp : typeParams)
     if (lexicalScope->parent->lookupDecl<res::TypeParamDecl>(tp->identifier)) {
-      report(tp->location,
-             "declaring '" + tp->identifier + "' shadows outer type parameter");
+      reporter->report(err::typeParamShadowed(tp->location, tp->identifier));
       error = true;
     }
 
@@ -1188,8 +1151,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
 
     bool isOutputType = type && type->getAs<res::OutParamType>();
     if (isOutputType && param->isMutable) {
-      report(param->location,
-             "unexpected 'mut' specifier, a '&' parameter is always mutable");
+      reporter->report(err::mutableAmp(param->location));
       error = true;
     }
 
@@ -1258,7 +1220,7 @@ Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
 
   auto *traitDecl = lexicalScope->lookupDecl<res::TraitDecl>(identifier);
   if (!traitDecl)
-    return report(location, identifier + " is not a trait");
+    return reporter->report(err::notATrait(location, identifier));
 
   std::vector<res::Type *> resTypeArgs;
 
@@ -1396,9 +1358,9 @@ bool Sema::resolveStructBody(res::Context &ctx,
       }
 
       if (!structDecl.insertDecl(resImpl)) {
-        report(resImpl->location, "trait '" + resImpl->getType()->getName() +
-                                      "' is already implemented for struct '" +
-                                      structDecl.identifier + "'");
+        reporter->report(err::alreadyImplementedTrait(
+            resImpl->location, resImpl->getType()->getName(),
+            structDecl.identifier));
         error = true;
       }
 
@@ -1417,10 +1379,8 @@ bool Sema::resolveStructBody(res::Context &ctx,
           typeMgr.instantiate(moreSpecificImpl->getType(), sub);
 
       if (typeMgr.moreGeneral(traitTy, moreSpecificTy)) {
-        report(impl->location,
-               "implementing trait '" + traitTy->getName() +
-                   "' conflicts with more specific implementation '" +
-                   moreSpecificTy->getName() + "'");
+        reporter->report(err::conflictingTrait(
+            impl->location, traitTy->getName(), moreSpecificTy->getName()));
         error = true;
       }
     }
@@ -1434,9 +1394,8 @@ bool Sema::resolveStructBody(res::Context &ctx,
         found |= typeMgr.unify(impl->getType(), req).empty();
 
       if (!found) {
-        report(impl->location, "implementing trait '" + traitTy->getName() +
-                                   "' requires implementing trait '" +
-                                   req->getName() + "'");
+        reporter->report(err::missingRequirement(
+            impl->location, traitTy->getName(), req->getName()));
         error = true;
       }
     }
@@ -1558,26 +1517,23 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
              ->getAs<res::FunctionType>()
              ->getReturnType()
              ->getAs<res::BuiltinUnitType>()) {
-      report(fnDecl->location, "'main' function is expected to return 'unit'");
+      reporter->report(err::wrongMainReturnTy(fnDecl->location));
       return true;
     }
 
     if (!fnDecl->params.empty()) {
-      report(fnDecl->location,
-             "'main' function is expected to take no arguments");
+      reporter->report(err::wrongMainArgCount(fnDecl->location));
       return true;
     }
 
     if (!fnDecl->typeParams.empty()) {
-      report(fnDecl->location, "'main' function cannot be generic");
+      reporter->report(err::mainIsGeneric(fnDecl->location));
       return true;
     }
   }
 
   if (fnDecl->identifier == "printf") {
-    report(fnDecl->location,
-           "'printf' is a reserved function name and cannot be used for "
-           "user-defined functions");
+    reporter->report(err::reservedPrintf(fnDecl->location));
     return true;
   }
 
@@ -1589,12 +1545,12 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
     return true;
 
   if (!selfType) {
-    report(param->location, "'self' parameter is only allowed in methods");
+    reporter->report(err::selfParamNotAllowed(param->location));
     return false;
   }
 
   if (idx != 0) {
-    report(param->location, "'self' can only be the first parameter");
+    reporter->report(err::selfWrongPosition(param->location));
     return false;
   }
 
@@ -1603,7 +1559,7 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
 
   if (!typeMgr.unify(type, selfType).empty() &&
       !(outTy && typeMgr.unify(outTy->getParamType(), selfType).empty())) {
-    report(param->location, "the type of 'self' must reference 'Self'");
+    reporter->report(err::selfWrongType(param->location));
     return false;
   }
 
@@ -1634,7 +1590,7 @@ bool Sema::hasSelfContainingStructs(const res::Context &ctx) {
   }
 
   for (auto &&sd : selfContaining)
-    report(sd->location, "struct '" + sd->identifier + "' contains itself");
+    reporter->report(err::selfContainingStruct(sd->location, sd->identifier));
 
   return !selfContaining.empty();
 }
@@ -1655,9 +1611,9 @@ bool Sema::checkTraitInstances(res::Context &ctx) {
 
       if (const auto &msg = typeMgr.unify(traitInstance->typeArgs[i], subTy);
           !msg.empty()) {
-        for (auto &&error : msg) {
-          report(traitInstance->typeLocations[i], error);
-        }
+        for (auto &&error : msg)
+          reporter->report(
+              err::inferenceError(traitInstance->typeLocations[i], error));
 
         error = true;
       }

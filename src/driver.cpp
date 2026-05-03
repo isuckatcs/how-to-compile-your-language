@@ -98,8 +98,11 @@ int main(int argc, const char **argv) {
   buffer << file.rdbuf();
   SourceFile sourceFile{options.source.c_str(), buffer.str()};
 
+  diag::PrintingDiagnosticConsumer consumer;
+  diag::DiagnosticReporter reporter(consumer);
+
   Lexer lexer(sourceFile);
-  Parser parser(lexer);
+  Parser parser(reporter, lexer);
   auto [ast, success] = parser.parseSourceFile();
 
   if (options.astDump) {
@@ -112,7 +115,7 @@ int main(int argc, const char **argv) {
     return 1;
 
   ConstExprEvaluator cee(true);
-  Sema sema(cee, ast);
+  Sema sema(reporter, cee, ast);
   auto *resolvedTree = sema.resolveAST();
 
   if (options.resDump) {

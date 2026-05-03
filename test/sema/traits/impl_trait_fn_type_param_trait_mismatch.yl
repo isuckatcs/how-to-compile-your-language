@@ -7,10 +7,10 @@ trait A {
 
 struct S {
   impl A {
-    // CHECK: [[# @LINE + 1]]:8: error: expected '3' type arguments but received '0'
+    // CHECK: [[# @LINE + 1]]:8: error: type argument count mismatch, expected 3, but received 0
     fn foo() {}
 
-    // CHECK: [[# @LINE + 1]]:8: error: expected '0' type arguments but received '3'
+    // CHECK: [[# @LINE + 1]]:8: error: type argument count mismatch, expected 0, but received 3
     fn bar<T, U, V>() {}
   }
 }

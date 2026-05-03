@@ -21,10 +21,7 @@ struct SourceLocation {
   int col;
 };
 
-std::string indent(size_t level);
-std::nullptr_t report(SourceLocation location,
-                      std::string_view message,
-                      bool isWarning = false);
+inline std::string indent(size_t level) { return std::string(level * 2, ' '); }
 } // namespace yl
 
 #endif // HOW_TO_COMPILE_YOUR_LANGUAGE_UTILS_H
