@@ -2,7 +2,7 @@
 fn error() : unit {
 
 struct S {
-// CHECK: [[# @LINE -1 ]]:1: error: expected '}' at the end of a block
+// CHECK: [[# @LINE -1 ]]:1: error: expected '}' at the end of block
     x: number,
 }
 
@@ -11,7 +11,7 @@ fn error2() : unit {
 
 struct S2 {
 // CHECK: [[# @LINE -1 ]]:1: error: expected expression
-// CHECK: [[# @LINE -2 ]]:1: error: expected '}' at the end of a block
+// CHECK: [[# @LINE -2 ]]:1: error: expected '}' at the end of block
     x: number,
 }
 
