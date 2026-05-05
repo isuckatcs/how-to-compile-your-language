@@ -7,26 +7,17 @@
 namespace yl {
 
 namespace diag {
-Diagnostic &Diagnostic::withNote(Diagnostic note) {
-  assert(note.severity == Severity::Note && "expected note");
-  notes.emplace_back(note);
-  return *this;
-}
-
 void PrintingDiagnosticConsumer::consume(Diagnostic diagnostic) {
   const auto &[file, line, col] = diagnostic.location;
   assert(file && line != 0 && col != 0);
 
   std::cerr << file->path << ':' << line << ':' << col << ':';
   switch (diagnostic.severity) {
-  case Severity::Error:
+  case Diagnostic::Severity::Error:
     std::cerr << " error: ";
     break;
-  case Severity::Warning:
+  case Diagnostic::Severity::Warning:
     std::cerr << " warning: ";
-    break;
-  case Severity::Note:
-    std::cerr << " note: ";
     break;
   }
   std::cerr << diagnostic.message << '\n';

@@ -5,7 +5,7 @@
 
 #define expectOrReturn(tok, msg)                                               \
   if (nextToken.kind != tok)                                                   \
-    return reporter->report(err::expected(nextToken.location, msg));
+    return err::expected(nextToken.location).with(msg).report(reporter);
 
 namespace yl {
 namespace {
@@ -253,7 +253,9 @@ std::unique_ptr<ast::ImplDecl> Parser::parseImplDecl() {
   bool hasBody = nextToken.kind == TokenKind::Lbrace;
 
   if (!hasBody && nextToken.kind != TokenKind::Semi)
-    return reporter->report(err::expected(nextToken.location, "';' or '{'"));
+    return err::expected(nextToken.location)
+        .with("';' or '{'")
+        .report(reporter);
 
   eatNextToken(); // eat ';' or '{'
 
@@ -309,8 +311,9 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
   TokenKind nextTokenKind = nextToken.kind;
   if (nextTokenKind != TokenKind::Colon && nextTokenKind != TokenKind::Semi &&
       nextTokenKind != TokenKind::Lbrace)
-    return reporter->report(
-        err::expected(nextToken.location, "':', ';' or '{'"));
+    return err::expected(nextToken.location)
+        .with("':', ';' or '{'")
+        .report(reporter);
 
   std::unique_ptr<ast::Type> type;
   if (nextTokenKind == TokenKind::Colon) {
@@ -329,7 +332,9 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
     expectOrReturn(TokenKind::Semi, "';' or '{'");
     eatNextToken(); // eat ';'
   } else {
-    return reporter->report(err::expected(nextToken.location, "function body"));
+    return err::expected(nextToken.location)
+        .with("function body")
+        .report(reporter);
   }
 
   return std::make_unique<ast::FunctionDecl>(
@@ -402,8 +407,9 @@ std::unique_ptr<ast::Block> Parser::parseBlock() {
       break;
 
     if (isTopLevelToken(nextToken.kind))
-      return reporter->report(
-          err::expected(nextToken.location, "'}' at the end of a block"));
+      return err::expected(nextToken.location)
+          .with("'}' at the end of a block")
+          .report(reporter);
 
     std::unique_ptr<ast::Stmt> stmt = parseStmt();
     if (!stmt) {
@@ -728,7 +734,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
         location, std::move(path), std::move(*fieldInitList));
   }
 
-  return reporter->report(err::expected(nextToken.location, "expression"));
+  return err::expected(nextToken.location).with("expression").report(reporter);
 }
 
 // <pathExpr>
@@ -766,8 +772,9 @@ std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
 
   if (nextToken.kind != TokenKind::Identifier &&
       nextToken.kind != TokenKind::KwSelf)
-    return reporter->report(
-        err::expected(nextToken.location, "identifier or 'Self'"));
+    return err::expected(nextToken.location)
+        .with("identifier or 'Self'")
+        .report(reporter);
 
   assert(nextToken.value && "identifier without value");
   std::string identifier = *nextToken.value;
@@ -908,7 +915,9 @@ std::unique_ptr<ast::Type> Parser::parseType() {
                                                std::move(referencedType));
   }
 
-  return reporter->report(err::expected(nextToken.location, "type specifier"));
+  return err::expected(nextToken.location)
+      .with("type specifier")
+      .report(reporter);
 };
 
 template <typename T> std::unique_ptr<T> Parser::parseIdentifierWithTypelist() {
@@ -969,7 +978,7 @@ std::pair<ast::Context, bool> Parser::parseSourceFile() {
         continue;
       }
     } else {
-      reporter->report(err::expectedTopLevel(nextToken.location));
+      err::expectedTopLevel(nextToken.location).report(reporter);
     }
 
     synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait});
@@ -985,7 +994,7 @@ std::pair<ast::Context, bool> Parser::parseSourceFile() {
     hasMainFunction |= decl->identifier == "main";
 
   if (!hasMainFunction && !incompleteAST)
-    reporter->report(err::mainNotFound(nextToken.location));
+    err::mainNotFound(nextToken.location).report(reporter);
 
   return {std::move(ctx), !incompleteAST && hasMainFunction};
 }
