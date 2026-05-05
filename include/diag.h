@@ -64,10 +64,13 @@ public:
 
     int argIdx = 0;
     for (const auto *it = format.begin(); it != format.end(); ++it) {
-      if (*it == '{')
+      if (*it == '{') {
         message << args[argIdx++];
-      else if (*it != '}')
-        message << *it;
+        ++it;
+        continue;
+      }
+
+      message << *it;
     }
 
     return reporter->report(Diagnostic{severity, location, message.str()});
@@ -85,7 +88,12 @@ namespace err {
 // clang-format off
 // parser
 diag(Error, expected, "expected {}");
+diag(Error, expected2, "expected {} or {}");
+diag(Error, expected3, "expected {}, {} or {}");
+diag(Error, expected4, "expected {}, {}, {} or {}");
 diag(Error, expectedTopLevel, "expected function, struct or trait declaration on the top level");
+diag(Error, expectedAtEnd, "expected {} at the end of {}");
+diag(Error, expectedBody, "expected {} body");
 
 diag(Error, unknownType, "the type of '{}' is unknown");
 diag(Error, inferenceError, "{}");

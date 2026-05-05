@@ -1,7 +1,7 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 
-// CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of a block
-// CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of a block
+// CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of block
+// CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of block
 
 fn foo(): unit {}
 // CHECK: FunctionDecl: foo

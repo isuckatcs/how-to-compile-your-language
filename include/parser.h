@@ -1,6 +1,7 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_PARSER_H
 
+#include <functional>
 #include <memory>
 #include <unordered_set>
 #include <utility>
@@ -92,13 +93,10 @@ class Parser {
   std::unique_ptr<ast::ImplSpecifier> parseImplSpecifier();
 
   // helper methods
-  template <typename T, typename F>
+  template <typename T>
   std::unique_ptr<std::vector<std::unique_ptr<T>>>
-  parseListWithTrailingComma(std::pair<TokenKind, const char *> openingToken,
-                             F parser,
-                             std::pair<TokenKind, const char *> closingToken,
-                             bool allowEmpty = true);
-
+  parseListWithTrailingComma(std::function<std::unique_ptr<T>(Parser &)> parser,
+                             TokenKind closingToken);
   std::unique_ptr<std::vector<std::unique_ptr<ast::TraitInstance>>>
   parseTraitList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::TypeParamDecl>>>

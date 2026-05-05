@@ -6,6 +6,6 @@ struct S : A {}
 fn foo(x: T : A) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:12: error: expected ';' after declaration
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected ';' at the end of declaration
   let s: T : A = 0;
 }

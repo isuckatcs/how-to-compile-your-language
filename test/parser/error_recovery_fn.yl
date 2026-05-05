@@ -17,7 +17,7 @@ fn error3(): unit {
     let y: number =
 
 // CHECK: [[# @LINE + 2 ]]:1: error: expected expression
-// CHECK: [[# @LINE + 1 ]]:1: error: expected '}' at the end of a block
+// CHECK: [[# @LINE + 1 ]]:1: error: expected '}' at the end of block
 fn pass(): number {
     let y: number = 1.0 + 2.0;
 }
