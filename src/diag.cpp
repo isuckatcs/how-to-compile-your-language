@@ -7,7 +7,7 @@
 namespace yl {
 
 namespace diag {
-void PrintingDiagnosticConsumer::consume(Diagnostic diagnostic) {
+void DiagnosticConsumer::consume(Diagnostic diagnostic) {
   const auto &[file, line, col] = diagnostic.location;
   assert(file && line != 0 && col != 0);
 

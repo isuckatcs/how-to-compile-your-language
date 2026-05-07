@@ -98,7 +98,7 @@ int main(int argc, const char **argv) {
   buffer << file.rdbuf();
   SourceFile sourceFile{options.source.c_str(), buffer.str()};
 
-  diag::PrintingDiagnosticConsumer consumer;
+  diag::DiagnosticConsumer consumer;
   diag::DiagnosticReporter reporter(consumer);
 
   Lexer lexer(sourceFile);

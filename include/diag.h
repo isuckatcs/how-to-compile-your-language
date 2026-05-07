@@ -17,12 +17,7 @@ struct Diagnostic {
 };
 
 struct DiagnosticConsumer {
-  virtual ~DiagnosticConsumer() = default;
-  virtual void consume(Diagnostic diagnostic) = 0;
-};
-
-struct PrintingDiagnosticConsumer : public DiagnosticConsumer {
-  void consume(Diagnostic diagnostic) override;
+  void consume(Diagnostic diagnostic);
 };
 
 class DiagnosticReporter {
