@@ -32,7 +32,7 @@
     ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
 
 <fieldDecl>
-    ::= <identifier> ':' <type>
+    ::= <identifier> <typeAnnotation>
 
 <implDecl> 
     ::= <implSpecifier> (';' | ('{' <functionDecl>* '}'))
@@ -44,16 +44,16 @@
     ::= 'fn' <functionSignature> <block>
 
 <functionSignature>
-    ::= <identifier> <typeParamList>? <parameterList> ':' <type>?
+    ::= <identifier> <typeParamList>? <parameterList> <typeAnnotation>?
 
 <parameterList>
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= 'mut'? <identifier> ':' <type>
+    ::= 'mut'? <identifier> <typeAnnotation>
 
 <varDecl>
-    ::= <identifier> (':' <type>)? ('=' <expr>)?
+    ::= <identifier> <typeAnnotation>? ('=' <expr>)?
 
 <block>
     ::= '{' <statement>* '}'
@@ -118,8 +118,18 @@
     ::= 'unit'
     |   <numberLiteral>
     |   <boolLiteral>
+    |   <lambda>
     |   <pathExpr> <fieldInitList>?
     |   '(' <expr> ')'
+
+<lambda>
+    ::= '->' '(' (<lambdaParamDecl> (',' <lambdaParamDecl>)* ','?)? ')' <typeAnnotation>? <block>
+
+<lambdaParamDecl>
+    ::= 'mut'? <identifier> <typeAnnotation>?
+
+<typeAnnotation>
+    ::= ':' <type>
 
 <pathExpr>
     ::= <declRefExpr> ('::' (<implSpecifier> '::')? <declRefExpr>)*
