@@ -410,11 +410,17 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  expectOrReturn(TokenKind::Colon,
-                 err::expected(nextToken.location).with("':'"));
-  eatNextToken(); // eat :
+  std::unique_ptr<ast::Type> type;
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat :
 
-  varOrReturn(type, parseType());
+    type = parseType();
+    if (!type)
+      return nullptr;
+  }
+
+  if (!type && !(restrictions & ParamWithoutTypeAllowed))
+    err::expected(nextToken.location).with("':'").report(reporter);
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
                                           std::move(type), isMut);
@@ -792,6 +798,9 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     return literal;
   }
 
+  if (nextToken.kind == TokenKind::Arrow)
+    return parseLambdaExpr();
+
   if (nextToken.kind == TokenKind::Identifier ||
       nextToken.kind == TokenKind::KwSelf) {
     varOrReturn(path, parsePathExpr());
@@ -877,6 +886,48 @@ std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
 
   return std::make_unique<ast::DeclRefExpr>(location, std::move(identifier),
                                             std::move(typeArgsList));
+}
+
+std::unique_ptr<ast::LambdaExpr> Parser::parseLambdaExpr() {
+  SourceLocation location = nextToken.location;
+  expectOrReturn(TokenKind::Arrow,
+                 err::expected(nextToken.location).with("'->'"));
+  eatNextToken(); // eat '->'
+
+  expectOrReturn(TokenKind::Lpar,
+                 err::expected(nextToken.location).with("'('"));
+  eatNextToken(); // eat '('
+
+  auto parameterList = std::vector<std::unique_ptr<ast::ParamDecl>>();
+  while (nextToken.kind != TokenKind::Rpar) {
+    varOrReturn(param, withRestrictions(ParamWithoutTypeAllowed,
+                                        &Parser::parseParamDecl));
+    parameterList.emplace_back(std::move(param));
+
+    if (nextToken.kind != TokenKind::Comma)
+      break;
+    eatNextToken(); // eat ','
+  }
+
+  expectOrReturn(TokenKind::Rpar,
+                 err::expected(nextToken.location).with("')'"));
+  eatNextToken(); // eat ')'
+
+  std::unique_ptr<ast::Type> type;
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat :
+
+    type = parseType();
+    if (!type)
+      return nullptr;
+  }
+
+  expectOrReturn(TokenKind::Lbrace,
+                 err::expected(nextToken.location).with("'{'"));
+  varOrReturn(block, parseBlock());
+
+  return std::make_unique<ast::LambdaExpr>(location, std::move(parameterList),
+                                           std::move(type), std::move(block));
 }
 
 std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {

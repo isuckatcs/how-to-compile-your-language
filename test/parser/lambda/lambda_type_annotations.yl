@@ -1,0 +1,18 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  ->(x: number, y: S<number>): number { return s + x; };
+  // CHECK: LambdaExpr:
+  // CHECK-NEXT:   BuiltinType: number
+  // CHECK-NEXT:   ParamDecl: x
+  // CHECK-NEXT:     BuiltinType: number
+  // CHECK-NEXT:   ParamDecl: y
+  // CHECK-NEXT:     UserDefinedType: S
+  // CHECK-NEXT:       BuiltinType: number
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     ReturnStmt
+  // CHECK-NEXT:       BinaryOperator: '+'
+  // CHECK-NEXT:         PathExpr:
+  // CHECK-NEXT:           DeclRefExpr: s
+  // CHECK-NEXT:         PathExpr:
+  // CHECK-NEXT:           DeclRefExpr: x
+}

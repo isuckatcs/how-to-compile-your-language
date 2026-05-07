@@ -207,7 +207,8 @@ void TraitDecl::dump(size_t level) const {
 void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl: " << identifier << '\n';
 
-  type->dump(level + 1);
+  if (type)
+    type->dump(level + 1);
 }
 
 void VarDecl::dump(size_t level) const {
@@ -252,6 +253,17 @@ void Assignment::dump(size_t level) const {
   std::cerr << indent(level) << "Assignment:\n";
   assignee->dump(level + 1);
   expr->dump(level + 1);
+}
+
+void LambdaExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "LambdaExpr:\n";
+  if (returnType)
+    returnType->dump(level + 1);
+
+  for (auto &&param : params)
+    param->dump(level + 1);
+
+  body->dump(level + 1);
 }
 } // namespace ast
 } // namespace yl

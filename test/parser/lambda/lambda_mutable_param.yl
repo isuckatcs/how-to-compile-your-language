@@ -1,0 +1,9 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  ->(mut x, mut y: number) {};
+  // CHECK: LambdaExpr:
+  // CHECK-NEXT:   ParamDecl: x
+  // CHECK-NEXT:   ParamDecl: y
+  // CHECK-NEXT:     BuiltinType: number
+  // CHECK-NEXT:   Block
+}

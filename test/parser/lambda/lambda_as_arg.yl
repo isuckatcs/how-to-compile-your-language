@@ -1,0 +1,11 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  foo(->(){ return 0; });
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   PathExpr:
+  // CHECK-NEXT:     DeclRefExpr: foo
+  // CHECK-NEXT:   LambdaExpr:
+  // CHECK-NEXT:     Block
+  // CHECK-NEXT:       ReturnStmt
+  // CHECK-NEXT:         NumberLiteral: '0
+}

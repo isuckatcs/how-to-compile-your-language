@@ -24,7 +24,8 @@ class Parser {
 
   enum RestrictionKind : RestrictionType {
     StructNotAllowed = (1 << 0),
-    FunctionWithoutBodyAllowed = (1 << 1)
+    FunctionWithoutBodyAllowed = (1 << 1),
+    ParamWithoutTypeAllowed = (1 << 2)
   };
 
   template <typename T>
@@ -83,6 +84,7 @@ class Parser {
   std::unique_ptr<ast::Expr> parsePrimary();
   std::unique_ptr<ast::PathExpr> parsePathExpr();
   std::unique_ptr<ast::DeclRefExpr> parseDeclRefExpr();
+  std::unique_ptr<ast::LambdaExpr> parseLambdaExpr();
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
 
   std::unique_ptr<ast::Type> parseType();

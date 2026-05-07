@@ -485,6 +485,23 @@ struct Assignment : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
+struct LambdaExpr : public Expr {
+  std::vector<std::unique_ptr<ParamDecl>> params;
+  std::unique_ptr<Type> returnType;
+  std::unique_ptr<Block> body;
+
+  LambdaExpr(SourceLocation location,
+             std::vector<std::unique_ptr<ParamDecl>> params,
+             std::unique_ptr<Type> returnType,
+             std::unique_ptr<Block> body)
+      : Expr(location),
+        params(std::move(params)),
+        returnType(std::move(returnType)),
+        body(std::move(body)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct Context {
   std::vector<std::unique_ptr<ast::Decl>> decls;
 
