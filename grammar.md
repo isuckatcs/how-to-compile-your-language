@@ -123,7 +123,10 @@
     |   '(' <expr> ')'
 
 <lambda>
-    ::= '->' '(' (<lambdaParamDecl> (',' <lambdaParamDecl>)* ','?)? ')' <typeAnnotation>? <block>
+    ::= '->' <lambdaParamList>? <block>
+
+<lambdaParamList>
+    ::= '(' (<lambdaParamDecl> (',' <lambdaParamDecl>)* ','?)? ')' <typeAnnotation>?
 
 <lambdaParamDecl>
     ::= 'mut'? <identifier> <typeAnnotation>?
