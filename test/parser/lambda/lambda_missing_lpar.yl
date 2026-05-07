@@ -1,5 +1,8 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:5: error: expected '('
   ->x) {};
+  // CHECK: [[# @LINE - 1 ]]:5: error: expected '(' or '{'
+  // CHECK: [[# @LINE - 2 ]]:10: error: expected expression
 }
+
+// CHECK-NOT: {{.*error.*}}

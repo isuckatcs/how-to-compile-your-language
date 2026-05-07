@@ -894,32 +894,38 @@ std::unique_ptr<ast::LambdaExpr> Parser::parseLambdaExpr() {
                  err::expected(nextToken.location).with("'->'"));
   eatNextToken(); // eat '->'
 
-  expectOrReturn(TokenKind::Lpar,
-                 err::expected(nextToken.location).with("'('"));
-  eatNextToken(); // eat '('
-
   auto parameterList = std::vector<std::unique_ptr<ast::ParamDecl>>();
-  while (nextToken.kind != TokenKind::Rpar) {
-    varOrReturn(param, withRestrictions(ParamWithoutTypeAllowed,
-                                        &Parser::parseParamDecl));
-    parameterList.emplace_back(std::move(param));
-
-    if (nextToken.kind != TokenKind::Comma)
-      break;
-    eatNextToken(); // eat ','
-  }
-
-  expectOrReturn(TokenKind::Rpar,
-                 err::expected(nextToken.location).with("')'"));
-  eatNextToken(); // eat ')'
-
   std::unique_ptr<ast::Type> type;
-  if (nextToken.kind == TokenKind::Colon) {
-    eatNextToken(); // eat :
 
-    type = parseType();
-    if (!type)
-      return nullptr;
+  if (nextToken.kind == TokenKind::Lpar) {
+    eatNextToken(); // eat '('
+
+    while (nextToken.kind != TokenKind::Rpar) {
+      varOrReturn(param, withRestrictions(ParamWithoutTypeAllowed,
+                                          &Parser::parseParamDecl));
+      parameterList.emplace_back(std::move(param));
+
+      if (nextToken.kind != TokenKind::Comma)
+        break;
+      eatNextToken(); // eat ','
+    }
+
+    expectOrReturn(TokenKind::Rpar,
+                   err::expected(nextToken.location).with("')'"));
+    eatNextToken(); // eat ')'
+
+    if (nextToken.kind == TokenKind::Colon) {
+      eatNextToken(); // eat :
+
+      type = parseType();
+      if (!type)
+        return nullptr;
+    }
+  } else if (nextToken.kind != TokenKind::Lbrace) {
+    return err::expected2(nextToken.location)
+        .with("'('")
+        .with("'{'")
+        .report(reporter);
   }
 
   expectOrReturn(TokenKind::Lbrace,
