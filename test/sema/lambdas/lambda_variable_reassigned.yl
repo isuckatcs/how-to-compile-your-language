@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  mut f = ->(){};
+
+  f = f;
+  // CHECK: Assignment
+  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+}

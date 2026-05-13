@@ -1,0 +1,8 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  mut f = ->(){};
+
+  f = ->(){};
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot unify '(lambda@<source>:3:11)' with '(lambda@<source>:5:7)'
+  // CHECK: [[# @LINE - 2 ]]:7: error: expected to assign '(lambda@<source>:3:11)' but received '(lambda@<source>:5:7)' instead
+}
