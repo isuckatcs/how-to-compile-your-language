@@ -175,8 +175,6 @@ public:
 
   bool moreGeneral(Type *t1, Type *t2);
 
-  // Check if t2 can be substituted with t1... t2 is the type whose traits are
-  // checked...
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
 };
