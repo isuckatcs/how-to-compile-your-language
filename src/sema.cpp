@@ -172,10 +172,10 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
   }
 
   for (auto &&[d, s] : curLattices[cfg.exit + 1])
-    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>())
-      return !err::unknownType(d->location)
-                  .with(d->identifier)
-                  .report(reporter);
+    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>()) {
+      err::unknownType(d->location).with(d->identifier).report(reporter);
+      return true;
+    }
 
   for (auto &&err : pendingErrors)
     err.report(reporter);
