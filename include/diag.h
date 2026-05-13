@@ -173,6 +173,9 @@ diag(Error, mainNotFound, "'main' function not found");
 
 // builtins
 diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be used for user-defined functions");
+
+// lambdas
+diag(Error, outParamCapture, "capturing '&' parameter '{}' in lambda is not allowed");
 // clang-format on
 }; // namespace err
 

@@ -1,0 +1,18 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let f = ->(x) { x; };
+  // CHECK: VarDecl @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   LambdaExpr {(lambda@<source>:3:11)}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:3:11) {(lambda@<source>:3:11)}
+  // CHECK-NEXT:       FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:3:11), number) -> unit}
+
+  f(0);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {((lambda@<source>:3:11), number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) (lambda@<source>:3:11) {(lambda@<source>:3:11)}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) __builtin_lambda_call {((lambda@<source>:3:11), number) -> unit}
+  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   NumberLiteral '0' {number}
+  // CHECK-NEXT:   | value: 0
+}

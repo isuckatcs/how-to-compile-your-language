@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let x = 0;
+
+  ->() { x = 1; };
+    // CHECK: LambdaExpr {(lambda@<source>:5:3)}
+    // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
+    // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:5:3)) -> unit}
+    // CHECK-NEXT:       ParamDecl @({{.*}}) self {(lambda@<source>:5:3)}
+    // CHECK-NEXT:       Block
+    // CHECK-NEXT:         Assignment
+    // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
+    // CHECK-NEXT:             PathExpr {(lambda@<source>:5:3)}
+    // CHECK-NEXT:               DeclRefExpr @({{.*}}) self {(lambda@<source>:5:3)}
+    // CHECK-NEXT:           NumberLiteral '1' {number}
+    // CHECK-NEXT:           | value: 1
+    // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
+    // CHECK-NEXT:   PathExpr {number}
+    // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+}

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 #include <map>
 #include <set>
 #include <stack>
@@ -172,7 +173,9 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
 
   for (auto &&[d, s] : curLattices[cfg.exit + 1])
     if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>())
-      err::unknownType(d->location).with(d->identifier).report(reporter);
+      return !err::unknownType(d->location)
+                  .with(d->identifier)
+                  .report(reporter);
 
   for (auto &&err : pendingErrors)
     err.report(reporter);
@@ -254,17 +257,19 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
           dynamic_cast<const ast::FunctionType *>(&parsedType)) {
     std::vector<res::Type *> args;
     for (auto &&astArg : function->args) {
-      ResolutionContextRAII paramCtx(this, ParamList);
-      varOrReturn(argTy, resolveType(ctx, *astArg));
-      args.emplace_back(argTy);
+      WithModifiersRAII ampAllowed(this, UnaryAmpAllowed);
+      args.emplace_back(resolveType(ctx, *astArg));
     }
 
-    varOrReturn(retTy, resolveType(ctx, *function->ret));
+    auto *retTy = resolveType(ctx, *function->ret);
+    if (args.size() != function->args.size() || !retTy)
+      return nullptr;
+
     return typeMgr.getFunctionType(std::move(args), retTy);
   }
 
   if (const auto *out = dynamic_cast<const ast::OutParamType *>(&parsedType)) {
-    if (!(resolutionContext & ParamList))
+    if (!(modifiers & UnaryAmpAllowed))
       return err::unexpectedAmpParam(out->location).report(reporter);
 
     varOrReturn(paramType, resolveType(ctx, *out->paramType));
@@ -294,7 +299,7 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
         .report(reporter);
 
   if (unary.op == TokenKind::Amp) {
-    if (!(resolutionContext & ArgList))
+    if (!(modifiers & UnaryAmpAllowed))
       return err::ampOutsideArgList(unary.location).report(reporter);
 
     if (!rhs->isMutable())
@@ -409,15 +414,16 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   }
 
   if (!parent && dre->identifier == selfTypeId) {
-    auto *structTy = selfType ? selfType->getAs<res::StructType>() : nullptr;
-    if (structTy)
-      return createDeclRefExpr(ctx, dre, nullptr, structTy->getDecl(), nullptr);
+    if (!selfType)
+      return err::selfTyNotAllowed(dre->location).report(reporter);
 
-    auto *paramTy = selfType ? selfType->getAs<res::TypeParamType>() : nullptr;
-    if (paramTy)
+    if (auto *paramTy = selfType->getAs<res::TypeParamType>())
       return createDeclRefExpr(ctx, dre, nullptr, paramTy->decl, nullptr);
 
-    return err::selfTyNotAllowed(dre->location).report(reporter);
+    if (auto *structTy = selfType->getAs<res::StructType>())
+      return createDeclRefExpr(ctx, dre, nullptr, structTy->getDecl(), nullptr);
+
+    llvm_unreachable("unexpected self type");
   }
 
   if (!parent) {
@@ -430,11 +436,13 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   }
 
   auto *structTy = parent->getAs<res::StructType>();
-  if (structTy)
+  bool isLambda = structTy && structTy->getDecl()->isLambda;
+
+  if (structTy && !isLambda)
     if (auto *decl = lookupSymbolWithFallback<Hint>(structTy->getDecl(), dre))
       return createDeclRefExpr(ctx, dre, parent, decl, nullptr);
 
-  if (!structTy && !parent->getAs<res::TypeParamType>())
+  if (isLambda || !structTy && !parent->getAs<res::TypeParamType>())
     return err::cannotAccessMember(dre->location)
         .with(parent->getName())
         .report(reporter);
@@ -546,7 +554,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   res::Expr *selfArg = nullptr;
 
   {
-    ResolutionContextRAII callCtx(this, Call);
+    WithModifiersRAII isCallee(this, IsCallee);
     callee = resolveExpr(ctx, *call.callee);
     if (!callee)
       return nullptr;
@@ -554,10 +562,25 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
   res::Type *calleeType = callee->getType();
   auto *fnType = calleeType->getAs<res::FunctionType>();
-  if (!fnType)
+
+  auto *lambdaTy = calleeType->getAs<res::StructType>();
+  bool isLambda = lambdaTy && lambdaTy->getDecl()->isLambda;
+
+  if (!fnType && !isLambda)
     return err::invalidCallTy(call.location)
         .with(calleeType->getName())
         .report(reporter);
+
+  if (isLambda) {
+    auto *fn =
+        lambdaTy->getDecl()->lookupDecl<res::FunctionDecl>(lambdaFunctionId);
+    fnType = fn->getType()->getAs<res::FunctionType>();
+
+    auto *fnDre = ctx.create<res::DeclRefExpr>(
+        callee->location, fnType, *fn, res::Expr::Kind::Rvalue,
+        std::vector<res::Type *>{}, lambdaTy);
+    callee = ctx.create<res::MemberExpr>(callee->location, callee, fnDre);
+  }
 
   if (auto *me = dynamic_cast<res::MemberExpr *>(callee)) {
     res::Expr *base = me->base;
@@ -614,7 +637,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
         .report(reporter);
 
   for (auto &&arg : call.arguments) {
-    ResolutionContextRAII argCtx(this, ArgList);
+    WithModifiersRAII unaryAmpAllowed(this, UnaryAmpAllowed);
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
@@ -722,11 +745,135 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
                              ctx, base->getType(), memberExpr.member.get()));
 
-  if (memberDre->decl->getAs<res::FunctionDecl>() &&
-      !(resolutionContext & Call))
+  if (memberDre->decl->getAs<res::FunctionDecl>() && !(modifiers & IsCallee))
     return err::expectedMethodCall(memberExpr.location).report(reporter);
 
   return ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre);
+}
+
+res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
+                                         const ast::LambdaExpr &lambdaExpr) {
+  SourceLocation loc = lambdaExpr.location;
+
+  std::stringstream structId;
+  structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
+
+  res::Type *lambdaTy = typeMgr.getNewUninferredType();
+  auto *lambda = ctx.create<res::StructDecl>(
+      loc, lambdaTy, structId.str(), std::vector<res::TypeParamDecl *>{}, true);
+  typeMgr.unify(lambdaTy, typeMgr.getStructType(*lambda, {}));
+
+  bool error = false;
+  std::vector<res::Type *> paramTypes = {lambdaTy};
+  std::vector<res::ParamDecl *> resolvedParams = {
+      ctx.create<res::ParamDecl>(loc, lambdaTy, selfParamId, true)};
+
+  {
+    WithModifiersRAII lambdaParamList(this, UnaryAmpAllowed |
+                                                MissingTypeAnnotationsAllowed);
+    EnterScopeRAII paramScope(this);
+    for (auto &&param : lambdaExpr.params) {
+
+      auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
+
+      paramTypes.emplace_back(resolvedParam->getType());
+      resolvedParams.emplace_back(resolvedParam);
+
+      error |= !insertDeclToScope(resolvedParam, lexicalScope);
+
+      if (param->identifier == selfParamId) {
+        err::selfParamNotAllowed(param->location).report(reporter);
+        error = true;
+      }
+    }
+  }
+
+  res::Type *returnTy = lambdaExpr.returnType
+                            ? resolveType(ctx, *lambdaExpr.returnType)
+                            : typeMgr.getNewUninferredType();
+
+  if (!returnTy || error)
+    return nullptr;
+
+  auto *fnTy = typeMgr.getFunctionType(std::move(paramTypes), returnTy);
+  auto *fn = ctx.create<res::FunctionDecl>(loc, fnTy, lambdaFunctionId,
+                                           std::vector<res::TypeParamDecl *>{},
+                                           std::move(resolvedParams), lambda);
+  lambda->insertDecl(fn);
+
+  auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, lambdaTy, lambda, fn,
+                                                    std::vector<res::Expr *>{});
+  functionInfo->pendingLambdas.push_back(
+      {resLambdaExpr, &lambdaExpr, *lexicalScope});
+  return resLambdaExpr;
+}
+
+res::Expr *Sema::coerceIfLambda(res::Expr *expr) {
+  res::StructType *structTy = expr->getType()->getAs<res::StructType>();
+  if (!structTy)
+    return expr;
+
+  res::StructDecl *decl = structTy->getDecl();
+  if (!decl->isLambda)
+    return expr;
+
+  auto *fn = decl->lookupDecl<res::FunctionDecl>(lambdaFunctionId);
+  assert(fn && "lambda without method!?");
+
+  auto *fnTy = fn->getType()->getAs<res::FunctionType>();
+
+  std::vector<res::Type *> coercedArgs = fnTy->getArgs();
+  coercedArgs.erase(coercedArgs.begin());
+
+  auto *coercedFnTy =
+      typeMgr.getFunctionType(coercedArgs, fnTy->getReturnType());
+  return ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedFnTy, expr);
+}
+
+bool Sema::resolvePendingLambdaBodies() {
+  bool error = false;
+
+  for (auto &&[res, ast, captureScope] : functionInfo->pendingLambdas) {
+    res::FunctionDecl *fn = res->method;
+    auto *fnTy = fn->getType()->getAs<res::FunctionType>();
+
+    lexicalScope = &captureScope;
+
+    EnterScopeRAII paramScope(this);
+    for (auto &&param : fn->params)
+      insertDeclToScope(param, lexicalScope);
+
+    std::vector<const ast::Expr *> pendingCaptureInits;
+    {
+      WithFunctionInfoRAII lambdaInfo(this, {fn, res, lexicalScope, {}});
+
+      if (res::Block *block = resolveBlock(ctx, *ast->body)) {
+        fn->setBody(block);
+
+        res::Type *retTy = fnTy->getReturnType();
+        if (retTy->getAs<res::UninferredType>())
+          typeMgr.unify(retTy, typeMgr.getBuiltinUnitType());
+
+        error |= runFlowSensitiveChecks(ctx, *fn);
+      }
+
+      error |= !fn->isComplete;
+      pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
+    }
+
+    for (auto &&pendingInit : pendingCaptureInits)
+      res->fieldInits.emplace_back(resolveExpr(ctx, *pendingInit));
+
+    for (auto &&param : fn->params)
+      if (param->getType()->getAs<res::UninferredType>()) {
+        err::annotationsNeeded(param->location)
+            .with(param->identifier)
+            .report(reporter);
+        error = true;
+      }
+  }
+
+  return !error;
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -818,9 +965,9 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
 res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
                                          const ast::ReturnStmt &returnStmt) {
-  assert(currentFunction && "return stmt outside a function");
+  assert(functionInfo && "return stmt outside a function");
 
-  auto *fnTy = currentFunction->getType()->getAs<res::FunctionType>();
+  auto *fnTy = functionInfo->function->getType()->getAs<res::FunctionType>();
   auto *retTy = fnTy->getReturnType();
   if (!retTy->getAs<res::BuiltinUnitType>() && !returnStmt.expr)
     return err::noReturnValue(returnStmt.location).report(reporter);
@@ -877,6 +1024,12 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
           dynamic_cast<const ast::StructInstantiationExpr *>(&expr))
     return resolveStructInstantiation(ctx, *structInstantiation);
 
+  if (const auto *memberExpr = dynamic_cast<const ast::MemberExpr *>(&expr))
+    return resolveMemberExpr(ctx, *memberExpr);
+
+  if (const auto *lambda = dynamic_cast<const ast::LambdaExpr *>(&expr))
+    return resolveLambdaExpr(ctx, *lambda);
+
   if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
     varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
 
@@ -898,15 +1051,50 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
           .report(reporter);
 
     auto *outType = resPath->getType()->getAs<res::OutParamType>();
+
+    if (functionInfo && functionInfo->lambda) {
+      res::Decl *insideDecl =
+          lexicalScope->lookupDecl<res::Decl>(decl->identifier);
+      res::Decl *outsideDecl =
+          functionInfo->lambdaParamScope->parent->lookupDecl<res::Decl>(
+              decl->identifier);
+
+      if (outsideDecl == insideDecl) {
+        if (outType)
+          return err::outParamCapture(resPath->location)
+              .with(decl->identifier)
+              .report(reporter);
+
+        auto *lambda = functionInfo->lambda;
+
+        auto *field =
+            lambda->lambda->lookupDecl<res::FieldDecl>(decl->identifier);
+        if (!field) {
+          field = ctx.create<res::FieldDecl>(
+              lambda->location, resPath->getType(), decl->identifier);
+          lambda->lambda->insertDecl(field);
+          functionInfo->pendingCaptureInits.emplace_back(&expr);
+        }
+
+        auto *selfDre = ctx.create<res::PathExpr>(
+            std::vector<res::DeclRefExpr *>{ctx.create<res::DeclRefExpr>(
+                lambda->location, lambda->method->params[0]->getType(),
+                *lambda->method->params[0], res::Expr::Kind::Lvalue)});
+
+        auto *fieldDre =
+            ctx.create<res::DeclRefExpr>(lambda->location, field->getType(),
+                                         *field, res::Expr::Kind::Lvalue);
+
+        return ctx.create<res::MemberExpr>(lambda->location, selfDre, fieldDre);
+      }
+    }
+
     if (outType)
       return ctx.create<res::ImplicitDerefExpr>(
           resPath->location, outType->getParamType(), resPath);
 
     return resPath;
   }
-
-  if (const auto *memberExpr = dynamic_cast<const ast::MemberExpr *>(&expr))
-    return resolveMemberExpr(ctx, *memberExpr);
 
   llvm_unreachable("unexpected expression");
 }
@@ -917,7 +1105,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   bool error = false;
   int reportUnreachableCount = 0;
 
-  ScopeRAII blockScope(this);
+  EnterScopeRAII blockScope(this);
   for (auto &&stmt : block.statements) {
     auto *resolvedStmt = resolveStmt(ctx, *stmt);
 
@@ -934,7 +1122,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
       ++reportUnreachableCount;
   }
 
-  if (error)
+  if (!resolvePendingLambdaBodies() || error)
     return nullptr;
 
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
@@ -1154,7 +1342,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
                                              const ast::FunctionDecl &decl,
                                              res::Decl *parent,
                                              res::FunctionDecl *implements) {
-  ScopeRAII typeParamScope(this);
+  EnterScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
   bool error =
@@ -1186,23 +1374,12 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
-  ScopeRAII paramScope(this);
+  EnterScopeRAII paramScope(this);
   for (auto &&param : decl.params) {
-    ResolutionContextRAII paramCtx(this, ParamList);
+    auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
 
-    auto *type = paramTypes.emplace_back(resolveType(ctx, *param->type));
-    error |= !type;
-
-    bool isOutputType = type && type->getAs<res::OutParamType>();
-    if (isOutputType && param->isMutable) {
-      err::mutableAmp(param->location).report(reporter);
-      error = true;
-    }
-
-    auto *paramTy = type ? type : typeMgr.getNewUninferredType();
-    auto *resolvedParam = resolvedParams.emplace_back(
-        ctx.create<res::ParamDecl>(param->location, paramTy, param->identifier,
-                                   param->isMutable || isOutputType));
+    paramTypes.emplace_back(resolvedParam->getType());
+    resolvedParams.emplace_back(resolvedParam);
 
     error |= !insertDeclToScope(resolvedParam, lexicalScope);
     error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
@@ -1229,31 +1406,58 @@ Sema::resolveFunctionBody(res::Context &ctx,
   if (!functionDecl.body)
     return function;
 
-  currentFunction = function;
+  WithFunctionInfoRAII currentFnInfo(this, {function, nullptr, nullptr, {}});
 
-  ScopeRAII typeParamScope(this);
-  for (auto &&typeParam : currentFunction->typeParams)
+  EnterScopeRAII typeParamScope(this);
+  for (auto &&typeParam : function->typeParams)
     insertDeclToScope(typeParam, lexicalScope);
 
-  ScopeRAII paramScope(this);
-  for (auto &&param : currentFunction->params)
+  EnterScopeRAII paramScope(this);
+  for (auto &&param : function->params)
     insertDeclToScope(param, lexicalScope);
 
   auto *body = resolveBlock(ctx, *functionDecl.body);
   if (!body) {
-    currentFunction->setBody(ctx.create<res::Block>(
-        functionDecl.location, std::vector<res::Stmt *>{}));
+    function->setBody(ctx.create<res::Block>(functionDecl.location,
+                                             std::vector<res::Stmt *>{}));
     return nullptr;
   }
 
-  currentFunction->setBody(body);
-  if (runFlowSensitiveChecks(ctx, *currentFunction)) {
-    currentFunction = nullptr;
+  function->setBody(body);
+  if (runFlowSensitiveChecks(ctx, *function))
     return nullptr;
-  }
 
-  currentFunction = nullptr;
   return function;
+}
+
+std::pair<res::ParamDecl *, bool>
+Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
+  assert((param->type || modifiers & MissingTypeAnnotationsAllowed) &&
+         "param without type annotations outside lambda");
+
+  WithModifiersRAII ampAllowed(this, UnaryAmpAllowed);
+
+  res::Type *paramTy = nullptr;
+  bool error = false;
+
+  if (param->type) {
+    paramTy = resolveType(ctx, *param->type);
+    error |= !paramTy;
+  }
+
+  if (!paramTy)
+    paramTy = typeMgr.getNewUninferredType();
+
+  bool isOutputType = paramTy->getAs<res::OutParamType>();
+  if (isOutputType && param->isMutable) {
+    err::mutableAmp(param->location).report(reporter);
+    error = true;
+  }
+
+  return std::make_pair(
+      ctx.create<res::ParamDecl>(param->location, paramTy, param->identifier,
+                                 param->isMutable || isOutputType),
+      error);
 }
 
 res::TraitInstance *
@@ -1306,7 +1510,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
 bool Sema::resolveTraitBody(res::Context &ctx,
                             res::TraitDecl &traitDecl,
                             const ast::TraitDecl &astDecl) {
-  ScopeRAII typeParamScope(this);
+  EnterScopeRAII typeParamScope(this);
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
@@ -1329,7 +1533,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
                                       res::TraitDecl &traitDecl,
                                       const ast::TraitDecl &astDecl) {
-  ScopeRAII typeParamScope(this);
+  EnterScopeRAII typeParamScope(this);
   for (auto &&typeParamDecl : traitDecl.typeParams)
     insertDeclToScope(typeParamDecl, lexicalScope);
 
@@ -1363,7 +1567,7 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
 bool Sema::resolveStructBody(res::Context &ctx,
                              res::StructDecl &structDecl,
                              const ast::StructDecl &astDecl) {
-  ScopeRAII typeParamScope(this);
+  EnterScopeRAII typeParamScope(this);
   bool error = !resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
                                                    astDecl.typeParameters);
 
@@ -1457,7 +1661,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
 bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
                                        res::StructDecl &decl,
                                        const ast::StructDecl &astDecl) {
-  ScopeRAII typeParamScope(this);
+  EnterScopeRAII typeParamScope(this);
   for (auto &&typeParamDecl : decl.typeParams)
     insertDeclToScope(typeParamDecl, lexicalScope);
 
@@ -1492,7 +1696,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
 }
 
 res::Context *Sema::resolveAST() {
-  ScopeRAII globalScope(this);
+  EnterScopeRAII globalScope(this);
   bool error = false;
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;

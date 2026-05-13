@@ -280,12 +280,16 @@ struct ImplDecl : public Decl, public DeclContext {
 };
 
 struct StructDecl : public TypeDecl, public DeclContext {
+  bool isLambda;
+
   StructDecl(SourceLocation location,
              Type *type,
              std::string identifier,
-             std::vector<TypeParamDecl *> typeParams)
+             std::vector<TypeParamDecl *> typeParams,
+             bool isLambda = false)
       : TypeDecl(location, type, std::move(identifier), std::move(typeParams)),
-        DeclContext(nullptr) {}
+        DeclContext(nullptr),
+        isLambda(isLambda) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -520,6 +524,34 @@ struct ImplicitDerefExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct LambdaExpr : public Expr {
+  res::StructDecl *lambda;
+  std::vector<res::Expr *> fieldInits;
+  res::FunctionDecl *method;
+
+  LambdaExpr(SourceLocation location,
+             Type *type,
+             res::StructDecl *lambda,
+             res::FunctionDecl *method,
+             std::vector<res::Expr *> fieldInits)
+      : Expr(location, type, Expr::Kind::Rvalue),
+        lambda(lambda),
+        method(method),
+        fieldInits(std::move(fieldInits)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct ImplicitCoerceExpr : public Expr {
+  res::Expr *expr;
+
+  ImplicitCoerceExpr(SourceLocation location, Type *type, res::Expr *expr)
+      : Expr(location, type, expr->kind),
+        expr(expr) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
@@ -549,9 +581,10 @@ public:
 
     if constexpr (std::is_base_of_v<TraitDecl, T>)
       traits.emplace_back(raw);
-    else if constexpr (std::is_base_of_v<StructDecl, T>)
-      structs.emplace_back(raw);
-    else if constexpr (std::is_base_of_v<FunctionDecl, T>)
+    else if constexpr (std::is_base_of_v<StructDecl, T>) {
+      if (!raw->isLambda)
+        structs.emplace_back(raw);
+    } else if constexpr (std::is_base_of_v<FunctionDecl, T>)
       if (!static_cast<FunctionDecl *>(raw)->parent)
         functions.emplace_back(raw);
 

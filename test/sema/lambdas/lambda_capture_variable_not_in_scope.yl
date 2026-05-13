@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:10: error: symbol 'x' not found
+  ->() { x = 1; };
+
+  let x = 0;
+}

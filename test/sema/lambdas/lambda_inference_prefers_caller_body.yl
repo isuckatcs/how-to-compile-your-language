@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let f = ->(x) { 
+    // CHECK: [[# @LINE + 1 ]]:8: error: expected 'bool' in condition
+    if x {
+      return 0; 
+    }
+
+    return 0;
+  };
+
+  f(0);
+}
+

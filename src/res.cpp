@@ -206,7 +206,7 @@ void CallExpr::dump(size_t level) const {
 }
 
 void MemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberExpr @(" << member << ')' << ' '
+  std::cerr << indent(level) << "MemberExpr @(" << member->decl << ')' << ' '
             << member->decl->identifier << " {" << getType()->getName() << '}'
             << '\n';
 
@@ -286,6 +286,23 @@ void ImplicitDerefExpr::dump(size_t level) const {
             << " {" << getType()->getName() << '}' << '\n';
 
   outParamRef->dump(level + 1);
+}
+
+void LambdaExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "LambdaExpr"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  lambda->dump(level + 1);
+
+  for (auto &&init : fieldInits)
+    init->dump(level + 1);
+}
+
+void ImplicitCoerceExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitCoerceExpr"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
 }
 
 void Context::dump() const {
