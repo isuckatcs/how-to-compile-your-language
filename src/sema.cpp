@@ -258,7 +258,8 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     std::vector<res::Type *> args;
     for (auto &&astArg : function->args) {
       WithModifiersRAII ampAllowed(this, UnaryAmpAllowed);
-      args.emplace_back(resolveType(ctx, *astArg));
+      if (auto *arg = resolveType(ctx, *astArg))
+        args.emplace_back(arg);
     }
 
     auto *retTy = resolveType(ctx, *function->ret);
