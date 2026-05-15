@@ -176,6 +176,7 @@ diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be 
 
 // lambdas
 diag(Error, outParamCapture, "capturing '&' parameter '{}' in lambda is not allowed");
+diag(Error, capturingLambdaFunctionCoercion, "capturing lambda '{}' cannot be coerced into function type '{}'");
 // clang-format on
 }; // namespace err
 

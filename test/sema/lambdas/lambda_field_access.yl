@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let n = 0;
+  
+  // CHECK: [[# @LINE + 1 ]]:21: error: cannot access member of '(lambda@<source>:6:3)'
+  ->(){ return n; }.n;
+}

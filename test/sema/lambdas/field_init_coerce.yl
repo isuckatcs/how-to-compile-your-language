@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  f: (T) -> T
+}
+
+fn main() {
+  S { f: ->(x){ return x; }};
+  //CHECK: FieldInitStmt @({{.*}}) f
+  //CHECK-NEXT:   ImplicitCoerceExpr {(unit) -> unit}
+  //CHECK-NEXT:     LambdaExpr {(lambda@<source>:7:10)}
+}

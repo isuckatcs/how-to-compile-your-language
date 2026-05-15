@@ -641,6 +641,9 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
+    if (expectedTy->getAs<res::FunctionType>())
+      resolvedArg = coerceIfLambda(resolvedArg);
+
     res::Type *actualTy = resolvedArg->getType();
 
     if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
@@ -701,10 +704,12 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    res::Type *initTy = resolvedInitExpr->getType();
     res::Type *fieldTy = typeMgr.instantiate(
         fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
+    if (fieldTy->getAs<res::FunctionType>())
+      resolvedInitExpr = coerceIfLambda(resolvedInitExpr);
 
+    res::Type *initTy = resolvedInitExpr->getType();
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
       for (auto &&error : msg)
         err::inferenceError(resolvedInitExpr->location)
@@ -827,7 +832,27 @@ res::Expr *Sema::coerceIfLambda(res::Expr *expr) {
 
   auto *coercedFnTy =
       typeMgr.getFunctionType(coercedArgs, fnTy->getReturnType());
-  return ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedFnTy, expr);
+  return functionInfo->pedingCoercions.emplace_back(
+      ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedFnTy, expr));
+}
+
+bool Sema::checkLambdaCoercions() {
+  bool error = false;
+
+  for (auto &&coercion : functionInfo->pedingCoercions) {
+    auto *lambda = coercion->lambdaExpr->getType()->getAs<res::StructType>();
+    bool capturing = !lambda->getDecl()->getAll<res::FieldDecl>().empty();
+
+    if (capturing) {
+      err::capturingLambdaFunctionCoercion(coercion->location)
+          .with(lambda->getName())
+          .with(coercion->getType()->getName())
+          .report(reporter);
+      error = true;
+    }
+  }
+
+  return !error;
 }
 
 bool Sema::resolvePendingLambdaBodies() {
@@ -845,7 +870,7 @@ bool Sema::resolvePendingLambdaBodies() {
 
     std::vector<const ast::Expr *> pendingCaptureInits;
     {
-      WithFunctionInfoRAII lambdaInfo(this, {fn, res, lexicalScope, {}});
+      WithFunctionInfoRAII lambdaInfo(this, {fn, res, lexicalScope});
 
       if (res::Block *block = resolveBlock(ctx, *ast->body)) {
         fn->setBody(block);
@@ -863,14 +888,17 @@ bool Sema::resolvePendingLambdaBodies() {
 
     for (auto &&pendingInit : pendingCaptureInits)
       res->fieldInits.emplace_back(resolveExpr(ctx, *pendingInit));
+  }
 
-    for (auto &&param : fn->params)
+  for (auto &&lambdaDescriptor : functionInfo->pendingLambdas) {
+    for (auto &&param : lambdaDescriptor.lambda->method->params) {
       if (param->getType()->getAs<res::UninferredType>()) {
         err::annotationsNeeded(param->location)
             .with(param->identifier)
             .report(reporter);
         error = true;
       }
+    }
   }
 
   return !error;
@@ -947,8 +975,10 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment(lhs->location).report(reporter);
 
   auto *lhsTy = lhs->getType();
-  auto *rhsTy = rhs->getType();
+  if (lhsTy->getAs<res::FunctionType>())
+    rhs = coerceIfLambda(rhs);
 
+  auto *rhsTy = rhs->getType();
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
       err::inferenceError(rhs->location).with(error).report(reporter);
@@ -977,6 +1007,9 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     expr = resolveExpr(ctx, *returnStmt.expr);
     if (!expr)
       return nullptr;
+
+    if (retTy->getAs<res::FunctionType>())
+      expr = coerceIfLambda(expr);
 
     res::Type *exprTy = expr->getType();
     if (!typeMgr.unify(retTy, exprTy).empty())
@@ -1034,6 +1067,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
     varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
 
     const res::Decl *decl = resPath->fragments.back()->decl;
+    bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
     if (decl->getAs<res::TypeParamDecl>())
       return err::unexpectedTypeParam(resPath->location).report(reporter);
@@ -1043,7 +1077,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
           .with(decl->identifier)
           .report(reporter);
 
-    if (resPath->fragments.size() > 1 && !decl->getAs<res::FunctionDecl>())
+    if (resPath->fragments.size() > 1 && !isFunctionDecl)
       return err::memberFnLookupFailed(resPath->location)
           .with(decl->identifier)
           .with(resPath->fragments[resPath->fragments.size() - 2]
@@ -1052,7 +1086,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
 
     auto *outType = resPath->getType()->getAs<res::OutParamType>();
 
-    if (functionInfo && functionInfo->lambda) {
+    if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl =
           lexicalScope->lookupDecl<res::Decl>(decl->identifier);
       res::Decl *outsideDecl =
@@ -1122,7 +1156,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
       ++reportUnreachableCount;
   }
 
-  if (!resolvePendingLambdaBodies() || error)
+  if (!resolvePendingLambdaBodies() || !checkLambdaCoercions() || error)
     return nullptr;
 
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
@@ -1216,35 +1250,31 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
 
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                                    const ast::VarDecl &varDecl) {
+  res::Type *declTy = varDecl.type ? resolveType(ctx, *varDecl.type)
+                                   : typeMgr.getNewUninferredType();
+  if (!declTy)
+    return nullptr;
+
   res::Expr *initializer = nullptr;
   if (varDecl.initializer) {
-    initializer = resolveExpr(ctx, *varDecl.initializer);
-    if (!initializer)
-      return nullptr;
-  }
+    varOrReturn(init, resolveExpr(ctx, *varDecl.initializer));
 
-  auto *declTy = typeMgr.getNewUninferredType();
-  auto *decl =
-      ctx.create<res::VarDecl>(varDecl.location, declTy, varDecl.identifier,
-                               varDecl.isMutable, initializer);
+    if (declTy->getAs<res::FunctionType>())
+      init = coerceIfLambda(init);
 
-  if (varDecl.type) {
-    varOrReturn(type, resolveType(ctx, *varDecl.type));
-    typeMgr.unify(declTy, type);
-  }
-
-  if (initializer) {
-    auto *initTy = initializer->getType();
+    auto *initTy = init->getType();
     if (!typeMgr.unify(declTy, initTy).empty())
-      return err::initTyMismatch(decl->initializer->location)
+      return err::initTyMismatch(init->location)
           .with(initTy->getName())
           .with(declTy->getName())
           .report(reporter);
 
-    initializer->setConstantValue(cee->evaluate(*initializer));
+    init->setConstantValue(cee->evaluate(*init));
+    initializer = init;
   }
 
-  return decl;
+  return ctx.create<res::VarDecl>(varDecl.location, declTy, varDecl.identifier,
+                                  varDecl.isMutable, initializer);
 }
 
 bool Sema::checkTypeParameterCount(SourceLocation loc,

@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  f: (T) -> T
+}
+
+fn main() {
+  let n = 0;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: capturing lambda '(lambda@<source>:10:10)' cannot be coerced into function type '(number) -> number'
+  S { f: ->(x: number){ return x + n; }};
+}

@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  l: T
+}
+
+fn main() {
+  let n = 0;
+
+  S { l: ->(){ return n; } };
+  // CHECK: StructInstantiationExpr {S<(lambda@<source>:9:10)>}
+}
