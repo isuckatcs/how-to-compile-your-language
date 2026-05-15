@@ -1,0 +1,24 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo() {
+    ->(){
+      Self::foo;
+      // CHECK: PathExpr {() -> unit}
+      // CHECK-NEXT:   DeclRefExpr @({{.*}}) __Self {__Self}
+      // CHECK-NEXT:   DeclRefExpr @({{.*}}) A::foo {() -> unit}
+    };
+  }
+}
+
+struct S {
+  fn foo() {
+    ->(){
+      Self::foo;
+      // CHECK: PathExpr {() -> unit}
+      // CHECK-NEXT:   DeclRefExpr @({{.*}}) S {S}
+      // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {() -> unit}
+    };
+  }
+}
+
+fn main() {}

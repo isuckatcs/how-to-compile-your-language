@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(): (number) -> number {
+  let n = 0;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: capturing lambda '(lambda@<source>:6:10)' cannot be coerced into function type '(number) -> number'
+  return ->(x){ return n; };
+}
+
+fn main() {}

@@ -1,0 +1,18 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(f: (number) -> unit) {
+  f(123);
+}
+
+fn main() {
+  foo(->(x){
+    println(x);
+  });
+  // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       PathExpr {((number) -> unit) -> unit}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {((number) -> unit) -> unit}
+  // CHECK-NEXT:       ImplicitCoerceExpr {(number) -> unit}
+  // CHECK-NEXT:         LambdaExpr {(lambda@<source>:7:7)}
+  // CHECK-NEXT:           StructDecl @({{.*}}) (lambda@<source>:7:7) {(lambda@<source>:7:7)}
+}

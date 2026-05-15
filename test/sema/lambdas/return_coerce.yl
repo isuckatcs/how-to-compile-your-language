@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(): (number) -> number {
+  return ->(x){ return x; };
+  // CHECK: ReturnStmt
+  // CHECK-NEXT:   ImplicitCoerceExpr {(number) -> number}
+  // CHECK-NEXT:     LambdaExpr {(lambda@<source>:3:10)}
+}
+
+fn main() {}

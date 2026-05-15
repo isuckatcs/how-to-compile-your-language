@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:6: error: 'self' parameter is only allowed in methods
+  ->(self) {
+    self.x;
+  };
+}

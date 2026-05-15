@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  mut f: (number) -> number = ->(x){ return x; };
+  // CHECK: VarDecl @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   ImplicitCoerceExpr {(number) -> number}
+  // CHECK-NEXT:     LambdaExpr {(lambda@<source>:3:31)}
+
+  f = ->(x){ return x; };
+  // CHECK: Assignment
+  // CHECK-NEXT:   PathExpr {(number) -> number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   ImplicitCoerceExpr {(number) -> number}
+  // CHECK-NEXT:     LambdaExpr {(lambda@<source>:8:7)}
+}

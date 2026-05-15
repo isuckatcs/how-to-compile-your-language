@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:25: error: an expression of type 'S' cannot be used to initialize a variable of type '() -> unit'
+  let f: () -> unit = S {};
+}
