@@ -420,7 +420,7 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   }
 
   if (!type && !(restrictions & ParamWithoutTypeAllowed))
-    err::expected(nextToken.location).with("':'").report(reporter);
+    return err::expected(nextToken.location).with("':'").report(reporter);
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
                                           std::move(type), isMut);

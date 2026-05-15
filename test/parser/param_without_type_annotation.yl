@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+struct S {
+  // CHECK: [[# @LINE + 1 ]]:11: error: expected ':'
+  fn foo(x) {}
+
+  impl A {
+    // CHECK: [[# @LINE + 1 ]]:13: error: expected ':'
+    fn foo(x) {}
+  }
+}
+
+// CHECK: [[# @LINE + 1 ]]:9: error: expected ':'
+fn foo(x) {}
+
+fn main() {}
