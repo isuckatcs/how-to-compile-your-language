@@ -104,6 +104,8 @@ struct DeclContext {
   bool insertDecl(res::Decl *decl);
 
   template <typename T> T *lookupDecl(const std::string id) const {
+    static_assert(std::is_base_of_v<res::Decl, T>);
+
     for (auto &&decl : decls) {
       auto *correctDecl = dynamic_cast<T *>(decl);
 
@@ -236,6 +238,18 @@ struct TraitInstance : public TypedNode {
   void dump(size_t level = 0) const;
 };
 
+struct ImplBlock : public DeclContext {
+  SourceLocation location;
+  TraitInstance *traitInstance;
+
+  ImplBlock(SourceLocation location, TraitInstance *traitInstance)
+      : DeclContext(nullptr),
+        location(location),
+        traitInstance(traitInstance) {}
+
+  void dump(size_t level = 0) const;
+};
+
 struct TypeParamDecl : public TypeDecl {
   std::vector<TraitInstance *> traits;
 
@@ -266,20 +280,8 @@ struct VarDecl : public ValueDecl {
   void dump(size_t level = 0) const override;
 };
 
-struct ImplDecl : public Decl, public DeclContext {
-  TraitInstance *traitInstance;
-
-  ImplDecl(SourceLocation location,
-           std::string identifier,
-           TraitInstance *traitInstance)
-      : Decl(location, traitInstance->getType(), identifier),
-        DeclContext(nullptr),
-        traitInstance(traitInstance) {}
-
-  void dump(size_t level = 0) const;
-};
-
 struct StructDecl : public TypeDecl, public DeclContext {
+  std::vector<ImplBlock *> implBlocks;
   bool isLambda;
 
   StructDecl(SourceLocation location,
@@ -556,6 +558,7 @@ class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
+  std::vector<std::unique_ptr<ImplBlock>> implBlocks;
   std::vector<std::unique_ptr<TraitInstance>> traitInstances;
 
   std::vector<TraitDecl *> traits;
@@ -573,6 +576,8 @@ public:
       decls.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<Block, T>)
       blocks.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<ImplBlock, T>)
+      implBlocks.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<TraitInstance, T>)
       traitInstances.emplace_back(std::move(ptr));
     else

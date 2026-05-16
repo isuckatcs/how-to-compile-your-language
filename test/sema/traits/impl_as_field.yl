@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1]]:7: error: failed to find member 'A' in 'S'
+  S{}.A;
+}

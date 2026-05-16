@@ -417,7 +417,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
     EnterInstantiationRAII structInst(this, structTy);
 
-    for (auto &&impl : structTy->getDecl()->getAll<res::ImplDecl>()) {
+    for (auto &&impl : structTy->getDecl()->implBlocks) {
       if (!isImplOf(impl, trait))
         continue;
 
@@ -439,8 +439,10 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
                               parentTy, dre.typeArgs);
 }
 
-bool Codegen::isImplOf(const res::ImplDecl *impl, const res::TraitType *trait) {
-  const res::TraitType *implTy = impl->getType()->getAs<res::TraitType>();
+bool Codegen::isImplOf(const res::ImplBlock *impl,
+                       const res::TraitType *trait) {
+  const res::TraitType *implTy =
+      impl->traitInstance->getType()->getAs<res::TraitType>();
 
   const auto &traitTyArgs = trait->getTypeArgs();
   const auto &implTyArgs = implTy->getTypeArgs();

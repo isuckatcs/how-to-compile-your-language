@@ -481,11 +481,11 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   declTy =
       typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(parentTy));
 
+  auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
-  if (decl->getAs<res::FunctionDecl>() || decl->getAs<res::TypeDecl>() ||
-      decl->getAs<res::TraitDecl>())
+  if (!valueDecl || decl->getAs<res::FunctionDecl>())
     kind = res::Expr::Kind::Rvalue;
-  else if (decl->getAs<res::ValueDecl>()->isMutable)
+  else if (valueDecl->isMutable)
     kind = res::Expr::Kind::MutLvalue;
 
   res::Substitution sub;
@@ -1165,16 +1165,15 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
-                                     const ast::ImplDecl &decl,
-                                     res::StructDecl *parent) {
+res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
+                                       const ast::ImplDecl &decl,
+                                       res::StructDecl *parent) {
   varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
 
   auto *traitTy = traitInstance->getType()->getAs<res::TraitType>();
   typeMgr.addUpperBound(parent, traitTy);
 
-  auto *resDecl = ctx.create<res::ImplDecl>(decl.location, traitTy->getName(),
-                                            traitInstance);
+  auto *resImpl = ctx.create<res::ImplBlock>(decl.location, traitInstance);
 
   for (auto &&astFunction : decl.functions) {
     auto *traitFn = traitTy->getDecl()->lookupDecl<res::FunctionDecl>(
@@ -1241,14 +1240,14 @@ res::ImplDecl *Sema::resolveImplDecl(res::Context &ctx,
           .with(actualType->getName())
           .report(reporter);
 
-    if (!resDecl->insertDecl(implFn))
+    if (!resImpl->insertDecl(implFn))
       err::alreadyImplementedFn(implFn->location)
           .with(implFn->identifier)
           .with(traitTy->getName())
           .report(reporter);
   }
 
-  return resDecl;
+  return resImpl;
 }
 
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
@@ -1352,8 +1351,14 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
   bool error = false;
 
   for (auto &&trait : typeMgr.getUpperBounds(structDecl->getType())) {
-    res::DeclContext *implCtx =
-        structDecl->lookupDecl<res::ImplDecl>(trait->getName());
+    res::DeclContext *implCtx = nullptr;
+    for (auto &&impl : structDecl->implBlocks) {
+      if (typeMgr.unify(impl->traitInstance->getType(), trait).empty()) {
+        implCtx = impl;
+        break;
+      }
+    }
+    assert(implCtx && "failed to find impl block");
 
     for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
       if (fn->body || implCtx->lookupDecl<res::FunctionDecl>(fn->identifier))
@@ -1632,33 +1637,42 @@ bool Sema::resolveStructBody(res::Context &ctx,
     }
 
     if (auto *implDecl = dynamic_cast<ast::ImplDecl *>(decl.get())) {
-      auto *resImpl = resolveImplDecl(ctx, *implDecl, &structDecl);
+      auto *resImpl = resolveImplBlock(ctx, *implDecl, &structDecl);
       if (!resImpl) {
         error = true;
         continue;
       }
 
-      if (!structDecl.insertDecl(resImpl)) {
+      res::Type *resImplTraitTy = resImpl->traitInstance->getType();
+      for (auto &&implBlock : structDecl.implBlocks) {
+        res::Type *implBlockTraitTy = implBlock->traitInstance->getType();
+        if (!typeMgr.unify(resImplTraitTy, implBlockTraitTy).empty())
+          continue;
+
         err::alreadyImplementedTrait(resImpl->location)
-            .with(resImpl->getType()->getName())
+            .with(resImplTraitTy->getName())
             .with(structDecl.identifier)
             .report(reporter);
+
         error = true;
+        break;
       }
 
       if (resImpl->decls.size() != implDecl->functions.size())
         error = true;
+
+      structDecl.implBlocks.emplace_back(resImpl);
     }
   }
 
-  auto impls = structDecl.getAll<res::ImplDecl>();
+  auto impls = structDecl.implBlocks;
   for (auto &&impl : impls) {
-    auto *traitTy = impl->getType()->getAs<res::TraitType>();
+    auto *traitTy = impl->traitInstance->getType()->getAs<res::TraitType>();
     res::Substitution sub = typeMgr.extractSubstitutionFrom(traitTy);
 
     for (auto &&moreSpecificImpl : impls) {
       res::Type *moreSpecificTy =
-          typeMgr.instantiate(moreSpecificImpl->getType(), sub);
+          typeMgr.instantiate(moreSpecificImpl->traitInstance->getType(), sub);
 
       if (typeMgr.moreGeneral(traitTy, moreSpecificTy)) {
         err::conflictingTrait(impl->location)
@@ -1675,7 +1689,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
       bool found = false;
       for (auto &&impl : impls)
-        found |= typeMgr.unify(impl->getType(), req).empty();
+        found |= typeMgr.unify(impl->traitInstance->getType(), req).empty();
 
       if (!found) {
         err::missingRequirement(impl->location)
@@ -1714,13 +1728,21 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
             dynamic_cast<const ast::ImplDecl *>(memberDecl.get())) {
       auto *traitInstance = resolveTraitInstance(ctx, implBlock->trait.get());
 
-      for (auto &&fn : implBlock->functions) {
-        res::FunctionDecl *implFn =
-            decl.lookupDecl<res::ImplDecl>(traitInstance->getType()->getName())
-                ->lookupDecl<res::FunctionDecl>(fn->identifier);
-
-        error |= !resolveFunctionBody(ctx, *fn, implFn);
+      res::ImplBlock *resImplBlock = nullptr;
+      for (auto &&impl : decl.implBlocks) {
+        if (typeMgr
+                .unify(impl->traitInstance->getType(), traitInstance->getType())
+                .empty()) {
+          resImplBlock = impl;
+          break;
+        }
       }
+      assert(resImplBlock && "failed to find resolved impl block");
+
+      for (auto &&fn : implBlock->functions)
+        error |= !resolveFunctionBody(
+            ctx, *fn,
+            resImplBlock->lookupDecl<res::FunctionDecl>(fn->identifier));
     }
   }
 

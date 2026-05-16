@@ -105,12 +105,9 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
-void ImplDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplDecl @(" << this << ") "
-            << traitInstance->decl->identifier << " {" << getType()->getName()
-            << '}' << '\n';
-
-  traitInstance->dump(level + 1);
+void ImplBlock::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplBlock "
+            << traitInstance->getType()->getName() << '\n';
 
   for (auto &&decl : decls)
     decl->dump(level + 1);
@@ -122,6 +119,9 @@ void StructDecl::dump(size_t level) const {
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
+
+  for (auto &&implBlock : implBlocks)
+    implBlock->dump(level + 1);
 
   for (auto &&decl : decls)
     decl->dump(level + 1);

@@ -152,9 +152,9 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  res::ImplDecl *resolveImplDecl(res::Context &ctx,
-                                 const ast::ImplDecl &decl,
-                                 res::StructDecl *parent);
+  res::ImplBlock *resolveImplBlock(res::Context &ctx,
+                                   const ast::ImplDecl &decl,
+                                   res::StructDecl *parent);
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *
   resolveFunctionDecl(res::Context &ctx,
