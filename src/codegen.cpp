@@ -296,58 +296,53 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 }
 
 llvm::Value *
-Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
-  std::map<const res::FieldDecl *, std::pair<llvm::Value *, llvm::Type *>>
-      fieldInits;
+Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
+  std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
 
-  for (auto &&initStmt : sie.fieldInitializers) {
-    llvm::Value *init = generateExprAndLoadValue(*initStmt->initializer);
-    llvm::Type *ty = generateType(initStmt->initializer->getType());
+  for (auto &&initStmt : sie.fieldInitializers)
+    fieldInits[initStmt->field] =
+        generateExprAndLoadValue(*initStmt->initializer);
 
-    if (!ty->isVoidTy())
-      fieldInits[initStmt->field] = {init, ty};
-  }
-
-  if (fieldInits.empty())
-    return nullptr;
-
-  const auto *structTy = sie.structPath->getType()->getAs<res::StructType>();
-  llvm::Type *type = generateType(structTy);
-  llvm::Value *tmp = allocateStackVariable(
-      sie.structPath->fragments.back()->decl->identifier + ".tmp", type);
-
-  unsigned idx = 0;
-  for (auto &&fieldDecl : structTy->getDecl()->getAll<res::FieldDecl>()) {
-    if (!fieldInits.count(fieldDecl))
-      continue;
-
-    const auto &[init, ty] = fieldInits[fieldDecl];
-    llvm::Value *field = builder.CreateStructGEP(type, tmp, idx++);
-    storeValue(init, field, ty);
-  }
-
-  return tmp;
+  return generateTmpStruct(sie.getType()->getAs<res::StructType>(), fieldInits);
 }
 
 llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
-  llvm::Type *closureTy = generateType(lambdaExpr.getType());
-  if (closureTy->isVoidTy())
+  const auto *structTy = lambdaExpr.getType()->getAs<res::StructType>();
+  const auto &fieldDecls = structTy->getDecl()->getAll<res::FieldDecl>();
+
+  std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
+  for (int i = 0; i < fieldDecls.size(); ++i)
+    fieldInits[fieldDecls[i]] =
+        generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
+
+  return generateTmpStruct(structTy, fieldInits);
+}
+
+llvm::Value *Codegen::generateTmpStruct(
+    const res::StructType *structType,
+    std::map<const res::FieldDecl *, llvm::Value *> &fieldInits) {
+  EnterInstantiationRAII structInstantiation(this, structType);
+
+  llvm::Type *structTy = generateType(structType);
+  if (structTy->isVoidTy())
     return nullptr;
 
-  llvm::Value *closure = allocateStackVariable("closure.tmp", closureTy);
+  const res::StructDecl *structDecl = structType->getDecl();
+  llvm::Value *tmp = allocateStackVariable(
+      (structDecl->isLambda ? "closure" : structDecl->identifier) + ".tmp",
+      structTy);
 
   unsigned idx = 0;
-  for (auto &&fieldInit : lambdaExpr.fieldInits) {
-    llvm::Value *init = generateExprAndLoadValue(*fieldInit);
-    llvm::Type *initTy = generateType(fieldInit->getType());
-    if (initTy->isVoidTy())
+  for (auto &&fieldDecl : structDecl->getAll<res::FieldDecl>()) {
+    llvm::Type *fieldTy = generateType(fieldDecl->getType());
+    if (fieldTy->isVoidTy())
       continue;
 
-    llvm::Value *field = builder.CreateStructGEP(closureTy, closure, idx++);
-    storeValue(init, field, initTy);
+    llvm::Value *field = builder.CreateStructGEP(structTy, tmp, idx++);
+    storeValue(fieldInits[fieldDecl], field, fieldTy);
   }
 
-  return closure;
+  return tmp;
 }
 
 llvm::Value *
@@ -394,7 +389,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
     return generateMemberExpr(*me);
 
   if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(&expr))
-    return generateTemporaryStruct(*sie);
+    return generateStructInstExpr(*sie);
 
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
     return generateDeclRefExpr(*ide->outParamRef->fragments.back());
