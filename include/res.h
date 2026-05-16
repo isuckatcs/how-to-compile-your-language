@@ -546,7 +546,7 @@ struct ImplicitCoerceExpr : public Expr {
   res::Expr *lambdaExpr;
 
   ImplicitCoerceExpr(SourceLocation location, Type *type, res::Expr *lambdaExpr)
-      : Expr(location, type, lambdaExpr->kind),
+      : Expr(location, type, Expr::Kind::Rvalue),
         lambdaExpr(lambdaExpr) {}
 
   void dump(size_t level = 0) const override;
