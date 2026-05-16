@@ -24,7 +24,12 @@ class Mangling {
       return "n";
 
     if (const auto *s = type->getAs<res::StructType>()) {
-      const auto &id = s->getDecl()->identifier;
+      static int lambdaCnt = 0;
+
+      const auto *sd = s->getDecl();
+      const std::string &id = sd->isLambda
+                                  ? "lambda_" + std::to_string(lambdaCnt++)
+                                  : sd->identifier;
 
       std::stringstream mangledName;
       mangledName << 'S' << id.size() << id
@@ -235,6 +240,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
+  // FIXME: the decl is needed if it is captured by a lambda
   bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
   if (isConst || declTy->isVoidTy()) {
     declarations[decl] = nullptr;
@@ -323,6 +329,36 @@ Codegen::generateTemporaryStruct(const res::StructInstantiationExpr &sie) {
   return tmp;
 }
 
+llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
+  llvm::Type *closureTy = generateType(lambdaExpr.getType());
+  if (closureTy->isVoidTy())
+    return nullptr;
+
+  llvm::Value *closure = allocateStackVariable("closure.tmp", closureTy);
+
+  unsigned idx = 0;
+  for (auto &&fieldInit : lambdaExpr.fieldInits) {
+    llvm::Value *init = generateExprAndLoadValue(*fieldInit);
+    llvm::Type *initTy = generateType(fieldInit->getType());
+    if (initTy->isVoidTy())
+      continue;
+
+    llvm::Value *field = builder.CreateStructGEP(closureTy, closure, idx++);
+    storeValue(init, field, initTy);
+  }
+
+  return closure;
+}
+
+llvm::Value *
+Codegen::generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice) {
+  const auto *closureTy = ice.lambdaExpr->getType()->getAs<res::StructType>();
+  const auto *coercedTy = ice.getType()->getAs<res::FunctionType>();
+
+  const auto *fnDecl = closureTy->getDecl()->getAll<res::FunctionDecl>()[0];
+  return generateFunctionDecl(*fnDecl, coercedTy, closureTy, {});
+}
+
 llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *number = dynamic_cast<const res::NumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
@@ -362,6 +398,12 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
     return generateDeclRefExpr(*ide->outParamRef->fragments.back());
+
+  if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
+    return generateLambdaExpr(*lambda);
+
+  if (auto *ice = dynamic_cast<const res::ImplicitCoerceExpr *>(&expr))
+    return generateImplicitCoerceExpr(*ice);
 
   llvm_unreachable("unexpected expression");
 }

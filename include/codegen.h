@@ -89,6 +89,8 @@ class Codegen {
   llvm::Value *generateUnaryOperator(const res::UnaryOperator &unop);
   llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr);
   llvm::Value *generateTemporaryStruct(const res::StructInstantiationExpr &sie);
+  llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
+  llvm::Value *generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
   bool isImplOf(const res::ImplDecl *impl, const res::TraitType *trait);
