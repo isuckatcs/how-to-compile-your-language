@@ -1,0 +1,15 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o lambda_out_param && ./lambda_out_param | grep -Plzx '123\n'
+fn main() {
+  mut x = 0;
+
+  let f = ->(x: &number) { x = 123; };
+  f(&x);
+
+  println(x);
+}
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   store double 1.230000e+02, ptr %x, align 8
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

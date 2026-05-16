@@ -1,0 +1,54 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o multiple_lambdas && ./multiple_lambdas | grep -Plzx '1\n2\n3\n456\n123\n123\n123\n'
+fn main() {
+  mut x = 123;
+  // CHECK: store double 1.230000e+02, ptr %x, align 8
+
+  let l1 = ->(x) { println(x); };
+
+  let l2 = ->() { println(x); };
+  // CHECK-NEXT: %0 = load double, ptr %x, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { double }, ptr %closure.tmp, i32 0, i32 0
+  // CHECK-NEXT: store double %0, ptr %1, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %l2, ptr align 8 %closure.tmp, i64 8, i1 false)
+
+  x = 456;
+  // CHECK-NEXT: store double 4.560000e+02, ptr %x, align 8
+
+  l1(1);
+  l1(2);
+  l1(3);
+  // CHECK-NEXT: call void @_YS8lambda_021__builtin_lambda_call(double 1.000000e+00)
+  // CHECK-NEXT: call void @_YS8lambda_021__builtin_lambda_call(double 2.000000e+00)
+  // CHECK-NEXT: call void @_YS8lambda_021__builtin_lambda_call(double 3.000000e+00)
+
+  println(x);
+  // CHECK-NEXT: %2 = load double, ptr %x, align 8
+  // CHECK-NEXT: call void @println(double %2)
+
+  l2();
+  l2();
+  l2();
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %l2, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %l2, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp1)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp2, ptr align 8 %l2, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp2)
+}
+
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double %x)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK-NOT: {{.*lambda_2.*}}

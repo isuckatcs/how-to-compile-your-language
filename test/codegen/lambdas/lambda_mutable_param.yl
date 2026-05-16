@@ -1,0 +1,17 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o lambda_mutable_param && ./lambda_mutable_param | grep -Plzx '123\n'
+fn main() {
+  ->(mut x) { 
+    x = 123;
+    println(x);
+  }(0);
+}
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %x1 = alloca double, align 8
+// CHECK-NEXT:   store double %x, ptr %x1, align 8
+// CHECK-NEXT:   store double 1.230000e+02, ptr %x1, align 8
+// CHECK-NEXT:   %0 = load double, ptr %x1, align 8
+// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

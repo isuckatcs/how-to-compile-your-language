@@ -1,0 +1,16 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o field_init_lambda && ./field_init_lambda | grep -Plzx '123\n'
+struct S<T> {
+  l: T
+}
+
+fn main() {
+  let n = 123;
+
+  let s = S { l: ->(){ return n; } };
+
+  println(s.l());
+  // CHECK: %2 = getelementptr inbounds nuw { { double } }, ptr %s, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %2, i64 8, i1 false)
+  // CHECK-NEXT: %3 = call double @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp)
+}

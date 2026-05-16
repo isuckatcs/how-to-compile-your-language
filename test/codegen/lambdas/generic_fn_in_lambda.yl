@@ -1,0 +1,26 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o generic_fn_in_lambda && ./generic_fn_in_lambda | grep -Plzx '123\n'
+fn foo<T>(x: T): T {
+  return x;
+}
+
+fn main() {
+  let x = 123;
+
+  println(->(){ 
+    return foo(x); 
+  }());
+}
+// CHECK: define double @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %retval = alloca double, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   %2 = call double @_Y3fooGnE(double %1)
+// CHECK-NEXT:   store double %2, ptr %retval, align 8
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   %3 = load double, ptr %retval, align 8
+// CHECK-NEXT:   ret double %3
+// CHECK-NEXT: }

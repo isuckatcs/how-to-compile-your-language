@@ -1,0 +1,10 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o return_coerce && ./return_coerce | grep -Plzx '123\n'
+fn foo(): (number) -> number {
+  return ->(x){ return x; };
+  // CHECK: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %retval, align 8
+}
+
+fn main() {
+  println(foo()(123));
+}

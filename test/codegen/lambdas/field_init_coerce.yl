@@ -1,0 +1,18 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o field_init_coerce && ./field_init_coerce | grep -Plzx '123\n'
+struct S<T> {
+  f: (T) -> T
+}
+
+fn main() {
+  let s = S { f: ->(x){ return x; } };
+  // CHECK: %0 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %0, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 8, i1 false)
+
+  println(s.f(123));
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr }, ptr %s, i32 0, i32 0
+  // CHECK-NEXT: %2 = load ptr, ptr %1, align 8
+  // CHECK-NEXT: %3 = call double %2(double 1.230000e+02)
+  // CHECK-NEXT: call void @println(double %3)
+}

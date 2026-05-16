@@ -1,0 +1,11 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o lambda_variable_reassigned && ./lambda_variable_reassigned | grep -Plzx '123\n'
+fn main() {
+  let x = 123;
+  mut f = ->(){ println(x); };
+
+  f = f;
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f, ptr align 8 %f, i64 8, i1 false)
+
+  f();
+}

@@ -1,0 +1,37 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o lambda_capture_nested_lambda && ./lambda_capture_nested_lambda | grep -Plzx '123\n'
+fn main() {
+  let x = 123;
+
+  ->() {
+    ->() {
+      println(x);
+    }();
+  }();
+  // CHECK: %closure.tmp = alloca { double }, align 8
+  // CHECK-NEXT: %struct.arg.tmp = alloca { double }, align 8
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { double }, ptr %closure.tmp, i32 0, i32 0
+  // CHECK-NEXT: store double 1.230000e+02, ptr %0, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %closure.tmp, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp)
+}
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %closure.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double }, ptr %closure.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %1, ptr %2, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %closure.tmp, i64 8, i1 false)
+// CHECK-NEXT:   call void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS8lambda_121__builtin_lambda_call(ptr byval({ double }) %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

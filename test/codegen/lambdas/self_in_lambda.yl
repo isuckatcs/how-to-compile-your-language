@@ -1,0 +1,43 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o self_in_lambda && ./self_in_lambda | grep -Plzx '123\n456\n'
+trait A {
+  fn bar() {
+    println(123);
+  }
+
+  fn foo() {
+    ->(){
+      Self::bar();
+    }();
+  }
+}
+
+struct S {
+  impl A;
+
+  fn bar() {
+    println(456);
+  }
+
+  fn foo() {
+    ->(){
+      Self::bar();
+    }();
+  }
+}
+
+fn main() {
+  S::impl A::foo();
+  S::foo();
+}
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YS1S3bar()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_YS8lambda_121__builtin_lambda_call() {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_YT1A3barGS1SE()
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

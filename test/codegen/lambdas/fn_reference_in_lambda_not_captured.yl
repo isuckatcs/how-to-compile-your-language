@@ -1,0 +1,26 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o fn_reference_in_lambda_not_captured && ./fn_reference_in_lambda_not_captured | grep -Plzx '123\n'
+struct S {
+  fn foo(x: number) {
+    println(x);
+  }
+}
+
+fn main() {
+  let f = ->(x) {
+    let f = S::foo;
+    f(x);
+  };
+
+  f(123);
+  // CHECK: call void @_YS8lambda_021__builtin_lambda_call(double 1.230000e+02)
+}
+
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %f = alloca ptr, align 8
+// CHECK-NEXT:   store ptr @_YS1S3foo, ptr %f, align 8
+// CHECK-NEXT:   %0 = load ptr, ptr %f, align 8
+// CHECK-NEXT:   call void %0(double %x)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
