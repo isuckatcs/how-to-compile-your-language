@@ -1,0 +1,24 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o implicit_coercion_generates_function && ./implicit_coercion_generates_function | grep -Plzx '123\n'
+fn foo(f: (number) -> unit) {
+  f(123);
+}
+
+fn main() {
+  let l = ->(x) { println(x); };
+
+  let f: (number) -> unit = l; 
+  // CHECK: %f = alloca ptr, align 8
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %f, align 8
+  
+  foo(l);
+  // CHECK-NEXT: call void @foo(ptr @_YS8lambda_021__builtin_lambda_call)
+}
+
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @println(double %x)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK-NOT: {{.*lambda_1.*}}

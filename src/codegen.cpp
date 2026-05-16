@@ -25,11 +25,13 @@ class Mangling {
 
     if (const auto *s = type->getAs<res::StructType>()) {
       static int lambdaCnt = 0;
+      static std::map<const res::StructDecl *, std::string> lambdaNames;
 
       const auto *sd = s->getDecl();
-      const std::string &id = sd->isLambda
-                                  ? "lambda_" + std::to_string(lambdaCnt++)
-                                  : sd->identifier;
+      if (sd->isLambda && !lambdaNames.count(sd))
+        lambdaNames[sd] = "lambda_" + std::to_string(lambdaCnt++);
+
+      const std::string &id = sd->isLambda ? lambdaNames[sd] : sd->identifier;
 
       std::stringstream mangledName;
       mangledName << 'S' << id.size() << id
