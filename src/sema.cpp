@@ -772,7 +772,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   bool error = false;
   std::vector<res::Type *> paramTypes = {lambdaTy};
   std::vector<res::ParamDecl *> resolvedParams = {
-      ctx.create<res::ParamDecl>(loc, lambdaTy, selfParamId, true)};
+      ctx.create<res::ParamDecl>(loc, lambdaTy, selfParamId, false)};
 
   {
     WithModifiersRAII lambdaParamList(this, UnaryAmpAllowed |
