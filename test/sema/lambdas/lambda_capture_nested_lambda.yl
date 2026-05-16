@@ -29,6 +29,7 @@ fn main() {
   // CHECK-NEXT:               DeclRefExpr @({{.*}}) self {(lambda@<source>:5:3)}
   // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
   // CHECK-NEXT:   PathExpr {number}
+  // CHECK-NEXT:   | value: 0
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 }
 

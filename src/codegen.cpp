@@ -240,7 +240,6 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
-  // FIXME: the decl is needed if it is captured by a lambda
   bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
   if (isConst || declTy->isVoidTy()) {
     declarations[decl] = nullptr;

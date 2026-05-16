@@ -886,8 +886,11 @@ bool Sema::resolvePendingLambdaBodies() {
       pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
     }
 
-    for (auto &&pendingInit : pendingCaptureInits)
-      res->fieldInits.emplace_back(resolveExpr(ctx, *pendingInit));
+    for (auto &&pendingInit : pendingCaptureInits) {
+      res::Expr *initExpr = resolveExpr(ctx, *pendingInit);
+      initExpr->setConstantValue(cee->evaluate(*initExpr));
+      res->fieldInits.emplace_back(initExpr);
+    }
   }
 
   for (auto &&lambdaDescriptor : functionInfo->pendingLambdas) {
