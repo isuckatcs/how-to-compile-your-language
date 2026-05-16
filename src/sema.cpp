@@ -807,8 +807,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
                                            std::move(resolvedParams), lambda);
   lambda->insertDecl(fn);
 
-  auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, lambdaTy, lambda, fn,
-                                                    std::vector<res::Expr *>{});
+  auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, lambdaTy, lambda, fn);
   functionInfo->pendingLambdas.push_back(
       {resLambdaExpr, &lambdaExpr, *lexicalScope});
   return resLambdaExpr;
