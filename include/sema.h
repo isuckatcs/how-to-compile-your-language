@@ -223,7 +223,7 @@ class Sema {
 
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
   bool checkSelfParameter(res::ParamDecl *param, size_t idx);
-  bool hasSelfContainingStructs(const res::Context &ctx);
+  bool hasSelfContainingStructs(res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
 
 public:

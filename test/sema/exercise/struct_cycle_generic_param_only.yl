@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct A<T> {
+  x: unit
+}
+
+struct S {
+  ptr: A<S>
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) ptr {A<S>}
+
+fn main() {}

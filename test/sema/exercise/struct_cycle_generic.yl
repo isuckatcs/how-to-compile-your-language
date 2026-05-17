@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct A<T> {
+  x: T
+}
+
+// CHECK: [[# @LINE + 1 ]]:8: error: struct 'S' contains itself
+struct S {
+  ptr: A<S>
+}
+
+
+fn main(): unit {}

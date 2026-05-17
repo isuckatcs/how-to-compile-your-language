@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct A<T> {
+  x: T
+}
+
+struct B<T> {
+  x: A<T>
+}
+
+// CHECK: [[# @LINE + 1 ]]:8: error: struct 'S' contains itself
+struct S {
+  ptr: B<S>
+}
+
+fn main(): unit {}
