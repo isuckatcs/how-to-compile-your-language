@@ -247,6 +247,9 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     std::vector<res::Type *> resolvedTypeArgs;
     for (auto &&astArg : udt->typeArguments) {
       varOrReturn(resolvedType, resolveType(ctx, *astArg));
+      if (resolvedType->getAs<res::OutParamType>())
+        return err::unexpectedAmpParam(astArg->location).report(reporter);
+
       resolvedTypeArgs.emplace_back(resolvedType);
     }
 
@@ -1419,6 +1422,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     paramTypes.emplace_back(resolvedParam->getType());
     resolvedParams.emplace_back(resolvedParam);
 
+    error |= err;
     error |= !insertDeclToScope(resolvedParam, lexicalScope);
     error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
   }
