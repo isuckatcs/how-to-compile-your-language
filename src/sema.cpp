@@ -209,6 +209,25 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   return fn;
 };
 
+res::StructDecl *Sema::createBuiltinGc(res::Context &ctx) {
+  SourceLocation loc{nullptr, 0, 0};
+
+  auto *typeParamTy = typeMgr.getNewUninferredType();
+  auto *typeParamDecl = ctx.create<res::TypeParamDecl>(loc, typeParamTy, "T");
+  typeMgr.unify(typeParamTy, typeMgr.getTypeParamType(*typeParamDecl));
+
+  std::vector<res::TypeParamDecl *> typeParamDecls = {typeParamDecl};
+  auto *structTy = typeMgr.getNewUninferredType();
+  auto *structDecl =
+      ctx.create<res::StructDecl>(loc, structTy, gcId, typeParamDecls);
+  typeMgr.unify(structTy, typeMgr.getStructType(*structDecl, {typeParamTy}));
+
+  auto *fieldDecl = ctx.create<res::FieldDecl>(loc, typeParamTy, "val");
+  structDecl->insertDecl(fieldDecl);
+
+  return structDecl;
+}
+
 res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
@@ -1760,6 +1779,7 @@ res::Context *Sema::resolveAST() {
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
 
+  insertDeclToScope(createBuiltinGc(ctx), lexicalScope);
   for (auto &&decl : ast->decls) {
     res::Decl *rd = nullptr;
     if (const auto *sd = dynamic_cast<const ast::StructDecl *>(decl.get()))

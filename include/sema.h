@@ -15,6 +15,7 @@ class Sema {
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";
   static constexpr const char *lambdaFunctionId = "__builtin_lambda_call";
+  static constexpr const char *gcId = "Gc";
 
   diag::DiagnosticReporter *reporter;
   ConstExprEvaluator *cee;
@@ -214,6 +215,7 @@ class Sema {
 
   bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
+  res::StructDecl *createBuiltinGc(res::Context &ctx);
 
   bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);
   bool checkReturnOnAllPaths(res::Context &ctx,
