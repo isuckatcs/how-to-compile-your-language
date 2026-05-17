@@ -1911,7 +1911,8 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
-      res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
+      if (decl->identifier == gcId)
+        continue;
 
       for (auto &&seenTy : seen)
         if (typeMgr.unify(seenTy, ty).empty())
@@ -1922,6 +1923,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
 
       seen.emplace_back(ty);
 
+      res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
       for (auto &&field : decl->getAll<res::FieldDecl>())
         if (auto *structTy = typeMgr.instantiate(field->getType(), sub)
                                  ->getAs<res::StructType>())
