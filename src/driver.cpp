@@ -157,7 +157,11 @@ int main(int argc, const char **argv) {
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  command << "clang-20 " << llvmIRPath;
+  command
+      << "clang-20 " << llvmIRPath << " -L"
+      << std::filesystem::canonical(argv[0]).parent_path().parent_path().append(
+             "lib")
+      << " -lyl_runtime";
   if (!options.output.empty())
     command << " -o " << options.output;
 

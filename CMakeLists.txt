@@ -16,5 +16,6 @@ set(COVERAGE_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage -fno-except
 SET(CMAKE_CXX_FLAGS_COVERAGE "${COVERAGE_FLAGS}")
 SET(CMAKE_C_FLAGS_COVERAGE "${COVERAGE_FLAGS}")
 
+add_subdirectory(runtime)
 add_subdirectory(src)
 add_subdirectory(test)
