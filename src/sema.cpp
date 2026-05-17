@@ -220,6 +220,8 @@ res::StructDecl *Sema::createBuiltinGc(res::Context &ctx) {
   auto *structTy = typeMgr.getNewUninferredType();
   auto *structDecl =
       ctx.create<res::StructDecl>(loc, structTy, gcId, typeParamDecls);
+
+  structDecl->isGc = true;
   typeMgr.unify(structTy, typeMgr.getStructType(*structDecl, {typeParamTy}));
 
   auto *fieldDecl = ctx.create<res::FieldDecl>(loc, typeParamTy, "val");
@@ -787,8 +789,9 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
 
   res::Type *lambdaTy = typeMgr.getNewUninferredType();
-  auto *lambda = ctx.create<res::StructDecl>(
-      loc, lambdaTy, structId.str(), std::vector<res::TypeParamDecl *>{}, true);
+  auto *lambda = ctx.create<res::StructDecl>(loc, lambdaTy, structId.str());
+
+  lambda->isLambda = true;
   typeMgr.unify(lambdaTy, typeMgr.getStructType(*lambda, {}));
 
   bool error = false;

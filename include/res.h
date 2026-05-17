@@ -282,16 +282,15 @@ struct VarDecl : public ValueDecl {
 
 struct StructDecl : public TypeDecl, public DeclContext {
   std::vector<ImplBlock *> implBlocks;
-  bool isLambda;
+  bool isLambda = false;
+  bool isGc = false;
 
   StructDecl(SourceLocation location,
              Type *type,
              std::string identifier,
-             std::vector<TypeParamDecl *> typeParams,
-             bool isLambda = false)
+             std::vector<TypeParamDecl *> typeParams = {})
       : TypeDecl(location, type, std::move(identifier), std::move(typeParams)),
-        DeclContext(nullptr),
-        isLambda(isLambda) {}
+        DeclContext(nullptr) {}
 
   void dump(size_t level = 0) const override;
 };
