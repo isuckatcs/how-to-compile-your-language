@@ -66,7 +66,9 @@ class Codegen {
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
+
   llvm::Instruction *allocaInsertPoint;
+  llvm::Instruction *rootMarkInsertPoint;
 
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;
@@ -124,6 +126,13 @@ class Codegen {
 
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();
+
+  llvm::Value *allocateHeapStorage(const std::string_view identifier,
+                                   llvm::Type *type);
+  void markGCRoot(llvm::AllocaInst *alloca, llvm::Type *type);
+  llvm::Function *getOrInsertGCAlloc();
+  llvm::Function *getOrInsertGCMark();
+  llvm::Function *getOrInsertGCSweep();
 
 public:
   Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);

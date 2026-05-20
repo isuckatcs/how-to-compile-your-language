@@ -252,6 +252,10 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   if (initExpr)
     storeValue(initVal, var, declTy);
 
+  const auto *structTy = decl->getType()->getAs<res::StructType>();
+  if (structTy && structTy->getDecl()->isGc)
+    markGCRoot(var, generateType(structTy->getTypeArgs()[0]));
+
   declarations[decl] = var;
   return nullptr;
 }
@@ -276,7 +280,8 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
 
   auto *structTy = memberExpr.base->getType()->getAs<res::StructType>();
-  llvm::Type *baseTy = generateType(structTy);
+  if (structTy->getDecl()->isGc)
+    return builder.CreateLoad(llvm::PointerType::get(context, 0), base);
 
   if (generateType(memberExpr.getType())->isVoidTy())
     return nullptr;
@@ -293,18 +298,31 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
       ++index;
   }
 
+  llvm::Type *baseTy = generateType(structTy);
   return builder.CreateStructGEP(baseTy, base, index);
 }
 
 llvm::Value *
 Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
+  auto *structTy = sie.getType()->getAs<res::StructType>();
+  if (structTy->getDecl()->isGc) {
+    auto *init = sie.fieldInitializers[0]->initializer;
+    auto *initTy = generateType(init->getType());
+
+    llvm::Value *ptr = allocateHeapStorage("gc.alloc", initTy);
+    llvm::Value *val = generateExpr(*init);
+    storeValue(val, ptr, initTy);
+
+    return ptr;
+  }
+
   std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
 
   for (auto &&initStmt : sie.fieldInitializers)
     fieldInits[initStmt->field] =
         generateExprAndLoadValue(*initStmt->initializer);
 
-  return generateTmpStruct(sie.getType()->getAs<res::StructType>(), fieldInits);
+  return generateTmpStruct(structTy, fieldInits);
 }
 
 llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
@@ -686,6 +704,54 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
+llvm::Value *Codegen::allocateHeapStorage(const std::string_view identifier,
+                                          llvm::Type *type) {
+  // FIXME: select int type based on the platform
+  auto *allocSize =
+      builder.getInt64(module.getDataLayout().getTypeAllocSize(type));
+  return builder.CreateCall(getOrInsertGCAlloc(), {allocSize});
+}
+
+void Codegen::markGCRoot(llvm::AllocaInst *alloca, llvm::Type *type) {
+  llvm::IRBuilder<> tmpBuilder(context);
+  tmpBuilder.SetInsertPoint(rootMarkInsertPoint);
+  llvm::Function *gcroot =
+      llvm::Intrinsic::getOrInsertDeclaration(&module, llvm::Intrinsic::gcroot);
+
+  llvm::Value *nullPtr =
+      llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0));
+  tmpBuilder.CreateCall(gcroot, {alloca, nullPtr});
+}
+
+llvm::Function *Codegen::getOrInsertGCAlloc() {
+  if (auto *gcAlloc = module.getFunction("gcAlloc"))
+    return gcAlloc;
+
+  return llvm::Function::Create(
+      llvm::FunctionType::get(llvm::PointerType::get(context, 0),
+                              // FIXME: select int type based on the platform
+                              {builder.getInt64Ty()}, false),
+      llvm::Function::ExternalLinkage, "gcAlloc", module);
+}
+
+llvm::Function *Codegen::getOrInsertGCMark() {
+  if (auto *gcMark = module.getFunction("gcMark"))
+    return gcMark;
+
+  return llvm::Function::Create(
+      llvm::FunctionType::get(builder.getVoidTy(), false),
+      llvm::Function::ExternalLinkage, "gcMark", module);
+}
+
+llvm::Function *Codegen::getOrInsertGCSweep() {
+  if (auto *gcSweep = module.getFunction("gcSweep"))
+    return gcSweep;
+
+  return llvm::Function::Create(
+      llvm::FunctionType::get(builder.getVoidTy(), false),
+      llvm::Function::ExternalLinkage, "gcSweep", module);
+}
+
 llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
   llvm::Type *retTy = generateType(ty->getReturnType());
 
@@ -744,6 +810,8 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   llvm::Value *undef = llvm::UndefValue::get(builder.getInt32Ty());
   allocaInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
                                             "alloca.placeholder", entryBB);
+  rootMarkInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
+                                              "mark.placeholder", entryBB);
 
   if (!returnTy->isVoidTy())
     retVal = allocateStackVariable("retval", returnTy);
@@ -798,6 +866,12 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   allocaInsertPoint->eraseFromParent();
   allocaInsertPoint = nullptr;
 
+  rootMarkInsertPoint->eraseFromParent();
+  rootMarkInsertPoint = nullptr;
+
+  builder.CreateCall(getOrInsertGCMark());
+  builder.CreateCall(getOrInsertGCSweep());
+
   if (returnTy->isVoidTy())
     builder.CreateRetVoid();
   else
@@ -828,6 +902,8 @@ void Codegen::generateMainWrapper() {
   builder.SetInsertPoint(entry);
 
   builder.CreateCall(builtinMain);
+  builder.CreateCall(getOrInsertGCMark());
+  builder.CreateCall(getOrInsertGCSweep());
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
@@ -843,6 +919,7 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                           name, module);
+  function->setGC("shadow-stack");
   function->setAttributes(constructAttrList(type));
 
   pendingFunctions.push({instCtx, name, &fn});
@@ -850,6 +927,9 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
 }
 
 llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
+  if (structTy->getDecl()->isGc)
+    return llvm::PointerType::get(context, 0);
+
   EnterInstantiationRAII structInst(this, structTy);
 
   std::vector<llvm::Type *> fieldTypes;
