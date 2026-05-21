@@ -78,6 +78,8 @@ std::string StructType::getName() const {
   return ss.str();
 }
 
+bool StructType::isGc() const { return decl->isGc; }
+
 OutParamType::OutParamType(Type *paramType)
     : Type("&", std::vector<res::Type *>{paramType}){};
 

@@ -29,6 +29,7 @@ struct Type {
   }
 
   virtual std::string getName() const { return name; };
+  virtual bool isGc() const { return false; }
 
   virtual const Type *getRootType() const { return this; }
   virtual ~Type() = default;
@@ -114,6 +115,7 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
 
   std::string getName() const override;
+  bool isGc() const override;
 
   friend class TypeManager;
 };
