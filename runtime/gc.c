@@ -2,8 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct Metadata {
+  const int32_t offsetCnt;
+  const int32_t offsets[];
+};
+
 struct AllocHeader {
   struct AllocHeader *next;
+  const struct Metadata *metadata;
   int marked;
 };
 
@@ -17,18 +23,44 @@ struct ShadowStackFrame {
 
 extern struct ShadowStackFrame *llvm_gc_root_chain;
 
-void *gcAlloc(size_t size) {
+void *gcAlloc(size_t size, const struct Metadata *metadata) {
   size_t offset = sizeof(struct AllocHeader);
   void *ptr = calloc(1, offset + size);
 
   struct AllocHeader *header = (struct AllocHeader *)ptr;
   header->next = allocatedBlocks;
+  header->metadata = metadata;
+
+  fprintf(stderr, "alloc:\n  addr: %p, data: %p (%ld byte), meta: %p\n", ptr,
+          ptr + offset, size, metadata);
+  if (metadata)
+    for (int i = 0; i < metadata->offsetCnt; ++i)
+      printf("  %d\n", metadata->offsets[0]);
+
   allocatedBlocks = header;
-
-  fprintf(stderr, "alloc:\n  addr: %p, data: %p (%ld byte)\n", ptr,
-          ptr + offset, size);
-
   return ptr + offset;
+}
+
+static void mark(void *root) {
+  // FIXME: is it always null if not yet initialized?
+  if (!root)
+    return;
+
+  struct AllocHeader *header = root - sizeof(struct AllocHeader);
+  if (header->marked)
+    return;
+
+  header->marked = 1;
+
+  fprintf(stderr, "  addr: %p, data: %p, value: %f\n", header, root,
+          *(double *)root);
+
+  const struct Metadata *metadata = header->metadata;
+  if (!metadata)
+    return;
+
+  for (int i = 0; i < metadata->offsetCnt; ++i)
+    mark(*(void **)(root + metadata->offsets[i]));
 }
 
 void gcMark() {
@@ -36,20 +68,8 @@ void gcMark() {
 
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
-    int32_t rootCnt = *currentFrame->rootCnt;
-    for (int32_t i = 0; i < rootCnt; ++i) {
-      void *root = currentFrame->roots[i];
-      // FIXME: is it always null if not yet initialized?
-      if (!root)
-        continue;
-
-      struct AllocHeader *header = root - sizeof(struct AllocHeader);
-
-      fprintf(stderr, "  addr: %p, data: %p, value: %f\n", header, root,
-              *(double *)root);
-
-      header->marked = 1;
-    }
+    for (int32_t i = 0; i < *currentFrame->rootCnt; ++i)
+      mark(currentFrame->roots[i]);
 
     currentFrame = currentFrame->parent;
   }
