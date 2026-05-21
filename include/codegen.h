@@ -12,7 +12,16 @@
 
 namespace yl {
 class Codegen {
-  using InstCtxTy = std::map<const res::TypeParamDecl *, res::Type *>;
+  struct InstCtxTy : std::map<const res::TypeParamDecl *, res::Type *> {
+    const res::Type *getInstantiatedType(const res::Type *type) {
+      if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
+        auto it = find(typeParamTy->decl);
+        return it == end() ? nullptr : it->second;
+      }
+
+      return type;
+    }
+  };
 
   class EnterInstantiationRAII {
     Codegen *codegen;
@@ -33,7 +42,8 @@ class Codegen {
     EnterInstantiationRAII(Codegen *codegen, const res::StructType *st)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
-      impl(st->getDecl()->typeParams, st->getTypeArgs());
+      if (st)
+        impl(st->getDecl()->typeParams, st->getTypeArgs());
     }
 
     EnterInstantiationRAII(Codegen *codegen, const res::DeclRefExpr *dre)
@@ -128,8 +138,12 @@ class Codegen {
   void generateMainWrapper();
 
   llvm::Value *allocateHeapStorage(const std::string_view identifier,
-                                   llvm::Type *type);
-  void markGCRoot(llvm::AllocaInst *alloca, llvm::Type *type);
+                                   llvm::Type *type,
+                                   llvm::Value *metadataPtr);
+  std::vector<size_t> getHeapPtrOffsets(const res::Type *type);
+  llvm::Value *getTypeMetadata(const res::Type *type);
+  llvm::Value *createTmpGCRoot(llvm::Value *val);
+  void markGCRoot(llvm::AllocaInst *alloca);
   llvm::Function *getOrInsertGCAlloc();
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
