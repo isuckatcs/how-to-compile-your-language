@@ -1,3 +1,5 @@
+#include <llvm/Support/FileSystem.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -156,12 +158,12 @@ int main(int argc, const char **argv) {
   llvm::raw_fd_ostream f(llvmIRPath, errorCode);
   llvmIR->print(f, nullptr);
 
+  std::string exe = llvm::sys::fs::getMainExecutable(argv[0], (void *)&main);
+  auto exeDir = std::filesystem::weakly_canonical(exe).parent_path();
+  auto libDir = exeDir.parent_path().append("lib");
+
   std::stringstream command;
-  command
-      << "clang-20 " << llvmIRPath << " -L"
-      << std::filesystem::canonical(argv[0]).parent_path().parent_path().append(
-             "lib")
-      << " -lyl_runtime";
+  command << "clang-20 " << llvmIRPath << " -L" << libDir << " -lyl_runtime";
   if (!options.output.empty())
     command << " -o " << options.output;
 
