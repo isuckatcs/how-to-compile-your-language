@@ -8,5 +8,7 @@ fn main(): unit {}
 // CHECK: define i32 @main() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @__builtin_main()
+// CHECK-NEXT:   call void @gcMark()
+// CHECK-NEXT:   call void @gcSweep()
 // CHECK-NEXT:   ret i32 0
 // CHECK-NEXT: }
