@@ -721,9 +721,8 @@ Codegen::allocateStackVariable(const std::string_view identifier,
 llvm::Value *Codegen::allocateHeapStorage(const std::string_view identifier,
                                           llvm::Type *type,
                                           llvm::Value *metadataPtr) {
-  // FIXME: select int type based on the platform
   auto *allocSize =
-      builder.getInt64(module.getDataLayout().getTypeAllocSize(type));
+      builder.getInt32(module.getDataLayout().getTypeAllocSize(type));
   return builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadataPtr});
 }
 
@@ -807,6 +806,10 @@ llvm::Value *Codegen::createTmpGCRoot(llvm::Value *val) {
 }
 
 void Codegen::markGCRoot(llvm::AllocaInst *alloca) {
+  llvm::Function *function = getCurrentFunction();
+  if (!function->hasGC())
+    function->setGC("shadow-stack");
+
   llvm::IRBuilder<> tmpBuilder(context);
   tmpBuilder.SetInsertPoint(rootMarkInsertPoint);
   llvm::Function *gcroot =
@@ -822,10 +825,9 @@ llvm::Function *Codegen::getOrInsertGCAlloc() {
     return gcAlloc;
 
   return llvm::Function::Create(
-      llvm::FunctionType::get(
-          llvm::PointerType::get(context, 0),
-          {builder.getIntPtrTy(module.getDataLayout()), builder.getPtrTy()},
-          false),
+      llvm::FunctionType::get(llvm::PointerType::get(context, 0),
+                              {builder.getInt32Ty(), builder.getPtrTy()},
+                              false),
       llvm::Function::ExternalLinkage, "gcAlloc", module);
 }
 
@@ -964,9 +966,6 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   rootMarkInsertPoint->eraseFromParent();
   rootMarkInsertPoint = nullptr;
 
-  builder.CreateCall(getOrInsertGCMark());
-  builder.CreateCall(getOrInsertGCSweep());
-
   if (returnTy->isVoidTy())
     builder.CreateRetVoid();
   else
@@ -1014,7 +1013,6 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                           name, module);
-  function->setGC("shadow-stack");
   function->setAttributes(constructAttrList(type));
 
   pendingFunctions.push({instCtx, name, &fn});
