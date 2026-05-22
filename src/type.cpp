@@ -83,6 +83,12 @@ bool StructType::isGc() const { return decl->isGc; }
 OutParamType::OutParamType(Type *paramType)
     : Type("&", std::vector<res::Type *>{paramType}){};
 
+PointerType::PointerType(Type *pointeeType)
+    : Type("*", std::vector<res::Type *>{pointeeType}){};
+
+MutablePointerType::MutablePointerType(Type *pointeeType)
+    : Type("*mut", std::vector<res::Type *>{pointeeType}){};
+
 TraitType::TraitType(TraitDecl &decl, std::vector<Type *> args)
     : Type(decl.identifier, std::move(args)),
       decl(&decl) {}
@@ -180,6 +186,18 @@ TypeParamType *TypeManager::getTypeParamType(TypeParamDecl &decl) {
 OutParamType *TypeManager::getOutParamType(Type *pointeeType) {
   auto *ptrTy = new OutParamType(pointeeType);
   types.emplace_back(std::unique_ptr<OutParamType>(ptrTy));
+  return ptrTy;
+}
+
+PointerType *TypeManager::getPointerType(Type *pointeeType) {
+  auto *ptrTy = new PointerType(pointeeType);
+  types.emplace_back(std::unique_ptr<PointerType>(ptrTy));
+  return ptrTy;
+}
+
+MutablePointerType *TypeManager::getMutablePointerType(Type *pointeeType) {
+  auto *ptrTy = new MutablePointerType(pointeeType);
+  types.emplace_back(std::unique_ptr<MutablePointerType>(ptrTy));
   return ptrTy;
 }
 
@@ -342,6 +360,10 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getStructType(*s->getDecl(), s->getTypeArgs());
   else if (auto *p = t->getAs<OutParamType>())
     t = getOutParamType(p->getParamType());
+  else if (auto *p = t->getAs<PointerType>())
+    t = getPointerType(p->getPointeeType());
+  else if (auto *p = t->getAs<MutablePointerType>())
+    t = getPointerType(p->getPointeeType());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
 
