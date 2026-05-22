@@ -22,7 +22,7 @@ struct ShadowStackFrame {
   void *roots[];
 };
 
-extern struct ShadowStackFrame *llvm_gc_root_chain;
+struct ShadowStackFrame *llvm_gc_root_chain;
 
 static const int32_t minThreshold = 16;
 static int32_t threshold = minThreshold;
