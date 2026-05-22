@@ -26,8 +26,8 @@ public:
   explicit TypedNode(Type *type)
       : type(type) {}
 
-  Type *getType() { return type; }
-  const Type *getType() const { return type; }
+  Type *getType() { return type->getRootType(); }
+  const Type *getType() const { return type->getRootType(); }
 };
 
 struct Stmt {
