@@ -74,8 +74,10 @@ void *gcAlloc(size_t size, const struct Metadata *metadata) {
   return ptr + offset;
 }
 
+// Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
+// in the `gc-lowering` pass, and pointers inside allocated objects are also
+// `null` initially because `calloc()` is used.
 static void mark(void *root) {
-  // FIXME: is it always null if not yet initialized?
   if (!root)
     return;
 
