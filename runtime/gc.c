@@ -10,7 +10,8 @@ struct Metadata {
 struct AllocHeader {
   struct AllocHeader *next;
   const struct Metadata *metadata;
-  int marked;
+  int32_t size;
+  int32_t marked;
 };
 
 static struct AllocHeader *allocatedBlocks = NULL;
@@ -21,57 +22,51 @@ struct ShadowStackFrame {
   void *roots[];
 };
 
+extern struct ShadowStackFrame *llvm_gc_root_chain;
+
+static const int32_t minThreshold = 16;
+static int32_t threshold = minThreshold;
+static int32_t heapSize = 0;
+
+static int32_t markCycle = 0;
+static int32_t sweepCycle = 0;
+
 enum Phase {
   ALLOC,
   MARK,
   SWEEP,
 };
 
-static int markCycle = 0;
-static int sweepCycle = 0;
-
-static void log(enum Phase phase, struct AllocHeader *block, size_t size) {
+static void log(enum Phase phase, struct AllocHeader *block) {
   if (!getenv("YL_GC_DUMP"))
     return;
 
   void *data = (void *)block + sizeof(struct AllocHeader);
   switch (phase) {
   case ALLOC:
-    fprintf(stderr, "alloc %ld @%p, data: %p", size, block, data);
+    fprintf(stderr, "alloc");
     break;
   case MARK:
-    fprintf(stderr, "[%d] mark @%p, data: %p", markCycle, block, data);
+    fprintf(stderr, "[%d] mark", markCycle);
     break;
   case SWEEP:
-    fprintf(stderr, "[%d] sweep @%p, data: %p", sweepCycle, block, data);
+    fprintf(stderr, "[%d] sweep", sweepCycle);
     break;
   }
 
-  if (block->metadata) {
-    fprintf(stderr, " offsets:");
-    for (int i = 0; i < block->metadata->offsetCnt; ++i) {
-      int32_t offset = block->metadata->offsets[i];
-      fprintf(stderr, " {%d @%p}", offset, *(void **)(data + offset));
+  if (block) {
+    fprintf(stderr, " @%p, data: %p (%d B)", block, data, block->size);
+
+    if (block->metadata) {
+      fprintf(stderr, " offsets:");
+      for (int i = 0; i < block->metadata->offsetCnt; ++i) {
+        int32_t offset = block->metadata->offsets[i];
+        fprintf(stderr, " {%d @%p}", offset, *(void **)(data + offset));
+      }
     }
   }
 
-  fprintf(stderr, "\n");
-}
-
-extern struct ShadowStackFrame *llvm_gc_root_chain;
-
-void *gcAlloc(size_t size, const struct Metadata *metadata) {
-  size_t offset = sizeof(struct AllocHeader);
-  void *ptr = calloc(1, offset + size);
-
-  struct AllocHeader *header = (struct AllocHeader *)ptr;
-  header->next = allocatedBlocks;
-  header->metadata = metadata;
-
-  log(ALLOC, header, size);
-
-  allocatedBlocks = header;
-  return ptr + offset;
+  fprintf(stderr, " {heap: %d B, threshold: %d B} \n", heapSize, threshold);
 }
 
 // Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
@@ -86,7 +81,7 @@ static void mark(void *root) {
     return;
 
   header->marked = 1;
-  log(MARK, header, 0);
+  log(MARK, header);
 
   const struct Metadata *metadata = header->metadata;
   if (!metadata)
@@ -120,11 +115,39 @@ void gcSweep() {
       continue;
     }
 
-    log(SWEEP, blockPtr, 0);
-
+    heapSize -= blockPtr->size;
     *blockPtrPtr = blockPtr->next;
+
+    log(SWEEP, blockPtr);
     free(blockPtr);
   }
 
+  threshold = heapSize * 2;
+  if (threshold < minThreshold)
+    threshold = minThreshold;
+
+  log(SWEEP, NULL);
   ++sweepCycle;
+}
+
+void *gcAlloc(int32_t size, const struct Metadata *metadata) {
+  size_t offset = sizeof(struct AllocHeader);
+  void *ptr = calloc(1, offset + size);
+
+  struct AllocHeader *header = (struct AllocHeader *)ptr;
+  header->metadata = metadata;
+  header->size = size;
+  header->next = allocatedBlocks;
+
+  heapSize += size;
+  allocatedBlocks = header;
+  log(ALLOC, header);
+
+  if (heapSize > threshold) {
+    mark(ptr + offset);
+    gcMark();
+    gcSweep();
+  }
+
+  return ptr + offset;
 }
