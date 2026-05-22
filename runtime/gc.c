@@ -21,6 +21,43 @@ struct ShadowStackFrame {
   void *roots[];
 };
 
+enum Phase {
+  ALLOC,
+  MARK,
+  SWEEP,
+};
+
+static int markCycle = 0;
+static int sweepCycle = 0;
+
+static void log(enum Phase phase, struct AllocHeader *block, size_t size) {
+  if (!getenv("YL_GC_DUMP"))
+    return;
+
+  void *data = (void *)block + sizeof(struct AllocHeader);
+  switch (phase) {
+  case ALLOC:
+    fprintf(stderr, "alloc %ld @%p, data: %p", size, block, data);
+    break;
+  case MARK:
+    fprintf(stderr, "[%d] mark @%p, data: %p", markCycle, block, data);
+    break;
+  case SWEEP:
+    fprintf(stderr, "[%d] sweep @%p, data: %p", sweepCycle, block, data);
+    break;
+  }
+
+  if (block->metadata) {
+    fprintf(stderr, " offsets:");
+    for (int i = 0; i < block->metadata->offsetCnt; ++i) {
+      int32_t offset = block->metadata->offsets[i];
+      fprintf(stderr, " {%d @%p}", offset, *(void **)(data + offset));
+    }
+  }
+
+  fprintf(stderr, "\n");
+}
+
 extern struct ShadowStackFrame *llvm_gc_root_chain;
 
 void *gcAlloc(size_t size, const struct Metadata *metadata) {
@@ -31,11 +68,7 @@ void *gcAlloc(size_t size, const struct Metadata *metadata) {
   header->next = allocatedBlocks;
   header->metadata = metadata;
 
-  fprintf(stderr, "alloc:\n  addr: %p, data: %p (%ld byte), meta: %p\n", ptr,
-          ptr + offset, size, metadata);
-  if (metadata)
-    for (int i = 0; i < metadata->offsetCnt; ++i)
-      printf("  %d\n", metadata->offsets[0]);
+  log(ALLOC, header, size);
 
   allocatedBlocks = header;
   return ptr + offset;
@@ -51,9 +84,7 @@ static void mark(void *root) {
     return;
 
   header->marked = 1;
-
-  fprintf(stderr, "  addr: %p, data: %p, value: %f\n", header, root,
-          *(double *)root);
+  log(MARK, header, 0);
 
   const struct Metadata *metadata = header->metadata;
   if (!metadata)
@@ -64,8 +95,6 @@ static void mark(void *root) {
 }
 
 void gcMark() {
-  fprintf(stderr, "mark (reachable):\n");
-
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
     for (int32_t i = 0; i < *currentFrame->rootCnt; ++i)
@@ -73,10 +102,11 @@ void gcMark() {
 
     currentFrame = currentFrame->parent;
   }
+
+  ++markCycle;
 }
 
 void gcSweep() {
-  fprintf(stderr, "sweep (freed):\n");
   struct AllocHeader **blockPtrPtr = &allocatedBlocks;
 
   while (*blockPtrPtr) {
@@ -88,10 +118,11 @@ void gcSweep() {
       continue;
     }
 
+    log(SWEEP, blockPtr, 0);
+
     *blockPtrPtr = blockPtr->next;
-    fprintf(stderr, "  addr: %p, data: %p, value: %f\n", blockPtr,
-            (void *)blockPtr + sizeof(struct AllocHeader),
-            *(double *)((void *)blockPtr + sizeof(struct AllocHeader)));
     free(blockPtr);
   }
+
+  ++sweepCycle;
 }
