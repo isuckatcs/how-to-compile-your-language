@@ -218,10 +218,8 @@ res::StructDecl *Sema::createBuiltinGc(res::Context &ctx) {
 
   std::vector<res::TypeParamDecl *> typeParamDecls = {typeParamDecl};
   auto *structTy = typeMgr.getNewUninferredType();
-  auto *structDecl =
-      ctx.create<res::StructDecl>(loc, structTy, gcId, typeParamDecls);
-
-  structDecl->isGc = true;
+  auto *structDecl = ctx.create<res::StructDecl>(loc, structTy, gcId, false,
+                                                 true, typeParamDecls);
   typeMgr.unify(structTy, typeMgr.getStructType(*structDecl, {typeParamTy}));
 
   auto *fieldDecl = ctx.create<res::FieldDecl>(loc, typeParamTy, "val");
@@ -789,9 +787,8 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
 
   res::Type *lambdaTy = typeMgr.getNewUninferredType();
-  auto *lambda = ctx.create<res::StructDecl>(loc, lambdaTy, structId.str());
-
-  lambda->isLambda = true;
+  auto *lambda =
+      ctx.create<res::StructDecl>(loc, lambdaTy, structId.str(), true);
   typeMgr.unify(lambdaTy, typeMgr.getStructType(*lambda, {}));
 
   bool error = false;
@@ -1617,7 +1614,7 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &decl) {
   auto *structTy = typeMgr.getNewUninferredType();
   auto *structDecl = ctx.create<res::StructDecl>(
-      decl.location, structTy, decl.identifier,
+      decl.location, structTy, decl.identifier, false, false,
       resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
 
   std::vector<res::Type *> typeParamTys;
