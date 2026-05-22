@@ -69,6 +69,20 @@ struct OutParamType : public Type {
   void dump(size_t level = 0) const override;
 };
 
+struct PointerType : public Type {
+  std::unique_ptr<Type> pointeeType;
+  bool isMut;
+
+  PointerType(SourceLocation location,
+              std::unique_ptr<Type> pointeeType,
+              bool isMut)
+      : Type(location),
+        pointeeType(std::move(pointeeType)),
+        isMut(isMut) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct Decl {
   SourceLocation location;
   std::string identifier;

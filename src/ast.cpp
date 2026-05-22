@@ -39,6 +39,12 @@ void OutParamType::dump(size_t level) const {
   paramType->dump(level + 1);
 }
 
+void PointerType::dump(size_t level) const {
+  std::cerr << indent(level) << "PointerType" << (isMut ? " mut" : "") << '\n';
+
+  pointeeType->dump(level + 1);
+}
+
 void Block::dump(size_t level) const {
   std::cerr << indent(level) << "Block\n";
 
