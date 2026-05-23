@@ -504,19 +504,29 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   }
 
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
-  if (call.isBuiltinGcCall()) {
-    const res::Type *argType =
-        instCtx.getInstantiatedType(call.arguments[0]->getType());
-    llvm::Type *argTy = generateType(argType);
+  const auto *calleeFnDecl = call.getCalleeFn();
+  if (calleeFnDecl) {
+    if (calleeFnDecl->identifier == "gc" ||
+        calleeFnDecl->identifier == "gcMut") {
+      const res::Type *argType =
+          instCtx.getInstantiatedType(call.arguments[0]->getType());
+      llvm::Type *argTy = generateType(argType);
 
-    auto *allocSize =
-        builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
+      auto *allocSize =
+          builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
 
-    llvm::Value *metadata = getTypeMetadata(argType);
-    llvm::Value *ptr =
-        builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
-    storeValue(args[0], ptr, argTy);
-    return ptr;
+      llvm::Value *metadata = getTypeMetadata(argType);
+      llvm::Value *ptr =
+          builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
+      storeValue(args[0], ptr, argTy);
+      return ptr;
+    }
+
+    if (calleeFnDecl->identifier == "gcCollect") {
+      builder.CreateCall(getOrInsertGCMark());
+      builder.CreateCall(getOrInsertGCSweep());
+      return nullptr;
+    }
   }
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);

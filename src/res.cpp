@@ -195,16 +195,16 @@ void PathExpr::dump(size_t level) const {
     fragment->dump(level + 1);
 }
 
-bool CallExpr::isBuiltinGcCall() const {
+const res::FunctionDecl *CallExpr::getCalleeFn() const {
   const auto *pathExpr = dynamic_cast<const res::PathExpr *>(callee);
   if (!pathExpr)
-    return false;
+    return nullptr;
 
   const auto *fn = pathExpr->fragments.back()->decl->getAs<res::FunctionDecl>();
   if (!fn)
-    return false;
+    return nullptr;
 
-  return fn->identifier == "gc" || fn->identifier == "gcMut";
+  return fn;
 }
 
 void CallExpr::dump(size_t level) const {
