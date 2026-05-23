@@ -817,6 +817,14 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                                          const ast::MemberExpr &memberExpr) {
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
+
+  res::Type *baseType = base->getType();
+  if (auto *ptr = baseType->getAs<res::PointerType>())
+    base = ctx.create<res::UnaryOperator>(
+        base->location, ptr->getPointeeType(), TokenKind::Asterisk, base,
+        ptr->isMutable() ? res::Expr::Kind::MutLvalue
+                         : res::Expr::Kind::Lvalue);
+
   varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
                              ctx, base->getType(), memberExpr.member.get()));
 
