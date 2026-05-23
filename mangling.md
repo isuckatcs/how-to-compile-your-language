@@ -13,6 +13,8 @@
 <type>
     ::= 'n'
     |   'v'
+    |   'p' <type>
+    |   'm' <type>
     |   <structType>
     |   <traitType>
     |   <functionType>
