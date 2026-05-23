@@ -1963,33 +1963,33 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
 }
 
 bool Sema::hasSelfContainingStructs(res::Context &ctx) {
-  std::stack<res::StructType *> worklist;
+  std::stack<std::pair<res::StructType *, int>> worklist;
   std::set<res::StructDecl *> selfContaining;
 
   for (auto &&sd : ctx.getStructs()) {
-    std::vector<res::StructType *> seen;
-    worklist.emplace(sd->getType()->getAs<res::StructType>());
+    std::vector<std::pair<res::StructType *, int>> seen;
+    worklist.emplace(sd->getType()->getAs<res::StructType>(), 0);
 
     while (!worklist.empty()) {
-      res::StructType *ty = worklist.top();
+      auto &&[ty, level] = worklist.top();
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
       res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
 
-      for (auto &&seenTy : seen)
-        if (typeMgr.unify(seenTy, ty).empty())
+      for (auto &&[seenTy, seenLevel] : seen)
+        if (seenLevel < level && typeMgr.unify(seenTy, ty).empty())
           selfContaining.emplace(decl);
 
       if (selfContaining.count(decl))
         continue;
 
-      seen.emplace_back(ty);
+      seen.emplace_back(ty, level);
 
       for (auto &&field : decl->getAll<res::FieldDecl>())
         if (auto *structTy = typeMgr.instantiate(field->getType(), sub)
                                  ->getAs<res::StructType>())
-          worklist.emplace(structTy);
+          worklist.emplace(structTy, level + 1);
     }
   }
 

@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct Empty {}
+// CHECK: StructDecl @({{.*}}) Empty {Empty}
+
+struct S {
+  x: Empty
+  y: Empty
+  z: Empty
+  w: Empty
+}
+// CHECK-NEXT: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {Empty}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {Empty}
+// CHECK-NEXT:   FieldDecl @({{.*}}) z {Empty}
+// CHECK-NEXT:   FieldDecl @({{.*}}) w {Empty}
+
+fn main() {}
