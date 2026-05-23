@@ -23,7 +23,7 @@ struct Mangling {
     if (type->getAs<res::BuiltinNumberType>())
       return "n";
 
-    if (const auto *p = type->getAs<res::PointerType>())
+    if (const auto *p = type->getAs<res::ImmutablePointerType>())
       return "p" + mangleType(p->getPointeeType(), substitution);
 
     if (const auto *mp = type->getAs<res::MutablePointerType>())
@@ -126,6 +126,9 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
 
   if (const auto *s = type->getAs<res::StructType>())
     return generateStructType(s);
+
+  if (const auto *p = type->getAs<res::PointerType>())
+    return llvm::PointerType::get(context, 0);
 
   if (type->getAs<res::FunctionType>())
     return llvm::PointerType::get(context, 0);
@@ -257,7 +260,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   if (initExpr)
     storeValue(initVal, var, declTy);
 
-  if (decl->getType()->isGc())
+  if (decl->getType()->getAs<res::PointerType>())
     markGCRoot(var);
 
   declarations[decl] = var;
@@ -284,8 +287,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
 
   auto *structTy = memberExpr.base->getType()->getAs<res::StructType>();
-  if (structTy->isGc())
-    return builder.CreateLoad(llvm::PointerType::get(context, 0), base);
+  llvm::Type *baseTy = generateType(structTy);
 
   if (generateType(memberExpr.getType())->isVoidTy())
     return nullptr;
@@ -302,32 +304,19 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
       ++index;
   }
 
-  llvm::Type *baseTy = generateType(structTy);
   return builder.CreateStructGEP(baseTy, base, index);
 }
 
 llvm::Value *
 Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   auto *structTy = sie.getType()->getAs<res::StructType>();
-  if (structTy->isGc()) {
-    auto *init = sie.fieldInitializers[0]->initializer;
-    auto *initTy = generateType(init->getType());
-
-    llvm::Value *ptr = allocateHeapStorage("gc.alloc", initTy,
-                                           getTypeMetadata(init->getType()));
-    llvm::Value *val = generateExpr(*init);
-    storeValue(val, ptr, initTy);
-
-    return ptr;
-  }
-
   std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
 
   for (auto &&initStmt : sie.fieldInitializers) {
     const auto *init = initStmt->initializer;
     llvm::Value *val = generateExprAndLoadValue(*init);
 
-    if (instCtx.getInstantiatedType(init->getType())->isGc())
+    if (instCtx.getInstantiatedType(init->getType())->getAs<res::PointerType>())
       val = createTmpGCRoot(val);
 
     fieldInits[initStmt->field] = val;
@@ -345,7 +334,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
     llvm::Value *val = generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
 
     if (instCtx.getInstantiatedType(lambdaExpr.fieldInits[i]->getType())
-            ->isGc())
+            ->getAs<res::PointerType>())
       val = createTmpGCRoot(val);
 
     fieldInits[fieldDecls[i]] = val;
@@ -516,7 +505,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
       argVal = tmpVar;
     }
 
-    if (instCtx.getInstantiatedType(arg->getType())->isGc())
+    if (instCtx.getInstantiatedType(arg->getType())->getAs<res::PointerType>())
       argVal = createTmpGCRoot(argVal);
 
     args.emplace_back(argVal);
@@ -524,6 +513,16 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   }
 
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
+  if (call.isBuiltinGcCall()) {
+    auto *allocSize = builder.getInt32(
+        module.getDataLayout().getTypeAllocSize(args[0]->getType()));
+
+    llvm::Value *metadata = getTypeMetadata(call.arguments[0]->getType());
+    llvm::Value *ptr =
+        builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
+    storeValue(args[0], ptr, args[0]->getType());
+    return ptr;
+  }
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   llvm::CallInst *callInst =
@@ -536,6 +535,9 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   if (unop.op == TokenKind::Amp)
     return generateExpr(*unop.operand);
+
+  if (unop.op == TokenKind::Asterisk)
+    return builder.CreateLoad(builder.getPtrTy(), generateExpr(*unop.operand));
 
   llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 
@@ -733,16 +735,16 @@ llvm::Value *Codegen::allocateHeapStorage(const std::string_view identifier,
 }
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
-  const auto *structType = type->getAs<res::StructType>();
-  if (!structType)
-    return {};
-
-  if (structType->isGc()) {
-    if (structType->getTypeArgs()[0]->isGc())
+  if (const auto *p = type->getAs<res::PointerType>()) {
+    if (p->getPointeeType()->getAs<res::PointerType>())
       return {0};
 
     return {};
   }
+
+  const auto *structType = type->getAs<res::StructType>();
+  if (!structType)
+    return {};
 
   llvm::Type *structTy = generateType(structType);
   if (!structTy->isStructTy())
@@ -764,7 +766,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
       continue;
 
     llvm::TypeSize fieldOffset = structLayout->getElementOffset(i);
-    if (structFieldType->isGc())
+    if (structFieldType->getAs<res::PointerType>())
       offsets.push_back(fieldOffset);
     else
       for (auto &&nestedOffset : getHeapPtrOffsets(structFieldType))
@@ -1026,9 +1028,6 @@ Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
 }
 
 llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
-  if (structTy->isGc())
-    return llvm::PointerType::get(context, 0);
-
   EnterInstantiationRAII structInst(this, structTy);
 
   std::vector<llvm::Type *> fieldTypes;
