@@ -762,16 +762,21 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
   std::vector<size_t> offsets;
 
-  const auto &fields = structType->getDecl()->getAll<res::FieldDecl>();
-  for (int i = 0; i < fields.size(); ++i) {
-    llvm::TypeSize fieldOffset = structLayout->getElementOffset(i);
-    const auto *fieldType = instCtx.getInstantiatedType(fields[i]->getType());
+  int fieldIdx = 0;
+  for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
+    if (generateType(field->getType())->isVoidTy())
+      continue;
+
+    llvm::TypeSize fieldOffset = structLayout->getElementOffset(fieldIdx);
+    const auto *fieldType = instCtx.getInstantiatedType(field->getType());
 
     if (fieldType->getAs<res::PointerType>())
       offsets.push_back(fieldOffset);
     else if (fieldType->getAs<res::StructType>())
       for (auto &&nestedOffset : getHeapPtrOffsets(fieldType))
         offsets.push_back(fieldOffset + nestedOffset);
+
+    ++fieldIdx;
   }
 
   return offsets;
