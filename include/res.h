@@ -306,8 +306,8 @@ struct FunctionDecl : public ValueDecl {
   FunctionDecl(SourceLocation location,
                Type *type,
                std::string identifier,
-               std::vector<TypeParamDecl *> typeParams,
-               std::vector<ParamDecl *> params,
+               std::vector<TypeParamDecl *> typeParams = {},
+               std::vector<ParamDecl *> params = {},
                Decl *parent = nullptr,
                FunctionDecl *implements = nullptr)
       : ValueDecl(location,

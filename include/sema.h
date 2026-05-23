@@ -216,6 +216,7 @@ class Sema {
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
   res::FunctionDecl *createBuiltinGC(res::Context &ctx);
   res::FunctionDecl *createBuiltinGCMut(res::Context &ctx);
+  res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 
   bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);
   bool checkReturnOnAllPaths(res::Context &ctx,

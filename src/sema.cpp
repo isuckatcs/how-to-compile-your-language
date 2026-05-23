@@ -247,6 +247,16 @@ res::FunctionDecl *Sema::createBuiltinGCMut(res::Context &ctx) {
   return fn;
 }
 
+res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
+  SourceLocation loc{nullptr, 0, 0};
+
+  auto *fnTy = typeMgr.getFunctionType({}, typeMgr.getBuiltinUnitType());
+  auto *fn = ctx.create<res::FunctionDecl>(loc, fnTy, "gcCollect");
+  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
+
+  return fn;
+}
+
 res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
@@ -1849,6 +1859,7 @@ res::Context *Sema::resolveAST() {
 
   insertDeclToScope(createBuiltinGC(ctx), lexicalScope);
   insertDeclToScope(createBuiltinGCMut(ctx), lexicalScope);
+  insertDeclToScope(createBuiltinGCCollect(ctx), lexicalScope);
   insertDeclToScope(createBuiltinPrintln(ctx), lexicalScope);
 
   for (auto &&fn : ast->functions) {
