@@ -50,29 +50,29 @@ static void log(enum Phase phase, struct AllocHeader *block) {
   void *data = (void *)block + sizeof(struct AllocHeader);
   switch (phase) {
   case ALLOC:
-    fprintf(stderr, "alloc");
+    printf("alloc");
     break;
   case MARK:
-    fprintf(stderr, "[%d] mark", markCycle);
+    printf("[%d] mark", markCycle);
     break;
   case SWEEP:
-    fprintf(stderr, "[%d] sweep", sweepCycle);
+    printf("[%d] sweep", sweepCycle);
     break;
   }
 
   if (block) {
-    fprintf(stderr, " @%p, data: %p (%d B)", block, data, block->size);
+    printf(" @%p, data: %p (%d B)", block, data, block->size);
 
     if (block->metadata) {
-      fprintf(stderr, " offsets:");
+      printf(" offsets:");
       for (int i = 0; i < block->metadata->offsetCnt; ++i) {
         int32_t offset = block->metadata->offsets[i];
-        fprintf(stderr, " {%d @%p}", offset, *(void **)(data + offset));
+        printf(" {%d @%p}", offset, *(void **)(data + offset));
       }
     }
   }
 
-  fprintf(stderr, " {heap: %d B, threshold: %d B} \n", heapSize, threshold);
+  printf(" {heap: %d B, threshold: %d B} \n", heapSize, threshold);
 }
 
 static void mark(void *root);
