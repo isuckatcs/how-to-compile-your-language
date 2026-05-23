@@ -29,7 +29,6 @@ struct Type {
   }
 
   virtual std::string getName() const { return name; };
-  virtual bool isGc() const { return false; }
 
   virtual const Type *getRootType() const { return this; }
   virtual ~Type() = default;
@@ -115,7 +114,6 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
 
   std::string getName() const override;
-  bool isGc() const override;
 
   friend class TypeManager;
 };
@@ -133,24 +131,27 @@ public:
 };
 
 class PointerType : public Type {
-  PointerType(Type *pointeeType);
+protected:
+  PointerType(std::string identifier, Type *pointeeType);
 
 public:
   Type *getPointeeType() { return args[0]->getRootType(); }
   const Type *getPointeeType() const { return args[0]->getRootType(); }
+};
 
+class ImmutablePointerType : public PointerType {
+  ImmutablePointerType(Type *pointeeType);
+
+public:
   std::string getName() const override { return "*" + args[0]->getName(); }
 
   friend class TypeManager;
 };
 
-class MutablePointerType : public Type {
+class MutablePointerType : public PointerType {
   MutablePointerType(Type *pointeeType);
 
 public:
-  Type *getPointeeType() { return args[0]->getRootType(); }
-  const Type *getPointeeType() const { return args[0]->getRootType(); }
-
   std::string getName() const override { return "*mut " + args[0]->getName(); }
 
   friend class TypeManager;
@@ -198,7 +199,7 @@ public:
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   OutParamType *getOutParamType(Type *pointeeType);
-  PointerType *getPointerType(Type *pointeeType);
+  ImmutablePointerType *getImmutablePointerType(Type *pointeeType);
   MutablePointerType *getMutablePointerType(Type *pointeeType);
 
   bool moreGeneral(Type *t1, Type *t2);

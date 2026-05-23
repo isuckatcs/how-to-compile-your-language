@@ -218,8 +218,8 @@ res::FunctionDecl *Sema::createBuiltinGC(res::Context &ctx) {
 
   auto *param = ctx.create<res::ParamDecl>(loc, typeParamTy, "t", false);
 
-  auto *fnTy = typeMgr.getFunctionType({typeParamTy},
-                                       typeMgr.getPointerType(typeParamTy));
+  auto *fnTy = typeMgr.getFunctionType(
+      {typeParamTy}, typeMgr.getImmutablePointerType(typeParamTy));
   auto *fn = ctx.create<res::FunctionDecl>(
       loc, fnTy, "gc", std::vector<res::TypeParamDecl *>{typeParamDecl},
       std::vector{param});
@@ -326,7 +326,7 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     if (ptr->isMut)
       return typeMgr.getMutablePointerType(pointeeType);
 
-    return typeMgr.getPointerType(pointeeType);
+    return typeMgr.getImmutablePointerType(pointeeType);
   }
 
   llvm_unreachable("unexpected ast type encountered");
@@ -360,14 +360,14 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
 
   res::Expr::Kind kind = res::Expr::Kind::Rvalue;
   if (unary.op == TokenKind::Asterisk) {
-    if (auto *ptr = rhsTy->getAs<res::PointerType>()) {
-      kind = res::Expr::Kind::Lvalue;
-      rhsTy = ptr->getPointeeType();
-    } else if (auto *ptr = rhsTy->getAs<res::MutablePointerType>()) {
-      kind = res::Expr::Kind::MutLvalue;
-      rhsTy = ptr->getPointeeType();
-    } else
+    auto *ptr = rhsTy->getAs<res::PointerType>();
+    if (!ptr)
       return err::expectedPointerOperand(rhs->location).report(reporter);
+
+    kind = rhsTy->getAs<res::ImmutablePointerType>()
+               ? res::Expr::Kind::Lvalue
+               : res::Expr::Kind::MutLvalue;
+    rhsTy = ptr->getPointeeType();
   }
 
   return ctx.create<res::UnaryOperator>(unary.location, rhsTy, unary.op, rhs,
