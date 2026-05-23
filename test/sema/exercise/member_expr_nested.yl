@@ -3,25 +3,22 @@ struct S {
   x: number,
   n: S2
 }
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) n {S2}
 
 struct S2 {
   x: number
 }
+// CHECK: StructDecl @({{.*}}) S2 {S2}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 
 fn main(): unit {
   let s = S { x: 0, n: S2 { x: 1 } };
 
   let x = s.n.x;
 }
-// CHECK: StructDecl @({{.*}}) S {S}
-// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
-// CHECK-NEXT:   FieldDecl @({{.*}}) n {S2}
-// CHECK-NEXT: StructDecl @({{.*}}) S2 {S2}
-// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
-// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
-// CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S}

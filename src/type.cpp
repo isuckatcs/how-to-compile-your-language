@@ -363,7 +363,7 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
   else if (auto *p = t->getAs<PointerType>())
     t = getPointerType(p->getPointeeType());
   else if (auto *p = t->getAs<MutablePointerType>())
-    t = getPointerType(p->getPointeeType());
+    t = getMutablePointerType(p->getPointeeType());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
 

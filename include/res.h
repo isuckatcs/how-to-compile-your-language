@@ -450,8 +450,9 @@ struct UnaryOperator : public Expr {
   UnaryOperator(SourceLocation location,
                 Type *type,
                 TokenKind op,
-                Expr *operand)
-      : Expr(location, type, Expr::Kind::Rvalue),
+                Expr *operand,
+                Expr::Kind kind)
+      : Expr(location, type, kind),
         op(op),
         operand(operand) {}
 

@@ -209,23 +209,42 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   return fn;
 };
 
-res::StructDecl *Sema::createBuiltinGc(res::Context &ctx) {
+res::FunctionDecl *Sema::createBuiltinGC(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
   auto *typeParamTy = typeMgr.getNewUninferredType();
   auto *typeParamDecl = ctx.create<res::TypeParamDecl>(loc, typeParamTy, "T");
   typeMgr.unify(typeParamTy, typeMgr.getTypeParamType(*typeParamDecl));
 
-  std::vector<res::TypeParamDecl *> typeParamDecls = {typeParamDecl};
-  auto *structTy = typeMgr.getNewUninferredType();
-  auto *structDecl = ctx.create<res::StructDecl>(loc, structTy, gcId, false,
-                                                 true, typeParamDecls);
-  typeMgr.unify(structTy, typeMgr.getStructType(*structDecl, {typeParamTy}));
+  auto *param = ctx.create<res::ParamDecl>(loc, typeParamTy, "t", false);
 
-  auto *fieldDecl = ctx.create<res::FieldDecl>(loc, typeParamTy, "val");
-  structDecl->insertDecl(fieldDecl);
+  auto *fnTy = typeMgr.getFunctionType({typeParamTy},
+                                       typeMgr.getPointerType(typeParamTy));
+  auto *fn = ctx.create<res::FunctionDecl>(
+      loc, fnTy, "gc", std::vector<res::TypeParamDecl *>{typeParamDecl},
+      std::vector{param});
+  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
-  return structDecl;
+  return fn;
+}
+
+res::FunctionDecl *Sema::createBuiltinGCMut(res::Context &ctx) {
+  SourceLocation loc{nullptr, 0, 0};
+
+  auto *typeParamTy = typeMgr.getNewUninferredType();
+  auto *typeParamDecl = ctx.create<res::TypeParamDecl>(loc, typeParamTy, "T");
+  typeMgr.unify(typeParamTy, typeMgr.getTypeParamType(*typeParamDecl));
+
+  auto *param = ctx.create<res::ParamDecl>(loc, typeParamTy, "t", false);
+
+  auto *fnTy = typeMgr.getFunctionType(
+      {typeParamTy}, typeMgr.getMutablePointerType(typeParamTy));
+  auto *fn = ctx.create<res::FunctionDecl>(
+      loc, fnTy, "gcMut", std::vector<res::TypeParamDecl *>{typeParamDecl},
+      std::vector{param});
+  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
+
+  return fn;
 }
 
 res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
@@ -302,6 +321,14 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     return typeMgr.getOutParamType(paramType);
   }
 
+  if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
+    varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType));
+    if (ptr->isMut)
+      return typeMgr.getMutablePointerType(pointeeType);
+
+    return typeMgr.getPointerType(pointeeType);
+  }
+
   llvm_unreachable("unexpected ast type encountered");
 }
 
@@ -331,7 +358,20 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
     rhsTy = typeMgr.getOutParamType(rhsTy);
   }
 
-  return ctx.create<res::UnaryOperator>(unary.location, rhsTy, unary.op, rhs);
+  res::Expr::Kind kind = res::Expr::Kind::Rvalue;
+  if (unary.op == TokenKind::Asterisk) {
+    if (auto *ptr = rhsTy->getAs<res::PointerType>()) {
+      kind = res::Expr::Kind::Lvalue;
+      rhsTy = ptr->getPointeeType();
+    } else if (auto *ptr = rhsTy->getAs<res::MutablePointerType>()) {
+      kind = res::Expr::Kind::MutLvalue;
+      rhsTy = ptr->getPointeeType();
+    } else
+      return err::expectedPointerOperand(rhs->location).report(reporter);
+  }
+
+  return ctx.create<res::UnaryOperator>(unary.location, rhsTy, unary.op, rhs,
+                                        kind);
 }
 
 res::BinaryOperator *
@@ -625,7 +665,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
           return err::structImmutable(baseLoc).report(reporter);
 
         selfArg = ctx.create<res::UnaryOperator>(
-            baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg);
+            baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg,
+            res::Expr::Kind::Rvalue);
       }
 
       res::DeclRefExpr *baseDre = nullptr;
@@ -998,6 +1039,12 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
   if (!lhs->isLvalue())
     return err::rvalueAssignment(lhs->location).report(reporter);
+
+  if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(lhs))
+    if (unop->op == TokenKind::Asterisk && !unop->isMutable())
+      return err::pointeeCannotBeMutated(unop->location)
+          .with(unop->operand->getType()->getName())
+          .report(reporter);
 
   auto *lhsTy = lhs->getType();
   if (lhsTy->getAs<res::FunctionType>())
@@ -1779,7 +1826,6 @@ res::Context *Sema::resolveAST() {
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
 
-  insertDeclToScope(createBuiltinGc(ctx), lexicalScope);
   for (auto &&decl : ast->decls) {
     res::Decl *rd = nullptr;
     if (const auto *sd = dynamic_cast<const ast::StructDecl *>(decl.get()))
@@ -1805,7 +1851,10 @@ res::Context *Sema::resolveAST() {
                                  *static_cast<const ast::TraitDecl *>(astDecl));
   }
 
+  insertDeclToScope(createBuiltinGC(ctx), lexicalScope);
+  insertDeclToScope(createBuiltinGCMut(ctx), lexicalScope);
   insertDeclToScope(createBuiltinPrintln(ctx), lexicalScope);
+
   for (auto &&fn : ast->functions) {
     auto *rf = resolveFunctionDecl(ctx, *fn);
     error |= !insertDeclToScope(rf, lexicalScope);
@@ -1911,9 +1960,6 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
-      if (decl->identifier == gcId)
-        continue;
-
       for (auto &&seenTy : seen)
         if (typeMgr.unify(seenTy, ty).empty())
           selfContaining.emplace(decl);

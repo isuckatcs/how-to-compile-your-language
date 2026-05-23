@@ -7,19 +7,16 @@ fn main(): unit {}
 
 struct S { x: number, y:number }
 struct S2 { x: number, y:number }
+
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 // CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
-// CHECK-NEXT: StructDecl @({{.*}}) S2 {S2}
+// CHECK: StructDecl @({{.*}}) S2 {S2}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 // CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
 
-// CHECK-NEXT: FunctionDecl @({{.*}}) println {(number) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) n {number}
-// CHECK-NEXT:   Block
-
-// CHECK-NEXT: FunctionDecl @({{.*}}) foo {(S) -> S2}
+// CHECK: FunctionDecl @({{.*}}) foo {(S) -> S2}
 // CHECK-NEXT:   ParamDecl @({{.*}}) s {S}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
@@ -35,5 +32,5 @@ struct S2 { x: number, y:number }
 // CHECK-NEXT:             PathExpr {S}
 // CHECK-NEXT:               DeclRefExpr @({{.*}}) s {S}
 
-// CHECK-NEXT: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
