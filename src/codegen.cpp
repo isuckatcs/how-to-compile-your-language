@@ -512,13 +512,17 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
   if (call.isBuiltinGcCall()) {
-    auto *allocSize = builder.getInt32(
-        module.getDataLayout().getTypeAllocSize(args[0]->getType()));
+    const res::Type *argType =
+        instCtx.getInstantiatedType(call.arguments[0]->getType());
+    llvm::Type *argTy = generateType(argType);
 
-    llvm::Value *metadata = getTypeMetadata(call.arguments[0]->getType());
+    auto *allocSize =
+        builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
+
+    llvm::Value *metadata = getTypeMetadata(argType);
     llvm::Value *ptr =
         builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
-    storeValue(args[0], ptr, args[0]->getType());
+    storeValue(args[0], ptr, argTy);
     return ptr;
   }
 
@@ -757,17 +761,13 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
   const auto &fields = structType->getDecl()->getAll<res::FieldDecl>();
   for (int i = 0; i < fields.size(); ++i) {
+    llvm::TypeSize fieldOffset = structLayout->getElementOffset(i);
     const auto *fieldType = instCtx.getInstantiatedType(fields[i]->getType());
 
-    const auto *structFieldType = fieldType->getAs<res::StructType>();
-    if (!structFieldType)
-      continue;
-
-    llvm::TypeSize fieldOffset = structLayout->getElementOffset(i);
-    if (structFieldType->getAs<res::PointerType>())
+    if (fieldType->getAs<res::PointerType>())
       offsets.push_back(fieldOffset);
-    else
-      for (auto &&nestedOffset : getHeapPtrOffsets(structFieldType))
+    else if (fieldType->getAs<res::StructType>())
+      for (auto &&nestedOffset : getHeapPtrOffsets(fieldType))
         offsets.push_back(fieldOffset + nestedOffset);
   }
 
