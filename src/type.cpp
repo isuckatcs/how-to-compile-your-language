@@ -81,14 +81,9 @@ std::string StructType::getName() const {
 OutParamType::OutParamType(Type *paramType)
     : Type("&", std::vector<res::Type *>{paramType}){};
 
-PointerType::PointerType(std::string identifier, Type *pointeeType)
-    : Type(identifier, std::vector<res::Type *>{pointeeType}){};
-
-ImmutablePointerType::ImmutablePointerType(Type *pointeeType)
-    : PointerType("*", pointeeType){};
-
-MutablePointerType::MutablePointerType(Type *pointeeType)
-    : PointerType("*mut", pointeeType){};
+PointerType::PointerType(Type *pointeeType, bool isMutable)
+    : Type(isMutable ? "*mut " : "*", std::vector<res::Type *>{pointeeType}),
+      isMut(isMutable){};
 
 TraitType::TraitType(TraitDecl &decl, std::vector<Type *> args)
     : Type(decl.identifier, std::move(args)),
@@ -190,15 +185,9 @@ OutParamType *TypeManager::getOutParamType(Type *pointeeType) {
   return ptrTy;
 }
 
-ImmutablePointerType *TypeManager::getImmutablePointerType(Type *pointeeType) {
-  auto *ptrTy = new ImmutablePointerType(pointeeType);
-  types.emplace_back(std::unique_ptr<ImmutablePointerType>(ptrTy));
-  return ptrTy;
-}
-
-MutablePointerType *TypeManager::getMutablePointerType(Type *pointeeType) {
-  auto *ptrTy = new MutablePointerType(pointeeType);
-  types.emplace_back(std::unique_ptr<MutablePointerType>(ptrTy));
+PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
+  auto *ptrTy = new PointerType(pointeeType, isMutable);
+  types.emplace_back(std::unique_ptr<PointerType>(ptrTy));
   return ptrTy;
 }
 
@@ -361,10 +350,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getStructType(*s->getDecl(), s->getTypeArgs());
   else if (auto *p = t->getAs<OutParamType>())
     t = getOutParamType(p->getParamType());
-  else if (auto *p = t->getAs<ImmutablePointerType>())
-    t = getImmutablePointerType(p->getPointeeType());
-  else if (auto *p = t->getAs<MutablePointerType>())
-    t = getMutablePointerType(p->getPointeeType());
+  else if (auto *p = t->getAs<PointerType>())
+    t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
 

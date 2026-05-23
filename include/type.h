@@ -131,28 +131,16 @@ public:
 };
 
 class PointerType : public Type {
-protected:
-  PointerType(std::string identifier, Type *pointeeType);
+  bool isMut;
+
+  PointerType(Type *pointeeType, bool isMutable);
 
 public:
   Type *getPointeeType() { return args[0]->getRootType(); }
   const Type *getPointeeType() const { return args[0]->getRootType(); }
-};
 
-class ImmutablePointerType : public PointerType {
-  ImmutablePointerType(Type *pointeeType);
-
-public:
-  std::string getName() const override { return "*" + args[0]->getName(); }
-
-  friend class TypeManager;
-};
-
-class MutablePointerType : public PointerType {
-  MutablePointerType(Type *pointeeType);
-
-public:
-  std::string getName() const override { return "*mut " + args[0]->getName(); }
+  bool isMutable() const { return isMut; }
+  std::string getName() const override { return name + args[0]->getName(); }
 
   friend class TypeManager;
 };
@@ -199,8 +187,7 @@ public:
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   OutParamType *getOutParamType(Type *pointeeType);
-  ImmutablePointerType *getImmutablePointerType(Type *pointeeType);
-  MutablePointerType *getMutablePointerType(Type *pointeeType);
+  PointerType *getPointerType(Type *pointeeType, bool isMutable);
 
   bool moreGeneral(Type *t1, Type *t2);
 

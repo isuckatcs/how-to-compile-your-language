@@ -23,11 +23,9 @@ struct Mangling {
     if (type->getAs<res::BuiltinNumberType>())
       return "n";
 
-    if (const auto *p = type->getAs<res::ImmutablePointerType>())
-      return "p" + mangleType(p->getPointeeType(), substitution);
-
-    if (const auto *mp = type->getAs<res::MutablePointerType>())
-      return "m" + mangleType(mp->getPointeeType(), substitution);
+    if (const auto *p = type->getAs<res::PointerType>())
+      return (p->isMutable() ? "m" : "p") +
+             mangleType(p->getPointeeType(), substitution);
 
     if (const auto *s = type->getAs<res::StructType>()) {
       static int lambdaCnt = 0;
