@@ -195,6 +195,18 @@ void PathExpr::dump(size_t level) const {
     fragment->dump(level + 1);
 }
 
+bool CallExpr::isBuiltinGcCall() const {
+  const auto *pathExpr = dynamic_cast<const res::PathExpr *>(callee);
+  if (!pathExpr)
+    return false;
+
+  const auto *fn = pathExpr->fragments.back()->decl->getAs<res::FunctionDecl>();
+  if (!fn)
+    return false;
+
+  return fn->identifier == "gc" || fn->identifier == "gcMut";
+}
+
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"
             << " {" << getType()->getName() << '}' << '\n';

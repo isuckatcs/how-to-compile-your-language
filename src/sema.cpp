@@ -828,8 +828,8 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
 
   res::Type *lambdaTy = typeMgr.getNewUninferredType();
-  auto *lambda =
-      ctx.create<res::StructDecl>(loc, lambdaTy, structId.str(), true);
+  auto *lambda = ctx.create<res::StructDecl>(
+      loc, lambdaTy, structId.str(), std::vector<res::TypeParamDecl *>{}, true);
   typeMgr.unify(lambdaTy, typeMgr.getStructType(*lambda, {}));
 
   bool error = false;
@@ -1661,7 +1661,7 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &decl) {
   auto *structTy = typeMgr.getNewUninferredType();
   auto *structDecl = ctx.create<res::StructDecl>(
-      decl.location, structTy, decl.identifier, false, false,
+      decl.location, structTy, decl.identifier,
       resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
 
   std::vector<res::Type *> typeParamTys;
@@ -1960,6 +1960,8 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
+      res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
+
       for (auto &&seenTy : seen)
         if (typeMgr.unify(seenTy, ty).empty())
           selfContaining.emplace(decl);
@@ -1969,7 +1971,6 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
 
       seen.emplace_back(ty);
 
-      res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
       for (auto &&field : decl->getAll<res::FieldDecl>())
         if (auto *structTy = typeMgr.instantiate(field->getType(), sub)
                                  ->getAs<res::StructType>())

@@ -283,18 +283,15 @@ struct VarDecl : public ValueDecl {
 struct StructDecl : public TypeDecl, public DeclContext {
   std::vector<ImplBlock *> implBlocks;
   bool isLambda;
-  bool isGc;
 
   StructDecl(SourceLocation location,
              Type *type,
              std::string identifier,
-             bool isLambda = false,
-             bool isGc = false,
-             std::vector<TypeParamDecl *> typeParams = {})
+             std::vector<TypeParamDecl *> typeParams = {},
+             bool isLambda = false)
       : TypeDecl(location, type, std::move(identifier), std::move(typeParams)),
         DeclContext(nullptr),
-        isLambda(isLambda),
-        isGc(isGc) {}
+        isLambda(isLambda) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -366,6 +363,7 @@ struct CallExpr : public Expr {
         callee(callee),
         arguments(std::move(arguments)) {}
 
+  bool isBuiltinGcCall() const;
   void dump(size_t level = 0) const override;
 };
 
