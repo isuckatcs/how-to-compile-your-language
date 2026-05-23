@@ -142,8 +142,7 @@ class Codegen {
                                    llvm::Value *metadataPtr);
   std::vector<size_t> getHeapPtrOffsets(const res::Type *type);
   llvm::Value *getTypeMetadata(const res::Type *type);
-  llvm::Value *createTmpGCRoot(llvm::Value *val);
-  void markGCRoot(llvm::AllocaInst *alloca);
+  void markIfGCRoot(llvm::Value *val, const res::Type *type);
   llvm::Function *getOrInsertGCAlloc();
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();

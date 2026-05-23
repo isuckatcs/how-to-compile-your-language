@@ -258,8 +258,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   if (initExpr)
     storeValue(initVal, var, declTy);
 
-  if (decl->getType()->getAs<res::PointerType>())
-    markGCRoot(var);
+  markIfGCRoot(var, decl->getType());
 
   declarations[decl] = var;
   return nullptr;
@@ -313,9 +312,7 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   for (auto &&initStmt : sie.fieldInitializers) {
     const auto *init = initStmt->initializer;
     llvm::Value *val = generateExprAndLoadValue(*init);
-
-    if (instCtx.getInstantiatedType(init->getType())->getAs<res::PointerType>())
-      val = createTmpGCRoot(val);
+    markIfGCRoot(val, instCtx.getInstantiatedType(init->getType()));
 
     fieldInits[initStmt->field] = val;
   }
@@ -330,10 +327,8 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
   for (int i = 0; i < fieldDecls.size(); ++i) {
     llvm::Value *val = generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
-
-    if (instCtx.getInstantiatedType(lambdaExpr.fieldInits[i]->getType())
-            ->getAs<res::PointerType>())
-      val = createTmpGCRoot(val);
+    markIfGCRoot(
+        val, instCtx.getInstantiatedType(lambdaExpr.fieldInits[i]->getType()));
 
     fieldInits[fieldDecls[i]] = val;
   }
@@ -493,6 +488,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
     llvm::Type *argTy = generateType(arg->getType());
+    markIfGCRoot(argVal, instCtx.getInstantiatedType(arg->getType()));
 
     if (argTy->isVoidTy())
       continue;
@@ -502,9 +498,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
       storeValue(argVal, tmpVar, argTy);
       argVal = tmpVar;
     }
-
-    if (instCtx.getInstantiatedType(arg->getType())->getAs<res::PointerType>())
-      argVal = createTmpGCRoot(argVal);
 
     args.emplace_back(argVal);
     ++argIdx;
@@ -803,15 +796,16 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   return global;
 }
 
-llvm::Value *Codegen::createTmpGCRoot(llvm::Value *val) {
-  auto *alloca = allocateStackVariable("tmp.root", val->getType());
-  markGCRoot(alloca);
-  storeValue(val, alloca, val->getType());
+void Codegen::markIfGCRoot(llvm::Value *val, const res::Type *type) {
+  if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
+    return;
 
-  return val;
-}
+  auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val);
+  if (!alloca) {
+    alloca = allocateStackVariable("tmp.root", val->getType());
+    storeValue(val, alloca, val->getType());
+  }
 
-void Codegen::markGCRoot(llvm::AllocaInst *alloca) {
   llvm::Function *function = getCurrentFunction();
   if (!function->hasGC())
     function->setGC("shadow-stack");
@@ -821,9 +815,19 @@ void Codegen::markGCRoot(llvm::AllocaInst *alloca) {
   llvm::Function *gcroot =
       llvm::Intrinsic::getOrInsertDeclaration(&module, llvm::Intrinsic::gcroot);
 
-  llvm::Value *nullPtr =
-      llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0));
-  tmpBuilder.CreateCall(gcroot, {alloca, nullPtr});
+  // The `gc-lowering` pass automatically initializes uninitialized allocas with
+  // 'null'. This however is only valid for allocas of pointers, for other
+  // types it results in a crash.
+  tmpBuilder.CreateStore(
+      llvm::Constant::getNullValue(alloca->getAllocatedType()), alloca);
+
+  llvm::Value *metadata =
+      type->getAs<res::PointerType>()
+          ? llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
+          : getTypeMetadata(type);
+  tmpBuilder.CreateCall(gcroot, {alloca, metadata});
+
+  return;
 }
 
 llvm::Function *Codegen::getOrInsertGCAlloc() {

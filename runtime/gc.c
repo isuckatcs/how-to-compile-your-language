@@ -16,9 +16,15 @@ struct AllocHeader {
 
 static struct AllocHeader *allocatedBlocks = NULL;
 
+struct FrameInfo {
+  const int32_t rootCnt;
+  const int32_t metaCnt;
+  const struct Metadata *metas[];
+};
+
 struct ShadowStackFrame {
   struct ShadowStackFrame *parent;
-  const int32_t *rootCnt;
+  struct FrameInfo *frameInfo;
   void *roots[];
 };
 
@@ -69,6 +75,16 @@ static void log(enum Phase phase, struct AllocHeader *block) {
   fprintf(stderr, " {heap: %d B, threshold: %d B} \n", heapSize, threshold);
 }
 
+static void mark(void *root);
+
+static void markChildren(void *root, const struct Metadata *metadata) {
+  if (!root || !metadata)
+    return;
+
+  for (int i = 0; i < metadata->offsetCnt; ++i)
+    mark(*(void **)(root + metadata->offsets[i]));
+}
+
 // Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
 // in the `gc-lowering` pass, and pointers inside allocated objects are also
 // `null` initially because `calloc()` is used.
@@ -83,19 +99,24 @@ static void mark(void *root) {
   header->marked = 1;
   log(MARK, header);
 
-  const struct Metadata *metadata = header->metadata;
-  if (!metadata)
-    return;
-
-  for (int i = 0; i < metadata->offsetCnt; ++i)
-    mark(*(void **)(root + metadata->offsets[i]));
+  markChildren(root, header->metadata);
 }
 
 void gcMark() {
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
-    for (int32_t i = 0; i < *currentFrame->rootCnt; ++i)
+    int32_t i = 0;
+    const struct FrameInfo *frameInfo = currentFrame->frameInfo;
+
+    while (i < frameInfo->metaCnt) {
+      markChildren(&currentFrame->roots[i], frameInfo->metas[i]);
+      ++i;
+    }
+
+    while (i < frameInfo->rootCnt) {
       mark(currentFrame->roots[i]);
+      ++i;
+    }
 
     currentFrame = currentFrame->parent;
   }
