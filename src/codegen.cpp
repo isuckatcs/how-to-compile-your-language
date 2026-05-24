@@ -309,15 +309,9 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   auto *structTy = sie.getType()->getAs<res::StructType>();
   std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
 
-  for (auto &&initStmt : sie.fieldInitializers) {
-    const auto *init = initStmt->initializer;
-    llvm::Value *val = generateExprAndLoadValue(*init);
-
-    if (dynamic_cast<const res::CallExpr *>(init))
-      markIfGCRoot(val, instCtx.getInstantiatedType(init->getType()));
-
-    fieldInits[initStmt->field] = val;
-  }
+  for (auto &&initStmt : sie.fieldInitializers)
+    fieldInits[initStmt->field] =
+        generateExprAndLoadValue(*initStmt->initializer);
 
   return generateTmpStruct(structTy, fieldInits);
 }
@@ -389,8 +383,14 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return generateDeclRefExpr(*dre);
 
-  if (auto *call = dynamic_cast<const res::CallExpr *>(&expr))
-    return generateCallExpr(*call);
+  if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
+    auto *res = generateCallExpr(*call);
+    if (res)
+      createTmpGCRootIfNeeded(res,
+                              instCtx.getInstantiatedType(call->getType()));
+
+    return res;
+  }
 
   if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
     return generateExpr(*grouping->expr);
@@ -486,9 +486,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
     llvm::Type *argTy = generateType(arg->getType());
-
-    if (dynamic_cast<const res::CallExpr *>(arg))
-      markIfGCRoot(argVal, instCtx.getInstantiatedType(arg->getType()));
 
     if (argTy->isVoidTy())
       continue;
@@ -811,11 +808,13 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
 
   llvm::Type *intTy = builder.getInt32Ty();
   auto *arrTy = llvm::ArrayType::get(intTy, offsets.size());
-  auto *metadataTy = llvm::StructType::get(context, {intTy, arrTy});
+  auto *metadataTy = llvm::StructType::get(context, {intTy, intTy, arrTy});
 
   auto *array = llvm::ConstantArray::get(arrTy, offsets);
   auto *metadata = llvm::ConstantStruct::get(
-      metadataTy, {builder.getInt32(offsets.size()), array});
+      metadataTy, {builder.getInt32(module.getDataLayout().getTypeAllocSize(
+                       generateType(type))),
+                   builder.getInt32(offsets.size()), array});
 
   auto *global = new llvm::GlobalVariable(metadataTy, true,
                                           llvm::GlobalVariable::InternalLinkage,
@@ -824,15 +823,44 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   return global;
 }
 
-void Codegen::markIfGCRoot(llvm::Value *val, const res::Type *type) {
+void Codegen::createTmpGCRootIfNeeded(llvm::Value *val, const res::Type *type) {
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
-  auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val);
-  if (!alloca) {
-    alloca = allocateStackVariable("tmp.root", val->getType());
-    storeValue(val, alloca, val->getType());
+  llvm::Type *valueTy = generateType(type);
+
+  if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val)) {
+    markIfGCRoot(alloca, type);
+    temporaryRoots[alloca] = {valueTy, true};
+    return;
   }
+
+  llvm::AllocaInst *alloca = nullptr;
+
+  // Try to reuse an existing tmp root slot.
+  for (auto &&[root, info] : temporaryRoots) {
+    auto &&[rootTy, isUsed] = info;
+
+    if (isUsed || rootTy != valueTy)
+      continue;
+
+    alloca = root;
+    break;
+  }
+
+  if (!alloca) {
+    alloca = allocateStackVariable("tmp.root", valueTy);
+    temporaryRoots[alloca] = {valueTy, true};
+    markIfGCRoot(alloca, type);
+  }
+
+  storeValue(val, alloca, valueTy);
+  temporaryRoots[alloca].second = true;
+}
+
+void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
+  if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
+    return;
 
   llvm::Function *function = getCurrentFunction();
   if (!function->hasGC())
@@ -843,9 +871,9 @@ void Codegen::markIfGCRoot(llvm::Value *val, const res::Type *type) {
   llvm::Function *gcroot =
       llvm::Intrinsic::getOrInsertDeclaration(&module, llvm::Intrinsic::gcroot);
 
-  // The `gc-lowering` pass automatically initializes uninitialized allocas with
-  // 'null'. This however is only valid for allocas of pointers, for other
-  // types it results in a crash.
+  // The `gc-lowering` pass automatically initializes uninitialized allocas
+  // with 'null'. This however is only valid for allocas of pointers, for
+  // other types it results in a crash.
   tmpBuilder.CreateStore(
       llvm::Constant::getNullValue(alloca->getAllocatedType()), alloca);
 
@@ -927,10 +955,20 @@ void Codegen::generateBlock(const res::Block &block) {
     // no need for generating the remaining instructions.
     if (!builder.GetInsertBlock())
       break;
+
+    for (auto &[root, info] : temporaryRoots) {
+      if (!info.second)
+        continue;
+
+      builder.CreateStore(llvm::Constant::getNullValue(info.first), root);
+      info.second = false;
+    }
   }
 }
 
 void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
+  temporaryRoots.clear();
+
   auto [instCtxCapture, mangledName, functionDecl] = fn;
   instCtx = instCtxCapture;
 

@@ -74,6 +74,7 @@ class Codegen {
   std::queue<PendingFunctionDescriptor> pendingFunctions;
   InstCtxTy instCtx;
 
+  std::map<llvm::AllocaInst *, std::pair<llvm::Type *, bool>> temporaryRoots;
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
 
@@ -142,7 +143,8 @@ class Codegen {
                                    llvm::Value *metadataPtr);
   std::vector<size_t> getHeapPtrOffsets(const res::Type *type);
   llvm::Value *getTypeMetadata(const res::Type *type);
-  void markIfGCRoot(llvm::Value *val, const res::Type *type);
+  void createTmpGCRootIfNeeded(llvm::Value *val, const res::Type *type);
+  void markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type);
   llvm::Function *getOrInsertGCAlloc();
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
