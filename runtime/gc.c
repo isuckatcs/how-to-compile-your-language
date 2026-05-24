@@ -47,7 +47,6 @@ static void log(enum Phase phase, struct AllocHeader *block) {
   if (!getenv("YL_GC_DUMP"))
     return;
 
-  void *data = (void *)block + sizeof(struct AllocHeader);
   switch (phase) {
   case ALLOC:
     printf("alloc");
@@ -61,6 +60,7 @@ static void log(enum Phase phase, struct AllocHeader *block) {
   }
 
   if (block) {
+    void *data = (void *)block + sizeof(struct AllocHeader);
     printf(" @%p, data: %p (%d B)", block, data, block->size);
 
     if (block->metadata) {
