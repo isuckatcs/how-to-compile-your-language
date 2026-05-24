@@ -512,13 +512,17 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
           instCtx.getInstantiatedType(call.arguments[0]->getType());
       llvm::Type *argTy = generateType(argType);
 
-      auto *allocSize =
-          builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
+      auto *allocSize = builder.getInt32(0);
+      if (!argTy->isVoidTy())
+        allocSize =
+            builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
 
       llvm::Value *metadata = getTypeMetadata(argType);
       llvm::Value *ptr =
           builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
-      storeValue(args[0], ptr, argTy);
+
+      if (!argTy->isVoidTy())
+        storeValue(args[0], ptr, argTy);
       return ptr;
     }
 
@@ -541,8 +545,12 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   if (unop.op == TokenKind::Amp)
     return generateExpr(*unop.operand);
 
-  if (unop.op == TokenKind::Asterisk)
-    return builder.CreateLoad(builder.getPtrTy(), generateExpr(*unop.operand));
+  if (unop.op == TokenKind::Asterisk) {
+    if (unop.getType()->getAs<res::BuiltinUnitType>())
+      return nullptr;
+
+    return generateExprAndLoadValue(*unop.operand);
+  }
 
   llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 
