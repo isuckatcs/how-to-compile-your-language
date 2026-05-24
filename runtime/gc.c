@@ -30,9 +30,9 @@ struct ShadowStackFrame {
 
 struct ShadowStackFrame *llvm_gc_root_chain;
 
-static const int32_t minThreshold = 16;
-static int32_t threshold = minThreshold;
-static int32_t heapSize = 0;
+static const size_t minThreshold = 4 * sizeof(struct AllocHeader);
+static size_t threshold = minThreshold;
+static size_t heapSize = 0;
 
 static int32_t markCycle = 0;
 static int32_t sweepCycle = 0;
@@ -72,7 +72,7 @@ static void log(enum Phase phase, struct AllocHeader *block) {
     }
   }
 
-  printf(" {heap: %d B, threshold: %d B} \n", heapSize, threshold);
+  printf(" {heap: %ld B, threshold: %ld B}\n", heapSize, threshold);
 }
 
 static void mark(void *root);
@@ -136,7 +136,7 @@ void gcSweep() {
       continue;
     }
 
-    heapSize -= blockPtr->size;
+    heapSize -= blockPtr->size + sizeof(struct AllocHeader);
     *blockPtrPtr = blockPtr->next;
 
     log(SWEEP, blockPtr);
@@ -160,7 +160,7 @@ void *gcAlloc(int32_t size, const struct Metadata *metadata) {
   header->size = size;
   header->next = allocatedBlocks;
 
-  heapSize += size;
+  heapSize += size + sizeof(struct AllocHeader);
   allocatedBlocks = header;
   log(ALLOC, header);
 
