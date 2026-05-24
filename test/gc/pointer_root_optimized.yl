@@ -1,0 +1,63 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+struct S {
+  x: Empty
+  y: unit
+  z: number
+  w: *S2
+
+  x2: Empty
+  y2: unit
+  z2: number
+  w2: *S2
+}
+
+struct S2 {
+  x: Empty
+  y: unit
+  z: number
+  w: *S3
+
+  x2: Empty
+  y2: unit
+  z2: number
+  w2: *S3
+}
+
+struct S3 {
+  x: Empty
+  y: unit
+  z: number
+  w: *number
+
+  x2: Empty
+  y2: unit
+  z2: number
+  w2: *number
+}
+
+struct Empty {}
+
+fn foo(): *S {
+  let e = Empty {};
+  let n = gc(123);
+
+  let s3 = gc(S3{ x: e, y: unit, z: 0, w: n, x2: e, y2: unit, z2: 0, w2: n });
+  let s2 = gc(S2{ x: e, y: unit, z: 0, w: s3, x2: e, y2: unit, z2: 0, w2: s3 });
+  let s = gc(S{ x: e, y: unit, z: 0, w: s2, x2: e, y2: unit, z2: 0, w2: s2 });
+  return s;
+}
+
+fn main() {
+  let s = foo();
+
+  println(*s.w.w.w);
+  // CHECK: 123
+
+  gcCollect();
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] sweep {heap: 200 B, threshold: 400 B}
+}
