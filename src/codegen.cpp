@@ -676,15 +676,16 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   if (!val)
     return nullptr;
 
-  auto *ptr = expr.getType()->getAs<res::PointerType>();
-  if (llvm::isa<llvm::Argument>(val) && ptr)
-    return loadValue(val, generateType(ptr->getPointeeType()));
-
   bool outParamRef = dynamic_cast<const res::ImplicitDerefExpr *>(&expr);
+  bool afterIgnoredDeref = false;
+
+  if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
+    afterIgnoredDeref = unop->op == TokenKind::Asterisk;
+
   llvm::Type *type = generateType(expr.getType());
   if (!expr.isLvalue() || !val->getType()->isPointerTy() ||
       expr.hasConstantValue() || type->isStructTy() ||
-      (llvm::isa<llvm::Argument>(val) && !outParamRef))
+      (llvm::isa<llvm::Argument>(val) && !outParamRef && !afterIgnoredDeref))
     return val;
 
   return loadValue(val, type);
