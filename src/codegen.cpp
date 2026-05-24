@@ -312,7 +312,9 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   for (auto &&initStmt : sie.fieldInitializers) {
     const auto *init = initStmt->initializer;
     llvm::Value *val = generateExprAndLoadValue(*init);
-    markIfGCRoot(val, instCtx.getInstantiatedType(init->getType()));
+
+    if (dynamic_cast<const res::CallExpr *>(init))
+      markIfGCRoot(val, instCtx.getInstantiatedType(init->getType()));
 
     fieldInits[initStmt->field] = val;
   }
@@ -325,13 +327,9 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   const auto &fieldDecls = structTy->getDecl()->getAll<res::FieldDecl>();
 
   std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
-  for (int i = 0; i < fieldDecls.size(); ++i) {
-    llvm::Value *val = generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
-    markIfGCRoot(
-        val, instCtx.getInstantiatedType(lambdaExpr.fieldInits[i]->getType()));
-
-    fieldInits[fieldDecls[i]] = val;
-  }
+  for (int i = 0; i < fieldDecls.size(); ++i)
+    fieldInits[fieldDecls[i]] =
+        generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
 
   return generateTmpStruct(structTy, fieldInits);
 }
@@ -488,7 +486,9 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
     llvm::Type *argTy = generateType(arg->getType());
-    markIfGCRoot(argVal, instCtx.getInstantiatedType(arg->getType()));
+
+    if (dynamic_cast<const res::CallExpr *>(arg))
+      markIfGCRoot(argVal, instCtx.getInstantiatedType(arg->getType()));
 
     if (argTy->isVoidTy())
       continue;
