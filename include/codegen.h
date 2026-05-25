@@ -74,7 +74,7 @@ class Codegen {
   std::queue<PendingFunctionDescriptor> pendingFunctions;
   InstCtxTy instCtx;
 
-  std::map<llvm::AllocaInst *, std::pair<llvm::Type *, bool>> temporaryRoots;
+  std::map<llvm::AllocaInst *, bool> temporaryRoots;
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
 

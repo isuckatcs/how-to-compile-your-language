@@ -818,35 +818,30 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val, const res::Type *type) {
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
-  llvm::Type *valueTy = generateType(type);
-
   if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val)) {
     markIfGCRoot(alloca, type);
-    temporaryRoots[alloca] = {valueTy, true};
+    temporaryRoots[alloca] = true;
     return;
   }
 
   llvm::AllocaInst *alloca = nullptr;
+  llvm::Type *valTy = val->getType();
 
-  // Try to reuse an existing tmp root slot.
-  for (auto &&[root, info] : temporaryRoots) {
-    auto &&[rootTy, isUsed] = info;
+  assert(valTy->isPointerTy() && "reusing tmp GC root for non-pointer value");
 
-    if (isUsed || rootTy != valueTy)
-      continue;
-
-    alloca = root;
-    break;
-  }
+  for (auto &&[root, isUsed] : temporaryRoots)
+    if (!isUsed && root->getAllocatedType() == valTy) {
+      alloca = root;
+      break;
+    }
 
   if (!alloca) {
-    alloca = allocateStackVariable("tmp.root", valueTy);
-    temporaryRoots[alloca] = {valueTy, true};
+    alloca = allocateStackVariable("tmp.root", valTy);
     markIfGCRoot(alloca, type);
   }
 
-  storeValue(val, alloca, valueTy);
-  temporaryRoots[alloca].second = true;
+  storeValue(val, alloca, valTy);
+  temporaryRoots[alloca] = true;
 }
 
 void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
@@ -947,13 +942,12 @@ void Codegen::generateBlock(const res::Block &block) {
     if (!builder.GetInsertBlock())
       break;
 
-    for (auto &[root, info] : temporaryRoots) {
-      if (!info.second)
-        continue;
-
-      builder.CreateStore(llvm::Constant::getNullValue(info.first), root);
-      info.second = false;
-    }
+    for (auto &[root, isUsed] : temporaryRoots)
+      if (isUsed) {
+        builder.CreateStore(
+            llvm::Constant::getNullValue(root->getAllocatedType()), root);
+        isUsed = false;
+      }
   }
 }
 
