@@ -546,7 +546,7 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
     return generateExpr(*unop.operand);
 
   if (unop.op == TokenKind::Asterisk) {
-    if (unop.getType()->getAs<res::BuiltinUnitType>())
+    if (generateType(unop.getType())->isVoidTy())
       return nullptr;
 
     return generateExprAndLoadValue(*unop.operand);
