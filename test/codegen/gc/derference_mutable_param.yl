@@ -1,0 +1,19 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t | grep -Plzx '123\n'
+fn foo(mut n: **number) {
+  println(**n);
+}
+// CHECK: define void @foo(ptr %n) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %n1 = alloca ptr, align 8
+// CHECK-NEXT:   store ptr %n, ptr %n1, align 8
+// CHECK-NEXT:   %0 = load ptr, ptr %n1, align 8
+// CHECK-NEXT:   %1 = load ptr, ptr %0, align 8
+// CHECK-NEXT:   %2 = load double, ptr %1, align 8
+// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main(): unit {
+  foo(gc(gc(123)));
+}

@@ -1,0 +1,65 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+
+// CHECK: @pn.offsets = internal constant { i32, i32, [1 x i32] } { i32 8, i32 1, [1 x i32] zeroinitializer }
+// CHECK: @S1SGupnnpnE.offsets = internal constant { i32, i32, [2 x i32] } { i32 24, i32 2, [2 x i32] [i32 0, i32 16] }
+// CHECK: @S1SGpnpnpnpnE.offsets = internal constant { i32, i32, [4 x i32] } { i32 32, i32 4, [4 x i32] [i32 0, i32 8, i32 16, i32 24] }
+
+struct S<T, U, V, W> {
+  t: T,
+  u: U,
+  v: V,
+  w: W,
+}
+
+fn s(): S<unit, *number, number, *number> {
+  return S{ t: unit, u: gc(0), v: 0, w: gc(0) };
+}
+
+fn sp(): S<*number, *number, *number, *number> {
+  return S{ t: gc(0), u: gc(0), v: gc(0), w: gc(0) };
+}
+
+// CHECK: define void @test1()
+fn test1() {
+  let x = gc(gc(0));
+  // CHECK: %0 = call ptr @gcAlloc(i32 8, ptr null)
+  // CHECK: %1 = call ptr @gcAlloc(i32 8, ptr @pn.offsets)
+}
+
+// CHECK: define void @test2()
+fn test2() {
+  // CHECK: %struct.ret.tmp = alloca { ptr, double, ptr }, align 8
+  // CHECK-NEXT: %s = alloca { ptr, double, ptr }, align 8
+  // CHECK-NEXT: store { ptr, double, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @S1SGupnnpnE.offsets)
+  // CHECK-NEXT: store { ptr, double, ptr } zeroinitializer, ptr %s, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %s, ptr @S1SGupnnpnE.offsets)
+
+  let s = s();
+}
+
+// CHECK: define void @test3()
+fn test3() {
+  // CHECK: %s = alloca ptr, align 8
+  // CHECK: call void @llvm.gcroot(ptr %s, ptr null)
+
+  let s = gc(s());
+  // CHECK: %0 = call ptr @gcAlloc(i32 24, ptr @S1SGupnnpnE.offsets)
+}
+
+// CHECK: define void @test4()
+fn test4() {
+  // CHECK: %s = alloca ptr, align 8
+  // CHECK: call void @llvm.gcroot(ptr %s, ptr null)
+
+  let s = gc(sp());
+  // CHECK: %0 = call ptr @gcAlloc(i32 32, ptr @S1SGpnpnpnpnE.offsets)
+}
+
+fn main() {
+  test1();
+  test2();
+  test3();
+  test4();
+}

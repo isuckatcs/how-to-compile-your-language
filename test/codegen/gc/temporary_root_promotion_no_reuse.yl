@@ -1,0 +1,51 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+struct S {
+  p: *number
+}
+
+fn foo(): S {
+  return S{ p: gc(0) };
+}
+
+fn bar2(x: S, y: S) {}
+fn bar3(x: S, y: S, z: S) {}
+fn bar4(x: S, y: S, z: S, w: S) {}
+
+fn main() {
+  bar2(foo(), foo());
+  // CHECK: call void @foo(ptr sret({ ptr }) %struct.ret.tmp)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp1)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp2, ptr align 8 %struct.ret.tmp1, i64 8, i1 false)
+  // CHECK-NEXT: call void @bar2(ptr byval({ ptr }) %struct.arg.tmp, ptr byval({ ptr }) %struct.arg.tmp2)
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp1, align 8
+
+  bar4(foo(), foo(), foo(), foo());
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp3)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp4, ptr align 8 %struct.ret.tmp3, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp5)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp6, ptr align 8 %struct.ret.tmp5, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp7)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp8, ptr align 8 %struct.ret.tmp7, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp9)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp10, ptr align 8 %struct.ret.tmp9, i64 8, i1 false)
+  // CHECK-NEXT: call void @bar4(ptr byval({ ptr }) %struct.arg.tmp4, ptr byval({ ptr }) %struct.arg.tmp6, ptr byval({ ptr }) %struct.arg.tmp8, ptr byval({ ptr }) %struct.arg.tmp10)
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp3, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp5, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp7, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp9, align 8
+
+  bar3(foo(), foo(), foo());
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp11)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp12, ptr align 8 %struct.ret.tmp11, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp13)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp14, ptr align 8 %struct.ret.tmp13, i64 8, i1 false)
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp15)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp16, ptr align 8 %struct.ret.tmp15, i64 8, i1 false)
+  // CHECK-NEXT: call void @bar3(ptr byval({ ptr }) %struct.arg.tmp12, ptr byval({ ptr }) %struct.arg.tmp14, ptr byval({ ptr }) %struct.arg.tmp16)
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp11, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp13, align 8
+  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp15, align 8
+}
