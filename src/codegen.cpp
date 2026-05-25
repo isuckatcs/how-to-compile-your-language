@@ -465,8 +465,7 @@ bool Codegen::isImplOf(const res::ImplBlock *impl,
   const auto &traitTyArgs = trait->getTypeArgs();
   const auto &implTyArgs = implTy->getTypeArgs();
 
-  if (trait->getDecl() != implTy->getDecl() ||
-      traitTyArgs.size() != implTyArgs.size())
+  if (trait->getDecl() != implTy->getDecl())
     return false;
 
   for (int i = 0; i < traitTyArgs.size(); ++i)
@@ -683,8 +682,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
     afterIgnoredDeref = unop->op == TokenKind::Asterisk;
 
   llvm::Type *type = generateType(expr.getType());
-  if (!expr.isLvalue() || !val->getType()->isPointerTy() ||
-      expr.hasConstantValue() || type->isStructTy() ||
+  if (!expr.isLvalue() || expr.hasConstantValue() || type->isStructTy() ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef && !afterIgnoredDeref))
     return val;
 
