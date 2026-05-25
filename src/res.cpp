@@ -13,9 +13,7 @@ std::string ConstVal::asString() const {
         std::stringstream ss;
 
         using T = std::decay_t<decltype(value)>;
-        if constexpr (std::is_same_v<T, std::monostate>)
-          ss << "unknown";
-        else if constexpr (std::is_same_v<T, bool>)
+        if constexpr (std::is_same_v<T, bool>)
           ss << (value ? "true" : "false");
         else if constexpr (std::is_same_v<T, double>)
           ss << value;
