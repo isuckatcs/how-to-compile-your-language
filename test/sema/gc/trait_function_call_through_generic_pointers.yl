@@ -1,0 +1,31 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: &Self) {}
+  fn bar(self: &Self) {}
+  fn baz(self: Self) {}
+  fn bazMut(mut self: Self) {}
+}
+
+fn foo<T : A>(p: *mut T) {
+  p.foo();
+}
+
+fn bar<T : A>(p: *T) {
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected mutable struct instance
+  p.bar();
+}
+
+fn baz<T : A>(p: *T) {
+  p.baz();
+}
+
+fn bazMut<T : A>(p: *T) {
+  p.bazMut();
+}
+
+fn err<T : A>(p: *T) {
+  // CHECK: [[# @LINE + 1 ]]:5: error: failed to find member 'err' in 'T'
+  p.err();
+}
+
+fn main() {}

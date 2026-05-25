@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  s2: *mut S2
+}
+
+struct S2 {
+  s3: *S3
+}
+
+struct S3 {
+  n: *number
+}
+
+fn main() {
+  let s3 = gc(S3{ n: gc(0) });
+  let s2 = gcMut(S2{ s3: s3 });
+  let s = gc(S{ s2: s2 });
+
+  // CHECK: [[# @LINE + 1 ]]:17: error: pointee of type '*S3' cannot be mutated
+  ((s.s2.s3.n)) = gc(0);
+}

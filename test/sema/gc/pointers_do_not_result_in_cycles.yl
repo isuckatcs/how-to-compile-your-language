@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  s: *S,
+  s2: *mut S
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) s {*S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) s2 {*mut S}
+
+fn main() {}

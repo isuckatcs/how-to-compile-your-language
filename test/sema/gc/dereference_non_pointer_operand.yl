@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo<T>(t: T) {
+  // CHECK: [[# @LINE + 1 ]]:4: error: only pointer operands can be dereferenced
+  *t;
+}
+
+fn main() {
+  let n = 123;
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: only pointer operands can be dereferenced
+  *n;
+
+  let u = unit;
+  
+  // CHECK: [[# @LINE + 1 ]]:4: error: only pointer operands can be dereferenced
+  *u;
+}

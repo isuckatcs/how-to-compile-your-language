@@ -1,0 +1,36 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  s2: *mut S2
+}
+
+struct S2 {
+  s3: *mut S3
+}
+
+struct S3 {
+  n: *mut number
+}
+
+fn main() {
+  let s3 = gcMut(S3{ n: gcMut(0) });
+  let s2 = gcMut(S2{ s3: s3 });
+  let s = gc(S{ s2: s2 });
+
+  ((s.s2.s3.n)) = gcMut(0);
+  // CHECK: Assignment
+  // CHECK-NEXT:   GroupingExpr {*mut number}
+  // CHECK-NEXT:     GroupingExpr {*mut number}
+  // CHECK-NEXT:       MemberExpr @({{.*}}) n {*mut number}
+  // CHECK-NEXT:         UnaryOperator '*' {S3}
+  // CHECK-NEXT:           MemberExpr @({{.*}}) s3 {*mut S3}
+  // CHECK-NEXT:             UnaryOperator '*' {S2}
+  // CHECK-NEXT:               MemberExpr @({{.*}}) s2 {*mut S2}
+  // CHECK-NEXT:                 UnaryOperator '*' {S}
+  // CHECK-NEXT:                   PathExpr {*S}
+  // CHECK-NEXT:                     DeclRefExpr @({{.*}}) s {*S}
+  // CHECK-NEXT:   CallExpr {*mut number}
+  // CHECK-NEXT:     PathExpr {(number) -> *mut number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) gcMut {(number) -> *mut number}
+  // CHECK-NEXT:     NumberLiteral '0' {number}
+  // CHECK-NEXT:     | value: 0
+}

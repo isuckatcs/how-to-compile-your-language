@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let n = gc(123);
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: pointee of type '*number' cannot be mutated
+  *n = 456;
+}

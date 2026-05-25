@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  n: number
+}
+
+fn main() {
+  let s = gc(S { n: 123 });
+
+  println(s.n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:   MemberExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     UnaryOperator '*' {S}
+  // CHECK-NEXT:       PathExpr {*S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {*S}
+}

@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let im = gcMut(123);
+  
+  // CHECK: [[# @LINE + 1 ]]:6: error: 'im' cannot be mutated
+  im = gcMut(123);
+  *im = 456;
+
+  mut mi = gc(123);
+  mi = gc(123);
+  
+  // CHECK: [[# @LINE + 1 ]]:7: error: pointee of type '*number' cannot be mutated
+  *mi = 456;
+}

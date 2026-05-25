@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  // CHECK: [[# @LINE + 1 ]]:10: error: the type of 'self' must reference 'Self'
+  fn foo(self: *Self) {}
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: the type of 'self' must reference 'Self'
+  fn bar(self: *mut Self) {}
+}
+
+fn main() {}

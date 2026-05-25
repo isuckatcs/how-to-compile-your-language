@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {
+  n: number
+}
+
+fn main() {
+  let s = gc(S { n: 123 });
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: pointee of type '*S' cannot be mutated
+  s.n = 0;
+}
