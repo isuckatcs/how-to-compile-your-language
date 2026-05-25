@@ -123,6 +123,15 @@ bool Sema::checkVariableInitialization(const res::Context &ctx,
               continue;
             }
 
+            if (const auto *u =
+                    dynamic_cast<const res::UnaryOperator *>(base)) {
+              if (u->op == TokenKind::Asterisk && !u->isMutable())
+                pendingErrors.emplace_back(
+                    err::pointeeCannotBeMutated(assignment->location)
+                        .with(u->operand->getType()->getName()));
+              break;
+            }
+
             break;
           }
 
@@ -821,7 +830,7 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   res::Type *baseType = base->getType();
   if (auto *ptr = baseType->getAs<res::PointerType>())
     base = ctx.create<res::UnaryOperator>(
-        base->location, ptr->getPointeeType(), TokenKind::Asterisk, base,
+        memberExpr.location, ptr->getPointeeType(), TokenKind::Asterisk, base,
         ptr->isMutable() ? res::Expr::Kind::MutLvalue
                          : res::Expr::Kind::Lvalue);
 
@@ -1053,12 +1062,6 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
   if (!lhs->isLvalue())
     return err::rvalueAssignment(lhs->location).report(reporter);
-
-  if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(lhs))
-    if (unop->op == TokenKind::Asterisk && !unop->isMutable())
-      return err::pointeeCannotBeMutated(unop->location)
-          .with(unop->operand->getType()->getName())
-          .report(reporter);
 
   auto *lhsTy = lhs->getType();
   if (lhsTy->getAs<res::FunctionType>())
