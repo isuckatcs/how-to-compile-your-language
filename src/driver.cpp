@@ -167,6 +167,10 @@ int main(int argc, const char **argv) {
   if (!options.output.empty())
     command << " -o " << options.output;
 
+#ifdef YL_COVERAGE
+  command << " -lgcov";
+#endif
+
   int ret = std::system(command.str().c_str());
   std::filesystem::remove(llvmIRPath);
 
