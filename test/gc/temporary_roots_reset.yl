@@ -1,0 +1,40 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+struct S1 {
+  x: number,
+  y: *number,
+  z: unit,
+}
+
+struct S2 {
+  p1: unit,
+  x: number,
+  p2: unit,
+  p3: unit,
+  y: *number,
+  z: unit,
+  w: *number
+}
+
+fn foo(): S1 {
+  return S1 { x: 0, y: gc(123), z: unit };
+}
+
+fn bar(): S2 {
+  return S2 { p1: unit, x: 0, p2: unit, p3: unit, y: gc(123), z: unit, w: gc(456) };
+}
+
+fn main() {
+  foo();
+  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+
+  bar();
+  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
+
+  gcCollect();
+  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {heap: 0 B, threshold: 96 B}
+}

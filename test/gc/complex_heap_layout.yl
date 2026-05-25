@@ -1,0 +1,73 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+trait Allocable {
+  fn alloc(): *Self;
+}
+
+struct R1 {
+  x: number,
+  y: *R3,
+  z: number,
+}
+
+struct R2 {
+  x: number,
+  y: *R3,
+  z: *R3,
+}
+
+struct R3 {
+  r4: *R4
+
+  impl Allocable {
+    fn alloc(): *Self {
+      return gc(Self{ r4: R4::alloc() });
+    }
+  }
+}
+
+struct R4 {
+  x: *R5,
+  y: *R5,
+  z: *number,
+
+  impl Allocable {
+    fn alloc(): *Self {
+      return gc(Self{ x: R5::alloc(), y: R5::alloc(), z: gc(0) });
+    }
+  }
+}
+
+struct R5 {
+  x: *number,
+  y: number,
+  z: *number,
+
+  impl Allocable {
+    fn alloc(): *Self {
+      return gc(Self{ x: gc(0), y: 0, z: gc(0) });
+    }
+  }
+}
+
+fn main() {
+  let r3 = R3::alloc();
+
+  let r1 = R1{ x: 0, y: r3, z: 0};
+  let r2 = R2{ x: 0, y: r3, z: r3};
+
+  gcCollect();
+  // CHECK: [2] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (24 B) offsets: {0 @{{.*}}} {8 @{{.*}}} {16 @{{.*}}} {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (24 B) offsets: {0 @{{.*}}} {16 @{{.*}}} {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (24 B) offsets: {0 @{{.*}}} {16 @{{.*}}} {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark @{{.*}}, data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] sweep {heap: 336 B, threshold: 672 B}
+
+  println(0);
+  // CHECK-NEXT: 0
+}

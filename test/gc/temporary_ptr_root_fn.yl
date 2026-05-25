@@ -1,0 +1,28 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+fn allocate(): *number {
+  let n = gc(123);
+  return n;
+}
+
+fn collect() {
+  println(0);
+  gcCollect();
+}
+
+fn foo(n: *number, u: unit) {
+  println(*n);
+}
+
+fn main() {
+  foo(
+    allocate(), 
+    // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+    
+    collect()
+    // CHECK-NEXT: 0
+    // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+    // CHECK-NEXT: [0] sweep {heap: 32 B, threshold: 96 B}
+  );
+  // CHECK-NEXT: 123
+}

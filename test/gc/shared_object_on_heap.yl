@@ -1,0 +1,49 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+struct A {
+  n: number
+}
+
+struct B {
+  a: *A
+}
+
+struct C {
+  a: *A
+}
+
+struct D {
+  b: *B
+  c: *C
+
+  fn create(n: number): D {
+    let a = gc(A{ n: n });
+    let b = gc(B{ a: a });
+    let c = gc(C{ a: a });
+
+    return D{ b: b, c: c };
+  }
+}
+
+fn main() {
+  mut d = D::create(123);
+  mut d2 = D::create(456);
+
+  println(d.b.a.n);
+  // CHECK: 123
+
+  d.b = d2.b;
+  d.c = d2.c;
+
+  gcCollect();
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 192 B, threshold: 256 B}
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) {heap: 192 B, threshold: 256 B}
+  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 192 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 160 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 96 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep {heap: 96 B, threshold: 192 B}
+
+  println(d.b.a.n);
+  // CHECK-NEXT: 456
+}
