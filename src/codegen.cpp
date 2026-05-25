@@ -744,14 +744,6 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
-llvm::Value *Codegen::allocateHeapStorage(const std::string_view identifier,
-                                          llvm::Type *type,
-                                          llvm::Value *metadataPtr) {
-  auto *allocSize =
-      builder.getInt32(module.getDataLayout().getTypeAllocSize(type));
-  return builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadataPtr});
-}
-
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (const auto *p = type->getAs<res::PointerType>()) {
     if (p->getPointeeType()->getAs<res::PointerType>())

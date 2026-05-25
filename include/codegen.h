@@ -138,9 +138,6 @@ class Codegen {
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();
 
-  llvm::Value *allocateHeapStorage(const std::string_view identifier,
-                                   llvm::Type *type,
-                                   llvm::Value *metadataPtr);
   std::vector<size_t> getHeapPtrOffsets(const res::Type *type);
   llvm::Value *getTypeMetadata(const res::Type *type);
   void createTmpGCRootIfNeeded(llvm::Value *val, const res::Type *type);
