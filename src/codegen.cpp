@@ -745,12 +745,8 @@ Codegen::allocateStackVariable(const std::string_view identifier,
 }
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
-  if (const auto *p = type->getAs<res::PointerType>()) {
-    if (p->getPointeeType()->getAs<res::PointerType>())
-      return {0};
-
-    return {};
-  }
+  if (const auto *p = type->getAs<res::PointerType>())
+    return {0};
 
   const auto *structType = type->getAs<res::StructType>();
   if (!structType)

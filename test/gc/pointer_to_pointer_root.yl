@@ -1,0 +1,17 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+fn foo(): **number {
+  return gc(gc(123));
+}
+
+fn main() {
+  let x = foo();
+
+  gcCollect();
+  // CHECK: [0] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {heap: 64 B, threshold: 128 B}
+
+  println(**x);
+  // CHECK-NEXT: 123
+}
