@@ -1,0 +1,13 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  mut ptr: *mut ***mut *mut *number;
+  // CHECK: DeclStmt:
+  // CHECK-NEXT:   VarDecl: ptr
+  // CHECK-NEXT:     PointerType mut
+  // CHECK-NEXT:       PointerType
+  // CHECK-NEXT:         PointerType
+  // CHECK-NEXT:           PointerType mut
+  // CHECK-NEXT:             PointerType mut
+  // CHECK-NEXT:               PointerType
+  // CHECK-NEXT:                 BuiltinType: number
+}

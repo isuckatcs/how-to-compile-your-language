@@ -1,0 +1,8 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:20: error: expected ';' at the end of declaration
+  let err: *number number;
+
+  // CHECK: [[# @LINE + 1 ]]:14: error: expected type specifier
+  let err2: *let number;
+}
