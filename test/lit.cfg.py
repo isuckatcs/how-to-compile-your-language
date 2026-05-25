@@ -8,5 +8,5 @@ config.test_format = lit.formats.ShTest(False if os.name == 'nt' else True)
 config.suffixes = ['.yl']
 
 config.substitutions += [
-    ("%valgrind", "valgrind --error-exitcode=1" if shutil.which("valgrind") else "")
+    ("%valgrind", "valgrind --error-exitcode=1 --leak-check=full --errors-for-leak-kinds=definite,indirect,possible" if shutil.which("valgrind") else "")
 ]
