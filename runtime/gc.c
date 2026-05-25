@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 struct Metadata {
+  const int32_t size;
   const int32_t offsetCnt;
   const int32_t offsets[];
 };
@@ -105,17 +106,22 @@ static void mark(void *root) {
 void gcMark() {
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
-    int32_t i = 0;
     const struct FrameInfo *frameInfo = currentFrame->frameInfo;
+    if (frameInfo->rootCnt != 0) {
+      int32_t i = 0;
+      void *rootPtr = currentFrame->roots;
 
-    while (i < frameInfo->metaCnt) {
-      markChildren(&currentFrame->roots[i], frameInfo->metas[i]);
-      ++i;
-    }
+      while (i < frameInfo->metaCnt) {
+        markChildren(rootPtr, frameInfo->metas[i]);
+        rootPtr += frameInfo->metas[i]->size;
+        ++i;
+      }
 
-    while (i < frameInfo->rootCnt) {
-      mark(currentFrame->roots[i]);
-      ++i;
+      while (i < frameInfo->rootCnt) {
+        mark(*(void **)rootPtr);
+        rootPtr += sizeof(void *);
+        ++i;
+      }
     }
 
     currentFrame = currentFrame->parent;
