@@ -23,6 +23,9 @@ struct Mangling {
     if (type->getAs<res::BuiltinNumberType>())
       return "n";
 
+    if (type->getAs<res::BuiltinBoolType>())
+      return "b";
+
     if (const auto *p = type->getAs<res::PointerType>())
       return (p->isMutable() ? "m" : "p") +
              mangleType(p->getPointeeType(), substitution);

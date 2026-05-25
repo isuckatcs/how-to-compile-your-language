@@ -13,6 +13,7 @@
 <type>
     ::= 'n'
     |   'v'
+    |   'b'
     |   'p' <type>
     |   'm' <type>
     |   <structType>
