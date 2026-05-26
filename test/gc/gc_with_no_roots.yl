@@ -1,0 +1,6 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+fn main() {
+  gcCollect();
+  // CHECK: [0] sweep {heap: 0 B, threshold: 96 B}
+}

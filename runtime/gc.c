@@ -79,7 +79,7 @@ static void log(enum Phase phase, struct AllocHeader *block) {
 static void mark(void *root);
 
 static void markChildren(void *root, const struct Metadata *metadata) {
-  if (!root || !metadata)
+  if (!metadata)
     return;
 
   for (int i = 0; i < metadata->offsetCnt; ++i)
@@ -107,21 +107,19 @@ void gcMark() {
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
     const struct FrameInfo *frameInfo = currentFrame->frameInfo;
-    if (frameInfo->rootCnt != 0) {
-      int32_t i = 0;
-      void *rootPtr = currentFrame->roots;
+    int32_t i = 0;
+    void *rootPtr = currentFrame->roots;
 
-      while (i < frameInfo->metaCnt) {
-        markChildren(rootPtr, frameInfo->metas[i]);
-        rootPtr += frameInfo->metas[i]->size;
-        ++i;
-      }
+    while (i < frameInfo->metaCnt) {
+      markChildren(rootPtr, frameInfo->metas[i]);
+      rootPtr += frameInfo->metas[i]->size;
+      ++i;
+    }
 
-      while (i < frameInfo->rootCnt) {
-        mark(*(void **)rootPtr);
-        rootPtr += sizeof(void *);
-        ++i;
-      }
+    while (i < frameInfo->rootCnt) {
+      mark(*(void **)rootPtr);
+      rootPtr += sizeof(void *);
+      ++i;
     }
 
     currentFrame = currentFrame->parent;
