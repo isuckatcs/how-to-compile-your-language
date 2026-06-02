@@ -116,6 +116,7 @@ diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
+diag(Error, outParamPointer, "cannot create pointer to '&' param");
 
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");

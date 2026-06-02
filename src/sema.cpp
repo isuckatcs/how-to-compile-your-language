@@ -342,6 +342,9 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
     varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType));
+    if (pointeeType->getAs<res::OutParamType>())
+      return err::outParamPointer(ptr->location).report(reporter);
+
     return typeMgr.getPointerType(pointeeType, ptr->isMut);
   }
 
