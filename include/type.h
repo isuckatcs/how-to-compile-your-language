@@ -160,6 +160,22 @@ public:
   friend class TypeManager;
 };
 
+class ImplType : public Type {
+  std::vector<res::TraitType *> traits;
+
+  ImplType(std::vector<res::TraitType *> traits);
+
+public:
+  std::vector<res::TraitType *> getTraits() { return traits; }
+  std::vector<const res::TraitType *> getTraits() const {
+    return {traits.begin(), traits.end()};
+  }
+
+  std::string getName() const override;
+
+  friend class TypeManager;
+};
+
 class Substitution : public std::unordered_map<res::Type *, res::Type *> {
   void dump() const;
 };
@@ -188,6 +204,7 @@ public:
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   OutParamType *getOutParamType(Type *pointeeType);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
+  ImplType *getImplType(std::vector<TraitType *> traits);
 
   bool moreGeneral(Type *t1, Type *t2);
 

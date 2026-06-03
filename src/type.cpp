@@ -107,6 +107,26 @@ std::string TraitType::getName() const {
   return ss.str();
 }
 
+ImplType::ImplType(std::vector<res::TraitType *> traits)
+    : Type("impl", {traits.begin(), traits.end()}),
+      traits(std::move(traits)) {}
+
+std::string ImplType::getName() const {
+  std::stringstream ss;
+  ss << "impl ";
+
+  if (!traits.empty()) {
+    for (int i = 0; i < traits.size(); ++i) {
+      ss << traits[i]->getName();
+
+      if (i < traits.size() - 1)
+        ss << ' ' << '&' << ' ';
+    }
+  }
+
+  return ss.str();
+}
+
 void Substitution::dump() const {
   for (auto &&[from, to] : *this)
     std::cerr << from->getName() << " -> " << to->getName() << '\n';
@@ -189,6 +209,12 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   auto *ptrTy = new PointerType(pointeeType, isMutable);
   types.emplace_back(std::unique_ptr<PointerType>(ptrTy));
   return ptrTy;
+}
+
+ImplType *TypeManager::getImplType(std::vector<TraitType *> traits) {
+  auto *implTy = new ImplType(std::move(traits));
+  types.emplace_back(std::unique_ptr<ImplType>(implTy));
+  return implTy;
 }
 
 void TypeManager::addUpperBound(res::Decl *decl, TraitType *trait) {
