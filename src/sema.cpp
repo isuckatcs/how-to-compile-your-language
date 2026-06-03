@@ -266,7 +266,9 @@ res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
   return fn;
 }
 
-res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
+res::Type *Sema::resolveType(res::Context &ctx,
+                             const ast::Type &parsedType,
+                             bool isPointee) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
@@ -340,8 +342,38 @@ res::Type *Sema::resolveType(res::Context &ctx, const ast::Type &parsedType) {
     return typeMgr.getOutParamType(paramType);
   }
 
+  if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
+    if (!isPointee)
+      return err::traitObjectNotPointee(impl->location).report(reporter);
+
+    auto resolvedTraits = resolveTraitInstanceList(ctx, impl->traits);
+    bool error = resolvedTraits.size() != impl->traits.size();
+
+    std::vector<res::TraitType *> traitTys;
+    for (auto &&trait : resolvedTraits) {
+      for (auto &&fn : trait->decl->getAll<res::FunctionDecl>()) {
+        if (!fn->isGeneric())
+          continue;
+
+        bool hasImplicitSelf = fn->typeParams[0]->identifier == implicitSelfId;
+        if (hasImplicitSelf && fn->typeParams.size() == 1)
+          continue;
+
+        err::traitObjectTemplateMemberFn(trait->location).report(reporter);
+        error = true;
+        break;
+      }
+
+      traitTys.emplace_back(trait->getType()->getAs<res::TraitType>());
+    }
+
+    if (error)
+      return nullptr;
+    return typeMgr.getImplType(std::move(traitTys));
+  }
+
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
-    varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType));
+    varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType, true));
     if (pointeeType->getAs<res::OutParamType>())
       return err::outParamPointer(ptr->location).report(reporter);
 
@@ -516,6 +548,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
         .report(reporter);
   }
 
+  auto *implTy = parent->getAs<res::ImplType>();
   auto *structTy = parent->getAs<res::StructType>();
   bool isLambda = structTy && structTy->getDecl()->isLambda;
 
@@ -523,7 +556,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (auto *decl = lookupSymbolWithFallback<Hint>(structTy->getDecl(), dre))
       return createDeclRefExpr(ctx, dre, parent, decl, nullptr);
 
-  if (isLambda || !structTy && !parent->getAs<res::TypeParamType>())
+  if (isLambda || !implTy && !structTy && !parent->getAs<res::TypeParamType>())
     return err::cannotAccessMember(dre->location)
         .with(parent->getName())
         .report(reporter);
@@ -531,11 +564,11 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   res::Decl *decl = nullptr;
   res::TraitType *trait = nullptr;
 
-  auto traits = typeMgr.getUpperBounds(parent);
+  auto traits = implTy ? implTy->getTraits() : typeMgr.getUpperBounds(parent);
   for (auto &&implementedTrait : traits) {
     if (auto *traitDecl =
             lookupSymbolWithFallback<Hint>(implementedTrait->getDecl(), dre)) {
-      if (decl)
+      if (decl && !typeMgr.unify(trait, implementedTrait).empty())
         return err::ambigousMemberFn(dre->location).report(reporter);
 
       decl = traitDecl;
@@ -685,7 +718,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
         selfArg = ctx.create<res::UnaryOperator>(
             baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg,
             res::Expr::Kind::Rvalue);
-      }
+      } else if (baseTy->getAs<res::ImplType>())
+        return err::traitObjectSelf(baseLoc).report(reporter);
 
       res::DeclRefExpr *baseDre = nullptr;
       if (auto *structTy = baseTy->getAs<res::StructType>())
@@ -697,7 +731,11 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
         baseDre = ctx.create<res::DeclRefExpr>(baseLoc, typeParamTy,
                                                *typeParamTy->decl, baseKind);
 
-      std::vector<res::DeclRefExpr *> fragments = {baseDre, member};
+      std::vector<res::DeclRefExpr *> fragments;
+      if (baseDre)
+        fragments.emplace_back(baseDre);
+      fragments.emplace_back(member);
+
       callee = ctx.create<res::PathExpr>(std::move(fragments));
     }
   }

@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+}
+
+trait B : A & A & A {
+  fn bar() {
+    Self::foo();
+  }
+  // CHECK: FunctionDecl @({{.*}}) bar {() -> unit}
+  // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       PathExpr {() -> unit}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) __Self {__Self}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) A::foo {() -> unit}
+}
+
+fn main() {}

@@ -106,7 +106,9 @@ class Sema {
 
   FunctionInfo *functionInfo;
 
-  res::Type *resolveType(res::Context &ctx, const ast::Type &parsedType);
+  res::Type *resolveType(res::Context &ctx,
+                         const ast::Type &parsedType,
+                         bool isPointee = false);
 
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
                                            const ast::UnaryOperator &unary);
