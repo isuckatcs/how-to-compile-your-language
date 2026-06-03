@@ -997,6 +997,8 @@ Parser::parseListWithTrailingComma(
 //  |   <userDefinedDeclInstance>
 //  |   <functionType>
 //  |   <outParamType>
+//  |   <pointerType>
+//  |   <implType>
 //
 // <builtinType>
 //  ::= 'number'
@@ -1015,6 +1017,9 @@ Parser::parseListWithTrailingComma(
 //
 // <pointerType>
 //  ::= '*' 'mut'? <type>
+//
+// <implType>
+//  ::= 'impl' <traitInstance> ('&' <traitInstance>)*
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
   TokenKind kind = nextToken.kind;
@@ -1029,7 +1034,6 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     return parseUserDefinedType();
 
   if (kind == TokenKind::Lpar) {
-
     expectOrReturn(TokenKind::Lpar,
                    err::expected(nextToken.location).with("'('"));
     eatNextToken(); // eat '('
@@ -1070,6 +1074,23 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     varOrReturn(pointeeType, parseType());
     return std::make_unique<ast::PointerType>(location, std::move(pointeeType),
                                               isMut);
+  }
+
+  if (kind == TokenKind::KwImpl) {
+    SourceLocation location = nextToken.location;
+    eatNextToken(); // eat 'impl'
+
+    std::vector<std::unique_ptr<ast::TraitInstance>> traits;
+    varOrReturn(trait, parseTraitInstance());
+    traits.emplace_back(std::move(trait));
+
+    while (nextToken.kind == TokenKind::Amp) {
+      eatNextToken(); // eat '&'
+      varOrReturn(trait, parseTraitInstance());
+      traits.emplace_back(std::move(trait));
+    }
+
+    return std::make_unique<ast::ImplType>(location, std::move(traits));
   }
 
   return err::expected(nextToken.location)

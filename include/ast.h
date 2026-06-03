@@ -83,6 +83,18 @@ struct PointerType : public Type {
   void dump(size_t level = 0) const override;
 };
 
+struct TraitInstance;
+struct ImplType : public Type {
+  std::vector<std::unique_ptr<TraitInstance>> traits;
+
+  ImplType(SourceLocation location,
+           std::vector<std::unique_ptr<TraitInstance>> traits)
+      : Type(location),
+        traits(std::move(traits)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct Decl {
   SourceLocation location;
   std::string identifier;
