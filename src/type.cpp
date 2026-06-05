@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "res.h"
+#include "sema.h"
 #include "type.h"
 
 namespace yl {
@@ -266,6 +267,50 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
       return true;
 
   return false;
+}
+
+Type *TypeManager::tryCoerce(Type *target, Type *current) {
+  if (target->getAs<res::FunctionType>()) {
+    res::StructType *structTy = current->getAs<res::StructType>();
+    if (!structTy)
+      return nullptr;
+
+    res::StructDecl *decl = structTy->getDecl();
+    if (!decl->isLambda)
+      return nullptr;
+
+    const auto &functions = decl->getAll<res::FunctionDecl>();
+    assert(functions.size() == 1 && "lambda should have 1 builtin method");
+
+    auto *fnTy = functions[0]->getType()->getAs<res::FunctionType>();
+    std::vector<res::Type *> coercedArgs = fnTy->getArgs();
+    coercedArgs.erase(coercedArgs.begin());
+
+    return getFunctionType(coercedArgs, fnTy->getReturnType());
+  }
+
+  auto *targetPtr = target->getAs<res::PointerType>();
+  auto *currentPtr = current->getAs<res::PointerType>();
+
+  if (!targetPtr || !currentPtr)
+    return nullptr;
+
+  if (auto *targetImpl = targetPtr->getPointeeType()->getAs<res::ImplType>()) {
+    auto *currentPointeeType = currentPtr->getPointeeType();
+    if (auto *currentImpl = currentPointeeType->getAs<res::ImplType>())
+      // FIXME: faking upper bounds, create an API to add them instead
+      for (auto &&trait : currentImpl->getTraits())
+        upperBounds.emplace_back(currentPointeeType, trait);
+
+    auto *tmpTargetType = getNewUninferredType();
+    for (auto &&targetTrait : targetImpl->getTraits())
+      withObligation(tmpTargetType, targetTrait);
+
+    if (unify(currentPointeeType, tmpTargetType).empty())
+      return targetPtr;
+  }
+
+  return nullptr;
 }
 
 bool TypeManager::unifyImpl(Type *t1,

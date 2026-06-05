@@ -547,11 +547,11 @@ struct LambdaExpr : public Expr {
 };
 
 struct ImplicitCoerceExpr : public Expr {
-  res::Expr *lambdaExpr;
+  res::Expr *expr;
 
   ImplicitCoerceExpr(SourceLocation location, Type *type, res::Expr *lambdaExpr)
       : Expr(location, type, Expr::Kind::Rvalue),
-        lambdaExpr(lambdaExpr) {}
+        expr(lambdaExpr) {}
 
   void dump(size_t level = 0) const override;
 };

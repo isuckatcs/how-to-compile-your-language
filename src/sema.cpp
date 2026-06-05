@@ -761,8 +761,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
-    if (expectedTy->getAs<res::FunctionType>())
-      resolvedArg = coerceIfLambda(resolvedArg);
+    resolvedArg = coerceIfNeeded(expectedTy, resolvedArg);
 
     res::Type *actualTy = resolvedArg->getType();
 
@@ -826,8 +825,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     res::Type *fieldTy = typeMgr.instantiate(
         fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
-    if (fieldTy->getAs<res::FunctionType>())
-      resolvedInitExpr = coerceIfLambda(resolvedInitExpr);
+    resolvedInitExpr = coerceIfNeeded(fieldTy, resolvedInitExpr);
 
     res::Type *initTy = resolvedInitExpr->getType();
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
@@ -940,34 +938,28 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-res::Expr *Sema::coerceIfLambda(res::Expr *expr) {
-  res::StructType *structTy = expr->getType()->getAs<res::StructType>();
-  if (!structTy)
+res::Expr *Sema::coerceIfNeeded(res::Type *targetType, res::Expr *expr) {
+  res::Type *exprType = expr->getType();
+  res::Type *coercedType = typeMgr.tryCoerce(targetType, exprType);
+
+  if (!coercedType)
     return expr;
 
-  res::StructDecl *decl = structTy->getDecl();
-  if (!decl->isLambda)
-    return expr;
+  auto *implicitCoerceExpr =
+      ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedType, expr);
 
-  auto *fn = decl->lookupDecl<res::FunctionDecl>(lambdaFunctionId);
-  assert(fn && "lambda without method!?");
+  if (auto *structType = exprType->getAs<res::StructType>();
+      structType && structType->getDecl()->isLambda)
+    functionInfo->pedingLambdaCoercions.emplace_back(implicitCoerceExpr);
 
-  auto *fnTy = fn->getType()->getAs<res::FunctionType>();
-
-  std::vector<res::Type *> coercedArgs = fnTy->getArgs();
-  coercedArgs.erase(coercedArgs.begin());
-
-  auto *coercedFnTy =
-      typeMgr.getFunctionType(coercedArgs, fnTy->getReturnType());
-  return functionInfo->pedingCoercions.emplace_back(
-      ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedFnTy, expr));
+  return implicitCoerceExpr;
 }
 
 bool Sema::checkLambdaCoercions() {
   bool error = false;
 
-  for (auto &&coercion : functionInfo->pedingCoercions) {
-    auto *lambda = coercion->lambdaExpr->getType()->getAs<res::StructType>();
+  for (auto &&coercion : functionInfo->pedingLambdaCoercions) {
+    auto *lambda = coercion->expr->getType()->getAs<res::StructType>();
     bool capturing = !lambda->getDecl()->getAll<res::FieldDecl>().empty();
 
     if (capturing) {
@@ -1105,8 +1097,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment(lhs->location).report(reporter);
 
   auto *lhsTy = lhs->getType();
-  if (lhsTy->getAs<res::FunctionType>())
-    rhs = coerceIfLambda(rhs);
+  rhs = coerceIfNeeded(lhsTy, rhs);
 
   auto *rhsTy = rhs->getType();
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
@@ -1138,10 +1129,9 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    if (retTy->getAs<res::FunctionType>())
-      expr = coerceIfLambda(expr);
-
+    expr = coerceIfNeeded(retTy, expr);
     res::Type *exprTy = expr->getType();
+
     if (!typeMgr.unify(retTy, exprTy).empty())
       return err::invalidReturnValue(expr->location)
           .with(exprTy->getName())
@@ -1388,10 +1378,9 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer));
 
-    if (declTy->getAs<res::FunctionType>())
-      init = coerceIfLambda(init);
-
+    init = coerceIfNeeded(declTy, init);
     auto *initTy = init->getType();
+
     if (!typeMgr.unify(declTy, initTy).empty())
       return err::initTyMismatch(init->location)
           .with(initTy->getName())

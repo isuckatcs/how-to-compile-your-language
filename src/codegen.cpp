@@ -360,7 +360,7 @@ llvm::Value *Codegen::generateTmpStruct(
 
 llvm::Value *
 Codegen::generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice) {
-  const auto *closureTy = ice.lambdaExpr->getType()->getAs<res::StructType>();
+  const auto *closureTy = ice.expr->getType()->getAs<res::StructType>();
   const auto *coercedTy = ice.getType()->getAs<res::FunctionType>();
 
   const auto *fnDecl = closureTy->getDecl()->getAll<res::FunctionDecl>()[0];

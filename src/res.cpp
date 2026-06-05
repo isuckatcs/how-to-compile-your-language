@@ -312,7 +312,7 @@ void ImplicitCoerceExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ImplicitCoerceExpr"
             << " {" << getType()->getName() << '}' << '\n';
 
-  lambdaExpr->dump(level + 1);
+  expr->dump(level + 1);
 }
 
 void Context::dump() const {

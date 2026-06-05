@@ -207,6 +207,7 @@ public:
   ImplType *getImplType(std::vector<TraitType *> traits);
 
   bool moreGeneral(Type *t1, Type *t2);
+  Type *tryCoerce(Type *target, Type *current);
 
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);

@@ -85,7 +85,7 @@ class Sema {
     res::LambdaExpr *lambda = nullptr;
     res::DeclContext *lambdaParamScope = nullptr;
     std::vector<PendingLambdaDescriptor> pendingLambdas = {};
-    std::vector<res::ImplicitCoerceExpr *> pedingCoercions = {};
+    std::vector<res::ImplicitCoerceExpr *> pedingLambdaCoercions = {};
     std::vector<const ast::Expr *> pendingCaptureInits = {};
   };
 
@@ -195,7 +195,7 @@ class Sema {
 
   res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
                                      const ast::LambdaExpr &lambda);
-  res::Expr *coerceIfLambda(res::Expr *expr);
+  res::Expr *coerceIfNeeded(res::Type *targetType, res::Expr *expr);
   bool checkLambdaCoercions();
   bool resolvePendingLambdaBodies();
 
