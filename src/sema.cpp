@@ -369,7 +369,12 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
     if (error)
       return nullptr;
-    return typeMgr.getImplType(std::move(traitTys));
+
+    auto *implType = typeMgr.getImplType(traitTys);
+    for (auto &&trait : traitTys)
+      typeMgr.addUpperBound(implType, trait);
+
+    return implType;
   }
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
@@ -761,19 +766,19 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
-    resolvedArg = coerceIfNeeded(expectedTy, resolvedArg);
+    varOrReturn(coercedArg, coerceIfNeeded(expectedTy, resolvedArg));
 
-    res::Type *actualTy = resolvedArg->getType();
+    res::Type *actualTy = coercedArg->getType();
 
     if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
         !errors.empty()) {
       for (auto &&error : errors)
-        err::inferenceError(resolvedArg->location).with(error).report(reporter);
+        err::inferenceError(coercedArg->location).with(error).report(reporter);
       return nullptr;
     }
 
-    resolvedArg->setConstantValue(cee->evaluate(*resolvedArg));
-    resolvedArgs.emplace_back(resolvedArg);
+    coercedArg->setConstantValue(cee->evaluate(*coercedArg));
+    resolvedArgs.emplace_back(coercedArg);
   }
 
   return ctx.create<res::CallExpr>(call.location, fnType->getReturnType(),
@@ -825,12 +830,12 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     res::Type *fieldTy = typeMgr.instantiate(
         fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
-    resolvedInitExpr = coerceIfNeeded(fieldTy, resolvedInitExpr);
+    varOrReturn(coercedInitExpr, coerceIfNeeded(fieldTy, resolvedInitExpr));
 
-    res::Type *initTy = resolvedInitExpr->getType();
+    res::Type *initTy = coercedInitExpr->getType();
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
       for (auto &&error : msg)
-        err::inferenceError(resolvedInitExpr->location)
+        err::inferenceError(coercedInitExpr->location)
             .with(error)
             .report(reporter);
       error = true;
@@ -838,7 +843,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     }
 
     inits[id] = resolvedFieldInits.emplace_back(
-        ctx.create<res::FieldInitStmt>(loc, fieldDecl, resolvedInitExpr));
+        ctx.create<res::FieldInitStmt>(loc, fieldDecl, coercedInitExpr));
   }
 
   for (auto &&fieldDecl : sd->getAll<res::FieldDecl>()) {
@@ -940,13 +945,19 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
 res::Expr *Sema::coerceIfNeeded(res::Type *targetType, res::Expr *expr) {
   res::Type *exprType = expr->getType();
-  res::Type *coercedType = typeMgr.tryCoerce(targetType, exprType);
+  auto &&[isItPossible, errors] = typeMgr.tryCoerce(targetType, exprType);
 
-  if (!coercedType)
+  if (!isItPossible)
     return expr;
 
+  if (!errors.empty()) {
+    for (auto &&error : errors)
+      err::inferenceError(expr->location).with(error).report(reporter);
+    return nullptr;
+  }
+
   auto *implicitCoerceExpr =
-      ctx.create<res::ImplicitCoerceExpr>(expr->location, coercedType, expr);
+      ctx.create<res::ImplicitCoerceExpr>(expr->location, targetType, expr);
 
   if (auto *structType = exprType->getAs<res::StructType>();
       structType && structType->getDecl()->isLambda)
@@ -1095,23 +1106,23 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
   if (!lhs->isLvalue())
     return err::rvalueAssignment(lhs->location).report(reporter);
-
   auto *lhsTy = lhs->getType();
-  rhs = coerceIfNeeded(lhsTy, rhs);
 
-  auto *rhsTy = rhs->getType();
+  varOrReturn(coercedRhs, coerceIfNeeded(lhsTy, rhs));
+  auto *rhsTy = coercedRhs->getType();
+
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
-      err::inferenceError(rhs->location).with(error).report(reporter);
+      err::inferenceError(coercedRhs->location).with(error).report(reporter);
 
-    return err::incompatibleAssignment(rhs->location)
+    return err::incompatibleAssignment(coercedRhs->location)
         .with(lhsTy->getName())
         .with(rhsTy->getName())
         .report(reporter);
   }
 
-  rhs->setConstantValue(cee->evaluate(*rhs));
-  return ctx.create<res::Assignment>(assignment.location, lhs, rhs);
+  coercedRhs->setConstantValue(cee->evaluate(*coercedRhs));
+  return ctx.create<res::Assignment>(assignment.location, lhs, coercedRhs);
 }
 
 res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
@@ -1129,7 +1140,9 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    expr = coerceIfNeeded(retTy, expr);
+    varOrReturn(coercedExpr, coerceIfNeeded(retTy, expr));
+    expr = coercedExpr;
+
     res::Type *exprTy = expr->getType();
 
     if (!typeMgr.unify(retTy, exprTy).empty())
@@ -1288,7 +1301,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
   varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
 
   auto *traitTy = traitInstance->getType()->getAs<res::TraitType>();
-  typeMgr.addUpperBound(parent, traitTy);
+  typeMgr.addUpperBound(parent->getType(), traitTy);
 
   auto *resImpl = ctx.create<res::ImplBlock>(decl.location, traitInstance);
 
@@ -1378,7 +1391,8 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer));
 
-    init = coerceIfNeeded(declTy, init);
+    varOrReturn(coercedInit, coerceIfNeeded(declTy, init));
+    init = coercedInit;
     auto *initTy = init->getType();
 
     if (!typeMgr.unify(declTy, initTy).empty())
@@ -1438,7 +1452,7 @@ bool Sema::resolveGenericParamsInCurrentScope(
 
     for (auto &&trait : traits) {
       resParam->traits.emplace_back(trait);
-      typeMgr.addUpperBound(resParam,
+      typeMgr.addUpperBound(resParam->getType(),
                             trait->getType()->getAs<res::TraitType>());
     }
   }
@@ -1517,7 +1531,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
         ctx.create<res::TypeParamDecl>(decl.location, selfType, implicitSelfId);
 
     typeMgr.unify(selfType, typeMgr.getTypeParamType(*implicitSelf));
-    typeMgr.addUpperBound(implicitSelf,
+    typeMgr.addUpperBound(implicitSelf->getType(),
                           parent->getType()->getAs<res::TraitType>());
 
     insertDeclToScope(implicitSelf, lexicalScope);
@@ -1674,7 +1688,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 
   for (auto &&trait : traits) {
     traitDecl.traits.emplace_back(trait);
-    typeMgr.addUpperBound(&traitDecl,
+    typeMgr.addUpperBound(traitDecl.getType(),
                           trait->getType()->getAs<res::TraitType>());
   }
 

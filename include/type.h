@@ -188,7 +188,7 @@ class TypeManager {
   bool unifyImpl(Type *t1, Type *t2, std::vector<std::string> &errors);
 
 public:
-  void addUpperBound(Decl *decl, TraitType *trait);
+  void addUpperBound(Type *type, TraitType *trait);
   UninferredType *withObligation(UninferredType *type, TraitType *obligation);
   std::vector<TraitType *> getUpperBounds(Type *type);
 
@@ -207,7 +207,8 @@ public:
   ImplType *getImplType(std::vector<TraitType *> traits);
 
   bool moreGeneral(Type *t1, Type *t2);
-  Type *tryCoerce(Type *target, Type *current);
+  std::pair<bool, std::vector<std::string>> tryCoerce(Type *target,
+                                                      Type *current);
 
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);

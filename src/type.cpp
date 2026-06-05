@@ -218,8 +218,8 @@ ImplType *TypeManager::getImplType(std::vector<TraitType *> traits) {
   return implTy;
 }
 
-void TypeManager::addUpperBound(res::Decl *decl, TraitType *trait) {
-  upperBounds.emplace_back(decl->getType(), trait);
+void TypeManager::addUpperBound(Type *type, TraitType *trait) {
+  upperBounds.emplace_back(type, trait);
 }
 
 std::vector<TraitType *> TypeManager::getUpperBounds(res::Type *type) {
@@ -269,15 +269,16 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
   return false;
 }
 
-Type *TypeManager::tryCoerce(Type *target, Type *current) {
+std::pair<bool, std::vector<std::string>>
+TypeManager::tryCoerce(Type *target, Type *current) {
   if (target->getAs<res::FunctionType>()) {
     res::StructType *structTy = current->getAs<res::StructType>();
     if (!structTy)
-      return nullptr;
+      return {false, {}};
 
     res::StructDecl *decl = structTy->getDecl();
     if (!decl->isLambda)
-      return nullptr;
+      return {false, {}};
 
     const auto &functions = decl->getAll<res::FunctionDecl>();
     assert(functions.size() == 1 && "lambda should have 1 builtin method");
@@ -286,31 +287,26 @@ Type *TypeManager::tryCoerce(Type *target, Type *current) {
     std::vector<res::Type *> coercedArgs = fnTy->getArgs();
     coercedArgs.erase(coercedArgs.begin());
 
-    return getFunctionType(coercedArgs, fnTy->getReturnType());
+    auto *coercedTy = getFunctionType(coercedArgs, fnTy->getReturnType());
+    return {true, unify(target, coercedTy)};
   }
 
   auto *targetPtr = target->getAs<res::PointerType>();
   auto *currentPtr = current->getAs<res::PointerType>();
 
-  if (!targetPtr || !currentPtr)
-    return nullptr;
+  if (!targetPtr || !currentPtr ||
+      targetPtr->isMutable() != currentPtr->isMutable())
+    return {false, {}};
 
   if (auto *targetImpl = targetPtr->getPointeeType()->getAs<res::ImplType>()) {
-    auto *currentPointeeType = currentPtr->getPointeeType();
-    if (auto *currentImpl = currentPointeeType->getAs<res::ImplType>())
-      // FIXME: faking upper bounds, create an API to add them instead
-      for (auto &&trait : currentImpl->getTraits())
-        upperBounds.emplace_back(currentPointeeType, trait);
-
     auto *tmpTargetType = getNewUninferredType();
     for (auto &&targetTrait : targetImpl->getTraits())
       withObligation(tmpTargetType, targetTrait);
 
-    if (unify(currentPointeeType, tmpTargetType).empty())
-      return targetPtr;
+    return {true, unify(currentPtr->getPointeeType(), tmpTargetType)};
   }
 
-  return nullptr;
+  return {false, {}};
 }
 
 bool TypeManager::unifyImpl(Type *t1,
