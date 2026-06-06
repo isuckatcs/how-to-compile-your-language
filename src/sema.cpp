@@ -351,20 +351,9 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
     std::vector<res::TraitType *> traitTys;
     for (auto &&trait : resolvedTraits) {
-      for (auto &&fn : trait->decl->getAll<res::FunctionDecl>()) {
-        bool hasSelfParam =
-            fn->params.size() > 0 && fn->params[0]->identifier == selfParamId;
-
-        if (!fn->isGeneric() || !hasSelfParam)
-          continue;
-
-        bool hasImplicitSelf = fn->typeParams[0]->identifier == implicitSelfId;
-        if (hasImplicitSelf && fn->typeParams.size() == 1)
-          continue;
-
+      if (!isTraitVtableCompatible(trait->getType()->getAs<res::TraitType>())) {
         err::traitObjectTemplateMemberFn(trait->location).report(reporter);
         error = true;
-        break;
       }
 
       if (functionInfo)
@@ -2115,6 +2104,28 @@ bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
       return false;
     }
   }
+
+  return true;
+}
+
+bool Sema::isTraitVtableCompatible(res::TraitType *trait) {
+  for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
+    bool hasSelfParam =
+        fn->params.size() > 0 && fn->params[0]->identifier == selfParamId;
+
+    if (!fn->isGeneric() || !hasSelfParam)
+      continue;
+
+    bool hasImplicitSelf = fn->typeParams[0]->identifier == implicitSelfId;
+    if (hasImplicitSelf && fn->typeParams.size() == 1)
+      continue;
+
+    return false;
+  }
+
+  for (auto &&parentTrait : typeMgr.getUpperBounds(trait))
+    if (!isTraitVtableCompatible(parentTrait))
+      return false;
 
   return true;
 }

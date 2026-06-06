@@ -231,6 +231,7 @@ class Sema {
   bool hasSelfContainingStructs(res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
   bool checkTraitInstance(res::TraitInstance *traitInstance);
+  bool isTraitVtableCompatible(res::TraitType *trait);
 
 public:
   explicit Sema(diag::DiagnosticReporter &reporter,
