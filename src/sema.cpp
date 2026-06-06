@@ -856,7 +856,12 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     res::Type *fieldTy = typeMgr.instantiate(
         fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
-    varOrReturn(coercedInitExpr, coerceIfNeeded(fieldTy, resolvedInitExpr));
+
+    res::Expr *coercedInitExpr = coerceIfNeeded(fieldTy, resolvedInitExpr);
+    if (!coercedInitExpr) {
+      error = true;
+      continue;
+    }
 
     res::Type *initTy = coercedInitExpr->getType();
     if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
