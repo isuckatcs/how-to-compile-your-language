@@ -352,7 +352,10 @@ res::Type *Sema::resolveType(res::Context &ctx,
     std::vector<res::TraitType *> traitTys;
     for (auto &&trait : resolvedTraits) {
       for (auto &&fn : trait->decl->getAll<res::FunctionDecl>()) {
-        if (!fn->isGeneric())
+        bool hasSelfParam =
+            fn->params.size() > 0 && fn->params[0]->identifier == selfParamId;
+
+        if (!fn->isGeneric() || !hasSelfParam)
           continue;
 
         bool hasImplicitSelf = fn->typeParams[0]->identifier == implicitSelfId;
@@ -727,6 +730,38 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
             res::Expr::Kind::Rvalue);
       } else if (baseTy->getAs<res::ImplType>())
         return err::traitObjectSelf(baseLoc).report(reporter);
+
+      auto referencesSelf = [&](const res::Type *paramTy) {
+        while (true) {
+          if (auto *ptrTy = paramTy->getAs<res::PointerType>()) {
+            paramTy = ptrTy->getPointeeType();
+            continue;
+          }
+
+          if (auto *outTy = paramTy->getAs<res::OutParamType>()) {
+            paramTy = outTy->getParamType();
+            continue;
+          }
+
+          return paramTy->getRootType() ==
+                 function->typeParams[0]->getType()->getRootType();
+        }
+      };
+
+      if (baseTy->getAs<res::ImplType>()) {
+        for (auto &&param : function->params) {
+          if (param->identifier == selfParamId)
+            continue;
+
+          if (referencesSelf(param->getType()))
+            return err::traitObjectSelfParam(baseLoc).report(reporter);
+        }
+
+        if (referencesSelf(function->getType()
+                               ->getAs<res::FunctionType>()
+                               ->getReturnType()))
+          return err::traitObjectSelfReturn(baseLoc).report(reporter);
+      }
 
       res::DeclRefExpr *baseDre = nullptr;
       if (auto *structTy = baseTy->getAs<res::StructType>())

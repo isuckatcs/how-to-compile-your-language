@@ -118,8 +118,10 @@ diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
 diag(Error, outParamPointer, "cannot create pointer to '&' param");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
-diag(Error, traitObjectTemplateMemberFn, "traits with template member functions cannot be used in trait objects");
+diag(Error, traitObjectTemplateMemberFn, "traits with template methods cannot be used in trait objects");
 diag(Error, traitObjectSelf, "methods that take 'self' by value cannot be called on trait objects");
+diag(Error, traitObjectSelfParam, "methods with parameters referecing 'Self' cannot be called on trait objects");
+diag(Error, traitObjectSelfReturn, "methods with return type referecing 'Self' cannot be called on trait objects");
 
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");
