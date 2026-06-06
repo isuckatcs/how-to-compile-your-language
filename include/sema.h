@@ -230,6 +230,7 @@ class Sema {
   bool checkSelfParameter(res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
+  bool checkTraitInstance(res::TraitInstance *traitInstance);
 
 public:
   explicit Sema(diag::DiagnosticReporter &reporter,

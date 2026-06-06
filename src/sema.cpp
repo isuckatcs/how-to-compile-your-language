@@ -364,6 +364,8 @@ res::Type *Sema::resolveType(res::Context &ctx,
         break;
       }
 
+      if (functionInfo)
+        error |= !checkTraitInstance(trait);
       traitTys.emplace_back(trait->getType()->getAs<res::TraitType>());
     }
 
@@ -2051,29 +2053,34 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
 bool Sema::checkTraitInstances(res::Context &ctx) {
   bool error = false;
 
-  for (auto &&traitInstance : ctx.getTraitInstances()) {
-    auto sub = typeMgr.extractSubstitutionFrom(traitInstance->getType());
+  for (auto &&traitInstance : ctx.getTraitInstances())
+    error |= !checkTraitInstance(traitInstance);
 
-    for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
-      auto *subTy = typeMgr.getNewUninferredType();
+  return !error;
+}
 
-      for (auto &&trait : typeMgr.getUpperBounds(
-               traitInstance->decl->typeParams[i]->getType()))
-        typeMgr.withObligation(
-            subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
+bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
+  auto sub = typeMgr.extractSubstitutionFrom(traitInstance->getType());
 
-      if (const auto &msg = typeMgr.unify(traitInstance->typeArgs[i], subTy);
-          !msg.empty()) {
-        for (auto &&error : msg)
-          err::inferenceError(traitInstance->typeLocations[i])
-              .with(error)
-              .report(reporter);
+  for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
+    auto *subTy = typeMgr.getNewUninferredType();
 
-        error = true;
-      }
+    for (auto &&trait :
+         typeMgr.getUpperBounds(traitInstance->decl->typeParams[i]->getType()))
+      typeMgr.withObligation(
+          subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
+
+    if (const auto &msg = typeMgr.unify(traitInstance->typeArgs[i], subTy);
+        !msg.empty()) {
+      for (auto &&error : msg)
+        err::inferenceError(traitInstance->typeLocations[i])
+            .with(error)
+            .report(reporter);
+
+      return false;
     }
   }
 
-  return !error;
+  return true;
 }
 } // namespace yl
