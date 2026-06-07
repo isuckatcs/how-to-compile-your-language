@@ -16,6 +16,6 @@ struct S {
 fn main() {
   let s = S{};
 
-  // CHECK: [[# @LINE + 1]]:29: error: cannot unify 'unit' with 'number'
-  S::impl A<number>::foo(s, unit);
+  // CHECK: [[# @LINE + 1]]:31: error: cannot unify 'unit' with 'number'
+  @<S impl A<number>>::foo(s, unit);
 }

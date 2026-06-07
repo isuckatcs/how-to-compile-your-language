@@ -470,25 +470,48 @@ Sema::resolveGroupingExpr(res::Context &ctx,
 template <typename Hint>
 res::PathExpr *Sema::resolvePathExpr(res::Context &ctx,
                                      const ast::PathExpr &pathExpr) {
-  const auto &path = pathExpr.path;
-  std::vector<res::DeclRefExpr *> resFragments;
+  if (auto *traitSpecifier = pathExpr.traitSpecifier.get()) {
+    varOrReturn(type, resolveType(ctx, *traitSpecifier->type));
+    varOrReturn(trait, resolveTraitInstance(
+                           ctx, traitSpecifier->impl->traitInstance.get()));
 
-  for (auto &&fragment : path) {
-    auto &&[impl, decl] = fragment;
+    res::TraitType *traitTy = trait->getType()->getAs<res::TraitType>();
+    auto *checkTy =
+        typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
+
+    if (!typeMgr.unify(type, checkTy).empty())
+      return err::traitNotImplemented(trait->location)
+          .with(type->getName())
+          .with(traitTy->getName())
+          .report(reporter);
+
+    assert(pathExpr.fragments.size() == 1 && "expected only 1 fragment");
+    auto *dre = pathExpr.fragments.back().get();
+    if (auto *decl = lookupSymbolWithFallback<Hint>(trait->decl, dre))
+      return ctx.create<res::PathExpr>(std::vector<res::DeclRefExpr *>{
+          createDeclRefExpr(ctx, dre, type, decl, traitTy)});
+
+    return err::traitMissingMember(dre->location)
+        .with(trait->decl->identifier)
+        .with(dre->identifier)
+        .report(reporter);
+  }
+
+  std::vector<res::DeclRefExpr *> resFragments;
+  for (auto &&fragment : pathExpr.fragments) {
 
     res::Type *parentTy = nullptr;
     if (!resFragments.empty())
       parentTy = resFragments.back()->getType();
 
-    if (fragment != path.back()) {
-      varOrReturn(dre, resolveDeclRefExpr<res::TypeDecl>(
-                           ctx, parentTy, decl.get(), impl.get()));
+    if (fragment != pathExpr.fragments.back()) {
+      varOrReturn(dre, resolveDeclRefExpr<res::TypeDecl>(ctx, parentTy,
+                                                         fragment.get()));
       resFragments.emplace_back(dre);
       continue;
     }
 
-    varOrReturn(
-        dre, resolveDeclRefExpr<Hint>(ctx, parentTy, decl.get(), impl.get()));
+    varOrReturn(dre, resolveDeclRefExpr<Hint>(ctx, parentTy, fragment.get()));
     resFragments.emplace_back(dre);
   }
 
@@ -500,31 +523,6 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
                                            res::Type *parent,
                                            const ast::DeclRefExpr *dre,
                                            const ast::ImplSpecifier *impl) {
-  if (impl) {
-    assert(parent && "impl specifier without parent");
-
-    varOrReturn(traitInstance,
-                resolveTraitInstance(ctx, impl->traitInstance.get()));
-
-    res::TraitType *traitTy = traitInstance->getType()->getAs<res::TraitType>();
-    auto *checkTy =
-        typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
-
-    if (!typeMgr.unify(parent, checkTy).empty())
-      return err::traitNotImplemented(impl->location)
-          .with(parent->getName())
-          .with(traitTy->getName())
-          .report(reporter);
-
-    if (auto *decl = lookupSymbolWithFallback<Hint>(traitInstance->decl, dre))
-      return createDeclRefExpr(ctx, dre, parent, decl, traitTy);
-
-    return err::traitMissingMember(dre->location)
-        .with(traitInstance->decl->identifier)
-        .with(dre->identifier)
-        .report(reporter);
-  }
-
   if (!parent && dre->identifier == selfTypeId) {
     if (!selfType)
       return err::selfTyNotAllowed(dre->location).report(reporter);

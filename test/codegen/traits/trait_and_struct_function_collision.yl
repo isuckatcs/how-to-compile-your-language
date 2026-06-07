@@ -18,7 +18,7 @@ struct S {
 
 fn main() {
   S::foo@<S>();
-  S::impl A::foo();
+  @<S impl A>::foo();
 }
 // CHECK: define void @__builtin_main() {
 // CHECK-NEXT: entry:

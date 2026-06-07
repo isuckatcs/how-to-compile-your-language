@@ -49,19 +49,17 @@ struct S {
 fn main() {
   let s = S{ x: 123 };
 
-  S::impl A<unit>::foo(s, unit);
+  @<S impl A<unit>>::foo(s, unit);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   PathExpr {(S, unit) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<unit>::foo {(S, unit) -> unit}
   // CHECK-NEXT:   PathExpr {S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}
 
-  S::impl A<number>::foo(s, 2);
+  @<S impl A<number>>::foo(s, 2);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   PathExpr {(S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) A<number>::foo {(S, number) -> unit}
   // CHECK-NEXT:   PathExpr {S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}

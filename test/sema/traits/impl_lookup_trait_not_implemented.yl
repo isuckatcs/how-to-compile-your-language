@@ -6,6 +6,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:6: error: 'S' doesn't implement trait 'A<unit>'
-  S::impl A<unit>::foo();
+  // CHECK: [[# @LINE + 1]]:12: error: 'S' doesn't implement trait 'A<unit>'
+  @<S impl A<unit>>::foo();
 }

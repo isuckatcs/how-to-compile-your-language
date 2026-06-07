@@ -23,11 +23,11 @@ struct S {
 fn main() {
   let s = S{ x: 123 };
 
-  S::impl A<unit>::foo(s, unit);
+  @<S impl A<unit>>::foo(s, unit);
   // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
   // CHECK-NEXT: call void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp)
 
-  S::impl A<number>::foo(s, 2);
+  @<S impl A<number>>::foo(s, 2);
   // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %s, i64 8, i1 false)
   // CHECK-NEXT: call void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp1, double 2.000000e+00)
 }
