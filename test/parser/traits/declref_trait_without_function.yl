@@ -1,5 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:12: error: expected '::'
-  S::impl A;
+  // CHECK: [[# @LINE + 1 ]]:14: error: expected '::'
+  @<S impl A>;
 }

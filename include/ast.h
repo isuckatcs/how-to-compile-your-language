@@ -281,14 +281,29 @@ struct DeclRefExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct PathExpr : public Expr {
-  using ImplXDecl =
-      std::pair<std::unique_ptr<ImplSpecifier>, std::unique_ptr<DeclRefExpr>>;
-  std::vector<ImplXDecl> path;
+struct TraitSpecifier : public Expr {
+  std::unique_ptr<Type> type;
+  std::unique_ptr<ImplSpecifier> impl;
 
-  PathExpr(std::vector<ImplXDecl> path)
-      : Expr(path[0].second->location),
-        path(std::move(path)) {}
+  TraitSpecifier(SourceLocation location,
+                 std::unique_ptr<Type> type,
+                 std::unique_ptr<ImplSpecifier> impl)
+      : Expr(location),
+        type(std::move(type)),
+        impl(std::move(impl)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct PathExpr : public Expr {
+  std::unique_ptr<TraitSpecifier> traitSpecifier;
+  std::vector<std::unique_ptr<DeclRefExpr>> fragments;
+
+  PathExpr(std::unique_ptr<TraitSpecifier> traitSpecifier,
+           std::vector<std::unique_ptr<DeclRefExpr>> fragments)
+      : Expr(fragments.back()->location),
+        traitSpecifier(std::move(traitSpecifier)),
+        fragments(std::move(fragments)) {}
 
   void dump(size_t level = 0) const override;
 };

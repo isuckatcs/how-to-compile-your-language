@@ -802,7 +802,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     return parseLambdaExpr();
 
   if (nextToken.kind == TokenKind::Identifier ||
-      nextToken.kind == TokenKind::KwSelf) {
+      nextToken.kind == TokenKind::KwSelf || nextToken.kind == TokenKind::At) {
     varOrReturn(path, parsePathExpr());
     if (restrictions & StructNotAllowed || nextToken.kind != TokenKind::Lbrace)
       return path;
@@ -833,35 +833,63 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
   return err::expected(nextToken.location).with("expression").report(reporter);
 }
 
+// <traitSpecifier>
+//  ::= '@' '<' <type> <implSpecifier> '>' '::'
+std::unique_ptr<ast::TraitSpecifier> Parser::parseTraitSpecifier() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat '@'
+
+  expectOrReturn(TokenKind::Lt, err::expected(nextToken.location).with("'<'"));
+  eatNextToken(); // eat '<'
+
+  varOrReturn(type, parseType());
+
+  expectOrReturn(TokenKind::KwImpl,
+                 err::expected(nextToken.location).with("'impl'"));
+  varOrReturn(impl, parseImplSpecifier());
+
+  expectOrReturn(TokenKind::Gt, err::expected(nextToken.location).with("'>'"));
+  eatNextToken(); // eat '>'
+
+  expectOrReturn(TokenKind::ColonColon,
+                 err::expected(nextToken.location).with("'::'"));
+  eatNextToken(); // eat '::'
+
+  return std::make_unique<ast::TraitSpecifier>(location, std::move(type),
+                                               std::move(impl));
+}
+
 // <pathExpr>
-//  ::= <declRefExpr> ('::' (<implSpecifier> '::')? <declRefExpr>)*
+//  ::= <traitSpecifier>? <declRefExpr>
+//  |   <declRefExpr> ('::' <declRefExpr>)*
 std::unique_ptr<ast::PathExpr> Parser::parsePathExpr() {
-  std::vector<ast::PathExpr::ImplXDecl> path;
+  std::unique_ptr<ast::TraitSpecifier> traitSpecifier = nullptr;
+  std::vector<std::unique_ptr<ast::DeclRefExpr>> fragments;
 
-  varOrReturn(dre, parseDeclRefExpr());
-  path.emplace_back(nullptr, std::move(dre));
+  if (nextToken.kind == TokenKind::At) {
+    traitSpecifier = parseTraitSpecifier();
+    if (!traitSpecifier)
+      return nullptr;
 
-  while (true) {
-    if (nextToken.kind != TokenKind::ColonColon)
-      break;
-    eatNextToken(); // eat '::'
+    if (!fragments.emplace_back(parseDeclRefExpr()))
+      return nullptr;
 
-    std::unique_ptr<ast::ImplSpecifier> impl;
-    if (nextToken.kind == TokenKind::KwImpl) {
-      impl = parseImplSpecifier();
-      if (!impl)
-        return nullptr;
-
-      expectOrReturn(TokenKind::ColonColon,
-                     err::expected(nextToken.location).with("'::'"));
-      eatNextToken(); // eat '::'
-    }
-
-    varOrReturn(dre, parseDeclRefExpr());
-    path.emplace_back(std::move(impl), std::move(dre));
+    return std::make_unique<ast::PathExpr>(std::move(traitSpecifier),
+                                           std::move(fragments));
   }
 
-  return std::make_unique<ast::PathExpr>(std::move(path));
+  if (!fragments.emplace_back(parseDeclRefExpr()))
+    return nullptr;
+
+  while (nextToken.kind == TokenKind::ColonColon) {
+    eatNextToken(); // eat '::'
+
+    if (!fragments.emplace_back(parseDeclRefExpr()))
+      return nullptr;
+  }
+
+  return std::make_unique<ast::PathExpr>(std::move(traitSpecifier),
+                                         std::move(fragments));
 }
 
 std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
