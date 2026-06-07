@@ -116,13 +116,11 @@ std::string ImplType::getName() const {
   std::stringstream ss;
   ss << "impl ";
 
-  if (!traits.empty()) {
-    for (int i = 0; i < traits.size(); ++i) {
-      ss << traits[i]->getName();
+  for (int i = 0; i < traits.size(); ++i) {
+    ss << traits[i]->getName();
 
-      if (i < traits.size() - 1)
-        ss << ' ' << '&' << ' ';
-    }
+    if (i < traits.size() - 1)
+      ss << ' ' << '&' << ' ';
   }
 
   return ss.str();
