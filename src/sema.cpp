@@ -2118,11 +2118,7 @@ bool Sema::isTraitVtableCompatible(res::TraitType *trait) {
     bool hasSelfParam =
         fn->params.size() > 0 && fn->params[0]->identifier == selfParamId;
 
-    if (!fn->isGeneric() || !hasSelfParam)
-      continue;
-
-    bool hasImplicitSelf = fn->typeParams[0]->identifier == implicitSelfId;
-    if (hasImplicitSelf && fn->typeParams.size() == 1)
+    if (!fn->isGeneric() || !hasSelfParam || fn->typeParams.size() == 1)
       continue;
 
     return false;

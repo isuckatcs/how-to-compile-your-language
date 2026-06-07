@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait Foo<T> {
+  fn foo(self: &Self, x: T) {}
+}
+
+fn foo(x: *mut impl Foo<number>) {
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'unit' with 'number'
+  x.foo(unit);
+}
+
+fn main() {}
