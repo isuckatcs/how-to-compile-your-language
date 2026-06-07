@@ -1,0 +1,23 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait Foo {
+  fn foo(self: &Self, x: Self) {}
+  fn bar(self: &Self, x: &Self) {}
+  fn baz(self: &Self, x: &Self) {}
+}
+
+struct S {
+  impl Foo;
+}
+
+fn main() {
+  mut x: *mut impl Foo = gcMut(S{});
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  x.foo(x);
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  x.bar(x);
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  x.baz(x);
+}

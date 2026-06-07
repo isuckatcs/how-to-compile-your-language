@@ -1,0 +1,18 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B {}
+
+struct S {
+  impl A;
+}
+
+fn foo(mut x: *impl A, y: *impl B) {
+  // CHECK: [[# @LINE + 1 ]]:12: error: expected to assign '*impl A' but received '*mut S' instead
+  x = gcMut(S{});
+  
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot satisfy constraint 'S : B'
+  y = gc(S{});
+}
+
+fn main() {}

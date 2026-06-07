@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B : A {}
+
+fn foo(x: *impl B) {
+  bar(x);
+  // CHECK: ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:   PathExpr {*impl B}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl B}
+}
+
+fn bar(x: *impl A) {}
+
+fn main() {}

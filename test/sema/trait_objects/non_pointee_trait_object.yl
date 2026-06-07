@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  // CHECK: [[# @LINE + 1 ]]:6: error: only pointers to trait objects are allowed
+  x: impl Foo
+}
+
+// CHECK: [[# @LINE + 1 ]]:11: error: only pointers to trait objects are allowed
+fn foo(f: impl Foo) {}
+
+// CHECK: [[# @LINE + 1 ]]:11: error: only pointers to trait objects are allowed
+fn bar(): impl Foo {}
+
+fn main() {}

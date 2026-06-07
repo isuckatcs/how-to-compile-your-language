@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  let x: *impl A = gc(S{});
+  // CHECK: VarDecl @({{.*}}) x {*impl A}
+  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:     CallExpr {*S}
+}

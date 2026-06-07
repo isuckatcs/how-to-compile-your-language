@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn foo(x: *impl A) {}
+
+fn main() {
+  foo(gc(S{}));
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   PathExpr {(*impl A) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(*impl A) -> unit}
+  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:     CallExpr {*S}
+}

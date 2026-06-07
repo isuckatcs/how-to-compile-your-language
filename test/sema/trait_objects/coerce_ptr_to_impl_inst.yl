@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+struct S2 {
+  x: *impl A
+}
+
+fn main() {
+  S2 { x: gc(S{}) };
+  // CHECK: FieldInitStmt @({{.*}}) x
+  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:     CallExpr {*S}
+}

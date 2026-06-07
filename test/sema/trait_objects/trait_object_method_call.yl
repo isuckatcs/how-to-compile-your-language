@@ -1,0 +1,26 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: &Self, x: number) {}
+}
+
+struct S {
+  impl A;
+}
+
+fn foo(x: *mut impl A) {
+  x.foo(123);
+}
+// CHECK: FunctionDecl @({{.*}}) foo {(*mut impl A) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut impl A}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       PathExpr {(&impl A, number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) A::foo {(&impl A, number) -> unit}
+// CHECK-NEXT:       UnaryOperator '&' {&impl A}
+// CHECK-NEXT:         UnaryOperator '*' {impl A}
+// CHECK-NEXT:           PathExpr {*mut impl A}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) x {*mut impl A}
+// CHECK-NEXT:       NumberLiteral '123' {number}
+// CHECK-NEXT:       | value: 123
+
+fn main() {}

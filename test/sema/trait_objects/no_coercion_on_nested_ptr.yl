@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:23: error: an expression of type '**S' cannot be used to initialize a variable of type '**impl A'
+  let s: **impl A = gc(gc(S{}));
+}

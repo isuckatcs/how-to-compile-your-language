@@ -1,0 +1,18 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B : A {}
+
+trait C {}
+
+fn foo(x: *impl B): *impl A & C {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'impl B : C'
+  return x;
+}
+
+fn bar(x: *impl A): *impl B {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'impl A : B'
+  return x;
+}
+
+fn main() {}

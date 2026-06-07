@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+struct S {
+  impl A;
+}
+
+fn foo(x: &*impl A) {}
+
+fn main() {
+  mut s = gc(S{});
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&*S' with '&*impl A'
+  foo(&s);
+}

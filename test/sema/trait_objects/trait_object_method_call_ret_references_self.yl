@@ -1,0 +1,35 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait Foo {
+  fn val(self: &Self): Self;
+  fn ptr(self: &Self): *Self;
+  fn ptrMut(self: &Self): *mut Self;
+}
+
+struct S {
+  impl Foo {
+    fn val(self: &Self): Self {
+      return S{};
+    }
+
+    fn ptr(self: &Self): *Self {
+      return gc(S{});
+    }
+
+    fn ptrMut(self: &Self): *mut Self {
+      return gcMut(S{});
+    }
+  }
+}
+
+fn main() {
+  mut x: *mut impl Foo = gcMut(S{});
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with return type referecing 'Self' cannot be called on trait objects
+  x.val();
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with return type referecing 'Self' cannot be called on trait objects
+  x.ptr();
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: methods with return type referecing 'Self' cannot be called on trait objects
+  x.ptrMut();
+}

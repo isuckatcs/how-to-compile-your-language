@@ -1,0 +1,23 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B : A {}
+
+trait C {}
+
+struct S {
+  x: *impl A & C,
+  y: *impl B
+}
+
+fn foo(x: *impl B, y: *impl A) {
+  S { 
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy constraint 'impl B : C'
+    x: x,
+    
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy constraint 'impl A : B'
+    y: y,
+  };
+}
+
+fn main() {}

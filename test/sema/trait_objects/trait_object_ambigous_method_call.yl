@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: &Self, x: number) {}
+}
+
+trait B : A {
+  fn foo(self: &Self, x: number) {}
+}
+
+fn foo(x: *mut impl B) {
+  // FIXME: change syntax so that this can be disambiguates
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
+  x.foo();
+}
+
+fn main() {}

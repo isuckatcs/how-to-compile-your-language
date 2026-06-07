@@ -1,0 +1,16 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait Foo {
+  fn foo<T>(self: &Self) {}
+}
+
+trait Bar : Foo {}
+
+trait Baz : Bar {}
+
+// CHECK: [[# @LINE + 1 ]]:17: error: traits with template methods cannot be used in trait objects
+fn bar(x: *impl Bar) {}
+
+// CHECK: [[# @LINE + 1 ]]:17: error: traits with template methods cannot be used in trait objects
+fn baz(x: *impl Baz) {}
+
+fn main() {}

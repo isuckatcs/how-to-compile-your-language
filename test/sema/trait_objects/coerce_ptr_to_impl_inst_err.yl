@@ -1,0 +1,23 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B {}
+
+struct S {
+  impl A;
+}
+
+struct S2 {
+  x: *impl A
+  y: *impl B
+}
+
+fn main() {
+  S2{ 
+    // CHECK: [[# @LINE + 1 ]]:13: error: cannot unify '*mut S' with '*impl A'
+    x: gcMut(S{}),
+
+    // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'S : B'
+    y: gc(S{}),
+  };
+}

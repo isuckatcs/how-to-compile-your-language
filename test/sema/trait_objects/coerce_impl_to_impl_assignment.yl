@@ -1,0 +1,19 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+trait B : A {}
+
+struct S {
+  impl A;
+}
+
+fn foo(mut x: *impl A, y: *impl B) {
+  x = y;
+  // CHECK: Assignment
+  // CHECK-NEXT:   PathExpr {*impl A}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl A}
+  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:     PathExpr {*impl B}
+}
+
+fn main() {}
