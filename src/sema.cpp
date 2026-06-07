@@ -547,7 +547,6 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
         .report(reporter);
   }
 
-  auto *implTy = parent->getAs<res::ImplType>();
   auto *structTy = parent->getAs<res::StructType>();
   bool isLambda = structTy && structTy->getDecl()->isLambda;
 
@@ -555,7 +554,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (auto *decl = lookupSymbolWithFallback<Hint>(structTy->getDecl(), dre))
       return createDeclRefExpr(ctx, dre, parent, decl, nullptr);
 
-  if (isLambda || !implTy && !structTy && !parent->getAs<res::TypeParamType>())
+  if (isLambda || !parent->getAs<res::ImplType>() && !structTy &&
+                      !parent->getAs<res::TypeParamType>())
     return err::cannotAccessMember(dre->location)
         .with(parent->getName())
         .report(reporter);
@@ -563,7 +563,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   res::Decl *decl = nullptr;
   res::TraitType *trait = nullptr;
 
-  auto traits = implTy ? implTy->getTraits() : typeMgr.getUpperBounds(parent);
+  auto traits = typeMgr.getUpperBounds(parent);
   for (auto &&implementedTrait : traits) {
     if (auto *traitDecl =
             lookupSymbolWithFallback<Hint>(implementedTrait->getDecl(), dre)) {
