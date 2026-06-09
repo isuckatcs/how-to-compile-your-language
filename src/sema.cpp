@@ -465,6 +465,9 @@ Sema::resolveGroupingExpr(res::Context &ctx,
 template <typename Hint>
 res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
                                         const ast::PathExpr &pathExpr) {
+  res::Type *parentType = nullptr;
+  res::TraitInstance *parentTrait = nullptr;
+
   if (auto *traitSpecifier = pathExpr.traitSpecifier.get()) {
     varOrReturn(type, resolveType(ctx, *traitSpecifier->type));
     varOrReturn(trait, resolveTraitInstance(
@@ -480,87 +483,99 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
           .with(traitTy->getName())
           .report(reporter);
 
-    assert(pathExpr.fragments.size() == 1 && "expected only 1 fragment");
-    auto *dre = pathExpr.fragments.back().get();
-    if (auto *decl = lookupSymbolWithFallback<Hint>(trait->decl, dre))
-      return createDeclRefExpr(ctx, dre, type, decl, traitTy);
-
-    return err::traitMissingMember(dre->location)
-        .with(trait->decl->identifier)
-        .with(dre->identifier)
-        .report(reporter);
+    parentType = type;
+    parentTrait = trait;
   }
 
-  res::DeclRefExpr *dre = nullptr;
+  std::vector<res::DeclRefExpr *> resolvedFragments;
+  res::Type *prevType = parentType;
+  res::TraitInstance *traitHelp = parentTrait;
+
   for (auto &&fragment : pathExpr.fragments) {
-    res::Type *owningType = dre ? dre->getType() : nullptr;
+    bool isLast = fragment != pathExpr.fragments.back();
+    varOrReturn(resolvedDre,
+                isLast ? resolveDeclRefExpr<res::TypeDecl>(
+                             ctx, fragment.get(), prevType, parentTrait)
+                       : resolveDeclRefExpr<Hint>(ctx, fragment.get(), prevType,
+                                                  parentTrait));
 
-    if (fragment != pathExpr.fragments.back())
-      dre = resolveDeclRefExpr<res::TypeDecl>(ctx, owningType, fragment.get());
-    else
-      dre = resolveDeclRefExpr<Hint>(ctx, owningType, fragment.get());
-
-    if (!dre)
-      return nullptr;
+    resolvedFragments.emplace_back(resolvedDre);
+    prevType = resolvedDre->getType();
+    traitHelp = nullptr;
   }
 
-  return dre;
+  return resolvedFragments.back();
 }
 
 template <typename Hint>
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
-                                           res::Type *parent,
-                                           const ast::DeclRefExpr *dre) {
-  if (!parent) {
-    bool isSelf = dre->identifier == selfTypeId;
-    if (isSelf && !selfType)
+                                           const ast::DeclRefExpr *dre,
+                                           res::Type *in,
+                                           res::TraitInstance *traitHelp) {
+  res::DeclContext *scope = nullptr;
+  res::TraitType *traitHelpTy =
+      traitHelp ? traitHelp->getType()->getAs<res::TraitType>() : nullptr;
+
+  if (!in)
+    scope = lexicalScope;
+  else if (traitHelp)
+    scope = traitHelp->decl;
+  else if (auto *st = in->getAs<res::StructType>())
+    scope = st->getDecl();
+
+  // FIXME: error out if 'in' is a trait type
+
+  if (!in && dre->identifier == selfTypeId) {
+    if (!selfType)
       return err::selfTyNotAllowed(dre->location).report(reporter);
 
-    res::Decl *decl = isSelf
-                          ? getSelfDecl()
-                          : lookupSymbolWithFallback<Hint>(lexicalScope, dre);
-    if (!decl)
-      return err::missingSymbol(dre->location)
-          .with(dre->identifier)
-          .report(reporter);
+    res::Decl *decl = nullptr;
+    if (auto *paramTy = selfType->getAs<res::TypeParamType>())
+      decl = paramTy->decl;
+    else
+      decl = selfType->getAs<res::StructType>()->getDecl();
 
-    return createDeclRefExpr(ctx, dre, nullptr, decl, nullptr);
+    return createDeclRefExpr(ctx, dre, in, decl, traitHelpTy);
   }
 
-  auto *structTy = parent->getAs<res::StructType>();
-  bool isLambda = structTy && structTy->getDecl()->isLambda;
+  if (scope)
+    if (res::Decl *decl = lookupSymbolWithFallback<Hint>(scope, dre))
+      return createDeclRefExpr(ctx, dre, in, decl, traitHelpTy);
 
-  if (structTy && !isLambda)
-    if (auto *decl = lookupSymbolWithFallback<Hint>(structTy->getDecl(), dre))
-      return createDeclRefExpr(ctx, dre, parent, decl, nullptr);
+  if (in) {
+    res::TraitType *candidateTrait = nullptr;
+    res::Decl *candidateDecl = nullptr;
 
-  if (isLambda || !parent->getAs<res::ImplType>() && !structTy &&
-                      !parent->getAs<res::TypeParamType>())
-    return err::cannotAccessMember(dre->location)
-        .with(parent->getName())
-        .report(reporter);
+    for (auto &&trait : typeMgr.getUpperBounds(in)) {
+      if (candidateTrait && typeMgr.unify(trait, candidateTrait).empty())
+        continue;
 
-  res::Decl *decl = nullptr;
-  res::TraitType *trait = nullptr;
+      auto *declInTrait = lookupSymbolWithFallback<Hint>(trait->getDecl(), dre);
+      if (!declInTrait)
+        continue;
 
-  for (auto &&implTrait : typeMgr.getUpperBounds(parent)) {
-    auto *traitDecl = lookupSymbolWithFallback<Hint>(implTrait->getDecl(), dre);
-    if (!traitDecl)
-      continue;
+      if (candidateDecl)
+        return err::ambigousMemberFn(dre->location).report(reporter);
 
-    if (decl && !typeMgr.unify(implTrait, trait).empty())
-      return err::ambigousMemberFn(dre->location).report(reporter);
+      candidateTrait = trait;
+      candidateDecl = declInTrait;
+    }
 
-    decl = traitDecl;
-    trait = implTrait;
-  }
+    if (candidateDecl)
+      return createDeclRefExpr(ctx, dre, in, candidateDecl, candidateTrait);
 
-  if (!decl)
+    if (traitHelp) {
+      in = traitHelp->getType();
+    }
     return err::lookupInTypeFailed(dre->location)
         .with(dre->identifier)
-        .with(parent->getName())
+        .with(in->getName())
         .report(reporter);
-  return createDeclRefExpr(ctx, dre, parent, decl, trait);
+  }
+
+  return err::missingSymbol(dre->location)
+      .with(dre->identifier)
+      .report(reporter);
 }
 
 res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
@@ -900,7 +915,7 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                          : res::Expr::Kind::Lvalue);
 
   varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
-                             ctx, base->getType(), memberExpr.member.get()));
+                             ctx, memberExpr.member.get(), base->getType()));
 
   if (memberDre->decl->getAs<res::FunctionDecl>() && !(modifiers & IsCallee))
     return err::expectedMethodCall(memberExpr.location).report(reporter);

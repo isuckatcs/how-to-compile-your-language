@@ -121,8 +121,9 @@ class Sema {
                                     const ast::PathExpr &pathExpr);
   template <typename Hint>
   res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
-                                       res::Type *parentTy,
-                                       const ast::DeclRefExpr *dre);
+                                       const ast::DeclRefExpr *dre,
+                                       res::Type *in = nullptr,
+                                       res::TraitInstance *traitHelp = nullptr);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,
                                       res::Type *parentTy,

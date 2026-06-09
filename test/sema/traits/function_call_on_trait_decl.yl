@@ -5,9 +5,9 @@ trait A {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:6: error: cannot access member of 'A'
+  // CHECK: [[# @LINE + 1]]:6: error: failed to find member 'foo' in 'A'
   A::foo();
 
-  // CHECK: [[# @LINE + 1]]:6: error: cannot access member of 'A'
+  // CHECK: [[# @LINE + 1]]:6: error: failed to find member 'bar' in 'A'
   A::bar();
 }

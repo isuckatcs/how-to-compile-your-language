@@ -18,6 +18,6 @@ struct S {
 fn main() {
   let s = S{};
 
-  // CHECK: [[# @LINE + 1]]:24: error: trait 'A' has no member 'B'
+  // CHECK: [[# @LINE + 1]]:24: error: failed to find member 'B' in 'A<number>'
   @<S impl A<number>>::B;
 }
