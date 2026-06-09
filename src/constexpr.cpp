@@ -115,9 +115,6 @@ res::ConstVal ConstExprEvaluator::evaluate(const res::Expr &expr) {
   if (auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
     return evaluateUnaryOperator(*unop);
 
-  if (auto *path = dynamic_cast<const res::PathExpr *>(&expr))
-    return evaluate(*path->fragments.back());
-
   if (auto *declRefExpr = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return evaluateDeclRefExpr(*declRefExpr);
 

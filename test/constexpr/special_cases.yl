@@ -15,8 +15,7 @@ fn unaryNonConst(): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   UnaryOperator '!' {bool}
-// CHECK-NEXT:     PathExpr {bool}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {bool}
 
 fn ret(): bool {
     return true;
@@ -30,8 +29,7 @@ fn call(): unit {
 // CHECK: IfStmt
 // CHECK-NEXT:   UnaryOperator '!' {bool}
 // CHECK-NEXT:     CallExpr {bool}
-// CHECK-NEXT:       PathExpr {() -> bool}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) ret {() -> bool}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) ret {() -> bool}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 
@@ -41,16 +39,14 @@ fn lhsKnownRhsNot(y: bool): bool {
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
 // CHECK-NEXT:     BoolLiteral 'true' {bool}
-// CHECK-NEXT:     PathExpr {bool}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {bool}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) y {bool}
 
 fn lhsUnknownRhsFalse(x: bool): bool {
     return x && false;
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '&&' {bool}
-// CHECK-NEXT:     PathExpr {bool}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {bool}
 // CHECK-NEXT:     BoolLiteral 'false' {bool}
 
 fn lhsUnknownRhsTrue(x: bool): bool {
@@ -58,8 +54,7 @@ fn lhsUnknownRhsTrue(x: bool): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '||' {bool}
-// CHECK-NEXT:     PathExpr {bool}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {bool}
 // CHECK-NEXT:     BoolLiteral 'true' {bool}
 
 fn lhsUnknownRhsFalseOr(x: bool): bool {
@@ -67,8 +62,7 @@ fn lhsUnknownRhsFalseOr(x: bool): bool {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '||' {bool}
-// CHECK-NEXT:     PathExpr {bool}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {bool}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {bool}
 // CHECK-NEXT:     BoolLiteral 'false' {bool}
 
 fn main(): unit {}

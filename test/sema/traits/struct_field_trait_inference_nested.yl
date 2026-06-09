@@ -19,9 +19,7 @@ fn main() {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S<number, S2>}
 // CHECK-NEXT:         StructInstantiationExpr {S<number, S2>}
-// CHECK-NEXT:           PathExpr
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) S {S<number, S2>}
+// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number, S2>}
 // CHECK-NEXT:           FieldInitStmt @({{.*}}) x
 // CHECK-NEXT:             StructInstantiationExpr {S2}
-// CHECK-NEXT:               PathExpr
-// CHECK-NEXT:                 DeclRefExpr @({{.*}}) S2 {S2}
+// CHECK-NEXT:               DeclRefExpr @({{.*}}) S2 {S2}

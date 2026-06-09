@@ -3,9 +3,7 @@ trait A {
   fn foo() {
     ->(){
       Self::foo;
-      // CHECK: PathExpr {() -> unit}
-      // CHECK-NEXT:   DeclRefExpr @({{.*}}) __Self {__Self}
-      // CHECK-NEXT:   DeclRefExpr @({{.*}}) A::foo {() -> unit}
+      // CHECK: DeclRefExpr @({{.*}}) @<__Self impl A>::foo {() -> unit}
     };
   }
 }
@@ -14,9 +12,7 @@ struct S {
   fn foo() {
     ->(){
       Self::foo;
-      // CHECK: PathExpr {() -> unit}
-      // CHECK-NEXT:   DeclRefExpr @({{.*}}) S {S}
-      // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {() -> unit}
+      // CHECK: DeclRefExpr @({{.*}}) S::foo {() -> unit}
     };
   }
 }

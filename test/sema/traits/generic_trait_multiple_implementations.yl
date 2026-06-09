@@ -33,13 +33,10 @@ fn main() {
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) s {S<Empty, number>}
   // CHECK-NEXT:     StructInstantiationExpr {S<Empty, number>}
-  // CHECK-NEXT:       PathExpr {S<Empty, number>}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S<Empty, number>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S {S<Empty, number>}
 
   foo(s);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(S<Empty, number>) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S<Empty, number>) -> unit}
-  // CHECK-NEXT:   PathExpr {S<Empty, number>}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S<Empty, number>}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S<Empty, number>) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S<Empty, number>}
 }

@@ -8,10 +8,8 @@ fn main() {
 
   println(s.n);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:   MemberExpr @({{.*}}) n {number}
   // CHECK-NEXT:     UnaryOperator '*' {S}
-  // CHECK-NEXT:       PathExpr {*S}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {*S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {*S}
 }

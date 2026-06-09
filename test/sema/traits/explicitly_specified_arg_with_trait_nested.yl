@@ -20,5 +20,4 @@ fn main() {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) f {(S, S2) -> unit}
-// CHECK-NEXT:         PathExpr {(S, S2) -> unit}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {(S, S2) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(S, S2) -> unit}

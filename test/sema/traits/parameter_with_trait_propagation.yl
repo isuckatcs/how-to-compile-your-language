@@ -8,10 +8,8 @@ fn foo<T : A>(x: T) {}
 fn bar<U : A>(x: U) {
   foo(x);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(U) -> unit}
-  // CHECK-NEXT:   PathExpr
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {U}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(U) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {U}
 }
 
 fn main() {}

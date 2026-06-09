@@ -7,7 +7,7 @@ fn foo(x: *impl B): *impl A {
   return x;
   // CHECK: ReturnStmt
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     PathExpr {*impl B}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl B}
 }
 
 fn main() {}

@@ -173,32 +173,35 @@ void UnitLiteral::dump(size_t level) const {
             << '\n';
 }
 
-void DeclRefExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") ";
-  if (trait)
-    std::cerr << trait->getName() << ':' << ':';
-  std::cerr << decl->identifier;
+std::string DeclRefExpr::getFullPath() const {
+  std::stringstream ss;
 
-  std::cerr << " {" << getType()->getName() << '}' << '\n';
+  if (owningType) {
+    if (owningTrait)
+      ss << '@' << '<';
+
+    ss << owningType->getName();
+
+    if (owningTrait)
+      ss << " impl " << owningTrait->getName() << '>';
+    ss << ':' << ':';
+  }
+
+  ss << decl->identifier;
+  return ss.str();
 }
 
-void PathExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "PathExpr"
-            << " {" << getType()->getName() << '}' << '\n';
-
-  if (constVal.isKnown())
-    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
-
-  for (auto &&fragment : fragments)
-    fragment->dump(level + 1);
+void DeclRefExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
+            << getFullPath() << " {" << getType()->getName() << '}' << '\n';
 }
 
 const res::FunctionDecl *CallExpr::getCalleeFn() const {
-  const auto *pathExpr = dynamic_cast<const res::PathExpr *>(callee);
+  const auto *pathExpr = dynamic_cast<const res::DeclRefExpr *>(callee);
   if (!pathExpr)
     return nullptr;
 
-  const auto *fn = pathExpr->fragments.back()->decl->getAs<res::FunctionDecl>();
+  const auto *fn = pathExpr->decl->getAs<res::FunctionDecl>();
   if (!fn)
     return nullptr;
 

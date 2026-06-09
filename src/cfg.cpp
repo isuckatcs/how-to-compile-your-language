@@ -44,8 +44,8 @@ void CFG::dump() const {
       } else if (auto *assignment =
                      dynamic_cast<const res::Assignment *>(*it)) {
         if (auto *path =
-                dynamic_cast<const res::PathExpr *>(assignment->assignee))
-          std::cerr << path->fragments.back()->decl->identifier;
+                dynamic_cast<const res::DeclRefExpr *>(assignment->assignee))
+          std::cerr << path->getFullPath();
         else
           std::cerr << stmtToRef[assignment->assignee];
 
@@ -102,19 +102,7 @@ void CFG::dump() const {
         std::cerr << '}';
       } else if (const auto *dre =
                      dynamic_cast<const res::DeclRefExpr *>(*it)) {
-        std::cerr << dre->decl->identifier;
-      } else if (const auto *path = dynamic_cast<const res::PathExpr *>(*it)) {
-        for (auto &&fragment : path->fragments) {
-          if (fragment->trait)
-            std::cerr << "impl " << fragment->trait->getName() << "::";
-
-          if (fragment == path->fragments.back()) {
-            std::cerr << path->fragments.back()->decl->identifier;
-            continue;
-          }
-
-          std::cerr << stmtToRef[fragment] << "::";
-        }
+        std::cerr << dre->getFullPath();
       } else if (const auto *memberExpr =
                      dynamic_cast<const res::MemberExpr *>(*it)) {
         std::cerr << stmtToRef[memberExpr->base] << '.'
@@ -194,7 +182,7 @@ int CFGBuilder::insertDeclStmt(const res::DeclStmt &stmt, int block) {
 int CFGBuilder::insertAssignment(const res::Assignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
 
-  if (!dynamic_cast<const res::PathExpr *>(stmt.assignee))
+  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee))
     block = insertExpr(*stmt.assignee, block);
 
   return insertExpr(*stmt.expr, block);
@@ -238,14 +226,6 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
     for (auto it = structInst->fieldInitializers.rbegin();
          it != structInst->fieldInitializers.rend(); ++it)
       block = insertStmt(**it, block);
-    return block;
-  }
-
-  if (const auto *path = dynamic_cast<const res::PathExpr *>(&expr)) {
-    for (auto it = path->fragments.rbegin() + 1; it != path->fragments.rend();
-         ++it)
-      block = insertExpr(**it, block);
-
     return block;
   }
 

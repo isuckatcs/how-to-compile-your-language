@@ -8,11 +8,8 @@ fn main() {
 
   f(0);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {((lambda@<source>:3:11), number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) (lambda@<source>:3:11) {(lambda@<source>:3:11)}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) __builtin_lambda_call {((lambda@<source>:3:11), number) -> unit}
-  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) (lambda@<source>:3:11)::__builtin_lambda_call {((lambda@<source>:3:11), number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
 }

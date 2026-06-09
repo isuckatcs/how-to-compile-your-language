@@ -11,7 +11,7 @@ fn foo(x: *impl B) {
   let x: *impl A = x;
   // CHECK: VarDecl @({{.*}}) x {*impl A}
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     PathExpr {*impl B}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl B}
 }
 
 fn main() {}

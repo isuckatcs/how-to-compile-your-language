@@ -16,19 +16,13 @@ fn foo<T : C>(t : T) {}
 fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(T) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) T {T}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) B::foo {(T) -> unit}
-  // CHECK-NEXT:   PathExpr {T}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(T) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) t {T}
 
   T::foo(t);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(T) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) T {T}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) B::foo {(T) -> unit}
-  // CHECK-NEXT:   PathExpr {T}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(T) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) t {T}
 }
 
 fn main() {}

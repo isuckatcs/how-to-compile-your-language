@@ -117,14 +117,12 @@ class Sema {
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
                                          const ast::GroupingExpr &grouping);
   template <typename Hint>
-  res::PathExpr *resolvePathExpr(res::Context &ctx,
-                                 const ast::PathExpr &pathExpr);
+  res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
+                                    const ast::PathExpr &pathExpr);
   template <typename Hint>
-  res::DeclRefExpr *
-  resolveDeclRefExpr(res::Context &ctx,
-                     res::Type *parentTy,
-                     const ast::DeclRefExpr *dre,
-                     const ast::ImplSpecifier *impl = nullptr);
+  res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
+                                       res::Type *parentTy,
+                                       const ast::DeclRefExpr *dre);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,
                                       res::Type *parentTy,
@@ -133,6 +131,7 @@ class Sema {
   template <typename Hint>
   res::Decl *lookupSymbolWithFallback(res::DeclContext *scope,
                                       const ast::DeclRefExpr *dre);
+  res::Decl *getSelfDecl();
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,

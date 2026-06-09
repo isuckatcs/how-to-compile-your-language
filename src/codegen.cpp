@@ -380,9 +380,6 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (expr.hasConstantValue())
     return generateConstantValue(expr.getConstantValue());
 
-  if (auto *path = dynamic_cast<const res::PathExpr *>(&expr))
-    return generateExpr(*path->fragments.back());
-
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return generateDeclRefExpr(*dre);
 
@@ -411,7 +408,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
     return generateStructInstExpr(*sie);
 
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
-    return generateDeclRefExpr(*ide->outParamRef->fragments.back());
+    return generateDeclRefExpr(*ide->outParamRef);
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
@@ -429,7 +426,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   EnterInstantiationRAII instantiation(this, &dre);
 
-  if (auto *trait = dre.trait) {
+  if (auto *trait = dre.owningTrait) {
     res::StructType *structTy =
         instCtx[dre.decl->typeParams[0]]->getAs<res::StructType>();
 
@@ -448,9 +445,9 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   assert(fnDecl->body && "non-default trait function not implemented");
 
-  res::Type *parentTy = dre.trait;
+  res::Type *parentTy = dre.owningTrait;
   if (!parentTy)
-    parentTy = dre.parentTy;
+    parentTy = dre.owningType;
 
   return generateFunctionDecl(*fnDecl,
                               dre.getType()->getAs<res::FunctionType>(),

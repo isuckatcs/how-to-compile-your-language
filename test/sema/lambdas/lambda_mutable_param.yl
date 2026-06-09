@@ -8,8 +8,7 @@ fn main() {
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         Assignment
-  // CHECK-NEXT:           PathExpr {number}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) x {number}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
   // CHECK-NEXT:           NumberLiteral '1' {number}
   // CHECK-NEXT:           | value: 1
 }

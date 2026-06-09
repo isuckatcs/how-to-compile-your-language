@@ -6,8 +6,7 @@ trait B : A {}
 fn foo(x: *impl B) {
   bar(x);
   // CHECK: ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:   PathExpr {*impl B}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl B}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*impl B}
 }
 
 fn bar(x: *impl A) {}

@@ -6,8 +6,7 @@ fn pass(): number {
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '*' {number}
 // CHECK-NEXT:   | value: 20
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '10' {number}
 
 fn pass2(): number {
@@ -15,9 +14,7 @@ fn pass2(): number {
     return x;
 }
 // CHECK: ReturnStmt
-// CHECK-NEXT:   PathExpr {number}
-// CHECK-NEXT:   | value: 2
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
 
 fn err(): number {
     let x: number;
@@ -26,8 +23,7 @@ fn err(): number {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '*' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '10' {number}
 
 fn err2(): number {
@@ -36,8 +32,7 @@ fn err2(): number {
 }
 // CHECK: ReturnStmt
 // CHECK-NEXT:   BinaryOperator '*' {number}
-// CHECK-NEXT:     PathExpr {number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {number}
+// CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 // CHECK-NEXT:     NumberLiteral '10' {number}
 
 fn main(): unit {}

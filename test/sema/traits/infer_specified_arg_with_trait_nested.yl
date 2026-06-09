@@ -15,19 +15,15 @@ fn main() {
 
   f(s, 0);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(S, number) -> unit}
-  // CHECK-NEXT:   PathExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(S, number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
   
   foo(s, 0);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S, number) -> unit}
-  // CHECK-NEXT:   PathExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S, number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
 }

@@ -11,11 +11,8 @@ fn main() {
   // CHECK-NEXT:         ReturnStmt
   // CHECK-NEXT:           BinaryOperator '+' {number}
   // CHECK-NEXT:             MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:               PathExpr {(lambda@<source>:5:3)}
-  // CHECK-NEXT:                 DeclRefExpr @({{.*}}) self {(lambda@<source>:5:3)}
+  // CHECK-NEXT:               DeclRefExpr @({{.*}}) self {(lambda@<source>:5:3)}
   // CHECK-NEXT:             NumberLiteral '1' {number}
   // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
-  // CHECK-NEXT:   PathExpr {number}
-  // CHECK-NEXT:   | value: 0
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
 }

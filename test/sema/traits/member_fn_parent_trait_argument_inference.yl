@@ -15,9 +15,6 @@ fn main() {
   let s2 = S2{ x: 0 };
   S::foo(s2);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S<number, S2<number>>}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S2<number>) -> unit}
-  // CHECK-NEXT:   PathExpr
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s2 {S2<number>}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S<number, S2<number>>::foo {(S2<number>) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s2 {S2<number>}
 }

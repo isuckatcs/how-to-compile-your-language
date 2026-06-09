@@ -17,13 +17,10 @@ fn main() {
     // CHECK-NEXT:           BinaryOperator '+' {number}
     // CHECK-NEXT:             MemberExpr @({{.*}}) x {number}
     // CHECK-NEXT:               MemberExpr @({{.*}}) s {S}
-    // CHECK-NEXT:                 PathExpr {(lambda@<source>:10:3)}
-    // CHECK-NEXT:                   DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
+    // CHECK-NEXT:                 DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
     // CHECK-NEXT:             MemberExpr @({{.*}}) y {number}
     // CHECK-NEXT:               MemberExpr @({{.*}}) s {S}
-    // CHECK-NEXT:                 PathExpr {(lambda@<source>:10:3)}
-    // CHECK-NEXT:                   DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
+    // CHECK-NEXT:                 DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
     // CHECK-NEXT:     FieldDecl @({{.*}}) s {S}
-    // CHECK-NEXT:   PathExpr {S}
-    // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+    // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
 }

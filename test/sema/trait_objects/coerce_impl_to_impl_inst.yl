@@ -12,7 +12,7 @@ fn foo(x: *impl B) {
     x: x,
     // CHECK: FieldInitStmt @({{.*}}) x
     // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-    // CHECK-NEXT:     PathExpr {*impl B}
+    // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl B}
   };
 }
 

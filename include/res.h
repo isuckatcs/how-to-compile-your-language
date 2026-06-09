@@ -368,36 +368,28 @@ struct CallExpr : public Expr {
 };
 
 struct DeclRefExpr : public Expr {
-  std::vector<Type *> typeArgs;
-  const Decl *decl;
+  Type *owningType;
+  TraitType *owningTrait;
 
-  Type *parentTy;
-  TraitType *trait;
+  const Decl *decl;
+  std::vector<Type *> typeArgs;
 
   DeclRefExpr(SourceLocation location,
               Type *type,
-              Decl &decl,
+              Decl *decl,
               Expr::Kind kind,
               std::vector<Type *> typeArgs = {},
-              Type *parentTy = nullptr,
-              TraitType *trait = nullptr)
+              Type *owningType = nullptr,
+              TraitType *owningTrait = nullptr)
       : Expr(location, type, kind),
-        typeArgs(std::move(typeArgs)),
-        decl(&decl),
-        parentTy(parentTy),
-        trait(trait) {}
+        owningType(owningType),
+        owningTrait(owningTrait),
+        decl(decl),
+        typeArgs(std::move(typeArgs)) {
+    assert((!owningTrait || owningType) && "trait without a type?");
+  }
 
-  void dump(size_t level = 0) const override;
-};
-
-struct PathExpr : public Expr {
-  std::vector<DeclRefExpr *> fragments;
-
-  explicit PathExpr(std::vector<DeclRefExpr *> fragments)
-      : Expr(fragments.back()->location,
-             fragments.back()->getType(),
-             fragments.back()->kind),
-        fragments(std::move(fragments)) {}
+  std::string getFullPath() const;
 
   void dump(size_t level = 0) const override;
 };
@@ -502,12 +494,12 @@ struct FieldInitStmt : public Stmt {
 };
 
 struct StructInstantiationExpr : public Expr {
-  const PathExpr *structPath;
+  const DeclRefExpr *structPath;
   std::vector<FieldInitStmt *> fieldInitializers;
 
   StructInstantiationExpr(SourceLocation location,
                           Type *type,
-                          const PathExpr *structPath,
+                          const DeclRefExpr *structPath,
                           std::vector<FieldInitStmt *> fieldInitializers)
       : Expr(location, type, Expr::Kind::Rvalue),
         structPath(structPath),
@@ -517,11 +509,11 @@ struct StructInstantiationExpr : public Expr {
 };
 
 struct ImplicitDerefExpr : public Expr {
-  const PathExpr *outParamRef;
+  const DeclRefExpr *outParamRef;
 
   ImplicitDerefExpr(SourceLocation location,
                     Type *type,
-                    const PathExpr *outParamRef)
+                    const DeclRefExpr *outParamRef)
       : Expr(location, type, outParamRef->kind),
         outParamRef(outParamRef) {}
 

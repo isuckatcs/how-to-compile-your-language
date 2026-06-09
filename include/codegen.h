@@ -49,11 +49,12 @@ class Codegen {
     EnterInstantiationRAII(Codegen *codegen, const res::DeclRefExpr *dre)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
-      if (dre->trait)
-        impl(dre->trait->getDecl()->typeParams, dre->trait->getTypeArgs());
+      if (dre->owningTrait)
+        impl(dre->owningTrait->getDecl()->typeParams,
+             dre->owningTrait->getTypeArgs());
 
-      if (dre->parentTy)
-        if (auto *st = dre->parentTy->getAs<res::StructType>())
+      if (dre->owningType)
+        if (auto *st = dre->owningType->getAs<res::StructType>())
           impl(st->getDecl()->typeParams, st->getTypeArgs());
 
       impl(dre->decl->typeParams, dre->typeArgs);

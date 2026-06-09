@@ -16,14 +16,10 @@ fn main() {
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         DeclStmt
   // CHECK-NEXT:           VarDecl @({{.*}}) f {(number) -> unit}
-  // CHECK-NEXT:             PathExpr {(number) -> unit}
-  // CHECK-NEXT:               DeclRefExpr @({{.*}}) S {S}
-  // CHECK-NEXT:               DeclRefExpr @({{.*}}) foo {(number) -> unit}
+  // CHECK-NEXT:             DeclRefExpr @({{.*}}) S::foo {(number) -> unit}
   // CHECK-NEXT:         CallExpr {unit}
-  // CHECK-NEXT:           PathExpr {(number) -> unit}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) f {(number) -> unit}
-  // CHECK-NEXT:           PathExpr {number}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) x {number}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) f {(number) -> unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
 
   0;
   // CHECK-NEXT: NumberLiteral '0' {number}

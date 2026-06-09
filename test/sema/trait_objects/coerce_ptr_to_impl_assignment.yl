@@ -8,8 +8,7 @@ struct S {
 fn foo(mut x: *impl A) {
   x = gc(S{});
   // CHECK: Assignment
-  // CHECK-NEXT:   PathExpr {*impl A}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*impl A}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*impl A}
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
   // CHECK-NEXT:     CallExpr {*S}
 }

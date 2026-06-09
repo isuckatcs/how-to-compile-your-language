@@ -13,15 +13,11 @@ fn main() {
 
   f(s);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(S) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(S) -> unit}
-  // CHECK-NEXT:   PathExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
   
   foo(s);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   PathExpr {(S) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(S) -> unit}
-  // CHECK-NEXT:   PathExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
 }

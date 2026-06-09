@@ -7,8 +7,7 @@ fn main() {
 
   f = ->(x){ return x; };
   // CHECK: Assignment
-  // CHECK-NEXT:   PathExpr {(number) -> number}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
   // CHECK-NEXT:   ImplicitCoerceExpr {(number) -> number}
   // CHECK-NEXT:     LambdaExpr {(lambda@<source>:8:7)}
 }

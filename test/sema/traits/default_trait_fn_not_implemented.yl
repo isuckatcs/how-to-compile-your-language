@@ -17,6 +17,4 @@ fn main() {
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       PathExpr {() -> unit}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) A::foo {() -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<S impl A>::foo {() -> unit}

@@ -16,9 +16,7 @@ fn bar<T : A>(t : T) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) t {T}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:   PathExpr {(T) -> unit}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(T) -> unit}
-// CHECK-NEXT:   PathExpr {T}
-// CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
+// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(T) -> unit}
+// CHECK-NEXT:   DeclRefExpr @({{.*}}) t {T}
 
 fn main() {}

@@ -5,8 +5,7 @@ fn main() {
   *n = 456;
   // CHECK: Assignment
   // CHECK-NEXT:   UnaryOperator '*' {number}
-  // CHECK-NEXT:     PathExpr {*mut number}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {*mut number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {*mut number}
   // CHECK-NEXT:   NumberLiteral '456' {number}
   // CHECK-NEXT:   | value: 456
 }

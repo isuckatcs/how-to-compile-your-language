@@ -4,8 +4,6 @@ fn main() {
 
   f = f;
   // CHECK: Assignment
-  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
-  // CHECK-NEXT:   PathExpr {(lambda@<source>:3:11)}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
 }
