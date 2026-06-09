@@ -135,11 +135,10 @@
     ::= ':' <type>
 
 <pathExpr>
-    ::= <traitSpecifier>? <declRefExpr>
-    |   <declRefExpr> ('::' <declRefExpr>)*
+    ::= (<traitSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
 
 <traitSpecifier>
-    ::= '@' '<' <type> <implSpecifier> '>' '::'
+    ::= '@' '<' <type> <implSpecifier> '>'
 
 <declRefExpr>
     ::= (<identifier> | 'Self') <typeArgumentList>?
