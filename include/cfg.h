@@ -4,7 +4,6 @@
 #include <set>
 #include <vector>
 
-#include "constexpr.h"
 #include "res.h"
 
 namespace yl {
@@ -15,6 +14,7 @@ struct BasicBlock {
 };
 
 struct CFG {
+  const res::FunctionDecl *fn;
   std::vector<BasicBlock> basicBlocks;
   int entry = -1;
   int exit = -1;

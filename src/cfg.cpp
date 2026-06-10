@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "cfg.h"
+#include "constexpr.h"
 #include "res.h"
 
 namespace yl {
@@ -276,6 +277,7 @@ int CFGBuilder::insertBlock(const res::Block &block, int succ) {
 
 CFG CFGBuilder::build(const res::FunctionDecl &fn) {
   cfg = {};
+  cfg.fn = &fn;
 
   cfg.exit = cfg.insertNewBlock();
   int body = insertBlock(*fn.body, cfg.exit);
