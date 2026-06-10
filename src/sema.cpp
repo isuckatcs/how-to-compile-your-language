@@ -10,183 +10,6 @@
 #include "utils.h"
 
 namespace yl {
-bool Sema::runFlowSensitiveChecks(res::Context &ctx,
-                                  const res::FunctionDecl &fn) {
-  CFG cfg = CFGBuilder().build(fn);
-
-  bool error = false;
-  error |= checkReturnOnAllPaths(ctx, fn, cfg);
-  error |= checkVariableInitialization(ctx, cfg);
-
-  return error;
-};
-
-bool Sema::checkReturnOnAllPaths(res::Context &ctx,
-                                 const res::FunctionDecl &fn,
-                                 const CFG &cfg) {
-  if (fn.getType()
-          ->getAs<res::FunctionType>()
-          ->getReturnType()
-          ->getAs<res::BuiltinUnitType>())
-    return false;
-
-  int returnCount = 0;
-  bool exitReached = false;
-
-  std::set<int> visited;
-  std::vector<int> worklist;
-  worklist.emplace_back(cfg.entry);
-
-  while (!worklist.empty()) {
-    int bb = worklist.back();
-    worklist.pop_back();
-
-    if (!visited.emplace(bb).second)
-      continue;
-
-    exitReached |= bb == cfg.exit;
-
-    const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
-
-    if (!stmts.empty() && dynamic_cast<const res::ReturnStmt *>(stmts[0])) {
-      ++returnCount;
-      continue;
-    }
-
-    for (auto &&[succ, reachable] : succs)
-      if (reachable)
-        worklist.emplace_back(succ);
-  }
-
-  if (exitReached || returnCount == 0)
-    (returnCount > 0
-         ? err::expectedReturnValueOnEveryPath(fn.location).report(reporter)
-         : err::expectedReturnValue(fn.location).report(reporter));
-
-  return exitReached || returnCount == 0;
-}
-
-bool Sema::checkVariableInitialization(const res::Context &ctx,
-                                       const CFG &cfg) {
-  enum class State { Bottom, Unassigned, Assigned, Top };
-
-  using Lattice = std::map<const res::Decl *, State>;
-
-  auto joinStates = [](State s1, State s2) {
-    if (s1 == s2)
-      return s1;
-
-    if (s1 == State::Bottom)
-      return s2;
-
-    if (s2 == State::Bottom)
-      return s1;
-
-    return State::Top;
-  };
-
-  std::vector<Lattice> curLattices(cfg.basicBlocks.size());
-  std::vector<diag::DiagBuilder> pendingErrors;
-
-  bool changed = true;
-  while (changed) {
-    changed = false;
-    pendingErrors.clear();
-
-    for (int bb = cfg.entry; bb != cfg.exit; --bb) {
-      const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
-
-      Lattice tmp;
-      for (auto &&pred : preds)
-        for (auto &&[decl, state] : curLattices[pred.first])
-          tmp[decl] = joinStates(tmp[decl], state);
-
-      for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
-        const res::Stmt *stmt = *it;
-
-        if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(stmt)) {
-          const res::VarDecl *decl = declStmt->varDecl;
-          tmp[decl] = decl->initializer ? State::Assigned : State::Unassigned;
-          continue;
-        }
-
-        if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
-          const res::Expr *base = assignment->assignee;
-          while (true) {
-            if (const auto *me = dynamic_cast<const res::MemberExpr *>(base)) {
-              base = me->base;
-              continue;
-            }
-
-            if (const auto *g = dynamic_cast<const res::GroupingExpr *>(base)) {
-              base = g->expr;
-              continue;
-            }
-
-            if (const auto *u =
-                    dynamic_cast<const res::UnaryOperator *>(base)) {
-              if (u->op == TokenKind::Asterisk && !u->isMutable())
-                pendingErrors.emplace_back(
-                    err::pointeeCannotBeMutated(assignment->location)
-                        .with(u->operand->getType()->getName()));
-              break;
-            }
-
-            break;
-          }
-
-          const auto *path = dynamic_cast<const res::DeclRefExpr *>(base);
-          if (!path)
-            continue;
-
-          const auto *decl = path->decl->getAs<res::ValueDecl>();
-          if (!decl->isMutable && tmp[decl] != State::Unassigned)
-            pendingErrors.emplace_back(
-                err::cannotBeMutated(assignment->location)
-                    .with(decl->identifier));
-
-          tmp[decl] = State::Assigned;
-          continue;
-        }
-
-        if (const auto *path = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
-          for (auto &&typeArg : path->typeArgs) {
-            if (!typeArg->getRootType()->getAs<res::UninferredType>())
-              continue;
-
-            pendingErrors.emplace_back(err::annotationsNeeded(path->location)
-                                           .with(path->decl->identifier));
-          }
-
-          const auto *dre = path;
-          const auto *var = dre->decl->getAs<res::VarDecl>();
-          if (var && tmp[var] != State::Assigned)
-            pendingErrors.emplace_back(
-                err::notInitialized(dre->location).with(var->identifier));
-
-          continue;
-        }
-      }
-
-      if (curLattices[bb] != tmp) {
-        curLattices[bb] = tmp;
-        changed = true;
-      }
-    }
-  }
-
-  for (auto &&[d, s] : curLattices[cfg.exit + 1])
-    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>()) {
-      err::unknownType(d->location).with(d->identifier).report(reporter);
-      return true;
-    }
-
-  for (auto &&err : pendingErrors)
-    err.report(reporter);
-
-  return !pendingErrors.empty();
-}
-
 bool Sema::insertDeclToScope(res::Decl *decl, res::DeclContext *scope) {
   if (!decl)
     return false;
@@ -642,9 +465,9 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  return ctx.create<res::DeclRefExpr>(dre->location,
-                                      typeMgr.instantiate(declTy, sub), decl,
-                                      kind, typeArgs, parentTy, trait);
+  return functionInfo->declReferences.emplace_back(ctx.create<res::DeclRefExpr>(
+      dre->location, typeMgr.instantiate(declTy, sub), decl, kind, typeArgs,
+      parentTy, trait));
 }
 
 template <typename Hint>
@@ -1045,7 +868,7 @@ bool Sema::resolvePendingLambdaBodies() {
         if (retTy->getAs<res::UninferredType>())
           typeMgr.unify(retTy, typeMgr.getBuiltinUnitType());
 
-        error |= runFlowSensitiveChecks(ctx, *fn);
+        error |= !runPostFunctionBodyChecks();
       }
 
       error |= !fn->isComplete;
@@ -1626,7 +1449,7 @@ Sema::resolveFunctionBody(res::Context &ctx,
   }
 
   function->setBody(body);
-  if (runFlowSensitiveChecks(ctx, *function))
+  if (!runPostFunctionBodyChecks())
     return nullptr;
 
   return function;
@@ -2131,5 +1954,193 @@ bool Sema::isTraitVtableCompatible(res::TraitType *trait) {
       return false;
 
   return true;
+}
+
+bool Sema::runPostFunctionBodyChecks() {
+  assert(functionInfo && "expected function info");
+
+  CFG cfg = CFGBuilder().build(*functionInfo->function);
+  bool error = false;
+
+  error |= !checkDeclRefTypes();
+  error |= !checkReturnOnAllPaths(cfg);
+  error |= !checkVariableInitialization(cfg);
+
+  return !error;
+}
+
+bool Sema::checkDeclRefTypes() {
+  bool error = false;
+  for (auto &&dre : functionInfo->declReferences)
+    for (auto &&typeArg : dre->typeArgs) {
+      if (!typeArg->getRootType()->getAs<res::UninferredType>())
+        continue;
+
+      err::annotationsNeeded(dre->location)
+          .with(dre->decl->identifier)
+          .report(reporter);
+      error = true;
+      break;
+    };
+
+  return !error;
+}
+
+bool Sema::checkReturnOnAllPaths(const CFG &cfg) {
+  const res::FunctionDecl *fn = cfg.fn;
+  if (fn->getType()
+          ->getAs<res::FunctionType>()
+          ->getReturnType()
+          ->getAs<res::BuiltinUnitType>())
+    return true;
+
+  int returnCount = 0;
+  bool exitReached = false;
+
+  std::set<int> visited;
+  std::vector<int> worklist;
+  worklist.emplace_back(cfg.entry);
+
+  while (!worklist.empty()) {
+    int bb = worklist.back();
+    worklist.pop_back();
+
+    if (!visited.emplace(bb).second)
+      continue;
+
+    exitReached |= bb == cfg.exit;
+
+    const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
+
+    if (!stmts.empty() && dynamic_cast<const res::ReturnStmt *>(stmts[0])) {
+      ++returnCount;
+      continue;
+    }
+
+    for (auto &&[succ, reachable] : succs)
+      if (reachable)
+        worklist.emplace_back(succ);
+  }
+
+  if (exitReached || returnCount == 0) {
+    (returnCount > 0
+         ? err::expectedReturnValueOnEveryPath(fn->location).report(reporter)
+         : err::expectedReturnValue(fn->location).report(reporter));
+    return false;
+  }
+
+  return true;
+}
+
+bool Sema::checkVariableInitialization(const CFG &cfg) {
+  enum class State { Bottom, Unassigned, Assigned, Top };
+
+  using Lattice = std::map<const res::Decl *, State>;
+
+  auto joinStates = [](State s1, State s2) {
+    if (s1 == s2)
+      return s1;
+
+    if (s1 == State::Bottom)
+      return s2;
+
+    if (s2 == State::Bottom)
+      return s1;
+
+    return State::Top;
+  };
+
+  std::vector<Lattice> curLattices(cfg.basicBlocks.size());
+  std::vector<diag::DiagBuilder> pendingErrors;
+
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    pendingErrors.clear();
+
+    for (int bb = cfg.entry; bb != cfg.exit; --bb) {
+      const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
+
+      Lattice tmp;
+      for (auto &&pred : preds)
+        for (auto &&[decl, state] : curLattices[pred.first])
+          tmp[decl] = joinStates(tmp[decl], state);
+
+      for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
+        const res::Stmt *stmt = *it;
+
+        if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(stmt)) {
+          const res::VarDecl *decl = declStmt->varDecl;
+          tmp[decl] = decl->initializer ? State::Assigned : State::Unassigned;
+          continue;
+        }
+
+        if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
+          const res::Expr *base = assignment->assignee;
+          while (true) {
+            if (const auto *me = dynamic_cast<const res::MemberExpr *>(base)) {
+              base = me->base;
+              continue;
+            }
+
+            if (const auto *g = dynamic_cast<const res::GroupingExpr *>(base)) {
+              base = g->expr;
+              continue;
+            }
+
+            if (const auto *u =
+                    dynamic_cast<const res::UnaryOperator *>(base)) {
+              if (u->op == TokenKind::Asterisk && !u->isMutable())
+                pendingErrors.emplace_back(
+                    err::pointeeCannotBeMutated(assignment->location)
+                        .with(u->operand->getType()->getName()));
+              break;
+            }
+
+            break;
+          }
+
+          const auto *path = dynamic_cast<const res::DeclRefExpr *>(base);
+          if (!path)
+            continue;
+
+          const auto *decl = path->decl->getAs<res::ValueDecl>();
+          if (!decl->isMutable && tmp[decl] != State::Unassigned)
+            pendingErrors.emplace_back(
+                err::cannotBeMutated(assignment->location)
+                    .with(decl->identifier));
+
+          tmp[decl] = State::Assigned;
+          continue;
+        }
+
+        if (const auto *path = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
+          const auto *dre = path;
+          const auto *var = dre->decl->getAs<res::VarDecl>();
+          if (var && tmp[var] != State::Assigned)
+            pendingErrors.emplace_back(
+                err::notInitialized(dre->location).with(var->identifier));
+
+          continue;
+        }
+      }
+
+      if (curLattices[bb] != tmp) {
+        curLattices[bb] = tmp;
+        changed = true;
+      }
+    }
+  }
+
+  for (auto &&[d, s] : curLattices[cfg.exit + 1])
+    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>()) {
+      err::unknownType(d->location).with(d->identifier).report(reporter);
+      return false;
+    }
+
+  for (auto &&err : pendingErrors)
+    err.report(reporter);
+
+  return pendingErrors.empty();
 }
 } // namespace yl

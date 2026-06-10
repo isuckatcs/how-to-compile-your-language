@@ -86,6 +86,7 @@ class Sema {
     res::DeclContext *lambdaParamScope = nullptr;
     std::vector<PendingLambdaDescriptor> pendingLambdas = {};
     std::vector<res::ImplicitCoerceExpr *> pedingLambdaCoercions = {};
+    std::vector<res::DeclRefExpr *> declReferences = {};
     std::vector<const ast::Expr *> pendingCaptureInits = {};
   };
 
@@ -220,18 +221,18 @@ class Sema {
   res::FunctionDecl *createBuiltinGCMut(res::Context &ctx);
   res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 
-  bool runFlowSensitiveChecks(res::Context &ctx, const res::FunctionDecl &fn);
-  bool checkReturnOnAllPaths(res::Context &ctx,
-                             const res::FunctionDecl &fn,
-                             const CFG &cfg);
-  bool checkVariableInitialization(const res::Context &ctx, const CFG &cfg);
-
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
   bool checkSelfParameter(res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
   bool checkTraitInstance(res::TraitInstance *traitInstance);
   bool isTraitVtableCompatible(res::TraitType *trait);
+
+  // Post-body checks
+  bool runPostFunctionBodyChecks();
+  bool checkDeclRefTypes();
+  bool checkReturnOnAllPaths(const CFG &cfg);
+  bool checkVariableInitialization(const CFG &cfg);
 
 public:
   explicit Sema(diag::DiagnosticReporter &reporter,
