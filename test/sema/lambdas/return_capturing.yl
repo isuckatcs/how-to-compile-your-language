@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(): (number) -> number {
+  let n = 0;
+
+  return ->(x){ return n; };
+  // CHECK: ReturnStmt
+  // CHECK-NEXT:   LambdaExpr {(number) -> number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:5:10) {(lambda@<source>:5:10)}
+}
+
+fn main() {}

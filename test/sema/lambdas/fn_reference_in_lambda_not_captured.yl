@@ -4,15 +4,15 @@ struct S {
 }
 
 fn main() {
-  let f = ->(x) {
+  let f = ->(x: number) {
     let f = S::foo;
     f(x);
   };
-  // CHECK: LambdaExpr {(lambda@<source>:7:11)}
+  // CHECK: LambdaExpr {(number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:7:11) {(lambda@<source>:7:11)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:7:11), number) -> unit}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) self {(lambda@<source>:7:11)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(lambda@<source>:7:11)) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:7:11)}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         DeclStmt
   // CHECK-NEXT:           VarDecl @({{.*}}) f {(number) -> unit}

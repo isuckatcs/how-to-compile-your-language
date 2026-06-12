@@ -4,6 +4,12 @@ fn main() {
 
   f = f;
   // CHECK: Assignment
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(lambda@<source>:3:11)}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {() -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {() -> unit}
+
+  f = ->(){};
+  // CHECK: Assignment
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {() -> unit}
+  // CHECK-NEXT:   LambdaExpr {() -> unit}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:10:7) {(lambda@<source>:10:7)}
 }

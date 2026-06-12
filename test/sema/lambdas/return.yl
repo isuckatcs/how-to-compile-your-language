@@ -2,8 +2,8 @@
 fn foo(): (number) -> number {
   return ->(x){ return x; };
   // CHECK: ReturnStmt
-  // CHECK-NEXT:   ImplicitCoerceExpr {(number) -> number}
-  // CHECK-NEXT:     LambdaExpr {(lambda@<source>:3:10)}
+  // CHECK-NEXT:   LambdaExpr {(number) -> number}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:3:10) {(lambda@<source>:3:10)}
 }
 
 fn main() {}

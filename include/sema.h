@@ -84,8 +84,6 @@ class Sema {
     res::FunctionDecl *function = nullptr;
     res::LambdaExpr *lambda = nullptr;
     res::DeclContext *lambdaParamScope = nullptr;
-    std::vector<PendingLambdaDescriptor> pendingLambdas = {};
-    std::vector<res::ImplicitCoerceExpr *> pedingLambdaCoercions = {};
     std::vector<res::DeclRefExpr *> declReferences = {};
     std::vector<const ast::Expr *> pendingCaptureInits = {};
   };
@@ -140,7 +138,12 @@ class Sema {
       const ast::StructInstantiationExpr &structInstantiation);
   res::MemberExpr *resolveMemberExpr(res::Context &ctx,
                                      const ast::MemberExpr &memberExpr);
-  res::Expr *resolveExpr(res::Context &ctx, const ast::Expr &expr);
+  res::Expr *resolveExpr(res::Context &ctx,
+                         const ast::Expr &expr,
+                         res::Type *typeHint = nullptr);
+  res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
+                                     const ast::LambdaExpr &lambda,
+                                     res::Type *typeHint = nullptr);
 
   res::Stmt *resolveStmt(res::Context &ctx, const ast::Stmt &stmt);
   res::IfStmt *resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt);
@@ -194,11 +197,7 @@ class Sema {
                                size_t received,
                                size_t expected) const;
 
-  res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
-                                     const ast::LambdaExpr &lambda);
   res::Expr *coerceIfNeeded(res::Type *targetType, res::Expr *expr);
-  bool checkLambdaCoercions();
-  bool resolvePendingLambdaBodies();
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,

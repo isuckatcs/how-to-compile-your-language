@@ -7,23 +7,25 @@ fn main() {
       println(x);
     };
   };
-  // CHECK: LambdaExpr {(lambda@<source>:5:3)}
+  // CHECK: LambdaExpr {() -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
   // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:5:3)) -> unit}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) self {(lambda@<source>:5:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:5:3)) -> unit}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:5:3)}
   // CHECK-NEXT:       Block
-  // CHECK-NEXT:         LambdaExpr {(lambda@<source>:6:5)}
+  // CHECK-NEXT:         LambdaExpr {() -> unit}
+  // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
+  // CHECK-NEXT:             UnaryOperator '*' {(lambda@<source>:5:3)}
+  // CHECK-NEXT:               DeclRefExpr @({{.*}}) self {*(lambda@<source>:5:3)}
   // CHECK-NEXT:           StructDecl @({{.*}}) (lambda@<source>:6:5) {(lambda@<source>:6:5)}
-  // CHECK-NEXT:             FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:6:5)) -> unit}
-  // CHECK-NEXT:               ParamDecl @({{.*}}) self {(lambda@<source>:6:5)}
+  // CHECK-NEXT:             FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:6:5)) -> unit}
+  // CHECK-NEXT:               ParamDecl @({{.*}}) self {*(lambda@<source>:6:5)}
   // CHECK-NEXT:               Block
   // CHECK-NEXT:                 CallExpr {unit}
   // CHECK-NEXT:                   DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:                   MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:                     DeclRefExpr @({{.*}}) self {(lambda@<source>:6:5)}
+  // CHECK-NEXT:                     UnaryOperator '*' {(lambda@<source>:6:5)}
+  // CHECK-NEXT:                       DeclRefExpr @({{.*}}) self {*(lambda@<source>:6:5)}
   // CHECK-NEXT:             FieldDecl @({{.*}}) x {number}
-  // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {(lambda@<source>:5:3)}
   // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
 }

@@ -245,7 +245,7 @@ res::BinaryOperator *
 Sema::resolveBinaryOperator(res::Context &ctx,
                             const ast::BinaryOperator &binop) {
   varOrReturn(lhs, resolveExpr(ctx, *binop.lhs));
-  varOrReturn(rhs, resolveExpr(ctx, *binop.rhs));
+  varOrReturn(rhs, resolveExpr(ctx, *binop.rhs, lhs->getType()));
 
   auto *lhsTy = lhs->getType();
   auto *rhsTy = rhs->getType();
@@ -617,9 +617,9 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
   for (auto &&arg : call.arguments) {
     WithModifiersRAII unaryAmpAllowed(this, UnaryAmpAllowed);
-    varOrReturn(resolvedArg, resolveExpr(ctx, *arg));
 
     res::Type *expectedTy = argTypes[resolvedArgs.size()];
+    varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, coerceIfNeeded(expectedTy, resolvedArg));
 
     res::Type *actualTy = coercedArg->getType();
@@ -676,14 +676,14 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    auto *resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer);
+    res::Type *fieldTy = typeMgr.instantiate(
+        fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
+
+    auto *resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer, fieldTy);
     if (!resolvedInitExpr) {
       error = true;
       continue;
     }
-
-    res::Type *fieldTy = typeMgr.instantiate(
-        fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
 
     res::Expr *coercedInitExpr = coerceIfNeeded(fieldTy, resolvedInitExpr);
     if (!coercedInitExpr) {
@@ -747,29 +747,51 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
 }
 
 res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
-                                         const ast::LambdaExpr &lambdaExpr) {
+                                         const ast::LambdaExpr &lambdaExpr,
+                                         res::Type *typeHint) {
   SourceLocation loc = lambdaExpr.location;
+
+  res::FunctionType *expectedFnType = nullptr;
+  if (typeHint) {
+    expectedFnType = typeHint->getAs<res::FunctionType>();
+
+    if (!expectedFnType && !typeHint->getAs<res::UninferredType>())
+      return err::unexpectedLambda(loc)
+          .with(typeHint->getName())
+          .report(reporter);
+  }
 
   std::stringstream structId;
   structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
 
-  res::Type *lambdaTy = typeMgr.getNewUninferredType();
-  auto *lambda = ctx.create<res::StructDecl>(
-      loc, lambdaTy, structId.str(), std::vector<res::TypeParamDecl *>{}, true);
-  typeMgr.unify(lambdaTy, typeMgr.getStructType(*lambda, {}));
+  res::Type *closureTy = typeMgr.getNewUninferredType();
+  auto *closure =
+      ctx.create<res::StructDecl>(loc, closureTy, structId.str(),
+                                  std::vector<res::TypeParamDecl *>{}, true);
+  typeMgr.unify(closureTy, typeMgr.getStructType(*closure, {}));
 
   bool error = false;
-  std::vector<res::Type *> paramTypes = {lambdaTy};
-  std::vector<res::ParamDecl *> resolvedParams = {
-      ctx.create<res::ParamDecl>(loc, lambdaTy, selfParamId, false)};
+  std::vector<res::Type *> paramTypes = {};
+  std::vector<res::ParamDecl *> resolvedParams = {};
 
+  EnterScopeRAII paramScope(this);
   {
     WithModifiersRAII lambdaParamList(this, UnaryAmpAllowed |
                                                 MissingTypeAnnotationsAllowed);
-    EnterScopeRAII paramScope(this);
+    int i = 0;
     for (auto &&param : lambdaExpr.params) {
-
       auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
+
+      if (resolvedParam->getType()->getAs<res::UninferredType>() &&
+          expectedFnType && i < expectedFnType->getArgs().size())
+        typeMgr.unify(resolvedParam->getType(), expectedFnType->getArgs()[i]);
+
+      if (resolvedParam->getType()->getAs<res::UninferredType>()) {
+        err::annotationsNeeded(param->location)
+            .with(param->identifier)
+            .report(reporter);
+        error = true;
+      }
 
       paramTypes.emplace_back(resolvedParam->getType());
       resolvedParams.emplace_back(resolvedParam);
@@ -780,25 +802,69 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
         err::selfParamNotAllowed(param->location).report(reporter);
         error = true;
       }
+
+      ++i;
     }
   }
 
   res::Type *returnTy = lambdaExpr.returnType
                             ? resolveType(ctx, *lambdaExpr.returnType)
                             : typeMgr.getNewUninferredType();
+  if (returnTy && returnTy->getAs<res::UninferredType>() && expectedFnType)
+    typeMgr.unify(returnTy, expectedFnType->getReturnType());
 
   if (!returnTy || error)
     return nullptr;
 
-  auto *fnTy = typeMgr.getFunctionType(std::move(paramTypes), returnTy);
+  auto *lambdaTy = typeMgr.getFunctionType(paramTypes, returnTy);
+  if (expectedFnType) {
+    auto msgs = typeMgr.unify(expectedFnType, lambdaTy);
+    if (!msgs.empty()) {
+      for (auto &&msg : msgs)
+        err::inferenceError(loc).with(msg).report(reporter);
+      return nullptr;
+    }
+  }
+
+  paramTypes.emplace_back(typeMgr.getPointerType(closureTy, false));
+  resolvedParams.emplace_back(ctx.create<res::ParamDecl>(
+      loc, typeMgr.getPointerType(closureTy, false), selfParamId, false));
+
+  auto *fnTy = typeMgr.getFunctionType(paramTypes, returnTy);
   auto *fn = ctx.create<res::FunctionDecl>(loc, fnTy, lambdaFunctionId,
                                            std::vector<res::TypeParamDecl *>{},
-                                           std::move(resolvedParams), lambda);
-  lambda->insertDecl(fn);
+                                           std::move(resolvedParams), closure);
+  closure->insertDecl(fn);
 
-  auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, lambdaTy, lambda, fn);
-  functionInfo->pendingLambdas.push_back(
-      {resLambdaExpr, &lambdaExpr, *lexicalScope});
+  auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, lambdaTy, closure, fn);
+
+  std::vector<const ast::Expr *> pendingCaptureInits;
+  {
+    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, lexicalScope});
+
+    if (res::Block *block = resolveBlock(ctx, *lambdaExpr.body)) {
+      fn->setBody(block);
+
+      res::Type *retTy = fnTy->getReturnType();
+      if (retTy->getAs<res::UninferredType>())
+        typeMgr.unify(retTy, typeMgr.getBuiltinUnitType());
+
+      error |= !runPostFunctionBodyChecks();
+    }
+
+    error |= !fn->isComplete;
+    pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
+  }
+
+  if (error)
+    return nullptr;
+
+  for (auto &&pendingInit : pendingCaptureInits) {
+    res::Expr *initExpr = resolveExpr(ctx, *pendingInit);
+    initExpr->setConstantValue(cee->evaluate(*initExpr));
+    resLambdaExpr->fieldInits.emplace_back(initExpr);
+  }
+
   return resLambdaExpr;
 }
 
@@ -815,85 +881,7 @@ res::Expr *Sema::coerceIfNeeded(res::Type *targetType, res::Expr *expr) {
     return nullptr;
   }
 
-  auto *implicitCoerceExpr =
-      ctx.create<res::ImplicitCoerceExpr>(expr->location, targetType, expr);
-
-  if (auto *structType = exprType->getAs<res::StructType>();
-      structType && structType->getDecl()->isLambda)
-    functionInfo->pedingLambdaCoercions.emplace_back(implicitCoerceExpr);
-
-  return implicitCoerceExpr;
-}
-
-bool Sema::checkLambdaCoercions() {
-  bool error = false;
-
-  for (auto &&coercion : functionInfo->pedingLambdaCoercions) {
-    auto *lambda = coercion->expr->getType()->getAs<res::StructType>();
-    bool capturing = !lambda->getDecl()->getAll<res::FieldDecl>().empty();
-
-    if (capturing) {
-      err::capturingLambdaFunctionCoercion(coercion->location)
-          .with(lambda->getName())
-          .with(coercion->getType()->getName())
-          .report(reporter);
-      error = true;
-    }
-  }
-
-  return !error;
-}
-
-bool Sema::resolvePendingLambdaBodies() {
-  bool error = false;
-
-  for (auto &&[res, ast, captureScope] : functionInfo->pendingLambdas) {
-    res::FunctionDecl *fn = res->method;
-    auto *fnTy = fn->getType()->getAs<res::FunctionType>();
-
-    lexicalScope = &captureScope;
-
-    EnterScopeRAII paramScope(this);
-    for (auto &&param : fn->params)
-      insertDeclToScope(param, lexicalScope);
-
-    std::vector<const ast::Expr *> pendingCaptureInits;
-    {
-      WithFunctionInfoRAII lambdaInfo(this, {fn, res, lexicalScope});
-
-      if (res::Block *block = resolveBlock(ctx, *ast->body)) {
-        fn->setBody(block);
-
-        res::Type *retTy = fnTy->getReturnType();
-        if (retTy->getAs<res::UninferredType>())
-          typeMgr.unify(retTy, typeMgr.getBuiltinUnitType());
-
-        error |= !runPostFunctionBodyChecks();
-      }
-
-      error |= !fn->isComplete;
-      pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
-    }
-
-    for (auto &&pendingInit : pendingCaptureInits) {
-      res::Expr *initExpr = resolveExpr(ctx, *pendingInit);
-      initExpr->setConstantValue(cee->evaluate(*initExpr));
-      res->fieldInits.emplace_back(initExpr);
-    }
-  }
-
-  for (auto &&lambdaDescriptor : functionInfo->pendingLambdas) {
-    for (auto &&param : lambdaDescriptor.lambda->method->params) {
-      if (param->getType()->getAs<res::UninferredType>()) {
-        err::annotationsNeeded(param->location)
-            .with(param->identifier)
-            .report(reporter);
-        error = true;
-      }
-    }
-  }
-
-  return !error;
+  return ctx.create<res::ImplicitCoerceExpr>(expr->location, targetType, expr);
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -919,7 +907,8 @@ res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
 }
 
 res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
-  varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition));
+  varOrReturn(
+      cond, resolveExpr(ctx, *ifStmt.condition, typeMgr.getBuiltinBoolType()));
   if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
     return err::expectedBoolCondition(cond->location).report(reporter);
 
@@ -938,7 +927,8 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
 
 res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
                                        const ast::WhileStmt &whileStmt) {
-  varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition));
+  varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition,
+                                typeMgr.getBuiltinBoolType()));
   if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
     return err::expectedBoolCondition(cond->location).report(reporter);
 
@@ -960,8 +950,8 @@ res::DeclStmt *Sema::resolveDeclStmt(res::Context &ctx,
 
 res::Assignment *Sema::resolveAssignment(res::Context &ctx,
                                          const ast::Assignment &assignment) {
-  varOrReturn(rhs, resolveExpr(ctx, *assignment.expr));
   varOrReturn(lhs, resolveExpr(ctx, *assignment.assignee));
+  varOrReturn(rhs, resolveExpr(ctx, *assignment.expr, lhs->getType()));
 
   if (!lhs->isLvalue())
     return err::rvalueAssignment(lhs->location).report(reporter);
@@ -995,7 +985,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
-    expr = resolveExpr(ctx, *returnStmt.expr);
+    expr = resolveExpr(ctx, *returnStmt.expr, retTy);
     if (!expr)
       return nullptr;
 
@@ -1016,7 +1006,9 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   return ctx.create<res::ReturnStmt>(returnStmt.location, expr);
 }
 
-res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
+res::Expr *Sema::resolveExpr(res::Context &ctx,
+                             const ast::Expr &expr,
+                             res::Type *typeHint) {
   if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr))
     return ctx.create<res::NumberLiteral>(number->location,
                                           typeMgr.getBuiltinNumberType(),
@@ -1053,7 +1045,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
     return resolveMemberExpr(ctx, *memberExpr);
 
   if (const auto *lambda = dynamic_cast<const ast::LambdaExpr *>(&expr))
-    return resolveLambdaExpr(ctx, *lambda);
+    return resolveLambdaExpr(ctx, *lambda, typeHint);
 
   if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
     varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
@@ -1093,22 +1085,26 @@ res::Expr *Sema::resolveExpr(res::Context &ctx, const ast::Expr &expr) {
         auto *lambda = functionInfo->lambda;
 
         auto *field =
-            lambda->lambda->lookupDecl<res::FieldDecl>(decl->identifier);
+            lambda->closure->lookupDecl<res::FieldDecl>(decl->identifier);
         if (!field) {
           field = ctx.create<res::FieldDecl>(
               lambda->location, resPath->getType(), decl->identifier);
-          lambda->lambda->insertDecl(field);
+          lambda->closure->insertDecl(field);
           functionInfo->pendingCaptureInits.emplace_back(&expr);
         }
 
-        auto *selfDre = ctx.create<res::DeclRefExpr>(
-            lambda->location, lambda->method->params[0]->getType(),
-            lambda->method->params[0], res::Expr::Kind::Lvalue);
+        res::Expr *base = ctx.create<res::DeclRefExpr>(
+            lambda->location, lambda->method->params.back()->getType(),
+            lambda->method->params.back(), res::Expr::Kind::Lvalue);
+
+        base = ctx.create<res::UnaryOperator>(
+            lambda->location, lambda->closure->getType(), TokenKind::Asterisk,
+            base, res::Expr::Kind::Lvalue);
 
         auto *fieldDre = ctx.create<res::DeclRefExpr>(
             lambda->location, field->getType(), field, res::Expr::Kind::Lvalue);
 
-        return ctx.create<res::MemberExpr>(lambda->location, selfDre, fieldDre);
+        return ctx.create<res::MemberExpr>(lambda->location, base, fieldDre);
       }
     }
 
@@ -1145,7 +1141,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
       ++reportUnreachableCount;
   }
 
-  if (!resolvePendingLambdaBodies() || !checkLambdaCoercions() || error)
+  if (error)
     return nullptr;
 
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
@@ -1245,7 +1241,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
 
   res::Expr *initializer = nullptr;
   if (varDecl.initializer) {
-    varOrReturn(init, resolveExpr(ctx, *varDecl.initializer));
+    varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
 
     varOrReturn(coercedInit, coerceIfNeeded(declTy, init));
     init = coercedInit;

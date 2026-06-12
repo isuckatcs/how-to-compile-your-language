@@ -7,5 +7,5 @@ fn main() {
   let n = 0;
 
   S { l: ->(){ return n; } };
-  // CHECK: StructInstantiationExpr {S<(lambda@<source>:9:10)>}
+  // CHECK: StructInstantiationExpr {S<() -> number>}
 }

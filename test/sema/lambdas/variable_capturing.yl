@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let n = 0;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) n {number}
+
+  mut f: (number) -> number = ->(x){ return n; };
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:     LambdaExpr {(number) -> number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:       StructDecl @({{.*}}) (lambda@<source>:7:31) {(lambda@<source>:7:31)}
+
+  f = ->(x){ return n; };
+  // CHECK: Assignment
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   LambdaExpr {(number) -> number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:14:7) {(lambda@<source>:14:7)}
+}

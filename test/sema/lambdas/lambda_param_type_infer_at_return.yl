@@ -1,5 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
   ->() { return 0; };
-  // CHECK: FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:3:3)) -> number}
+  // CHECK: LambdaExpr {() -> number}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:3:3) {(lambda@<source>:3:3)}
 }

@@ -1,0 +1,23 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo() {}
+
+fn main() {
+  ->(x: number) {
+    println(x);
+    foo();
+  };
+  // CHECK: LambdaExpr {(number) -> unit}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(lambda@<source>:5:3)) -> unit}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:5:3)}
+  // CHECK-NEXT:       Block
+  // CHECK-NEXT:         CallExpr {unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) x {number}
+  // CHECK-NEXT:         CallExpr {unit}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) foo {() -> unit}
+
+  0;
+  // CHECK-NEXT: NumberLiteral '0' {number}
+}

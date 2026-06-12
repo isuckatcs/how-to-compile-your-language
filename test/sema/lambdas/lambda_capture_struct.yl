@@ -8,19 +8,8 @@ fn main() {
   let s = S{ x: 0, y: 1 };
 
   ->(){ return s.x + s.y; };
-    // CHECK: LambdaExpr {(lambda@<source>:10:3)}
-    // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:10:3) {(lambda@<source>:10:3)}
-    // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:10:3)) -> number}
-    // CHECK-NEXT:       ParamDecl @({{.*}}) self {(lambda@<source>:10:3)}
-    // CHECK-NEXT:       Block
-    // CHECK-NEXT:         ReturnStmt
-    // CHECK-NEXT:           BinaryOperator '+' {number}
-    // CHECK-NEXT:             MemberExpr @({{.*}}) x {number}
-    // CHECK-NEXT:               MemberExpr @({{.*}}) s {S}
-    // CHECK-NEXT:                 DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
-    // CHECK-NEXT:             MemberExpr @({{.*}}) y {number}
-    // CHECK-NEXT:               MemberExpr @({{.*}}) s {S}
-    // CHECK-NEXT:                 DeclRefExpr @({{.*}}) self {(lambda@<source>:10:3)}
-    // CHECK-NEXT:     FieldDecl @({{.*}}) s {S}
-    // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+  // CHECK: LambdaExpr {() -> number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:10:3) {(lambda@<source>:10:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:10:3)) -> number}
 }

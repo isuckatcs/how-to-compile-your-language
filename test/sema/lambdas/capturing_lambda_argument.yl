@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(f: (number) -> unit) {}
+
+fn main() {
+  let n = 0;
+
+  foo(->(x){
+    println(n);
+  });
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {((number) -> unit) -> unit}
+  // CHECK-NEXT:   LambdaExpr {(number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:7:7) {(lambda@<source>:7:7)}
+}

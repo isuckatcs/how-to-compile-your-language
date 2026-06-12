@@ -1,7 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
+  // CHECK: [[# @LINE + 1 ]]:14: error: explicit type annotations are needed to infer the type of 'x'
   let l = ->(x){};
-  // CHECK: FunctionDecl @({{.*}}) __builtin_lambda_call {((lambda@<source>:3:11), number) -> unit}
 
   ->() {
     let f: (number) -> unit = l;

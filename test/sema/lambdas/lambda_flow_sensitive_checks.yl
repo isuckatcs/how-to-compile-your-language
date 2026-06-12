@@ -1,7 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:3: error: expected function to return a value on every path
-  ->(x) { 
+  ->(x: bool) { 
     if x {
       return 0; 
     }
