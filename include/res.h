@@ -521,17 +521,17 @@ struct ImplicitDerefExpr : public Expr {
 };
 
 struct LambdaExpr : public Expr {
-  res::StructDecl *lambda;
+  res::StructDecl *closure;
   std::vector<const res::Expr *> fieldInits;
   res::FunctionDecl *method;
 
   LambdaExpr(SourceLocation location,
              Type *type,
-             res::StructDecl *lambda,
+             res::StructDecl *closure,
              res::FunctionDecl *method,
              std::vector<const res::Expr *> fieldInits = {})
       : Expr(location, type, Expr::Kind::Rvalue),
-        lambda(lambda),
+        closure(closure),
         method(method),
         fieldInits(std::move(fieldInits)) {}
 
