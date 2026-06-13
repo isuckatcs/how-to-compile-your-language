@@ -8,5 +8,5 @@ fn main() {
   f2(123);
 }
 
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %self) {
-// CHECK: define void @_YS8lambda_121__builtin_lambda_call(double %x, ptr %self) {
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {
+// CHECK: define void @_YS8lambda_121__builtin_lambda_call(double %x, ptr %closure) {

@@ -762,7 +762,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   }
 
   std::stringstream structId;
-  structId << "(lambda@<source>:" << loc.line << ':' << loc.col << ')';
+  structId << "(closure@<source>:" << loc.line << ':' << loc.col << ')';
 
   res::Type *closureTy = typeMgr.getNewUninferredType();
   auto *closure =
@@ -828,7 +828,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
   paramTypes.emplace_back(typeMgr.getPointerType(closureTy, false));
   resolvedParams.emplace_back(ctx.create<res::ParamDecl>(
-      loc, typeMgr.getPointerType(closureTy, false), selfParamId, false));
+      loc, typeMgr.getPointerType(closureTy, false), "closure", false));
 
   auto *fnTy = typeMgr.getFunctionType(paramTypes, returnTy);
   auto *fn = ctx.create<res::FunctionDecl>(loc, fnTy, lambdaFunctionId,

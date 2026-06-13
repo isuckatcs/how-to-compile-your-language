@@ -20,4 +20,4 @@ fn main() {
   // CHECK: call void %3(double 1.230000e+02, ptr %5)
 }
 
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %self) gc "shadow-stack" {
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %closure) gc "shadow-stack" {

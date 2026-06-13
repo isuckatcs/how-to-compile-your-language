@@ -9,23 +9,23 @@ fn main() {
   };
   // CHECK: LambdaExpr {() -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:5:3)) -> unit}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:5:3)}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:5:3) {(closure@<source>:5:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:5:3)) -> unit}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:5:3)}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         LambdaExpr {() -> unit}
   // CHECK-NEXT:           MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:             UnaryOperator '*' {(lambda@<source>:5:3)}
-  // CHECK-NEXT:               DeclRefExpr @({{.*}}) self {*(lambda@<source>:5:3)}
-  // CHECK-NEXT:           StructDecl @({{.*}}) (lambda@<source>:6:5) {(lambda@<source>:6:5)}
-  // CHECK-NEXT:             FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:6:5)) -> unit}
-  // CHECK-NEXT:               ParamDecl @({{.*}}) self {*(lambda@<source>:6:5)}
+  // CHECK-NEXT:             UnaryOperator '*' {(closure@<source>:5:3)}
+  // CHECK-NEXT:               DeclRefExpr @({{.*}}) closure {*(closure@<source>:5:3)}
+  // CHECK-NEXT:           StructDecl @({{.*}}) (closure@<source>:6:5) {(closure@<source>:6:5)}
+  // CHECK-NEXT:             FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:6:5)) -> unit}
+  // CHECK-NEXT:               ParamDecl @({{.*}}) closure {*(closure@<source>:6:5)}
   // CHECK-NEXT:               Block
   // CHECK-NEXT:                 CallExpr {unit}
   // CHECK-NEXT:                   DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:                   MemberExpr @({{.*}}) x {number}
-  // CHECK-NEXT:                     UnaryOperator '*' {(lambda@<source>:6:5)}
-  // CHECK-NEXT:                       DeclRefExpr @({{.*}}) self {*(lambda@<source>:6:5)}
+  // CHECK-NEXT:                     UnaryOperator '*' {(closure@<source>:6:5)}
+  // CHECK-NEXT:                       DeclRefExpr @({{.*}}) closure {*(closure@<source>:6:5)}
   // CHECK-NEXT:             FieldDecl @({{.*}}) x {number}
   // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
 }

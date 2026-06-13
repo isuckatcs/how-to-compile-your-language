@@ -7,5 +7,5 @@ fn main() {
   S@<unit>{ f: ->(x){ return x; }};
   //CHECK: FieldInitStmt @({{.*}}) f
   //CHECK-NEXT:   LambdaExpr {(unit) -> unit}
-  //CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:7:16) {(lambda@<source>:7:16)}
+  //CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:7:16) {(closure@<source>:7:16)}
 }

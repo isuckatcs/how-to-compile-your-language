@@ -2,5 +2,5 @@
 fn main() {
   ->() { return 0; };
   // CHECK: LambdaExpr {() -> number}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:3:3) {(lambda@<source>:3:3)}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:3:3) {(closure@<source>:3:3)}
 }

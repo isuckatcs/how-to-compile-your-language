@@ -11,5 +11,5 @@ fn main() {
   // CHECK: Assignment
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {() -> unit}
   // CHECK-NEXT:   LambdaExpr {() -> unit}
-  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:10:7) {(lambda@<source>:10:7)}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:10:7) {(closure@<source>:10:7)}
 }

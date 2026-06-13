@@ -2,6 +2,6 @@
 fn main() {
   let x = 0;
 
-  // CHECK: [[# @LINE + 1 ]]:12: error: pointee of type '*(lambda@<source>:6:3)' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:12: error: pointee of type '*(closure@<source>:6:3)' cannot be mutated
   ->() { x = 1; };
 }

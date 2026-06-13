@@ -9,10 +9,10 @@ fn main() {
     f(x);
   };
   // CHECK: LambdaExpr {(number) -> unit}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:7:11) {(lambda@<source>:7:11)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(lambda@<source>:7:11)) -> unit}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:7:11) {(closure@<source>:7:11)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(closure@<source>:7:11)) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:7:11)}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:7:11)}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         DeclStmt
   // CHECK-NEXT:           VarDecl @({{.*}}) f {(number) -> unit}

@@ -6,7 +6,7 @@ fn foo(): (number) -> number {
   // CHECK: ReturnStmt
   // CHECK-NEXT:   LambdaExpr {(number) -> number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
-  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:5:10) {(lambda@<source>:5:10)}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:5:10) {(closure@<source>:5:10)}
 }
 
 fn main() {}

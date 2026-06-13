@@ -4,8 +4,8 @@ fn foo(x: number, y: number) {
   // CHECK: LambdaExpr {() -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) y {number}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:3:3) {(lambda@<source>:3:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:3:3)) -> unit}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:3:3) {(closure@<source>:3:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:3:3)) -> unit}
 }
 
 fn main() {}

@@ -7,10 +7,10 @@ fn main() {
     foo();
   };
   // CHECK: LambdaExpr {(number) -> unit}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(lambda@<source>:5:3)) -> unit}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:5:3) {(closure@<source>:5:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(closure@<source>:5:3)) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) self {*(lambda@<source>:5:3)}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:5:3)}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         CallExpr {unit}
   // CHECK-NEXT:           DeclRefExpr @({{.*}}) println {(number) -> unit}

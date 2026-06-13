@@ -6,7 +6,7 @@ fn main() {
     println(x);
   }(0);
 }
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %self) {
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   store double %x, ptr %x1, align 8

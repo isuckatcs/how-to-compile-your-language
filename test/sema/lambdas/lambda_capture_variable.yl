@@ -5,6 +5,6 @@ fn main() {
   ->(){ return x + 1; };
   // CHECK: LambdaExpr {() -> number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (lambda@<source>:5:3) {(lambda@<source>:5:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(lambda@<source>:5:3)) -> number}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:5:3) {(closure@<source>:5:3)}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:5:3)) -> number}
 }

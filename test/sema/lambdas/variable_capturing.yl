@@ -9,12 +9,12 @@ fn main() {
   // CHECK-NEXT:   VarDecl @({{.*}}) f {(number) -> number}
   // CHECK-NEXT:     LambdaExpr {(number) -> number}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {number}
-  // CHECK-NEXT:       StructDecl @({{.*}}) (lambda@<source>:7:31) {(lambda@<source>:7:31)}
+  // CHECK-NEXT:       StructDecl @({{.*}}) (closure@<source>:7:31) {(closure@<source>:7:31)}
 
   f = ->(x){ return n; };
   // CHECK: Assignment
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
   // CHECK-NEXT:   LambdaExpr {(number) -> number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
-  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:14:7) {(lambda@<source>:14:7)}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:14:7) {(closure@<source>:14:7)}
 }

@@ -8,5 +8,5 @@ fn main() {
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {((number) -> unit) -> unit}
   // CHECK-NEXT:   LambdaExpr {(number) -> unit}
-  // CHECK-NEXT:     StructDecl @({{.*}}) (lambda@<source>:5:7) {(lambda@<source>:5:7)}
+  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:5:7) {(closure@<source>:5:7)}
 }
