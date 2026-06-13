@@ -392,15 +392,6 @@ llvm::Value *Codegen::constructStruct(
   return storage;
 }
 
-llvm::Value *
-Codegen::generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice) {
-  const auto *closureTy = ice.expr->getType()->getAs<res::StructType>();
-  const auto *coercedTy = ice.getType()->getAs<res::FunctionType>();
-
-  const auto *fnDecl = closureTy->getDecl()->getAll<res::FunctionDecl>()[0];
-  return generateFunctionDecl(*fnDecl, coercedTy, closureTy, {});
-}
-
 llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *number = dynamic_cast<const res::NumberLiteral *>(&expr))
     return llvm::ConstantFP::get(builder.getDoubleTy(), number->value);
@@ -446,9 +437,6 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
-
-  if (auto *ice = dynamic_cast<const res::ImplicitCoerceExpr *>(&expr))
-    return generateImplicitCoerceExpr(*ice);
 
   llvm_unreachable("unexpected expression");
 }

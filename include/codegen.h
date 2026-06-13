@@ -104,7 +104,6 @@ class Codegen {
   llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr);
   llvm::Value *generateStructInstExpr(const res::StructInstantiationExpr &sie);
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
-  llvm::Value *generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice);
 
   llvm::Value *
   constructStruct(llvm::Value *storage,
