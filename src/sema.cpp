@@ -493,25 +493,10 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
   res::Type *calleeType = callee->getType();
   auto *fnType = calleeType->getAs<res::FunctionType>();
-
-  auto *lambdaTy = calleeType->getAs<res::StructType>();
-  bool isLambda = lambdaTy && lambdaTy->getDecl()->isLambda;
-
-  if (!fnType && !isLambda)
+  if (!fnType)
     return err::invalidCallTy(call.location)
         .with(calleeType->getName())
         .report(reporter);
-
-  if (isLambda) {
-    auto *fn =
-        lambdaTy->getDecl()->lookupDecl<res::FunctionDecl>(lambdaFunctionId);
-    fnType = fn->getType()->getAs<res::FunctionType>();
-
-    auto *fnDre = ctx.create<res::DeclRefExpr>(
-        callee->location, fnType, fn, res::Expr::Kind::Rvalue,
-        std::vector<res::Type *>{}, lambdaTy);
-    callee = ctx.create<res::MemberExpr>(callee->location, callee, fnDre);
-  }
 
   if (auto *me = dynamic_cast<res::MemberExpr *>(callee)) {
     res::Expr *base = me->base;
