@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o field_init_coerce && ./field_init_coerce | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 struct S<T> {
   f: (T) -> T
 }

@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o trait_and_struct_function_collision && ./trait_and_struct_function_collision | grep -Plzx '123\n456\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 trait A {
   fn foo();
 }

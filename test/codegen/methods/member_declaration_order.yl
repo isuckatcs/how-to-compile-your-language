@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o member_declaration_order && ./member_declaration_order | grep -Plzx '1\n2\n3\n4\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n3\n4\n'
 struct S {
   x: number,
   y: number,

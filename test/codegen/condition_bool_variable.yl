@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o condition_bool_variable && ./condition_bool_variable | grep -Plzx '123\n456\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 
 fn pred(n: number): bool {
 // CHECK: define zeroext i1 @pred(double %n) {

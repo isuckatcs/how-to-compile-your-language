@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o immutable_parameters && ./immutable_parameters | grep -Plzx '\-50\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '\-50\n'
 struct S {
   x: number,
   y: number,

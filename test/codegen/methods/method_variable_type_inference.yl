@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_variable_type_inference && ./method_variable_type_inference | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 struct S<T> {
   fn foo(self: Self, x: T, y: number) {
     println(y);

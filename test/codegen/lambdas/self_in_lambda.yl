@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o self_in_lambda && ./self_in_lambda | grep -Plzx '123\n456\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 trait A {
   fn bar() {
     println(123);

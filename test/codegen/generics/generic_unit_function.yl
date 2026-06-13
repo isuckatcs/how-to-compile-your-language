@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o generic_unit_function && ./generic_unit_function | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 fn wrapper<T>(x: (T) -> T, a: T) {
   x(a);
 }

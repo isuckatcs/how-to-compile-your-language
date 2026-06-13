@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o %t && %valgrind %t | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 fn foo(mut n: **number) {
   println(**n);
 }

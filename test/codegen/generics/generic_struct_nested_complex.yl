@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o generic_struct_nested_complex && ./generic_struct_nested_complex | grep -Plzx '246\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '246\n'
 
 struct A<T> {
   x: T

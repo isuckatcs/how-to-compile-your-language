@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o generic_struct_different_field_offsets && ./generic_struct_different_field_offsets | grep -Plzx '1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n'
 struct Empty {}
 
 struct S<T, U, V> {

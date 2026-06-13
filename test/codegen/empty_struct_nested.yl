@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o empty_struct_nested && ./empty_struct_nested | grep -Plzxe '0\n1\n2\n3\n'
+// RUN: compiler %s -o %t && %t | grep -Plzxe '0\n1\n2\n3\n'
 struct S {
   x: unit,
   y: S2,

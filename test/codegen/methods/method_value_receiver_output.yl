@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_value_receiver_output && ./method_value_receiver_output | grep -Plzx '123\n6\n7\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n6\n7\n'
 struct S {
   x:number
 

@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o function_lookup_in_required_trait && ./function_lookup_in_required_trait | grep -Plzx '492\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '492\n'
 trait B {
   fn foo(self: &Self);
 }

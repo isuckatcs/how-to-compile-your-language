@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o out_param_on_rhs && ./out_param_on_rhs | grep -Plzx '1\n2\n2\n1\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n2\n1\n'
 
 // CHECK: define void @swap(ptr %x, ptr %y)
 fn swap(x: &number, y: &number) {

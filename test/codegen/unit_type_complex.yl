@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o unit_type_complex && ./unit_type_complex | grep -Plzx '123\n123\n456\n789\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n123\n456\n789\n'
 struct S {
   x: number,
   y: number

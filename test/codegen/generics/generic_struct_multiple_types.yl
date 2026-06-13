@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o generic_struct_multiple_types && ./generic_struct_multiple_types | grep -Plzx '1\n1\n2\n2\n3\n3\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n1\n2\n2\n3\n3\n'
 
 struct S<T> {
   x: T

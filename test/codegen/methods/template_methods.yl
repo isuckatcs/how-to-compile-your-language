@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o template_methods && ./template_methods | grep -Plzx '0\n1\n1\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '0\n1\n1\n'
 struct S {
   fn foo<U>(self: &Self, x: U) {
     println(0);

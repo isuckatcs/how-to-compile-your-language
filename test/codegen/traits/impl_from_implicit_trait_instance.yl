@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o impl_from_implicit_trait_instance && ./impl_from_implicit_trait_instance | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 trait A<T> {
   fn foo(self: Self);
 }

@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o class_method_call && ./class_method_call | grep -Plzx '0\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '0\n'
 struct S {
   fn create(): Self {
     println(0);

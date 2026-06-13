@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o out_param_field && ./out_param_field | grep -Plzx '1\n2\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n'
 struct S {
   x: number,
   y: number,

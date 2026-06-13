@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_call_through_variable && ./method_call_through_variable | grep -Plzx '1\n2\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n'
 struct S {
   fn classMethod() {
     println(1);

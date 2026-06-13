@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o disambiguated_function_call && ./disambiguated_function_call | grep -Plzx '123\n246\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n246\n'
 trait A<T> {
   fn foo(self: Self, x: T) {}
 }

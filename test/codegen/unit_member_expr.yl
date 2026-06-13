@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o unit_member_expr && ./unit_member_expr | grep -Plzxe '0\n1\n2\n3\n4\n5\n'
+// RUN: compiler %s -o %t && %t | grep -Plzxe '0\n1\n2\n3\n4\n5\n'
 struct S {
   x: unit,
   y: (number, number) -> S2,

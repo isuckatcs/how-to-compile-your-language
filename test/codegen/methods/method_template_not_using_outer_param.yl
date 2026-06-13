@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_template_not_using_outer_param && ./method_template_not_using_outer_param | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 fn foo<T>(x: T): T {
   return x;
 }

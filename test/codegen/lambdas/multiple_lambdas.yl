@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o multiple_lambdas && ./multiple_lambdas | grep -Plzx '1\n2\n3\n456\n123\n123\n123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n3\n456\n123\n123\n123\n'
 fn main() {
   mut x = 123;
 

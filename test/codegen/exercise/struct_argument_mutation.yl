@@ -1,4 +1,4 @@
-// RUN: compiler %s -o struct_argument_mutation && ./struct_argument_mutation | grep -Plzx '6\n8\n1\n2\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '6\n8\n1\n2\n'
 struct S {
   x: number,
   y: number,

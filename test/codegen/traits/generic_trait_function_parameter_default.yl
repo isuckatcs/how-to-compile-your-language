@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o generic_trait_function_parameter_default && ./generic_trait_function_parameter_default | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 trait A<T> {
   fn foo(self: Self, x: T) {
     println(123);

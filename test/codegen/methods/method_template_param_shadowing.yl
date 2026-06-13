@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o method_template_param_shadowing && ./method_template_param_shadowing | grep -Plzx '1\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n'
 struct S<T> {
   x: T
 

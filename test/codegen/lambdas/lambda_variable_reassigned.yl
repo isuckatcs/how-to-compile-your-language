@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o lambda_variable_reassigned && ./lambda_variable_reassigned | grep -Plzx '123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 fn main() {
   let x = 123;
   mut f = ->(){ println(x); };

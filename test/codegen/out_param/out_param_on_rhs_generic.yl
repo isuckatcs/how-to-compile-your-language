@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o out_param_on_rhs_generic && ./out_param_on_rhs_generic | grep -Plzx '1\n2\n3\n4\n5\n6\n7\n8\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n3\n4\n5\n6\n7\n8\n'
 struct S {
   x: number,
   y: number,

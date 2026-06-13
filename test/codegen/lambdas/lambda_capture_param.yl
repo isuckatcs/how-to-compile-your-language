@@ -1,5 +1,5 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o lambda_capture_param && ./lambda_capture_param | grep -Plzx '5\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '5\n'
 fn foo(x: number, mut y: number) {
   ->(){ println(x + y); }();
   // CHECK: %0 = call ptr @gcAlloc(i32 16, ptr null)

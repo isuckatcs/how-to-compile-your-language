@@ -1,4 +1,4 @@
-// RUN: compiler %s -o generic_calling_generic && ./generic_calling_generic | grep -Plzx '20\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '20\n'
 
 fn wrapper<T>(x: T): T {
   return x;
