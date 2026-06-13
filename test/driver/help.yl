@@ -6,6 +6,7 @@
 // CHECK-NEXT: Options:
 // CHECK-NEXT:   -h           display this message
 // CHECK-NEXT:   -o <file>    write executable to <file>
+// CHECK-NEXT:   -verify      verify the generated llvm module
 // CHECK-NEXT:   -ast-dump    print the abstract syntax tree
 // CHECK-NEXT:   -res-dump    print the resolved syntax tree
 // CHECK-NEXT:   -llvm-dump   print the llvm module
