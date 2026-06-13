@@ -269,26 +269,6 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
 
 std::pair<bool, std::vector<std::string>>
 TypeManager::tryCoerce(Type *target, Type *current) {
-  if (target->getAs<res::FunctionType>()) {
-    res::StructType *structTy = current->getAs<res::StructType>();
-    if (!structTy)
-      return {false, {}};
-
-    res::StructDecl *decl = structTy->getDecl();
-    if (!decl->isLambda)
-      return {false, {}};
-
-    const auto &functions = decl->getAll<res::FunctionDecl>();
-    assert(functions.size() == 1 && "lambda should have 1 builtin method");
-
-    auto *fnTy = functions[0]->getType()->getAs<res::FunctionType>();
-    std::vector<res::Type *> coercedArgs = fnTy->getArgs();
-    coercedArgs.erase(coercedArgs.begin());
-
-    auto *coercedTy = getFunctionType(coercedArgs, fnTy->getReturnType());
-    return {true, unify(target, coercedTy)};
-  }
-
   auto *targetPtr = target->getAs<res::PointerType>();
   auto *currentPtr = current->getAs<res::PointerType>();
 
