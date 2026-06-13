@@ -526,6 +526,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     if (argTy->isStructTy()) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", argTy);
       storeValue(argVal, tmpVar, argTy);
+      createTmpGCRootIfNeeded(tmpVar, arg->getType());
       argVal = tmpVar;
     }
 

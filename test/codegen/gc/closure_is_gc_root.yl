@@ -1,0 +1,45 @@
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+
+// CHECK: @function.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] [i32 8] }
+
+fn takeLambdaParam(f: (number) -> number) {}
+
+fn returnLambda(): (number) -> number {
+  return ->(x){ return x; };
+  // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
+}
+
+fn unusedRoot() {
+  mut f: (number) -> number;
+  // CHECK: %f = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %f, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %f, ptr @function.offsets)
+}
+
+fn passLambdaParam() {
+  // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %struct.arg.tmp = alloca { ptr, ptr }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.arg.tmp, ptr @function.offsets)
+
+  takeLambdaParam(->(x) { return x; });
+  // CHECK: call void @takeLambdaParam(ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+}
+
+fn main() {
+  // CHECK: %struct.ret.tmp = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %f = alloca { ptr, ptr }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @function.offsets)
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %f, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %f, ptr @function.offsets)
+
+  let f = returnLambda();
+}
