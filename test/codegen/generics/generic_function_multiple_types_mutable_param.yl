@@ -13,24 +13,24 @@ fn returnOne(): number {
 }
 
 fn main(): unit {
-// CHECK: define void @__builtin_main() gc "shadow-stack" {
+// CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
 
   let x = wrapper(returnOne)();
-  // CHECK: call void @_Y7wrapperGFRnE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp)
+  // CHECK: call void @_Y7wrapperGFRnE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 
   let y = wrapper(2);
-  // CHECK: %7 = call double @_Y7wrapperGnE(double 2.000000e+00)
+  // CHECK: %7 = call double @_Y7wrapperGnE(double 2.000000e+00, ptr null)
 
   let z = wrapper(S{ x: 3 }).x;
-  // CHECK: call void @_Y7wrapperGS1SE(ptr sret({ double }) %struct.ret.tmp1, ptr byval({ double }) %struct.arg.tmp2)
+  // CHECK: call void @_Y7wrapperGS1SE(ptr sret({ double }) %struct.ret.tmp1, ptr byval({ double }) %struct.arg.tmp2, ptr null)
 
   println(x);
   println(y);
   println(z);
 }
 
-// CHECK: define void @_Y7wrapperGFRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x) {
-// CHECK: define double @_Y7wrapperGnE(double %x) {
-// CHECK: define void @_Y7wrapperGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x) {
+// CHECK: define void @_Y7wrapperGFRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x, ptr %closure) {
+// CHECK: define double @_Y7wrapperGnE(double %x, ptr %closure) {
+// CHECK: define void @_Y7wrapperGS1SE(ptr sret({ double }) %ret, ptr byval({ double }) %x, ptr %closure) {
 
 // CHECK-NOT: {{define.*wrapper.*}}

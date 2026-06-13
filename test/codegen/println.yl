@@ -10,7 +10,7 @@ fn main(): unit {
 
 // CHECK: @0 = private unnamed_addr constant [7 x i8] c"%.15g\0A\00", align 1
 
-// CHECK: define void @println(double %n) {
+// CHECK: define void @println(double %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = call i32 (ptr, ...) @printf(ptr @0, double %n)
 // CHECK-NEXT:   ret void

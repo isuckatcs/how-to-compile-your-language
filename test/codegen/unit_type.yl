@@ -3,9 +3,9 @@
 fn foo(x: unit): unit {
   return println(123);
 }
-// CHECK: define void @foo() {
+// CHECK: define void @foo(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
@@ -17,8 +17,8 @@ fn main() {
 
   let y = foo(x);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @foo()
+// CHECK-NEXT:   call void @foo(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

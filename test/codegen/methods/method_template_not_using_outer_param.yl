@@ -18,13 +18,13 @@ struct S<T> {
 fn main() {
   S::foo(unit, 456);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1SGuE3fooGnE(double 4.560000e+02)
+// CHECK-NEXT:   call void @_YS1SGuE3fooGnE(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1SGuE3fooGnE(double %y) gc "shadow-stack" {
+// CHECK: define void @_YS1SGuE3fooGnE(double %y, ptr %closure) gc "shadow-stack" {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %struct.ret.tmp = alloca { ptr, ptr }, align 8
 // CHECK-NEXT:   %struct.arg.tmp = alloca { ptr, ptr }, align 8
@@ -35,7 +35,7 @@ fn main() {
 // CHECK-NEXT:   store ptr @_YS1SGuE3barGnE, ptr %0, align 8
 // CHECK-NEXT:   %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.arg.tmp, i32 0, i32 1
 // CHECK-NEXT:   store ptr null, ptr %1, align 8
-// CHECK-NEXT:   call void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp)
+// CHECK-NEXT:   call void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 
 // CHECK-NEXT:   %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   %3 = load ptr, ptr %2, align 8
@@ -47,10 +47,10 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define double @_YS1SGuE3barGnE(double %y) {
+// CHECK: define double @_YS1SGuE3barGnE(double %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   store double %y, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
@@ -59,7 +59,7 @@ fn main() {
 // CHECK-NEXT:   ret double %0
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x) {
+// CHECK: define void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 16, i1 false)
 // CHECK-NEXT:   br label %return

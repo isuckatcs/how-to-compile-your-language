@@ -56,6 +56,6 @@ fn main() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %closure, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   call void @println(double %1, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

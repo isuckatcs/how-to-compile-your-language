@@ -9,7 +9,7 @@ fn bar2(x: *number, y: *number) {}
 fn bar3(x: *number, y: *number, z: *number) {}
 fn bar4(x: *number, y: *number, z: *number, w: *number) {}
 
-// CHECK: define void @__builtin_main()
+// CHECK: define void @__builtin_main(ptr %closure)
 fn main() {
   // CHECK: %tmp.root = alloca ptr, align 8
   // CHECK-NEXT: %tmp.root1 = alloca ptr, align 8
@@ -26,37 +26,37 @@ fn main() {
   // CHECK-NEXT: call void @llvm.gcroot(ptr %tmp.root3, ptr null)
 
   bar2(foo(), foo());
-  // CHECK-NEXT: %0 = call ptr @foo()
+  // CHECK-NEXT: %0 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %0, ptr %tmp.root, align 8
-  // CHECK-NEXT: %1 = call ptr @foo()
+  // CHECK-NEXT: %1 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %1, ptr %tmp.root1, align 8
-  // CHECK-NEXT: call void @bar2(ptr %0, ptr %1)
+  // CHECK-NEXT: call void @bar2(ptr %0, ptr %1, ptr null)
   // CHECK-NEXT: store ptr null, ptr %tmp.root, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root1, align 8
 
   bar4(foo(), foo(), foo(), foo());
-  // CHECK-NEXT: %2 = call ptr @foo()
+  // CHECK-NEXT: %2 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %2, ptr %tmp.root, align 8
-  // CHECK-NEXT: %3 = call ptr @foo()
+  // CHECK-NEXT: %3 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %3, ptr %tmp.root1, align 8
-  // CHECK-NEXT: %4 = call ptr @foo()
+  // CHECK-NEXT: %4 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %4, ptr %tmp.root2, align 8
-  // CHECK-NEXT: %5 = call ptr @foo()
+  // CHECK-NEXT: %5 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %5, ptr %tmp.root3, align 8
-  // CHECK-NEXT: call void @bar4(ptr %2, ptr %3, ptr %4, ptr %5)
+  // CHECK-NEXT: call void @bar4(ptr %2, ptr %3, ptr %4, ptr %5, ptr null)
   // CHECK-NEXT: store ptr null, ptr %tmp.root, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root1, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root2, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root3, align 8
 
   bar3(foo(), foo(), foo());
-  // CHECK-NEXT: %6 = call ptr @foo()
+  // CHECK-NEXT: %6 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %6, ptr %tmp.root, align 8
-  // CHECK-NEXT: %7 = call ptr @foo()
+  // CHECK-NEXT: %7 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %7, ptr %tmp.root1, align 8
-  // CHECK-NEXT: %8 = call ptr @foo()
+  // CHECK-NEXT: %8 = call ptr @foo(ptr null)
   // CHECK-NEXT: store ptr %8, ptr %tmp.root2, align 8
-  // CHECK-NEXT: call void @bar3(ptr %6, ptr %7, ptr %8)
+  // CHECK-NEXT: call void @bar3(ptr %6, ptr %7, ptr %8, ptr null)
   // CHECK-NEXT: store ptr null, ptr %tmp.root, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root1, align 8
   // CHECK-NEXT: store ptr null, ptr %tmp.root2, align 8

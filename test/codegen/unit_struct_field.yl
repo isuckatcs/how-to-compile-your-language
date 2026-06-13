@@ -9,7 +9,7 @@ struct S {
 fn foo(s: S): S {
   return S { x: s.x, y: s.y, z: s.z };
 }
-// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %s) {
+// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %s, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %s, i32 0, i32 0
@@ -28,17 +28,17 @@ fn main() {
 
   println(s.y);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %s = alloca { double }, align 8
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
-// CHECK-NEXT:   call void @println(double 7.890000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+// CHECK-NEXT:   call void @println(double 7.890000e+02, ptr null)
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double 4.560000e+02, ptr %0, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 8, i1 false)
 // CHECK-NEXT:   %1 = getelementptr inbounds nuw { double }, ptr %s, i32 0, i32 0
 // CHECK-NEXT:   %2 = load double, ptr %1, align 8
-// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   call void @println(double %2, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -12,11 +12,11 @@ fn wrapper(x: &number, y: &number) {
 
   swap(&x, &y);
 }
-// CHECK: define void @wrapper(ptr %x, ptr %y) {
+// CHECK: define void @wrapper(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   store double 2.000000e+00, ptr %x, align 8
 // CHECK-NEXT:   store double 1.000000e+00, ptr %y, align 8
-// CHECK-NEXT:   call void @_Y4swapGnE(ptr %x, ptr %y)
+// CHECK-NEXT:   call void @_Y4swapGnE(ptr %x, ptr %y, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -29,7 +29,7 @@ fn main() {
   // CHECK-NEXT: store double 4.000000e+00, ptr %y, align 8
 
   wrapper(&x, &y);
-  // CHECK-NEXT: call void @wrapper(ptr %x, ptr %y)
+  // CHECK-NEXT: call void @wrapper(ptr %x, ptr %y, ptr null)
 
   println(x);
   println(y);

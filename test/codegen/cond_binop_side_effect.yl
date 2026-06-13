@@ -13,13 +13,13 @@ fn False(x: number): bool {
 fn test1(): unit {
     False(1.0) || True(2.0) && False(3.0);
 }
-// CHECK: define void @test1() {
+// CHECK: define void @test1(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.000000e+00)
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %0, label %or.merge, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %entry
-// CHECK-NEXT:   %1 = call zeroext i1 @True(double 2.000000e+00)
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 2.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %1, label %and.rhs, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %and.merge, %entry
@@ -27,7 +27,7 @@ fn test1(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %or.rhs
-// CHECK-NEXT:   %3 = call zeroext i1 @False(double 3.000000e+00)
+// CHECK-NEXT:   %3 = call zeroext i1 @False(double 3.000000e+00, ptr null)
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %or.rhs
@@ -38,13 +38,13 @@ fn test1(): unit {
 fn test2(): unit {
     False(4.0) || True(5.0) || True(6.0);
 }
-// CHECK: define void @test2() {
+// CHECK: define void @test2(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @False(double 4.000000e+00)
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 4.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
-// CHECK-NEXT:   %1 = call zeroext i1 @True(double 6.000000e+00)
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 6.000000e+00, ptr null)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %entry
@@ -52,20 +52,20 @@ fn test2(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call zeroext i1 @True(double 5.000000e+00)
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 5.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %3, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test3(): unit {
     False(7.0) && False(8.0) && True(9.0);
 }
-// CHECK: define void @test3() {
+// CHECK: define void @test3(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @False(double 7.000000e+00)
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 7.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %0, label %and.lhs.true, label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.rhs:                                          ; preds = %and.lhs.true
-// CHECK-NEXT:   %1 = call zeroext i1 @True(double 9.000000e+00)
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 9.000000e+00, ptr null)
 // CHECK-NEXT:   br label %and.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: and.merge:                                        ; preds = %and.rhs, %and.lhs.true, %entry
@@ -73,20 +73,20 @@ fn test3(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call zeroext i1 @False(double 8.000000e+00)
+// CHECK-NEXT:   %3 = call zeroext i1 @False(double 8.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %3, label %and.rhs, label %and.merge
 // CHECK-NEXT: }
 
 fn test4(): unit {
     True(10.0) || True(11.0) || True(12.0);
 }
-// CHECK: define void @test4() {
+// CHECK: define void @test4(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @True(double 1.000000e+01)
+// CHECK-NEXT:   %0 = call zeroext i1 @True(double 1.000000e+01, ptr null)
 // CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %or.lhs.false
-// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.200000e+01)
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.200000e+01, ptr null)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %or.lhs.false, %entry
@@ -94,20 +94,20 @@ fn test4(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.100000e+01)
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.100000e+01, ptr null)
 // CHECK-NEXT:   br i1 %3, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 
 fn test5(): unit {
     False(13.0) || True(14.0) && False(15.0) || True(16.0);
 }
-// CHECK: define void @test5() {
+// CHECK: define void @test5(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.300000e+01)
+// CHECK-NEXT:   %0 = call zeroext i1 @False(double 1.300000e+01, ptr null)
 // CHECK-NEXT:   br i1 %0, label %or.merge, label %or.lhs.false
 // CHECK-NEXT: 
 // CHECK-NEXT: or.rhs:                                           ; preds = %and.lhs.true, %or.lhs.false
-// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.600000e+01)
+// CHECK-NEXT:   %1 = call zeroext i1 @True(double 1.600000e+01, ptr null)
 // CHECK-NEXT:   br label %or.merge
 // CHECK-NEXT: 
 // CHECK-NEXT: or.merge:                                         ; preds = %or.rhs, %and.lhs.true, %entry
@@ -115,11 +115,11 @@ fn test5(): unit {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: 
 // CHECK-NEXT: or.lhs.false:                                     ; preds = %entry
-// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.400000e+01)
+// CHECK-NEXT:   %3 = call zeroext i1 @True(double 1.400000e+01, ptr null)
 // CHECK-NEXT:   br i1 %3, label %and.lhs.true, label %or.rhs
 // CHECK-NEXT: 
 // CHECK-NEXT: and.lhs.true:                                     ; preds = %or.lhs.false
-// CHECK-NEXT:   %4 = call zeroext i1 @False(double 1.500000e+01)
+// CHECK-NEXT:   %4 = call zeroext i1 @False(double 1.500000e+01, ptr null)
 // CHECK-NEXT:   br i1 %4, label %or.merge, label %or.rhs
 // CHECK-NEXT: }
 

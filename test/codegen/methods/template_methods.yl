@@ -20,28 +20,28 @@ fn main() {
 
   S2@<number>::foo(unit);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1S3fooGuE()
-// CHECK-NEXT:   call void @_YS2S2GuE3fooGuE()
-// CHECK-NEXT:   call void @_YS2S2GnE3fooGuE()
+// CHECK-NEXT:   call void @_YS1S3fooGuE(ptr null)
+// CHECK-NEXT:   call void @_YS2S2GuE3fooGuE(ptr null)
+// CHECK-NEXT:   call void @_YS2S2GnE3fooGuE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1S3fooGuE() {
+// CHECK: define void @_YS1S3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS2S2GuE3fooGuE() {
+// CHECK: define void @_YS2S2GuE3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   call void @println(double 1.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS2S2GnE3fooGuE() {
+// CHECK: define void @_YS2S2GnE3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.000000e+00)
+// CHECK-NEXT:   call void @println(double 1.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -31,12 +31,12 @@ fn bar<T : A>(mut t : T) {
 
   println(t.getX());
 }
-// CHECK: define void @_Y3barGS1SE(ptr byval({ double }) %t) {
+// CHECK: define void @_Y3barGS1SE(ptr byval({ double }) %t, ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t)
-// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t)
-// CHECK-NEXT:   %0 = call double @_YT1A4getXGS1SE(ptr %t)
-// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t, ptr null)
+// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t, ptr null)
+// CHECK-NEXT:   %0 = call double @_YT1A4getXGS1SE(ptr %t, ptr null)
+// CHECK-NEXT:   call void @println(double %0, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

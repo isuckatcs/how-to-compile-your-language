@@ -11,7 +11,7 @@ fn foo(mut n: number): unit {
 
     println(x);
 }
-// CHECK: define void @foo(double %n) {
+// CHECK: define void @foo(double %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %n1 = alloca double, align 8
 // CHECK-NEXT:   %x = alloca double, align 8
@@ -30,7 +30,7 @@ fn foo(mut n: number): unit {
 // CHECK-NEXT: 
 // CHECK-NEXT: if.exit:                                          ; preds = %if.false, %if.true
 // CHECK-NEXT:   %2 = load double, ptr %x, align 8
-// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   call void @println(double %2, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

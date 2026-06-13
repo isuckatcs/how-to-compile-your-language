@@ -9,7 +9,7 @@ fn foo(mut x: number, mut y: number, mut z: number): unit {
     println(y);
     println(z);
 }
-// CHECK: define void @foo(double %x, double %y, double %z) {
+// CHECK: define void @foo(double %x, double %y, double %z, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   %y2 = alloca double, align 8
@@ -27,11 +27,11 @@ fn foo(mut x: number, mut y: number, mut z: number): unit {
 // CHECK-NEXT:   %2 = load double, ptr %z3, align 8
 // CHECK-NEXT:   store double %2, ptr %z6, align 8
 // CHECK-NEXT:   %3 = load double, ptr %x4, align 8
-// CHECK-NEXT:   call void @println(double %3)
+// CHECK-NEXT:   call void @println(double %3, ptr null)
 // CHECK-NEXT:   %4 = load double, ptr %y5, align 8
-// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   call void @println(double %4, ptr null)
 // CHECK-NEXT:   %5 = load double, ptr %z6, align 8
-// CHECK-NEXT:   call void @println(double %5)
+// CHECK-NEXT:   call void @println(double %5, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

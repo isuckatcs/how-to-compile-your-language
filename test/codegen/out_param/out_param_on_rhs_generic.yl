@@ -37,7 +37,7 @@ fn main() {
   mut y = 1;
 
   swap(&x, &y);
-  // CHECK: call void @_Y4swapGnE(ptr %x, ptr %y)
+  // CHECK: call void @_Y4swapGnE(ptr %x, ptr %y, ptr null)
 
   println(x);
   println(y);
@@ -46,7 +46,7 @@ fn main() {
   mut s2 = S { x: 3, y: 4 };
 
   swap(&s1, &s2);
-  // CHECK: call void @_Y4swapGS1SE(ptr %s1, ptr %s2)
+  // CHECK: call void @_Y4swapGS1SE(ptr %s1, ptr %s2, ptr null)
 
   println(s1.x);
   println(s1.y);
@@ -58,19 +58,19 @@ fn main() {
   mut u2 = unit;
   
   swap(&u1, &u2);
-  // CHECK: call void @_Y4swapGuE()
+  // CHECK: call void @_Y4swapGuE(ptr null)
 
   mut f1 = eight;
   mut f2 = seven;
 
   swap(&f1, &f2);
-  // CHECK: call void @_Y4swapGFRuE(ptr %f1, ptr %f2)
+  // CHECK: call void @_Y4swapGFRuE(ptr %f1, ptr %f2, ptr null)
 
   f1();
   f2();
 }
 
-// CHECK: define void @_Y4swapGnE(ptr %x, ptr %y) {
+// CHECK: define void @_Y4swapGnE(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %tmp = alloca double, align 8
 // CHECK-NEXT:   %0 = load double, ptr %x, align 8
@@ -82,7 +82,7 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4swapGS1SE(ptr %x, ptr %y) {
+// CHECK: define void @_Y4swapGS1SE(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %tmp = alloca { double, double }, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %tmp, ptr align 8 %x, i64 16, i1 false)
@@ -91,12 +91,12 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4swapGuE() {
+// CHECK: define void @_Y4swapGuE(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4swapGFRuE(ptr %x, ptr %y) {
+// CHECK: define void @_Y4swapGFRuE(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %tmp = alloca { ptr, ptr }, align 8
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %tmp, ptr align 8 %x, i64 16, i1 false)

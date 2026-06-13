@@ -9,16 +9,16 @@ fn foo(x: unit): unit {
   println(123);
   return x;
 }
-// CHECK: define void @foo() {
+// CHECK: define void @foo(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @bar(ptr sret({ double, double }) %ret, double %y, double %w)
+// CHECK: define void @bar(ptr sret({ double, double }) %ret, double %y, double %w, ptr %closure)
 fn bar(x: unit, y: number, z: unit, w: number): S {
   return S { x: y, y: w };
 }
@@ -27,9 +27,9 @@ fn main() {
   let s = bar(foo(unit), 456, foo(unit), 789);
   // CHECK: %struct.ret.tmp = alloca { double, double }, align 8
   // CHECK-NEXT: %s = alloca { double, double }, align 8
-  // CHECK-NEXT: call void @foo()
-  // CHECK-NEXT: call void @foo()
-  // CHECK-NEXT: call void @bar(ptr sret({ double, double }) %struct.ret.tmp, double 4.560000e+02, double 7.890000e+02)
+  // CHECK-NEXT: call void @foo(ptr null)
+  // CHECK-NEXT: call void @foo(ptr null)
+  // CHECK-NEXT: call void @bar(ptr sret({ double, double }) %struct.ret.tmp, double 4.560000e+02, double 7.890000e+02, ptr null)
 
   println(s.x);
   println(s.y);

@@ -20,14 +20,14 @@ fn sp(): S<*number, *number, *number, *number> {
   return S{ t: gc(0), u: gc(0), v: gc(0), w: gc(0) };
 }
 
-// CHECK: define void @test1()
+// CHECK: define void @test1(ptr %closure)
 fn test1() {
   let x = gc(gc(0));
   // CHECK: %0 = call ptr @gcAlloc(i32 8, ptr null)
   // CHECK: %1 = call ptr @gcAlloc(i32 8, ptr @pn.offsets)
 }
 
-// CHECK: define void @test2()
+// CHECK: define void @test2(ptr %closure)
 fn test2() {
   // CHECK: %struct.ret.tmp = alloca { ptr, double, ptr }, align 8
   // CHECK-NEXT: %s = alloca { ptr, double, ptr }, align 8
@@ -39,7 +39,7 @@ fn test2() {
   let s = s();
 }
 
-// CHECK: define void @test3()
+// CHECK: define void @test3(ptr %closure)
 fn test3() {
   // CHECK: %s = alloca ptr, align 8
   // CHECK: call void @llvm.gcroot(ptr %s, ptr null)
@@ -48,7 +48,7 @@ fn test3() {
   // CHECK: %0 = call ptr @gcAlloc(i32 24, ptr @S1SGupnnpnE.offsets)
 }
 
-// CHECK: define void @test4()
+// CHECK: define void @test4(ptr %closure)
 fn test4() {
   // CHECK: %s = alloca ptr, align 8
   // CHECK: call void @llvm.gcroot(ptr %s, ptr null)

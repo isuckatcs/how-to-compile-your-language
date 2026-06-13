@@ -25,7 +25,7 @@ fn main() {
 
   println(n);
   // CHECK-NEXT: %3 = load double, ptr %n, align 8
-  // CHECK-NEXT: call void @println(double %3)
+  // CHECK-NEXT: call void @println(double %3, ptr null)
 
   let s2 = S{ x: unit, y: Empty{}, z: 2, n: 3 };
   // CHECK-NEXT: %4 = getelementptr inbounds nuw { double, double }, ptr %S.tmp1, i32 0, i32 0
@@ -48,11 +48,11 @@ fn main() {
 
   println(z2);
   // CHECK-NEXT: %10 = load double, ptr %z2, align 8
-  // CHECK-NEXT: call void @println(double %10)
+  // CHECK-NEXT: call void @println(double %10, ptr null)
 
   println(n2);
   // CHECK-NEXT: %11 = load double, ptr %n2, align 8
-  // CHECK-NEXT: call void @println(double %11)
+  // CHECK-NEXT: call void @println(double %11, ptr null)
 
   let s3 = S{ x: unit, y: 4, z: 5, n: 6 };
   // CHECK-NEXT: %12 = getelementptr inbounds nuw { double, double, double }, ptr %S.tmp2, i32 0, i32 0
@@ -81,15 +81,15 @@ fn main() {
 
   println(y3);
   // CHECK-NEXT: %21 = load double, ptr %y3, align 8
-  // CHECK-NEXT: call void @println(double %21)
+  // CHECK-NEXT: call void @println(double %21, ptr null)
 
   println(z3);
   // CHECK-NEXT: %22 = load double, ptr %z3, align 8
-  // CHECK-NEXT: call void @println(double %22)
+  // CHECK-NEXT: call void @println(double %22, ptr null)
 
   println(n3);
   // CHECK-NEXT: %23 = load double, ptr %n3, align 8
-  // CHECK-NEXT: call void @println(double %23)
+  // CHECK-NEXT: call void @println(double %23, ptr null)
 
   let s4 = S{ x: 7, y: 8, z: 9, n: 10 };
   // CHECK-NEXT: %24 = getelementptr inbounds nuw { double, double, double, double }, ptr %S.tmp3, i32 0, i32 0
@@ -125,17 +125,17 @@ fn main() {
 
   println(x4);
   // CHECK-NEXT: %36 = load double, ptr %x4, align 8
-  // CHECK-NEXT: call void @println(double %36)
+  // CHECK-NEXT: call void @println(double %36, ptr null)
   // CHECK-NEXT: %37 = load double, ptr %y4, align 8
   
   println(y4);
-  // CHECK-NEXT: call void @println(double %37)
+  // CHECK-NEXT: call void @println(double %37, ptr null)
   
   println(z4);
   // CHECK-NEXT: %38 = load double, ptr %z4, align 8
-  // CHECK-NEXT: call void @println(double %38)
+  // CHECK-NEXT: call void @println(double %38, ptr null)
   
   println(n4);
   // CHECK-NEXT: %39 = load double, ptr %n4, align 8
-  // CHECK-NEXT: call void @println(double %39)
+  // CHECK-NEXT: call void @println(double %39, ptr null)
 }

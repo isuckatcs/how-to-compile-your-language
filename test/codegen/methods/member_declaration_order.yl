@@ -5,7 +5,7 @@ struct S {
   y: number,
 
   fn foo() {}
-  // CHECK: define void @_YS1S3foo() {
+  // CHECK: define void @_YS1S3foo(ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
@@ -13,7 +13,7 @@ struct S {
   z: number,
 
   fn bar() {}
-  // CHECK: define void @_YS1S3bar() {
+  // CHECK: define void @_YS1S3bar(ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }

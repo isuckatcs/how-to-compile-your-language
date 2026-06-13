@@ -20,5 +20,5 @@ fn main() {
   // CHECK-NEXT: store double 1.000000e+00, ptr %0, align 8
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double }, ptr %S.tmp, i32 0, i32 1
   // CHECK-NEXT: store double 2.000000e+00, ptr %1, align 8
-  // CHECK-NEXT: call void @_YS1S3foo(ptr %S.tmp)
+  // CHECK-NEXT: call void @_YS1S3foo(ptr %S.tmp, ptr null)
 }

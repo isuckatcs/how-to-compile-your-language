@@ -3,11 +3,11 @@
 fn foo(n: **number) {
   println(**n);
 }
-// CHECK: define void @foo(ptr %n) {
+// CHECK: define void @foo(ptr %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = load ptr, ptr %n, align 8
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   call void @println(double %1, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

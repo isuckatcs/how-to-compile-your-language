@@ -13,7 +13,7 @@ fn sideEffect(x: number): bool {
 fn constant(): bool {
     return true || sideEffect(2);
 }
-// CHECK: define zeroext i1 @constant() {
+// CHECK: define zeroext i1 @constant(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca i8, align 1
 // CHECK-NEXT:   store i8 1, ptr %retval, align 1
@@ -28,7 +28,7 @@ fn constant(): bool {
 fn constant2(): bool {
     return false && sideEffect(2);
 }
-// CHECK: define zeroext i1 @constant2() {
+// CHECK: define zeroext i1 @constant2(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca i8, align 1
 // CHECK-NEXT:   store i8 0, ptr %retval, align 1
@@ -43,19 +43,19 @@ fn constant2(): bool {
 fn nonConstant(): bool {
     return sideEffect(3) || true;
 }
-// CHECK: define zeroext i1 @nonConstant() {
+// CHECK: define zeroext i1 @nonConstant(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca i8, align 1
-// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 3.000000e+00)
+// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 3.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %0, label %or.merge, label %or.rhs
 
 fn nonConstant2(): bool {
     return sideEffect(4) && false;
 }
-// CHECK: define zeroext i1 @nonConstant2() {
+// CHECK: define zeroext i1 @nonConstant2(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca i8, align 1
-// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 4.000000e+00)
+// CHECK-NEXT:   %0 = call zeroext i1 @sideEffect(double 4.000000e+00, ptr null)
 // CHECK-NEXT:   br i1 %0, label %and.rhs, label %and.merge
 
 fn main(): unit {
@@ -65,11 +65,11 @@ fn main(): unit {
     nonConstant();
     nonConstant2();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call zeroext i1 @constant()
-// CHECK-NEXT:   %1 = call zeroext i1 @constant2()
-// CHECK-NEXT:   %2 = call zeroext i1 @nonConstant()
-// CHECK-NEXT:   %3 = call zeroext i1 @nonConstant2()
+// CHECK-NEXT:   %0 = call zeroext i1 @constant(ptr null)
+// CHECK-NEXT:   %1 = call zeroext i1 @constant2(ptr null)
+// CHECK-NEXT:   %2 = call zeroext i1 @nonConstant(ptr null)
+// CHECK-NEXT:   %3 = call zeroext i1 @nonConstant2(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

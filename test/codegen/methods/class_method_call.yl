@@ -6,9 +6,9 @@ struct S {
     return S{};
   }
 }
-// CHECK: define void @_YS1S6create() {
+// CHECK: define void @_YS1S6create(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 0.000000e+00)
+// CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
 // CHECK-NEXT: return:                                           ; preds = %entry
@@ -18,8 +18,8 @@ struct S {
 fn main() {
   let s = S::create();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1S6create()
+// CHECK-NEXT:   call void @_YS1S6create(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

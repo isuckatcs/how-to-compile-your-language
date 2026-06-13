@@ -1,13 +1,13 @@
 // RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 fn main(): unit {}
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 // CHECK: define i32 @main() {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @__builtin_main()
+// CHECK-NEXT:   call void @__builtin_main(ptr null)
 // CHECK-NEXT:   call void @gcMark()
 // CHECK-NEXT:   call void @gcSweep()
 // CHECK-NEXT:   ret i32 0

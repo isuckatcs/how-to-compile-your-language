@@ -4,9 +4,9 @@ trait A<T> {
   fn foo(self: Self, x: T) {
     println(123);
   }
-  // CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x) {
+  // CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x, ptr %closure) {
   // CHECK-NEXT: entry:
-  // CHECK-NEXT:   call void @println(double 1.230000e+02)
+  // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 }

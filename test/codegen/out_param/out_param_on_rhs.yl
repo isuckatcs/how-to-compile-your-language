@@ -1,7 +1,7 @@
 // RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n2\n1\n'
 
-// CHECK: define void @swap(ptr %x, ptr %y)
+// CHECK: define void @swap(ptr %x, ptr %y, ptr %closure)
 fn swap(x: &number, y: &number) {
   let tmp = x;
   // CHECK: %tmp = alloca double, align 8
@@ -31,7 +31,7 @@ fn main() {
   println(y);
 
   swap(&x, &y);
-  // CHECK: call void @swap(ptr %x, ptr %y)
+  // CHECK: call void @swap(ptr %x, ptr %y, ptr null)
 
   println(x);
   println(y);

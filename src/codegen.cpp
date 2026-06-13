@@ -169,6 +169,19 @@ Codegen::generateFunctionType(const res::FunctionType *type) {
                                           : argTy);
   }
 
+  bool alreadyHasClosureParam = false;
+  if (!type->getArgs().empty()) {
+    const auto *ptrType = type->getArgs().back()->getAs<res::PointerType>();
+    if (ptrType) {
+      const auto *closureType =
+          ptrType->getPointeeType()->getAs<res::StructType>();
+      alreadyHasClosureParam = closureType && closureType->getDecl()->isLambda;
+    }
+  }
+
+  if (!alreadyHasClosureParam)
+    args.emplace_back(builder.getPtrTy());
+
   return llvm::FunctionType::get(res, args, false);
 }
 
@@ -542,7 +555,9 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   }
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);
-  if (!llvm::isa<llvm::Function>(callee)) {
+  if (llvm::isa<llvm::Function>(callee)) {
+    args.emplace_back(llvm::Constant::getNullValue(builder.getPtrTy()));
+  } else {
     llvm::Type *fnVarTy = generateType(fnTy);
     llvm::Value *fn = builder.CreateLoad(
         builder.getPtrTy(), builder.CreateStructGEP(fnVarTy, callee, 0));
@@ -1058,6 +1073,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
     declarations[paramDecl] = argVal;
     ++nonVoidArgIdx;
   }
+  function->getArg(function->arg_size() - 1)->setName("closure");
 
   if (functionDecl->identifier == "println")
     generateBuiltinPrintlnBody(*functionDecl);
@@ -1105,7 +1121,8 @@ void Codegen::generateMainWrapper() {
   auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
 
-  builder.CreateCall(builtinMain);
+  builder.CreateCall(builtinMain,
+                     {llvm::ConstantPointerNull::get(builder.getPtrTy())});
   builder.CreateCall(getOrInsertGCMark());
   builder.CreateCall(getOrInsertGCSweep());
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));

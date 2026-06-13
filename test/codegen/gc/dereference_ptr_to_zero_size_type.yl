@@ -13,7 +13,7 @@ fn main() {
   // CHECK-NEXT: store ptr null, ptr %tmp.root, align 8
   
   foo(*x);
-  // CHECK-NEXT: call void @_Y3fooGuE()
+  // CHECK-NEXT: call void @_Y3fooGuE(ptr null)
 
   let y = gc(Empty{});
   // CHECK-NEXT: %1 = call ptr @gcAlloc(i32 0, ptr null)
@@ -22,5 +22,5 @@ fn main() {
   // CHECK-NEXT: store ptr null, ptr %tmp.root, align 8
   
   foo(*y);
-  // CHECK-NEXT: call void @_Y3fooGS5EmptyE()
+  // CHECK-NEXT: call void @_Y3fooGS5EmptyE(ptr null)
 }

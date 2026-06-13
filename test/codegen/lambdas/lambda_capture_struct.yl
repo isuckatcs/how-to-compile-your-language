@@ -28,6 +28,6 @@ fn main() {
 // CHECK-NEXT:   %4 = getelementptr inbounds nuw { double, double }, ptr %3, i32 0, i32 1
 // CHECK-NEXT:   %5 = load double, ptr %4, align 8
 // CHECK-NEXT:   %6 = fadd double %2, %5
-// CHECK-NEXT:   call void @println(double %6)
+// CHECK-NEXT:   call void @println(double %6, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

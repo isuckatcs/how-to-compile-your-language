@@ -12,7 +12,7 @@ fn foo(mut n: N): N {
   n.n = 456;
   return n;
 }
-// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %n) {
+// CHECK: define void @foo(ptr sret({ double }) %ret, ptr byval({ double }) %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %n, i32 0, i32 0
 // CHECK-NEXT:   store double 4.560000e+02, ptr %0, align 8
@@ -26,7 +26,7 @@ fn foo(mut n: N): N {
 fn bar(n: N): N {
   return n;
 }
-// CHECK: define void @bar(ptr sret({ double }) %ret, ptr byval({ double }) %n) {
+// CHECK: define void @bar(ptr sret({ double }) %ret, ptr byval({ double }) %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %n, i64 8, i1 false)
 // CHECK-NEXT:   br label %return
@@ -52,7 +52,7 @@ fn main() {
   // CHECK-NEXT: call void %11(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp, ptr %13)
   // CHECK-NEXT: %14 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
   // CHECK-NEXT: %15 = load double, ptr %14, align 8
-  // CHECK-NEXT: call void @println(double %15)
+  // CHECK-NEXT: call void @println(double %15, ptr null)
 
   println(f2.f(n).n);
   // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp3, ptr align 8 %n, i64 8, i1 false)
@@ -64,7 +64,7 @@ fn main() {
   // CHECK-NEXT: call void %18(ptr sret({ double }) %struct.ret.tmp2, ptr byval({ double }) %struct.arg.tmp3, ptr %20)
   // CHECK-NEXT: %21 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp2, i32 0, i32 0
   // CHECK-NEXT: %22 = load double, ptr %21, align 8
-  // CHECK-NEXT: call void @println(double %22)
+  // CHECK-NEXT: call void @println(double %22, ptr null)
 
   println(n.n);
 }

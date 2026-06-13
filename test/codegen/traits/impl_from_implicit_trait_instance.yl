@@ -16,8 +16,8 @@ fn main() {
   let s = S@<number>{};
   s.foo();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE()
+// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

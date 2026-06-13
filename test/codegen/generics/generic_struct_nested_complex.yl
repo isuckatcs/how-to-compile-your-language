@@ -24,5 +24,5 @@ fn main(): unit {
   // CHECK-NEXT: %8 = getelementptr inbounds nuw { ptr, ptr }, ptr %5, i32 0, i32 1
   // CHECK-NEXT: %9 = load ptr, ptr %8, align 8
   // CHECK-NEXT: %10 = call double %7(double 1.230000e+02, ptr %9)
-  // CHECK-NEXT: call void @println(double %10)
+  // CHECK-NEXT: call void @println(double %10, ptr null)
 }

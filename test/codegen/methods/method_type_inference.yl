@@ -13,20 +13,20 @@ struct S<T> {
 fn main() {
   S@<number>::foo@<unit>();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1SGnE3fooGuE()
+// CHECK-NEXT:   call void @_YS1SGnE3fooGuE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1SGnE3fooGuE() {
+// CHECK: define void @_YS1SGnE3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_Y3fooGnE()
+// CHECK-NEXT:   call void @_Y3fooGnE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3fooGnE() {
+// CHECK: define void @_Y3fooGnE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -9,21 +9,21 @@ fn foo(s: S): unit {
   println(s.x);
   println(s.y);
 }
-// CHECK: define void @foo(ptr byval({ double, double }) %s) {
+// CHECK: define void @foo(ptr byval({ double, double }) %s, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   call void @println(double %1, ptr null)
 // CHECK-NEXT:   %2 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 1
 // CHECK-NEXT:   %3 = load double, ptr %2, align 8
-// CHECK-NEXT:   call void @println(double %3)
+// CHECK-NEXT:   call void @println(double %3, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 fn bar(mut s: S): S {
   return s;
 }
-// CHECK: define void @bar(ptr sret({ double, double }) %ret, ptr byval({ double, double }) %s) {
+// CHECK: define void @bar(ptr sret({ double, double }) %ret, ptr byval({ double, double }) %s, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %s, i64 16, i1 false)
 // CHECK-NEXT:   br label %return
@@ -37,7 +37,7 @@ fn main(): unit {
   foo(s);
   s = bar(s);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %S.tmp = alloca { double, double }, align 8
 // CHECK-NEXT:   %s = alloca { double, double }, align 8
@@ -53,10 +53,10 @@ fn main(): unit {
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 16, i1 false)
 
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 16, i1 false)
-// CHECK-NEXT:   call void @foo(ptr byval({ double, double }) %struct.arg.tmp)
+// CHECK-NEXT:   call void @foo(ptr byval({ double, double }) %struct.arg.tmp, ptr null)
 
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %s, i64 16, i1 false)
-// CHECK-NEXT:   call void @bar(ptr sret({ double, double }) %struct.ret.tmp, ptr byval({ double, double }) %struct.arg.tmp1)
+// CHECK-NEXT:   call void @bar(ptr sret({ double, double }) %struct.ret.tmp, ptr byval({ double, double }) %struct.arg.tmp1, ptr null)
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %struct.ret.tmp, i64 16, i1 false)
 
 // CHECK-NEXT:   ret void

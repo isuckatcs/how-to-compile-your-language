@@ -3,7 +3,7 @@
 fn foo(mut x: unit) {
   x = x;
 }
-// CHECK: define void @foo() {
+// CHECK: define void @foo(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
@@ -11,8 +11,8 @@ fn foo(mut x: unit) {
 fn main() {
   foo(unit);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @foo()
+// CHECK-NEXT:   call void @foo(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

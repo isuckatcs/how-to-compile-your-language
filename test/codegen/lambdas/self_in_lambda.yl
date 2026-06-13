@@ -32,12 +32,12 @@ fn main() {
 }
 // CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1S3bar()
+// CHECK-NEXT:   call void @_YS1S3bar(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 // CHECK: define void @_YS8lambda_121__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3barGS1SE()
+// CHECK-NEXT:   call void @_YT1A3barGS1SE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -13,7 +13,7 @@ fn main() {
 
   foo(l);
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %l, i64 16, i1 false)
-  // CHECK-NEXT: call void @foo(ptr byval({ ptr, ptr }) %struct.arg.tmp)
+  // CHECK-NEXT: call void @foo(ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 }
 
 // CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {

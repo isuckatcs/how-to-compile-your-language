@@ -17,7 +17,7 @@ fn main() {
   swap(&s.x, &s.y);
   // CHECK: %2 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 0
   // CHECK-NEXT: %3 = getelementptr inbounds nuw { double, double }, ptr %s, i32 0, i32 1
-  // CHECK-NEXT: call void @_Y4swapGnE(ptr %2, ptr %3)
+  // CHECK-NEXT: call void @_Y4swapGnE(ptr %2, ptr %3, ptr null)
   
   println(s.x);
   println(s.y);

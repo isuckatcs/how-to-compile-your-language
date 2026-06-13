@@ -5,22 +5,22 @@ fn mutableParam(mut n: number): unit {
   n = 3;
   println(n);
 }
-// CHECK: define void @mutableParam(double %n) {
+// CHECK: define void @mutableParam(double %n, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %n1 = alloca double, align 8
 // CHECK-NEXT:   store double %n, ptr %n1, align 8
 // CHECK-NEXT:   store double 3.000000e+00, ptr %n1, align 8
 // CHECK-NEXT:   %0 = load double, ptr %n1, align 8
-// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   call void @println(double %0, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 fn immutableParam(n: number): unit {
   println(n);
 }
-// CHECK: define void @immutableParam(double %n) {
+// CHECK: define void @immutableParam(double %n, ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double %n)
+// CHECK-NEXT:   call void @println(double %n, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -35,22 +35,22 @@ fn main(): unit {
     
   println(n);
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %n = alloca double, align 8
 // CHECK-NEXT:   store double 2.000000e+00, ptr %n, align 8
 // CHECK-NEXT:   %0 = load double, ptr %n, align 8
-// CHECK-NEXT:   call void @mutableParam(double %0)
+// CHECK-NEXT:   call void @mutableParam(double %0, ptr null)
 
-// CHECK-NEXT:   call void @println(double 2.000000e+00)
+// CHECK-NEXT:   call void @println(double 2.000000e+00, ptr null)
 
 // CHECK-NEXT:   %1 = load double, ptr %n, align 8
 // CHECK-NEXT:   %2 = fsub double %1, 1.000000e+00
 // CHECK-NEXT:   store double %2, ptr %n, align 8
 // CHECK-NEXT:   %3 = load double, ptr %n, align 8
-// CHECK-NEXT:   call void @immutableParam(double %3)
+// CHECK-NEXT:   call void @immutableParam(double %3, ptr null)
 
 // CHECK-NEXT:   %4 = load double, ptr %n, align 8
-// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   call void @println(double %4, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

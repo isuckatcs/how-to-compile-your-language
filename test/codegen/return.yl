@@ -5,7 +5,7 @@ fn main(): unit {}
 fn noInsertPoint(): unit {
     return;
 }
-// CHECK: define void @noInsertPoint() {
+// CHECK: define void @noInsertPoint(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
@@ -18,7 +18,7 @@ fn insertPointEmptyBlock(): unit {
         return;
     }
 }
-// CHECK: define void @insertPointEmptyBlock() {
+// CHECK: define void @insertPointEmptyBlock(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
@@ -37,7 +37,7 @@ fn insertPointEmptyBlock2(): unit {
         return;
     }
 }
-// CHECK: define void @insertPointEmptyBlock2() {
+// CHECK: define void @insertPointEmptyBlock2(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 
@@ -61,7 +61,7 @@ fn insertPointNonEmptyBlock(): unit {
 
     let x: number = 1.0;
 }
-// CHECK: define void @insertPointNonEmptyBlock() {
+// CHECK: define void @insertPointNonEmptyBlock(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br i1 true, label %if.true, label %if.exit
 // CHECK-NEXT: 
@@ -82,7 +82,7 @@ fn insertPointNonEmptyBlock2(): unit {
 
     let x: number = 1.0;
 }
-// CHECK: define void @insertPointNonEmptyBlock2() {
+// CHECK: define void @insertPointNonEmptyBlock2(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %while.cond
 // CHECK-NEXT: 

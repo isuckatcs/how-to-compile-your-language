@@ -6,7 +6,7 @@ fn swap<T>(x: &T, y: &T) {
   y = tmp;
 }
 
-// CHECK: define void @foo(double %x, double %y) {
+// CHECK: define void @foo(double %x, double %y, ptr %closure) {
 fn foo(mut x: number, mut y: number) {
   // CHECK: %x1 = alloca double, align 8
   // CHECK-NEXT: %y2 = alloca double, align 8
@@ -17,7 +17,7 @@ fn foo(mut x: number, mut y: number) {
   println(y);
 
   swap(&x, &y);
-  // CHECK: call void @_Y4swapGnE(ptr %x1, ptr %y2)
+  // CHECK: call void @_Y4swapGnE(ptr %x1, ptr %y2, ptr null)
 
   println(x);
   println(y);

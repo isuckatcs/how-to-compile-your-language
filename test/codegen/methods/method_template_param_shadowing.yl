@@ -12,11 +12,11 @@ fn main() {
   mut s = S{ x: 1 };
 
   println(s.foo(2));
-  // CHECK: %1 = call double @_YS1SGnE3foo(ptr %s, double 2.000000e+00)
-  // CHECK-NEXT: call void @println(double %1)
+  // CHECK: %1 = call double @_YS1SGnE3foo(ptr %s, double 2.000000e+00, ptr null)
+  // CHECK-NEXT: call void @println(double %1, ptr null)
 }
 
-// CHECK: define double @_YS1SGnE3foo(ptr %self, double %x) {
+// CHECK: define double @_YS1SGnE3foo(ptr %self, double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0

@@ -11,10 +11,10 @@ struct S {
     println(0);
     return Self{ x : 1 };
   }
-  // CHECK: define void @_YS1S6create(ptr sret({ double }) %ret) {
+  // CHECK: define void @_YS1S6create(ptr sret({ double }) %ret, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
-  // CHECK-NEXT:   call void @println(double 0.000000e+00)
+  // CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
   // CHECK-NEXT:   store double 1.000000e+00, ptr %0, align 8
   // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %S.tmp, i64 8, i1 false)
@@ -28,13 +28,13 @@ struct S {
     foo@<Self>(self);
     Self::create();
   }
-  // CHECK: define void @_YS1S3foo(ptr byval({ double }) %self) {
+  // CHECK: define void @_YS1S3foo(ptr byval({ double }) %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
   // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
   // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %self, i64 8, i1 false)
-  // CHECK-NEXT:   call void @_Y3fooGS1SE(ptr byval({ double }) %struct.arg.tmp)
-  // CHECK-NEXT:   call void @_YS1S6create(ptr sret({ double }) %struct.ret.tmp)
+  // CHECK-NEXT:   call void @_Y3fooGS1SE(ptr byval({ double }) %struct.arg.tmp, ptr null)
+  // CHECK-NEXT:   call void @_YS1S6create(ptr sret({ double }) %struct.ret.tmp, ptr null)
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 }
@@ -42,12 +42,12 @@ struct S {
 fn main() {
   S::create().foo();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
-// CHECK-NEXT:   call void @_YS1S6create(ptr sret({ double }) %struct.ret.tmp)
+// CHECK-NEXT:   call void @_YS1S6create(ptr sret({ double }) %struct.ret.tmp, ptr null)
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
-// CHECK-NEXT:   call void @_YS1S3foo(ptr byval({ double }) %struct.arg.tmp)
+// CHECK-NEXT:   call void @_YS1S3foo(ptr byval({ double }) %struct.arg.tmp, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

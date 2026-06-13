@@ -4,7 +4,7 @@
 // CHECK: @function.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] [i32 8] }
 
 fn main() {
-// CHECK: define void @__builtin_main() gc "shadow-stack" {
+// CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
   let x = 2;
 
   let l = ->() {
@@ -47,6 +47,6 @@ fn main() {
 // CHECK-NEXT:   %2 = getelementptr inbounds nuw { double }, ptr %closure, i32 0, i32 0
 // CHECK-NEXT:   %3 = load double, ptr %2, align 8
 // CHECK-NEXT:   %4 = fmul double 1.230000e+02, %3
-// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   call void @println(double %4, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

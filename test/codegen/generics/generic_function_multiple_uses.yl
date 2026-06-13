@@ -9,18 +9,18 @@ fn main(): unit {
   println(wrapper@<number>(2));
   println(wrapper(3));
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = call double @_Y7wrapperGnE(double 1.000000e+00)
-// CHECK-NEXT:   call void @println(double %0)
-// CHECK-NEXT:   %1 = call double @_Y7wrapperGnE(double 2.000000e+00)
-// CHECK-NEXT:   call void @println(double %1)
-// CHECK-NEXT:   %2 = call double @_Y7wrapperGnE(double 3.000000e+00)
-// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   %0 = call double @_Y7wrapperGnE(double 1.000000e+00, ptr null)
+// CHECK-NEXT:   call void @println(double %0, ptr null)
+// CHECK-NEXT:   %1 = call double @_Y7wrapperGnE(double 2.000000e+00, ptr null)
+// CHECK-NEXT:   call void @println(double %1, ptr null)
+// CHECK-NEXT:   %2 = call double @_Y7wrapperGnE(double 3.000000e+00, ptr null)
+// CHECK-NEXT:   call void @println(double %2, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define double @_Y7wrapperGnE(double %x) {
+// CHECK: define double @_Y7wrapperGnE(double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   store double %x, ptr %retval, align 8

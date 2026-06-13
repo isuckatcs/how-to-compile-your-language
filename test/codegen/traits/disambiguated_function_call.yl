@@ -25,26 +25,26 @@ fn main() {
 
   @<S impl A<unit>>::foo(s, unit);
   // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp)
+  // CHECK-NEXT: call void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp, ptr null)
 
   @<S impl A<number>>::foo(s, 2);
   // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %s, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp1, double 2.000000e+00)
+  // CHECK-NEXT: call void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %struct.arg.tmp1, double 2.000000e+00, ptr null)
 }
 
-// CHECK: define void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %self) {
+// CHECK: define void @_YT1AGuE3fooGS1SE(ptr byval({ double }) %self, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   call void @println(double %1)
+// CHECK-NEXT:   call void @println(double %1, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x) {
+// CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
 // CHECK-NEXT:   %2 = fmul double %1, %x
-// CHECK-NEXT:   call void @println(double %2)
+// CHECK-NEXT:   call void @println(double %2, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

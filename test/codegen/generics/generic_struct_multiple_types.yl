@@ -18,18 +18,18 @@ fn main(): unit {
   // CHECK-NEXT: %15 = getelementptr inbounds nuw { ptr, ptr }, ptr %12, i32 0, i32 1
   // CHECK-NEXT: %16 = load ptr, ptr %15, align 8
   // CHECK-NEXT: %17 = call double %14(ptr %16)
-  // CHECK-NEXT: call void @println(double %17)
+  // CHECK-NEXT: call void @println(double %17, ptr null)
 
   println(S{x: 2}.x);
   println(S{x: 2}.x);
   // CHECK: %22 = getelementptr inbounds nuw { double }, ptr %S.tmp3, i32 0, i32 0
   // CHECK-NEXT: %23 = load double, ptr %22, align 8
-  // CHECK-NEXT: call void @println(double %23)
+  // CHECK-NEXT: call void @println(double %23, ptr null)
 
   println(S{x: S{x: 3}}.x.x);
   println(S{x: S{x: 3}}.x.x);
   // CHECK: %31 = getelementptr inbounds nuw { { double } }, ptr %S.tmp7, i32 0, i32 0
   // CHECK-NEXT: %32 = getelementptr inbounds nuw { double }, ptr %31, i32 0, i32 0
   // CHECK-NEXT: %33 = load double, ptr %32, align 8
-  // CHECK-NEXT: call void @println(double %33)
+  // CHECK-NEXT: call void @println(double %33, ptr null)
 }

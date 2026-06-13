@@ -18,7 +18,7 @@ fn main() {
   let u = unit;
 
   let s = S { x: unit, y: unit, z: println(123) };
-  // CHECK-NEXT: call void @println(double 1.230000e+02)
+  // CHECK-NEXT: call void @println(double 1.230000e+02, ptr null)
 
   let l = ->() {
     let capture1 = u;

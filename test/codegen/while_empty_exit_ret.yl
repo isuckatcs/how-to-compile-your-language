@@ -12,7 +12,7 @@ fn foo(mut x: number): unit {
 fn main(): unit {
     foo(2.0);
 }
-// CHECK: define void @foo(double %x) {
+// CHECK: define void @foo(double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x1 = alloca double, align 8
 // CHECK-NEXT:   %i = alloca double, align 8
@@ -28,7 +28,7 @@ fn main(): unit {
 // CHECK-NEXT: 
 // CHECK-NEXT: while.body:                                       ; preds = %while.cond
 // CHECK-NEXT:   %3 = load double, ptr %i, align 8
-// CHECK-NEXT:   call void @println(double %3)
+// CHECK-NEXT:   call void @println(double %3, ptr null)
 // CHECK-NEXT:   %4 = load double, ptr %i, align 8
 // CHECK-NEXT:   %5 = fsub double %4, 1.000000e+00
 // CHECK-NEXT:   store double %5, ptr %i, align 8

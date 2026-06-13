@@ -7,7 +7,7 @@ struct S {
 }
 
 fn main() {
-// CHECK: define void @__builtin_main() gc "shadow-stack" {
+// CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %l = alloca { ptr, ptr }, align 8
 
@@ -19,7 +19,7 @@ fn main() {
   let u = unit;
 
   let s = S { x: unit, y: unit, z: println(123) };
-  // CHECK-NEXT: call void @println(double 1.230000e+02)
+  // CHECK-NEXT: call void @println(double 1.230000e+02, ptr null)
 
   let l = ->() {
     let capture1 = u;
@@ -43,6 +43,6 @@ fn main() {
 
 // CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 4.560000e+02)
+// CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

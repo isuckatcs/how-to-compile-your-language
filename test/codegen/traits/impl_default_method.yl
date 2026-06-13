@@ -30,45 +30,45 @@ fn main() {
   traitFnDispatch@<S>();
   traitFnDispatch@<S2>();
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_Y15traitFnDispatchGS1SE()
-// CHECK-NEXT:   call void @_Y15traitFnDispatchGS2S2E()
+// CHECK-NEXT:   call void @_Y15traitFnDispatchGS1SE(ptr null)
+// CHECK-NEXT:   call void @_Y15traitFnDispatchGS2S2E(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y15traitFnDispatchGS1SE() {
+// CHECK: define void @_Y15traitFnDispatchGS1SE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3barGS1SE()
+// CHECK-NEXT:   call void @_YT1A3barGS1SE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y15traitFnDispatchGS2S2E() {
+// CHECK: define void @_Y15traitFnDispatchGS2S2E(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3barGS2S2E()
+// CHECK-NEXT:   call void @_YT1A3barGS2S2E(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3barGS1SE() {
+// CHECK: define void @_YT1A3barGS1SE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3fooGS1SE()
+// CHECK-NEXT:   call void @_YT1A3fooGS1SE(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3barGS2S2E() {
+// CHECK: define void @_YT1A3barGS2S2E(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3fooGS2S2E()
+// CHECK-NEXT:   call void @_YT1A3fooGS2S2E(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3fooGS1SE() {
+// CHECK: define void @_YT1A3fooGS1SE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3fooGS2S2E() {
+// CHECK: define void @_YT1A3fooGS2S2E(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 4.560000e+02)
+// CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

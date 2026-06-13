@@ -10,14 +10,14 @@ fn main() {
   let s = S@<S<number>>{};
   s.foo(S{}, S{});
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YS1SGS1SGnEE3foo()
+// CHECK-NEXT:   call void @_YS1SGS1SGnEE3foo(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YS1SGS1SGnEE3foo() {
+// CHECK: define void @_YS1SGS1SGnEE3foo(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02)
+// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

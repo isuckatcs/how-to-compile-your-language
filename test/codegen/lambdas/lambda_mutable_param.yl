@@ -12,6 +12,6 @@ fn main() {
 // CHECK-NEXT:   store double %x, ptr %x1, align 8
 // CHECK-NEXT:   store double 1.230000e+02, ptr %x1, align 8
 // CHECK-NEXT:   %0 = load double, ptr %x1, align 8
-// CHECK-NEXT:   call void @println(double %0)
+// CHECK-NEXT:   call void @println(double %0, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -4,12 +4,12 @@ struct S {
   fn classMethod() {
     println(1);
   }
-  // CHECK: define void @_YS1S11classMethod() {
+  // CHECK: define void @_YS1S11classMethod(ptr %closure) {
 
   fn instanceMethod(self: Self, x: number) {
     println(x);
   }
-  // CHECK: define void @_YS1S14instanceMethod(double %x) {
+  // CHECK: define void @_YS1S14instanceMethod(double %x, ptr %closure) {
 }
 
 fn main() {

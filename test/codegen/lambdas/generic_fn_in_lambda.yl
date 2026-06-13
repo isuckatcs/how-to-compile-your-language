@@ -16,7 +16,7 @@ fn main() {
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %closure, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   %2 = call double @_Y3fooGnE(double %1)
+// CHECK-NEXT:   %2 = call double @_Y3fooGnE(double %1, ptr null)
 // CHECK-NEXT:   store double %2, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
