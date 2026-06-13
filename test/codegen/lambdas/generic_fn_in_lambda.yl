@@ -11,7 +11,7 @@ fn main() {
     return foo(x); 
   }());
 }
-// CHECK: define double @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %self) {
+// CHECK: define double @_YS8lambda_021__builtin_lambda_call(ptr %self) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0

@@ -106,9 +106,10 @@ class Codegen {
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
   llvm::Value *generateImplicitCoerceExpr(const res::ImplicitCoerceExpr &ice);
 
-  llvm::Value *generateTmpStruct(
-      const res::StructType *structTy,
-      std::map<const res::FieldDecl *, llvm::Value *> &fieldInits);
+  llvm::Value *
+  constructStruct(llvm::Value *storage,
+                  const res::StructType *structTy,
+                  std::map<const res::FieldDecl *, llvm::Value *> &fieldInits);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
   bool isImplOf(const res::ImplBlock *impl, const res::TraitType *trait);
@@ -125,6 +126,7 @@ class Codegen {
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
                                           llvm::Type *type);
+  llvm::Value *allocateHeapVariable(const res::Type *type);
   llvm::AttributeList constructAttrList(const res::FunctionType *ty);
 
   void generateBlock(const res::Block &block);

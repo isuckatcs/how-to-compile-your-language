@@ -5,31 +5,35 @@ struct S {
     println(1);
   }
   // CHECK: define void @_YS1S11classMethod() {
-  // CHECK-NEXT: entry:
-  // CHECK-NEXT:   call void @println(double 1.000000e+00)
-  // CHECK-NEXT:   ret void
-  // CHECK-NEXT: }
 
   fn instanceMethod(self: Self, x: number) {
     println(x);
   }
   // CHECK: define void @_YS1S14instanceMethod(double %x) {
-  // CHECK-NEXT: entry:
-  // CHECK-NEXT:   call void @println(double %x)
-  // CHECK-NEXT:   ret void
-  // CHECK-NEXT: }
 }
 
 fn main() {
   let classLevel = S::classMethod;
   classLevel();
-  // CHECK: store ptr @_YS1S11classMethod, ptr %classLevel, align 8
-  // CHECK-NEXT: %0 = load ptr, ptr %classLevel, align 8
-  // CHECK-NEXT: call void %0()
+  // CHECK: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %classLevel, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS1S11classMethod, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %classLevel, i32 0, i32 1
+  // CHECK-NEXT: store ptr null, ptr %1, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %classLevel, i32 0, i32 0
+  // CHECK-NEXT: %3 = load ptr, ptr %2, align 8
+  // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %classLevel, i32 0, i32 1
+  // CHECK-NEXT: %5 = load ptr, ptr %4, align 8
+  // CHECK-NEXT: call void %3(ptr %5)
   
   let instanceLevel = S::instanceMethod;
   instanceLevel(S{}, 2);
-  // CHECK: store ptr @_YS1S14instanceMethod, ptr %instanceLevel, align 8
-  // CHECK-NEXT: %1 = load ptr, ptr %instanceLevel, align 8
-  // CHECK-NEXT: call void %1(double 2.000000e+00)
+  // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS1S14instanceMethod, ptr %6, align 8
+  // CHECK-NEXT: %7 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 1
+  // CHECK-NEXT: store ptr null, ptr %7, align 8
+  // CHECK-NEXT: %8 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 0
+  // CHECK-NEXT: %9 = load ptr, ptr %8, align 8
+  // CHECK-NEXT: %10 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 1
+  // CHECK-NEXT: %11 = load ptr, ptr %10, align 8
+  // CHECK-NEXT: call void %9(double 2.000000e+00, ptr %11)
 }

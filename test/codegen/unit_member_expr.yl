@@ -36,24 +36,35 @@ fn main() {
   let z = s.y(4, 5).y;
   let w = s.z;
 }
-// CHECK: define void @__builtin_main() {
+// CHECK: define void @__builtin_main() gc "shadow-stack" {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %S.tmp = alloca { ptr }, align 8
-// CHECK-NEXT:   %s = alloca { ptr }, align 8
+// CHECK-NEXT:   %S.tmp = alloca { { ptr, ptr } }, align 8
+// CHECK-NEXT:   %s = alloca { { ptr, ptr } }, align 8
+// CHECK-NEXT:   store { { ptr, ptr } } zeroinitializer, ptr %s, align 8
+// CHECK-NEXT:   call void @llvm.gcroot(ptr %s, ptr @S1S.offsets)
 
 // CHECK-NEXT:   call void @println(double 0.000000e+00)
 // CHECK-NEXT:   call void @println(double 1.000000e+00)
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw { ptr }, ptr %S.tmp, i32 0, i32 0
-// CHECK-NEXT:   store ptr @foo, ptr %0, align 8
-// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %0, i32 0, i32 0
+// CHECK-NEXT:   store ptr @foo, ptr %1, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %0, i32 0, i32 1
+// CHECK-NEXT:   store ptr null, ptr %2, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 16, i1 false)
 
-// CHECK-NEXT:   %1 = getelementptr inbounds nuw { ptr }, ptr %s, i32 0, i32 0
-// CHECK-NEXT:   %2 = load ptr, ptr %1, align 8
-// CHECK-NEXT:   call void %2(double 2.000000e+00, double 3.000000e+00)
+// CHECK-NEXT:   %3 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %3, i32 0, i32 0
+// CHECK-NEXT:   %5 = load ptr, ptr %4, align 8
+// CHECK-NEXT:   %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %3, i32 0, i32 1
+// CHECK-NEXT:   %7 = load ptr, ptr %6, align 8
+// CHECK-NEXT:   call void %5(double 2.000000e+00, double 3.000000e+00, ptr %7)
 
-// CHECK-NEXT:   %3 = getelementptr inbounds nuw { ptr }, ptr %s, i32 0, i32 0
-// CHECK-NEXT:   %4 = load ptr, ptr %3, align 8
-// CHECK-NEXT:   call void %4(double 4.000000e+00, double 5.000000e+00)
+// CHECK-NEXT:   %8 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %s, i32 0, i32 0
+// CHECK-NEXT:   %9 = getelementptr inbounds nuw { ptr, ptr }, ptr %8, i32 0, i32 0
+// CHECK-NEXT:   %10 = load ptr, ptr %9, align 8
+// CHECK-NEXT:   %11 = getelementptr inbounds nuw { ptr, ptr }, ptr %8, i32 0, i32 1
+// CHECK-NEXT:   %12 = load ptr, ptr %11, align 8
+// CHECK-NEXT:   call void %10(double 4.000000e+00, double 5.000000e+00, ptr %12)
 
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

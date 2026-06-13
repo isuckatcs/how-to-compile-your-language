@@ -9,10 +9,17 @@ fn main() {
   let s = S{ x: 2, y: 3 };
 
   ->(){ println(s.x + s.y); }();
-  // CHECK: %2 = getelementptr inbounds nuw { { double, double } }, ptr %closure.tmp, i32 0, i32 0
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 %s, i64 16, i1 false)
+  // CHECK: %2 = call ptr @gcAlloc(i32 16, ptr null)
+
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %3, align 8
+  // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 1
+  // CHECK-NEXT: store ptr %2, ptr %4, align 8
+
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { { double, double } }, ptr %2, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %5, ptr align 8 %s, i64 16, i1 false)
 }
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr byval({ { double, double } }) %self) {
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %self) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { { double, double } }, ptr %self, i32 0, i32 0
 // CHECK-NEXT:   %1 = getelementptr inbounds nuw { double, double }, ptr %0, i32 0, i32 0

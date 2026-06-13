@@ -5,7 +5,7 @@ fn main() {
   mut f = ->(){ println(x); };
 
   f = f;
-  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f, ptr align 8 %f, i64 8, i1 false)
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f, ptr align 8 %f, i64 16, i1 false)
 
   f();
 }

@@ -8,9 +8,17 @@ fn main() {
   let n = 123;
 
   let s = S { l: ->(){ return n; } };
+  // CHECK: %4 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %S.tmp, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %lambda.tmp, i64 16, i1 false)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 16, i1 false)
 
   println(s.l());
-  // CHECK: %2 = getelementptr inbounds nuw { { double } }, ptr %s, i32 0, i32 0
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %2, i64 8, i1 false)
-  // CHECK-NEXT: %3 = call double @_YS8lambda_021__builtin_lambda_call(ptr byval({ double }) %struct.arg.tmp)
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %s, i32 0, i32 0
+  // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %5, i32 0, i32 0
+  // CHECK-NEXT: %7 = load ptr, ptr %6, align 8
+  // CHECK-NEXT: %8 = getelementptr inbounds nuw { ptr, ptr }, ptr %5, i32 0, i32 1
+  // CHECK-NEXT: %9 = load ptr, ptr %8, align 8
+  // CHECK-NEXT: %10 = call double %7(ptr %9)
 }
+
+// CHECK: define double @_YS8lambda_021__builtin_lambda_call(ptr %self) {

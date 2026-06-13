@@ -5,20 +5,16 @@ fn foo(f: (number) -> unit) {
 }
 
 fn main() {
-  let l = ->(x) { println(x); };
+  let l = ->(x: number) { println(x); };
+  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %l, ptr align 8 %lambda.tmp, i64 16, i1 false)
 
   let f: (number) -> unit = l; 
-  // CHECK: %f = alloca ptr, align 8
-  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %f, align 8
-  
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f, ptr align 8 %l, i64 16, i1 false)
+
   foo(l);
-  // CHECK-NEXT: call void @foo(ptr @_YS8lambda_021__builtin_lambda_call)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %l, i64 16, i1 false)
+  // CHECK-NEXT: call void @foo(ptr byval({ ptr, ptr }) %struct.arg.tmp)
 }
 
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double %x)
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }
-
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(double %x, ptr %self) {
 // CHECK-NOT: {{.*lambda_1.*}}

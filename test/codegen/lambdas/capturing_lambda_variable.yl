@@ -1,0 +1,52 @@
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '246\n'
+
+// CHECK: @function.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] [i32 8] }
+
+fn main() {
+// CHECK: define void @__builtin_main() gc "shadow-stack" {
+  let x = 2;
+
+  let l = ->() {
+    let capture = x;
+
+    println(123 * x);
+  };
+  // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %l = alloca { ptr, ptr }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %l, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %l, ptr @function.offsets)
+
+  // CHECK-NEXT: %0 = call ptr @gcAlloc(i32 8, ptr null)
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %1, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 1
+  // CHECK-NEXT: store ptr %0, ptr %2, align 8
+
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { double }, ptr %0, i32 0, i32 0
+  // CHECK-NEXT: store double 2.000000e+00, ptr %3, align 8
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %l, ptr align 8 %lambda.tmp, i64 16, i1 false)
+
+  l();
+  // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %l, i32 0, i32 0
+  // CHECK-NEXT: %5 = load ptr, ptr %4, align 8
+  // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %l, i32 0, i32 1
+  // CHECK-NEXT: %7 = load ptr, ptr %6, align 8
+  // CHECK-NEXT: call void %5(ptr %7)
+}
+
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %self) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %capture = alloca double, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %1 = load double, ptr %0, align 8
+// CHECK-NEXT:   store double %1, ptr %capture, align 8
+// CHECK-NEXT:   %2 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+// CHECK-NEXT:   %3 = load double, ptr %2, align 8
+// CHECK-NEXT:   %4 = fmul double 1.230000e+02, %3
+// CHECK-NEXT:   call void @println(double %4)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

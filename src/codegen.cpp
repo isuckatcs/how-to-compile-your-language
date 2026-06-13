@@ -132,7 +132,8 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return llvm::PointerType::get(context, 0);
 
   if (type->getAs<res::FunctionType>())
-    return llvm::PointerType::get(context, 0);
+    return llvm::StructType::get(context,
+                                 {builder.getPtrTy(), builder.getPtrTy()});
 
   if (const auto *o = type->getAs<res::OutParamType>()) {
     llvm::Type *t = generateType(o->getParamType());
@@ -309,53 +310,73 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
 llvm::Value *
 Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
-  auto *structTy = sie.getType()->getAs<res::StructType>();
-  std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
-
+  std::map<const res::FieldDecl *, llvm::Value *> inits;
   for (auto &&initStmt : sie.fieldInitializers)
-    fieldInits[initStmt->field] =
-        generateExprAndLoadValue(*initStmt->initializer);
+    inits[initStmt->field] = generateExprAndLoadValue(*initStmt->initializer);
 
-  return generateTmpStruct(structTy, fieldInits);
+  const auto *type = sie.getType()->getAs<res::StructType>();
+  llvm::Type *ty = generateType(type);
+  if (!ty->isSized())
+    return nullptr;
+
+  std::string id = sie.structPath->decl->identifier + ".tmp";
+  llvm::Value *storage = allocateStackVariable(id, ty);
+
+  return constructStruct(storage, type, inits);
 }
 
 llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
-  const auto *structTy = lambdaExpr.getType()->getAs<res::StructType>();
-  const auto &fieldDecls = structTy->getDecl()->getAll<res::FieldDecl>();
+  llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
+  auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
 
-  std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
-  for (int i = 0; i < fieldDecls.size(); ++i)
-    fieldInits[fieldDecls[i]] =
-        generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
+  llvm::AllocaInst *lambda = allocateStackVariable("lambda.tmp", lambdaTy);
+  markIfGCRoot(lambda, lambdaExpr.getType());
 
-  return generateTmpStruct(structTy, fieldInits);
+  llvm::Value *function = generateFunctionDecl(
+      *lambdaExpr.method,
+      lambdaExpr.method->getType()->getAs<res::FunctionType>(), closureType,
+      {});
+
+  bool needsClosure = generateType(closureType)->isSized();
+  llvm::Value *closure = needsClosure
+                             ? allocateHeapVariable(closureType)
+                             : llvm::Constant::getNullValue(builder.getPtrTy());
+
+  builder.CreateStore(function, builder.CreateStructGEP(lambdaTy, lambda, 0));
+  builder.CreateStore(closure, builder.CreateStructGEP(lambdaTy, lambda, 1));
+
+  if (needsClosure) {
+    const auto &fieldDecls = closureType->getDecl()->getAll<res::FieldDecl>();
+
+    std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
+    for (int i = 0; i < fieldDecls.size(); ++i)
+      fieldInits[fieldDecls[i]] =
+          generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
+
+    constructStruct(closure, closureType, fieldInits);
+  }
+
+  return lambda;
 }
 
-llvm::Value *Codegen::generateTmpStruct(
+llvm::Value *Codegen::constructStruct(
+    llvm::Value *storage,
     const res::StructType *structType,
     std::map<const res::FieldDecl *, llvm::Value *> &fieldInits) {
-  EnterInstantiationRAII structInstantiation(this, structType);
-
   llvm::Type *structTy = generateType(structType);
-  if (structTy->isVoidTy())
-    return nullptr;
+  unsigned gepIdx = 0;
 
-  const res::StructDecl *structDecl = structType->getDecl();
-  llvm::Value *tmp = allocateStackVariable(
-      (structDecl->isLambda ? "closure" : structDecl->identifier) + ".tmp",
-      structTy);
-
-  unsigned idx = 0;
-  for (auto &&fieldDecl : structDecl->getAll<res::FieldDecl>()) {
+  EnterInstantiationRAII structInstantiation(this, structType);
+  for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(fieldDecl->getType());
-    if (fieldTy->isVoidTy())
+    if (!fieldTy->isSized())
       continue;
 
-    llvm::Value *field = builder.CreateStructGEP(structTy, tmp, idx++);
+    llvm::Value *field = builder.CreateStructGEP(structTy, storage, gepIdx++);
     storeValue(fieldInits[fieldDecl], field, fieldTy);
   }
 
-  return tmp;
+  return storage;
 }
 
 llvm::Value *
@@ -504,20 +525,11 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   if (calleeFnDecl) {
     if (calleeFnDecl->identifier == "gc" ||
         calleeFnDecl->identifier == "gcMut") {
-      const res::Type *argType =
-          instCtx.getInstantiatedType(call.arguments[0]->getType());
-      llvm::Type *argTy = generateType(argType);
+      auto *argType = instCtx.getInstantiatedType(call.arguments[0]->getType());
+      auto *ptr = allocateHeapVariable(argType);
 
-      auto *allocSize = builder.getInt32(0);
-      if (!argTy->isVoidTy())
-        allocSize =
-            builder.getInt32(module.getDataLayout().getTypeAllocSize(argTy));
-
-      llvm::Value *metadata = getTypeMetadata(argType);
-      llvm::Value *ptr =
-          builder.CreateCall(getOrInsertGCAlloc(), {allocSize, metadata});
-
-      if (!argTy->isVoidTy())
+      auto *argTy = generateType(argType);
+      if (argTy->isSized())
         storeValue(args[0], ptr, argTy);
       return ptr;
     }
@@ -530,6 +542,15 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   }
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);
+  if (!llvm::isa<llvm::Function>(callee)) {
+    llvm::Type *fnVarTy = generateType(fnTy);
+    llvm::Value *fn = builder.CreateLoad(
+        builder.getPtrTy(), builder.CreateStructGEP(fnVarTy, callee, 0));
+    args.emplace_back(builder.CreateLoad(
+        builder.getPtrTy(), builder.CreateStructGEP(fnVarTy, callee, 1)));
+    callee = fn;
+  }
+
   llvm::CallInst *callInst =
       builder.CreateCall(generateFunctionType(fnTy), callee, args);
   callInst->setAttributes(constructAttrList(fnTy));
@@ -700,6 +721,13 @@ Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
   if (type->isVoidTy())
     return nullptr;
 
+  if (llvm::isa<llvm::Function>(val)) {
+    builder.CreateStore(val, builder.CreateStructGEP(type, ptr, 0));
+    builder.CreateStore(llvm::Constant::getNullValue(builder.getPtrTy()),
+                        builder.CreateStructGEP(type, ptr, 1));
+    return ptr;
+  }
+
   if (type->isIntegerTy(1))
     val = builder.CreateZExt(val, builder.getInt8Ty());
 
@@ -739,9 +767,30 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
+llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
+  llvm::Type *ty = generateType(type);
+
+  if (ty->isIntegerTy(1))
+    ty = builder.getInt8Ty();
+
+  auto size = ty->isSized() ? module.getDataLayout().getTypeAllocSize(ty)
+                            : llvm::TypeSize::getZero();
+
+  return builder.CreateCall(getOrInsertGCAlloc(),
+                            {builder.getInt32(size), getTypeMetadata(type)});
+}
+
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (const auto *p = type->getAs<res::PointerType>())
     return {0};
+
+  if (const auto *fn = type->getAs<res::FunctionType>()) {
+    llvm::Type *fnTy = generateType(fn);
+    auto offset = module.getDataLayout()
+                      .getStructLayout(llvm::cast<llvm::StructType>(fnTy))
+                      ->getElementOffset(1);
+    return {offset};
+  }
 
   const auto *structType = type->getAs<res::StructType>();
   if (!structType)
@@ -768,7 +817,8 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
     if (fieldType->getAs<res::PointerType>())
       offsets.push_back(fieldOffset);
-    else if (fieldType->getAs<res::StructType>())
+    else if (fieldType->getAs<res::StructType>() ||
+             fieldType->getAs<res::FunctionType>())
       for (auto &&nestedOffset : getHeapPtrOffsets(fieldType))
         offsets.push_back(fieldOffset + nestedOffset);
 
@@ -780,7 +830,11 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
 llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   EnterInstantiationRAII inst(this, type->getAs<res::StructType>());
-  std::string globalId = Mangling::mangleType(type, instCtx) + ".offsets";
+
+  std::string globalPrefix = type->getAs<res::FunctionType>()
+                                 ? "function"
+                                 : Mangling::mangleType(type, instCtx);
+  std::string globalId = globalPrefix + ".offsets";
 
   if (auto *global = module.getGlobalVariable(globalId, true))
     return global;
@@ -912,7 +966,7 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
       continue;
 
     llvm::AttrBuilder paramAttrs(context);
-    if (argTy->getAs<res::StructType>())
+    if (argTy->getAs<res::StructType>() || argTy->getAs<res::FunctionType>())
       paramAttrs.addByValAttr(llvmTy);
     else if (argTy->getAs<res::BuiltinBoolType>())
       paramAttrs.addAttribute(llvm::Attribute::ZExt);

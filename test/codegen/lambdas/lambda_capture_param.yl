@@ -2,11 +2,17 @@
 // RUN: compiler %s -o lambda_capture_param && ./lambda_capture_param | grep -Plzx '5\n'
 fn foo(x: number, mut y: number) {
   ->(){ println(x + y); }();
-  // CHECK: %0 = load double, ptr %y1, align 8
-  // CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double }, ptr %closure.tmp, i32 0, i32 0
-  // CHECK-NEXT: store double %x, ptr %1, align 8
-  // CHECK-NEXT: %2 = getelementptr inbounds nuw { double, double }, ptr %closure.tmp, i32 0, i32 1
-  // CHECK-NEXT: store double %0, ptr %2, align 8
+  // CHECK: %0 = call ptr @gcAlloc(i32 16, ptr null)
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %1, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 1
+  // CHECK-NEXT: store ptr %0, ptr %2, align 8
+
+  // CHECK-NEXT: %3 = load double, ptr %y1, align 8
+  // CHECK-NEXT: %4 = getelementptr inbounds nuw { double, double }, ptr %0, i32 0, i32 0
+  // CHECK-NEXT: store double %x, ptr %4, align 8
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { double, double }, ptr %0, i32 0, i32 1
+  // CHECK-NEXT: store double %3, ptr %5, align 8
 }
 
 fn main() {
