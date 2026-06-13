@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '0\n1\n1.2345\n1.0002345\n12345.6789\n'
 fn main(): unit {
     println(0.0);

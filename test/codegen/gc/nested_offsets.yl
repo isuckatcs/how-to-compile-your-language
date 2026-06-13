@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %valgrind %t
 
 // CHECK: @pn.offsets = internal constant { i32, i32, [1 x i32] } { i32 8, i32 1, [1 x i32] zeroinitializer }

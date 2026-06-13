@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 fn foo(mut x: number): unit {
     if x == 1 || x == 2 && x > 3 {
 

@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | ( ! grep ^ )
 fn foo(mut x: unit) {
   x = x;

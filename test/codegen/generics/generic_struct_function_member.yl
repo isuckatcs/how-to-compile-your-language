@@ -1,4 +1,4 @@
-// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '10\n'
 
 // CHECK: @S1SGnE.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] [i32 8] }
