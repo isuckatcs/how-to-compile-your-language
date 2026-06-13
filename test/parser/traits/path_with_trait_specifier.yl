@@ -1,0 +1,30 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  @<number impl Foo>::x;
+  // CHECK: PathExpr:
+  // CHECK-NEXT:   TraitSpecifier:
+  // CHECK-NEXT:     BuiltinType: number
+  // CHECK-NEXT:     ImplSpecifier
+  // CHECK-NEXT:       TraitInstance: Foo
+  // CHECK-NEXT:   DeclRefExpr: x
+
+  @<S<unit> impl A<number>>::foo();
+  // CHECK: CallExpr:
+  // CHECK-NEXT:   PathExpr:
+  // CHECK-NEXT:     TraitSpecifier:
+  // CHECK-NEXT:       UserDefinedType: S
+  // CHECK-NEXT:         BuiltinType: unit
+  // CHECK-NEXT:       ImplSpecifier
+  // CHECK-NEXT:         TraitInstance: A
+  // CHECK-NEXT:           BuiltinType: number
+  // CHECK-NEXT:     DeclRefExpr: foo
+
+  @<S impl A>::foo::bar;
+  // CHECK: PathExpr:
+  // CHECK-NEXT:   TraitSpecifier:
+  // CHECK-NEXT:     UserDefinedType: S
+  // CHECK-NEXT:     ImplSpecifier
+  // CHECK-NEXT:       TraitInstance: A
+  // CHECK-NEXT:   DeclRefExpr: foo
+  // CHECK-NEXT:   DeclRefExpr: bar
+}
