@@ -131,7 +131,6 @@ class Sema {
   template <typename Hint>
   res::Decl *lookupSymbolWithFallback(res::DeclContext *scope,
                                       const ast::DeclRefExpr *dre);
-  res::Decl *getSelfDecl();
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,

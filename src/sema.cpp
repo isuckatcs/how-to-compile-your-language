@@ -479,16 +479,6 @@ res::Decl *Sema::lookupSymbolWithFallback(res::DeclContext *scope,
   return scope->lookupDecl<res::Decl>(dre->identifier);
 }
 
-res::Decl *Sema::getSelfDecl() {
-  if (auto *paramTy = selfType->getAs<res::TypeParamType>())
-    return paramTy->decl;
-
-  if (auto *structTy = selfType->getAs<res::StructType>())
-    return structTy->getDecl();
-
-  return nullptr;
-}
-
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
   res::Expr *callee = nullptr;
