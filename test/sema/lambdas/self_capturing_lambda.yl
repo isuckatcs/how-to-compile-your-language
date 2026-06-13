@@ -1,0 +1,14 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn notFound() {
+  // CHECK: [[# @LINE + 1 ]]:29: error: symbol 'l' not found
+  let l: () -> unit = ->(){ l(); };
+}
+
+fn main() {
+  let lateInit: () -> unit;
+
+  // CHECK: [[# @LINE + 1 ]]:20: error: 'lateInit' is not initialized
+  lateInit = ->(){ lateInit(); };
+
+  lateInit();
+}

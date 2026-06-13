@@ -108,6 +108,16 @@ void CFG::dump() const {
                      dynamic_cast<const res::MemberExpr *>(*it)) {
         std::cerr << stmtToRef[memberExpr->base] << '.'
                   << memberExpr->member->decl->identifier;
+      } else if (const auto *lambda =
+                     dynamic_cast<const res::LambdaExpr *>(*it)) {
+        std::cerr << "->[";
+        for (int i = 0; i < lambda->fieldInits.size(); ++i) {
+          std::cerr << stmtToRef[lambda->fieldInits[i]];
+
+          if (i != lambda->fieldInits.size() - 1)
+            std::cerr << ',' << ' ';
+        }
+        std::cerr << "](...){...}";
       }
 
       stmtToRef[*it] = '[' + std::to_string(i) + '.' +
@@ -228,6 +238,12 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
          it != structInst->fieldInitializers.rend(); ++it)
       block = insertStmt(**it, block);
     return block;
+  }
+
+  if (const auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr)) {
+    const auto &inits = lambda->fieldInits;
+    for (auto it = inits.rbegin(); it != inits.rend(); ++it)
+      block = insertExpr(**it, block);
   }
 
   return block;

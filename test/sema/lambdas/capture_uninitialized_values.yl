@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let x: unit;
+  let y: unit;
+  let z: unit;
+
+  ->() {
+    // CHECK: [[# @LINE + 1 ]]:5: error: 'x' is not initialized
+    x;
+
+    // CHECK: [[# @LINE + 1 ]]:5: error: 'y' is not initialized
+    y;
+
+    // CHECK: [[# @LINE + 1 ]]:5: error: 'z' is not initialized
+    z;
+  };
+}
