@@ -9,7 +9,7 @@ fn foo(): *impl A {
   return gc(S{});
   // CHECK: ReturnStmt
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     CallExpr {*S}
+  // CHECK-NEXT:     GCExpr {*S}
 }
 
 fn main() {}

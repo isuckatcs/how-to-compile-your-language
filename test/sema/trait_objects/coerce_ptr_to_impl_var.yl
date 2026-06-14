@@ -9,5 +9,5 @@ fn main() {
   let x: *impl A = gc(S{});
   // CHECK: VarDecl @({{.*}}) x {*impl A}
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     CallExpr {*S}
+  // CHECK-NEXT:     GCExpr {*S}
 }

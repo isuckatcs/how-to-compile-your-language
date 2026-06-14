@@ -140,6 +140,7 @@ class Sema {
   res::Expr *resolveExpr(res::Context &ctx,
                          const ast::Expr &expr,
                          res::Type *typeHint = nullptr);
+  res::GCExpr *resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc);
   res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
                                      const ast::LambdaExpr &lambda,
                                      res::Type *typeHint = nullptr);
@@ -215,8 +216,6 @@ class Sema {
 
   bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
-  res::FunctionDecl *createBuiltinGC(res::Context &ctx);
-  res::FunctionDecl *createBuiltinGCMut(res::Context &ctx);
   res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);

@@ -8,12 +8,12 @@ struct S {
 }
 
 fn foo(): *impl A {
-  // CHECK: [[# @LINE + 1 ]]:15: error: cannot return '*mut S' from a function returning '*impl A'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*mut S' from a function returning '*impl A'
   return gcMut(S{});
 }
 
 fn bar(): *impl B {
-  // CHECK: [[# @LINE + 1 ]]:12: error: cannot satisfy constraint 'S : B'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'S : B'
   return gc(S{});
 }
 

@@ -12,5 +12,5 @@ fn main() {
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A) -> unit}
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     CallExpr {*S}
+  // CHECK-NEXT:     GCExpr {*S}
 }

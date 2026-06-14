@@ -1,0 +1,4 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {}
+// CHECK: FunctionDecl @({{.*}}) gcCollect {() -> unit}
+// CHECK-NEXT:   Block

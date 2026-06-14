@@ -10,7 +10,7 @@ fn foo(mut x: *impl A) {
   // CHECK: Assignment
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*impl A}
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     CallExpr {*S}
+  // CHECK-NEXT:     GCExpr {*S}
 }
 
 fn main() {}

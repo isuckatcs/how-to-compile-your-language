@@ -11,9 +11,9 @@ fn foo(x: *impl A) {}
 fn bar(x: *impl B) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:12: error: cannot unify '*mut S' with '*impl A'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*mut S' with '*impl A'
   foo(gcMut(S{}));
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: cannot satisfy constraint 'S : B'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'S : B'
   bar(gc(S{}));
 }

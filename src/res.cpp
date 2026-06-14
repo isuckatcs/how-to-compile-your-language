@@ -301,6 +301,13 @@ void ImplicitDerefExpr::dump(size_t level) const {
   outParamRef->dump(level + 1);
 }
 
+void GCExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "GCExpr"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
+}
+
 void LambdaExpr::dump(size_t level) const {
   std::cerr << indent(level) << "LambdaExpr"
             << " {" << getType()->getName() << '}' << '\n';

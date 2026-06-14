@@ -1,8 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:25: error: an expression of type '*mut number' cannot be used to initialize a variable of type '*number'
+  // CHECK: [[# @LINE + 1 ]]:20: error: an expression of type '*mut number' cannot be used to initialize a variable of type '*number'
   let x: *number = gcMut(123);
 
-  // CHECK: [[# @LINE + 1 ]]:26: error: an expression of type '*number' cannot be used to initialize a variable of type '*mut number'
+  // CHECK: [[# @LINE + 1 ]]:24: error: an expression of type '*number' cannot be used to initialize a variable of type '*mut number'
   let y: *mut number = gc(123);
 }

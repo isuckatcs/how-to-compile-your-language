@@ -13,5 +13,5 @@ fn main() {
   S2 { x: gc(S{}) };
   // CHECK: FieldInitStmt @({{.*}}) x
   // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
-  // CHECK-NEXT:     CallExpr {*S}
+  // CHECK-NEXT:     GCExpr {*S}
 }

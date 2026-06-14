@@ -8,10 +8,10 @@ struct S {
 }
 
 fn foo(mut x: *impl A, y: *impl B) {
-  // CHECK: [[# @LINE + 1 ]]:12: error: expected to assign '*impl A' but received '*mut S' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*impl A' but received '*mut S' instead
   x = gcMut(S{});
   
-  // CHECK: [[# @LINE + 1 ]]:9: error: cannot satisfy constraint 'S : B'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'S : B'
   y = gc(S{});
 }
 

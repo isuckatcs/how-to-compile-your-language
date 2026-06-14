@@ -36,44 +36,6 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   return fn;
 };
 
-res::FunctionDecl *Sema::createBuiltinGC(res::Context &ctx) {
-  SourceLocation loc{nullptr, 0, 0};
-
-  auto *typeParamTy = typeMgr.getNewUninferredType();
-  auto *typeParamDecl = ctx.create<res::TypeParamDecl>(loc, typeParamTy, "T");
-  typeMgr.unify(typeParamTy, typeMgr.getTypeParamType(*typeParamDecl));
-
-  auto *param = ctx.create<res::ParamDecl>(loc, typeParamTy, "t", false);
-
-  auto *fnTy = typeMgr.getFunctionType(
-      {typeParamTy}, typeMgr.getPointerType(typeParamTy, false));
-  auto *fn = ctx.create<res::FunctionDecl>(
-      loc, fnTy, "gc", std::vector<res::TypeParamDecl *>{typeParamDecl},
-      std::vector{param});
-  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
-
-  return fn;
-}
-
-res::FunctionDecl *Sema::createBuiltinGCMut(res::Context &ctx) {
-  SourceLocation loc{nullptr, 0, 0};
-
-  auto *typeParamTy = typeMgr.getNewUninferredType();
-  auto *typeParamDecl = ctx.create<res::TypeParamDecl>(loc, typeParamTy, "T");
-  typeMgr.unify(typeParamTy, typeMgr.getTypeParamType(*typeParamDecl));
-
-  auto *param = ctx.create<res::ParamDecl>(loc, typeParamTy, "t", false);
-
-  auto *fnTy = typeMgr.getFunctionType(
-      {typeParamTy}, typeMgr.getPointerType(typeParamTy, true));
-  auto *fn = ctx.create<res::FunctionDecl>(
-      loc, fnTy, "gcMut", std::vector<res::TypeParamDecl *>{typeParamDecl},
-      std::vector{param});
-  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
-
-  return fn;
-}
-
 res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
@@ -728,6 +690,14 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   return ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre);
 }
 
+res::GCExpr *Sema::resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc) {
+  varOrReturn(expr, resolveExpr(ctx, *gc.expr));
+  expr->setConstantValue(cee->evaluate(*expr));
+
+  res::Type *type = typeMgr.getPointerType(expr->getType(), gc.isMut);
+  return ctx.create<res::GCExpr>(gc.location, type, expr);
+}
+
 res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
                                          const ast::LambdaExpr &lambdaExpr,
                                          res::Type *typeHint) {
@@ -1025,6 +995,9 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
   if (const auto *memberExpr = dynamic_cast<const ast::MemberExpr *>(&expr))
     return resolveMemberExpr(ctx, *memberExpr);
+
+  if (const auto *gc = dynamic_cast<const ast::GCExpr *>(&expr))
+    return resolveGCExpr(ctx, *gc);
 
   if (const auto *lambda = dynamic_cast<const ast::LambdaExpr *>(&expr))
     return resolveLambdaExpr(ctx, *lambda, typeHint);
@@ -1746,8 +1719,6 @@ res::Context *Sema::resolveAST() {
                                  *static_cast<const ast::TraitDecl *>(astDecl));
   }
 
-  insertDeclToScope(createBuiltinGC(ctx), lexicalScope);
-  insertDeclToScope(createBuiltinGCMut(ctx), lexicalScope);
   insertDeclToScope(createBuiltinGCCollect(ctx), lexicalScope);
   insertDeclToScope(createBuiltinPrintln(ctx), lexicalScope);
 

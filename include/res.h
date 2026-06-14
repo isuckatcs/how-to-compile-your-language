@@ -520,6 +520,16 @@ struct ImplicitDerefExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct GCExpr : public Expr {
+  Expr *expr;
+
+  GCExpr(SourceLocation location, Type *type, Expr *expr)
+      : Expr(location, type, Expr::Kind::Rvalue),
+        expr(expr) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct LambdaExpr : public Expr {
   res::StructDecl *closure;
   std::vector<const res::Expr *> fieldInits;

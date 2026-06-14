@@ -27,8 +27,7 @@ fn main() {
   // CHECK-NEXT:               MemberExpr @({{.*}}) s2 {*mut S2}
   // CHECK-NEXT:                 UnaryOperator '*' {S}
   // CHECK-NEXT:                   DeclRefExpr @({{.*}}) s {*S}
-  // CHECK-NEXT:   CallExpr {*mut number}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) gcMut {(number) -> *mut number}
+  // CHECK-NEXT:   GCExpr {*mut number}
   // CHECK-NEXT:     NumberLiteral '0' {number}
   // CHECK-NEXT:     | value: 0
 }

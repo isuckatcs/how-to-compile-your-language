@@ -6,6 +6,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:23: error: an expression of type '**S' cannot be used to initialize a variable of type '**impl A'
+  // CHECK: [[# @LINE + 1 ]]:21: error: an expression of type '**S' cannot be used to initialize a variable of type '**impl A'
   let s: **impl A = gc(gc(S{}));
 }
