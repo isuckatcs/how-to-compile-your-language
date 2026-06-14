@@ -85,6 +85,7 @@ class Parser {
   std::unique_ptr<ast::TraitSpecifier> parseTraitSpecifier();
   std::unique_ptr<ast::PathExpr> parsePathExpr();
   std::unique_ptr<ast::DeclRefExpr> parseDeclRefExpr();
+  std::unique_ptr<ast::GCExpr> parseGCExpr();
   std::unique_ptr<ast::LambdaExpr> parseLambdaExpr();
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
 

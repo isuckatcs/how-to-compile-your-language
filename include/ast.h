@@ -526,6 +526,18 @@ struct Assignment : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
+struct GCExpr : public Expr {
+  std::unique_ptr<Expr> expr;
+  bool isMut;
+
+  GCExpr(SourceLocation location, std::unique_ptr<Expr> expr, bool isMut)
+      : Expr(location),
+        expr(std::move(expr)),
+        isMut(isMut) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct LambdaExpr : public Expr {
   std::vector<std::unique_ptr<ParamDecl>> params;
   std::unique_ptr<Type> returnType;

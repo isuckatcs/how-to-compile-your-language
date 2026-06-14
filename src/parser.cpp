@@ -757,6 +757,9 @@ std::unique_ptr<ast::Expr> Parser::parsePostfixExpr() {
 // <primaryExpression>
 //  ::= 'unit'
 //  |   <numberLiteral>
+//  |   <boolLiteral>
+//  |   <gcExpr>
+//  |   <lambda>
 //  |   <pathExpr> <fieldInitList>?
 //  |   '(' <expr> ')'
 //
@@ -797,6 +800,9 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     eatNextToken(); // eat 'true' | 'false'
     return literal;
   }
+
+  if (nextToken.kind == TokenKind::KwGC || nextToken.kind == TokenKind::KwGCMut)
+    return parseGCExpr();
 
   if (nextToken.kind == TokenKind::Arrow)
     return parseLambdaExpr();
@@ -909,10 +915,30 @@ std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
                                             std::move(typeArgsList));
 }
 
+// <gcExpr>
+//  ::= ('gc' | 'gcMut') '(' <expr> ')'
+std::unique_ptr<ast::GCExpr> Parser::parseGCExpr() {
+  bool isMut = nextToken.kind == TokenKind::KwGCMut;
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat 'gc' or 'gcMut'
+
+  expectOrReturn(TokenKind::Lpar,
+                 err::expected(nextToken.location).with("'('"));
+  eatNextToken(); // eat '('
+
+  varOrReturn(expr, parseExpr());
+
+  expectOrReturn(TokenKind::Rpar,
+                 err::expected(nextToken.location).with("')'"));
+  eatNextToken(); // eat ')'
+
+  return std::make_unique<ast::GCExpr>(location, std::move(expr), isMut);
+}
+
+// <lambda>
+//  ::= '->' <lambdaParamList>? <block>
 std::unique_ptr<ast::LambdaExpr> Parser::parseLambdaExpr() {
   SourceLocation location = nextToken.location;
-  expectOrReturn(TokenKind::Arrow,
-                 err::expected(nextToken.location).with("'->'"));
   eatNextToken(); // eat '->'
 
   auto parameterList = std::vector<std::unique_ptr<ast::ParamDecl>>();

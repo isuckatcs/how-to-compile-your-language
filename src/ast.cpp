@@ -275,6 +275,11 @@ void Assignment::dump(size_t level) const {
   expr->dump(level + 1);
 }
 
+void GCExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "GCExpr" << (isMut ? " mut" : "") << '\n';
+  expr->dump(level + 1);
+}
+
 void LambdaExpr::dump(size_t level) const {
   std::cerr << indent(level) << "LambdaExpr:\n";
   if (returnType)

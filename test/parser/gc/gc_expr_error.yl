@@ -1,0 +1,8 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:9: error: expected expression
+  gcMut(_);
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: expected expression
+  gc(_;
+}
