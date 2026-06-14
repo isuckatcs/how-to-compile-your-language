@@ -118,9 +118,13 @@
     ::= 'unit'
     |   <numberLiteral>
     |   <boolLiteral>
+    |   <gcExpr>
     |   <lambda>
     |   <pathExpr> <fieldInitList>?
     |   '(' <expr> ')'
+
+<gcExpr>
+    ::= ('gc' | 'gcMut') '(' <expr> ')'
 
 <lambda>
     ::= '->' <lambdaParamList>? <block>
