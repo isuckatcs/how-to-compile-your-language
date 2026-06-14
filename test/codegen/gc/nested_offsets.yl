@@ -32,8 +32,6 @@ fn test1() {
 fn test2() {
   // CHECK: %struct.ret.tmp = alloca { ptr, double, ptr }, align 8
   // CHECK-NEXT: %s = alloca { ptr, double, ptr }, align 8
-  // CHECK-NEXT: store { ptr, double, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @S1SGupnnpnE.offsets)
   // CHECK-NEXT: store { ptr, double, ptr } zeroinitializer, ptr %s, align 8
   // CHECK-NEXT: call void @llvm.gcroot(ptr %s, ptr @S1SGupnnpnE.offsets)
 

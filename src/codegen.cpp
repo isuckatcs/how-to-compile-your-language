@@ -283,6 +283,8 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
 
 llvm::Value *Codegen::generateAssignment(const res::Assignment &stmt) {
   llvm::Value *val = generateExprAndLoadValue(*stmt.expr);
+  createTmpGCRootIfNeeded(val, stmt.expr);
+
   return storeValue(val, generateExpr(*stmt.assignee),
                     generateType(stmt.assignee->getType()));
 }
@@ -324,8 +326,11 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 llvm::Value *
 Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   std::map<const res::FieldDecl *, llvm::Value *> inits;
-  for (auto &&initStmt : sie.fieldInitializers)
-    inits[initStmt->field] = generateExprAndLoadValue(*initStmt->initializer);
+  for (auto &&initStmt : sie.fieldInitializers) {
+    llvm::Value *tmpVal = generateExprAndLoadValue(*initStmt->initializer);
+    createTmpGCRootIfNeeded(tmpVal, initStmt->initializer);
+    inits[initStmt->field] = tmpVal;
+  }
 
   const auto *type = sie.getType()->getAs<res::StructType>();
   llvm::Type *ty = generateType(type);
@@ -343,8 +348,9 @@ llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
   auto *valueTy = generateType(valueType);
 
   auto *val = generateExpr(*gcExpr.expr);
-  auto *ptr = allocateHeapVariable(valueType);
+  createTmpGCRootIfNeeded(val, gcExpr.expr);
 
+  auto *ptr = allocateHeapVariable(valueType);
   if (valueTy->isSized())
     storeValue(val, ptr, valueTy);
 
@@ -354,9 +360,6 @@ llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
 llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
-
-  llvm::AllocaInst *lambda = allocateStackVariable("lambda.tmp", lambdaTy);
-  markIfGCRoot(lambda, lambdaExpr.getType());
 
   llvm::Value *function = generateFunctionDecl(
       *lambdaExpr.method,
@@ -368,12 +371,16 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
                              ? allocateHeapVariable(closureType)
                              : llvm::Constant::getNullValue(builder.getPtrTy());
 
+  llvm::AllocaInst *lambda = allocateStackVariable("lambda.tmp", lambdaTy);
   builder.CreateStore(function, builder.CreateStructGEP(lambdaTy, lambda, 0));
   builder.CreateStore(closure, builder.CreateStructGEP(lambdaTy, lambda, 1));
 
   if (needsClosure) {
     const auto &fieldDecls = closureType->getDecl()->getAll<res::FieldDecl>();
 
+    // FIXME: Sema guarantees that all of these are DeclRefExprs, so they cannot
+    // trigger the GC. Change the type of expressions in 'lambdaExpr.fieldInits'
+    // to reflext this.
     std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
     for (int i = 0; i < fieldDecls.size(); ++i)
       fieldInits[fieldDecls[i]] =
@@ -421,16 +428,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return generateDeclRefExpr(*dre);
 
-  if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
-    auto *res = generateCallExpr(*call);
-
-    // FIXME: revisit when tmp roots are created, this is probably wrong
-    if (res)
-      createTmpGCRootIfNeeded(res,
-                              instCtx.getInstantiatedType(call->getType()));
-
-    return res;
-  }
+  if (auto *call = dynamic_cast<const res::CallExpr *>(&expr))
+    return generateCallExpr(*call);
 
   if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
     return generateExpr(*grouping->expr);
@@ -450,15 +449,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
     return generateDeclRefExpr(*ide->outParamRef);
 
-  if (auto *gc = dynamic_cast<const res::GCExpr *>(&expr)) {
-    auto *res = generateGCExpr(*gc);
-
-    // FIXME: revisit when tmp roots are created, this is probably wrong
-    if (res)
-      createTmpGCRootIfNeeded(res, instCtx.getInstantiatedType(gc->getType()));
-
-    return res;
-  }
+  if (auto *gc = dynamic_cast<const res::GCExpr *>(&expr))
+    return generateGCExpr(*gc);
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
@@ -539,10 +531,10 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     if (argTy->isStructTy()) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", argTy);
       storeValue(argVal, tmpVar, argTy);
-      createTmpGCRootIfNeeded(tmpVar, arg->getType());
       argVal = tmpVar;
     }
 
+    createTmpGCRootIfNeeded(argVal, arg);
     args.emplace_back(argVal);
     ++argIdx;
   }
@@ -672,6 +664,7 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
   if (op == TokenKind::EqualEqual) {
+    // FIXME: pointers should also be compared as integers
     if (lhs->getType()->isIntegerTy())
       return builder.CreateICmpEQ(lhs, rhs);
 
@@ -874,7 +867,14 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   return global;
 }
 
-void Codegen::createTmpGCRootIfNeeded(llvm::Value *val, const res::Type *type) {
+void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
+                                      const res::Expr *resVal) {
+  if (!val || llvm::isa<llvm::Function>(val) ||
+      dynamic_cast<const res::ImplicitDerefExpr *>(resVal) ||
+      resVal->isLvalue() && !resVal->isMutable())
+    return;
+
+  const res::Type *type = instCtx.getInstantiatedType(resVal->getType());
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 

@@ -32,8 +32,6 @@ fn main() {
 
 // CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
 // CHECK-NEXT:   call void @llvm.gcroot(ptr %struct.arg.tmp, ptr @function.offsets)
-// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
-// CHECK-NEXT:   call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @function.offsets)
 
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.arg.tmp, i32 0, i32 0
 // CHECK-NEXT:   store ptr @_YS1SGuE3barGnE, ptr %0, align 8
@@ -47,7 +45,6 @@ fn main() {
 // CHECK-NEXT:   %5 = load ptr, ptr %4, align 8
 // CHECK-NEXT:   %6 = call double %3(double %y, ptr %5)
 
-// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
 // CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

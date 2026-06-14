@@ -8,10 +8,19 @@ struct S<T> {
 fn main() {
   let n = 123;
 
+  // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
+  // CHECK: %s = alloca { { ptr, ptr } }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
+  // CHECK-NEXT: store { { ptr, ptr } } zeroinitializer, ptr %s, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %s, ptr @S1SGFRnE.offsets)
+
   let s = S { l: ->(){ return n; } };
   // CHECK: %4 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %S.tmp, i32 0, i32 0
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %lambda.tmp, i64 16, i1 false)
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %S.tmp, i64 16, i1 false)
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
 
   println(s.l());
   // CHECK-NEXT: %5 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %s, i32 0, i32 0

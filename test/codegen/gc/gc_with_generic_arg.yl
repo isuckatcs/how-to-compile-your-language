@@ -12,14 +12,14 @@ fn main() {
   (*alloc(println))(456);
 }
 
-// CHECK: define ptr @_Y5allocGuE(ptr %closure) gc "shadow-stack" {
+// CHECK: define ptr @_Y5allocGuE(ptr %closure) {
 // CHECK:   %0 = call ptr @gcAlloc(i32 0, ptr null)
 // CHECK:   %1 = call ptr @gcAlloc(i32 0, ptr null)
 
-// CHECK: define ptr @_Y5allocGnE(double %t, ptr %closure) gc "shadow-stack" {
+// CHECK: define ptr @_Y5allocGnE(double %t, ptr %closure) {
 // CHECK:   %0 = call ptr @gcAlloc(i32 8, ptr null)
 // CHECK:   %1 = call ptr @gcAlloc(i32 8, ptr null)
 
-// CHECK: define ptr @_Y5allocGFnRuE(ptr byval({ ptr, ptr }) %t, ptr %closure) gc "shadow-stack" {
+// CHECK: define ptr @_Y5allocGFnRuE(ptr byval({ ptr, ptr }) %t, ptr %closure) {
 // CHECK:   %0 = call ptr @gcAlloc(i32 16, ptr @function.offsets)
 // CHECK:   %1 = call ptr @gcAlloc(i32 16, ptr @function.offsets)

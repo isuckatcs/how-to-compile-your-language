@@ -10,8 +10,6 @@ fn main() {
     }();
   }();
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
-  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
 
   // CHECK-NEXT: %0 = call ptr @gcAlloc(i32 8, ptr null)
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
@@ -28,11 +26,9 @@ fn main() {
   // CHECK-NEXT: %7 = load ptr, ptr %6, align 8
   // CHECK-NEXT: call void %5(ptr %7)
 }
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) gc "shadow-stack" {
+// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %lambda.tmp = alloca { ptr, ptr }, align 8
-// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
-// CHECK-NEXT:   call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
 
 // CHECK-NEXT:   %0 = call ptr @gcAlloc(i32 8, ptr null)
 // CHECK-NEXT:   %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0

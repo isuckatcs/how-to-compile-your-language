@@ -1,0 +1,21 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+struct S {
+  p: *number
+}
+
+fn foo(n: number): S {
+  return S{ p: gc(n) };
+}
+
+fn main() {
+  println(*foo(123).p);
+  // CHECK: %struct.ret.tmp = alloca { ptr }, align 8
+  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp, double 1.230000e+02, ptr null)
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr }, ptr %struct.ret.tmp, i32 0, i32 0
+  // CHECK-NEXT: %1 = load ptr, ptr %0, align 8
+  // CHECK-NEXT: %2 = load double, ptr %1, align 8
+  // CHECK-NEXT: call void @println(double %2, ptr null)
+  // CHECK-NEXT: ret void
+}

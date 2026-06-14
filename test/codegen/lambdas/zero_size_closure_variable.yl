@@ -11,8 +11,6 @@ fn main() {
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %l = alloca { ptr, ptr }, align 8
 
-  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
   // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %l, align 8
   // CHECK-NEXT: call void @llvm.gcroot(ptr %l, ptr @function.offsets)
 

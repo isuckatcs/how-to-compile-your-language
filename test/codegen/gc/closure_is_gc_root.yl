@@ -9,8 +9,8 @@ fn takeLambdaParam(f: (number) -> number) {}
 fn returnLambda(): (number) -> number {
   return ->(x){ return x; };
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
-  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %0, align 8
 }
 
 fn unusedRoot() {
@@ -24,8 +24,6 @@ fn passLambdaParam() {
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %struct.arg.tmp = alloca { ptr, ptr }, align 8
 
-  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %lambda.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %lambda.tmp, ptr @function.offsets)
   // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
   // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.arg.tmp, ptr @function.offsets)
 
@@ -37,8 +35,6 @@ fn main() {
   // CHECK: %struct.ret.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %f = alloca { ptr, ptr }, align 8
 
-  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @function.offsets)
   // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %f, align 8
   // CHECK-NEXT: call void @llvm.gcroot(ptr %f, ptr @function.offsets)
 

@@ -15,9 +15,6 @@ fn returnOne(): number {
 
 fn main(): unit {
 // CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
-  // CHECK: store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
-  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @function.offsets)
-
   let x = wrapper(returnOne)();
   // CHECK: call void @_Y7wrapperGFRnE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
   // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.ret.tmp, i32 0, i32 0

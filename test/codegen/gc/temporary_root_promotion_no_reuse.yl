@@ -20,9 +20,7 @@ fn main() {
   // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp1, ptr null)
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp2, ptr align 8 %struct.ret.tmp1, i64 8, i1 false)
   // CHECK-NEXT: call void @bar2(ptr byval({ ptr }) %struct.arg.tmp, ptr byval({ ptr }) %struct.arg.tmp2, ptr null)
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp1, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp2, align 8
 
   bar4(foo(), foo(), foo(), foo());
@@ -35,13 +33,9 @@ fn main() {
   // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp9, ptr null)
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp10, ptr align 8 %struct.ret.tmp9, i64 8, i1 false)
   // CHECK-NEXT: call void @bar4(ptr byval({ ptr }) %struct.arg.tmp4, ptr byval({ ptr }) %struct.arg.tmp6, ptr byval({ ptr }) %struct.arg.tmp8, ptr byval({ ptr }) %struct.arg.tmp10, ptr null)
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp3, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp4, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp5, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp6, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp7, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp8, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp9, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp10, align 8
 
   bar3(foo(), foo(), foo());
@@ -52,10 +46,7 @@ fn main() {
   // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp15, ptr null)
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp16, ptr align 8 %struct.ret.tmp15, i64 8, i1 false)
   // CHECK-NEXT: call void @bar3(ptr byval({ ptr }) %struct.arg.tmp12, ptr byval({ ptr }) %struct.arg.tmp14, ptr byval({ ptr }) %struct.arg.tmp16, ptr null)
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp11, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp12, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp13, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp14, align 8
-  // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.ret.tmp15, align 8
   // CHECK-NEXT: store { ptr } zeroinitializer, ptr %struct.arg.tmp16, align 8
 }
