@@ -7,6 +7,7 @@
 
 #include <map>
 #include <queue>
+#include <set>
 
 #include "res.h"
 
@@ -75,7 +76,9 @@ class Codegen {
   std::queue<PendingFunctionDescriptor> pendingFunctions;
   InstCtxTy instCtx;
 
+  std::set<llvm::AllocaInst *> permanentRoots;
   std::map<llvm::AllocaInst *, bool> temporaryRoots;
+
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;
 

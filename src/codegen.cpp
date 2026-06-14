@@ -2,6 +2,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/TargetParser/Host.h>
 
+#include <set>
 #include <sstream>
 
 #include "codegen.h"
@@ -876,6 +877,9 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
     return;
 
   if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val)) {
+    if (permanentRoots.count(alloca))
+      return;
+
     markIfGCRoot(alloca, type);
     temporaryRoots[alloca] = true;
     return;
@@ -901,6 +905,9 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
 
 void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
+    return;
+
+  if (!permanentRoots.emplace(alloca).second)
     return;
 
   llvm::Function *function = getCurrentFunction();
