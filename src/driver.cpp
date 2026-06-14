@@ -20,13 +20,13 @@ void displayHelp() {
   std::cout << "Usage:\n"
             << "  compiler [options] <source_file>\n\n"
             << "Options:\n"
-            << "  -h           display this message\n"
-            << "  -o <file>    write executable to <file>\n"
-            << "  -verify      verify the generated llvm module\n"
-            << "  -ast-dump    print the abstract syntax tree\n"
-            << "  -res-dump    print the resolved syntax tree\n"
-            << "  -llvm-dump   print the llvm module\n"
-            << "  -cfg-dump    print the control flow graph\n";
+            << "  -h              display this message\n"
+            << "  -o <file>       write executable to <file>\n"
+            << "  -verify-only    only verify the generated llvm module\n"
+            << "  -ast-dump       print the abstract syntax tree\n"
+            << "  -res-dump       print the resolved syntax tree\n"
+            << "  -llvm-dump      print the llvm module\n"
+            << "  -cfg-dump       print the control flow graph\n";
 }
 
 [[noreturn]] void error(std::string_view msg) {
@@ -38,7 +38,7 @@ struct CompilerOptions {
   std::filesystem::path source;
   std::filesystem::path output;
   bool displayHelp = false;
-  bool verify = false;
+  bool verifyOnly = false;
   bool astDump = false;
   bool resDump = false;
   bool llvmDump = false;
@@ -62,8 +62,8 @@ CompilerOptions parseArguments(int argc, const char **argv) {
         options.displayHelp = true;
       else if (arg == "-o")
         options.output = ++idx >= argc ? "" : argv[idx];
-      else if (arg == "-verify")
-        options.verify = true;
+      else if (arg == "-verify-only")
+        options.verifyOnly = true;
       else if (arg == "-ast-dump")
         options.astDump = true;
       else if (arg == "-res-dump")
@@ -148,8 +148,8 @@ int main(int argc, const char **argv) {
   Codegen codegen(*resolvedTree, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
-  if (options.verify && llvm::verifyModule(*llvmIR, &llvm::errs()))
-    return 1;
+  if (options.verifyOnly)
+    return llvm::verifyModule(*llvmIR, &llvm::errs());
 
   if (options.llvmDump) {
     llvmIR->print(llvm::errs(), nullptr);

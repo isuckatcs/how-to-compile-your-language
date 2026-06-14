@@ -1,4 +1,5 @@
-// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n'
 struct S<T> {
   x: T

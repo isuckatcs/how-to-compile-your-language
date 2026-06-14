@@ -1,4 +1,5 @@
-// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzxe '-2.34\n4.56\n-12\n'
 fn negate(mut x: number): number {
     return -x;

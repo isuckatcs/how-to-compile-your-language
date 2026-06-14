@@ -1,0 +1,2 @@
+// RUN: compiler %s -llvm-dump -verify-only 2>&1 | ( ! grep ^ )
+fn main() {}
