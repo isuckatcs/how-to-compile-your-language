@@ -47,6 +47,8 @@ enum class TokenKind : char {
   KwSelf,
   KwTrait,
   KwImpl,
+  KwGC,
+  KwGCMut,
 
   Eof = singleCharTokens[0],
   Lpar = singleCharTokens[1],
@@ -74,7 +76,8 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"return", TokenKind::KwReturn}, {"struct", TokenKind::KwStruct},
     {"Self", TokenKind::KwSelf},     {"trait", TokenKind::KwTrait},
     {"impl", TokenKind::KwImpl},     {"bool", TokenKind::KwBool},
-    {"true", TokenKind::KwTrue},     {"false", TokenKind::KwFalse}};
+    {"true", TokenKind::KwTrue},     {"false", TokenKind::KwFalse},
+    {"gc", TokenKind::KwGC},         {"gcMut", TokenKind::KwGCMut}};
 
 struct Token {
   SourceLocation location;
