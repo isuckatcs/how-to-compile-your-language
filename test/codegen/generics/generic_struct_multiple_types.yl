@@ -14,6 +14,7 @@ fn main(): unit {
   println(S{x: returnOne}.x());
   println(S{x: returnOne}.x());
   // CHECK: %12 = getelementptr inbounds nuw { { ptr, ptr } }, ptr %S.tmp1, i32 0, i32 0
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %tmp.root, ptr align 8 %12, i64 16, i1 false)
   // CHECK-NEXT: %13 = getelementptr inbounds nuw { ptr, ptr }, ptr %12, i32 0, i32 0
   // CHECK-NEXT: %14 = load ptr, ptr %13, align 8
   // CHECK-NEXT: %15 = getelementptr inbounds nuw { ptr, ptr }, ptr %12, i32 0, i32 1

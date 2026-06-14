@@ -1,0 +1,26 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t | grep -Plzx '123\n'
+fn returnCapturingLambda(): (unit) -> number {
+  let x = 123;
+  return ->(u){ return x; };
+}
+
+fn main() {
+  let x = returnCapturingLambda()(gcCollect());
+  // CHECK: store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.ret.tmp, ptr @function.offsets)
+  // CHECK-NEXT: call void @returnCapturingLambda(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr null)
+  // CHECK-NEXT: call void @gcCollect(ptr null)
+
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.ret.tmp, i32 0, i32 0
+  // CHECK-NEXT: %1 = load ptr, ptr %0, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %struct.ret.tmp, i32 0, i32 1
+  // CHECK-NEXT: %3 = load ptr, ptr %2, align 8
+  // CHECK-NEXT: %4 = call double %1(ptr %3)
+
+  // CHECK-NEXT: store double %4, ptr %x, align 8
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
+
+  println(x);
+}

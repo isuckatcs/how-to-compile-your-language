@@ -1,0 +1,18 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+fn returnCapturingLambda(): (unit) -> number {
+  let x = 123;
+  return ->(u){ return x; };
+  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+}
+
+fn main() {
+  let x = returnCapturingLambda()(gcCollect());
+  // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {heap: 32 B, threshold: 96 B}
+
+  println(x);
+  // CHECK-NEXT: 123
+}
+// CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
+// CHECK-NEXT: [1] sweep {heap: 0 B, threshold: 96 B}

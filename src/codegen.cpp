@@ -512,6 +512,10 @@ bool Codegen::isImplOf(const res::ImplBlock *impl,
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
+  const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
+  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
+  createTmpGCRootIfNeeded(callee, call.callee);
+
   llvm::Type *retTy = generateType(call.getType());
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
@@ -539,10 +543,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
-  const auto *calleeFnDecl = call.getCalleeFn();
-
-  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   if (llvm::isa<llvm::Function>(callee)) {
     args.emplace_back(llvm::Constant::getNullValue(builder.getPtrTy()));
   } else {
@@ -885,9 +885,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   }
 
   llvm::AllocaInst *alloca = nullptr;
-  llvm::Type *valTy = val->getType();
-
-  assert(valTy->isPointerTy() && "reusing tmp GC root for non-pointer value");
+  llvm::Type *valTy = generateType(type);
 
   for (auto &&[root, isUsed] : temporaryRoots)
     if (!isUsed && root->getAllocatedType() == valTy) {

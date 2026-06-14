@@ -17,7 +17,7 @@ fn main(): unit {
   println(x);
 }
 
-// CHECK: define double @_Y7wrapperGnE(double %x, ptr %closure) {
 // CHECK: define double @_Y3fooGnE(ptr byval({ ptr, ptr }) %x, double %y, ptr %closure) {
+// CHECK: define double @_Y7wrapperGnE(double %x, ptr %closure) {
 
 // CHECK-NOT: {{define.*wrapper.*}}
