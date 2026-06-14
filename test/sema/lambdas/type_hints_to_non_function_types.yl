@@ -1,0 +1,27 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  x: *T
+}
+
+fn foo(x: unit) {}
+
+fn bar<T>(t: T) {
+  // CHECK: [[# @LINE + 1 ]]:7: error: unexpected lambda, expected 'T'
+  t = ->(x){};
+}
+
+fn baz(): S<*unit> {
+  // CHECK: [[# @LINE + 1 ]]:10: error: unexpected lambda, expected 'S<*unit>'
+  return ->(x){};
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:19: error: unexpected lambda, expected 'number'
+  let n: number = ->(x){};
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: unexpected lambda, expected 'unit'
+  foo(->(x){});
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: unexpected lambda, expected '*_'
+  S { x: ->(){} };
+}

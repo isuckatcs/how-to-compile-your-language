@@ -1,0 +1,33 @@
+// RUN: compiler %s -verify -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+fn foo<T>(b: bool): (T) -> T {
+  let l: (T) -> T;
+  let x = 0;
+
+  if b {
+  // CHECK: if.true:
+
+    l = ->(n) {
+      x;
+      println(123);
+      return n; 
+    };
+    // CHECK: store ptr @_YS8lambda_021__builtin_lambda_call, ptr %1, align 8
+  } else {
+  // CHECK: if.false:
+
+    l = ->(n) {
+      x;
+      println(456);
+      return n; 
+    };
+    // CHECK: store ptr @_YS8lambda_121__builtin_lambda_call, ptr %5, align 8
+  }
+
+  return l;
+}
+
+fn main() {
+  foo(true)(unit);
+  foo(false)(0);
+}

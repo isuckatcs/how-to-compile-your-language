@@ -1,0 +1,32 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo<T>(b: bool): (T) -> T {
+  let l: (T) -> T;
+  let x = 0;
+
+  if b {
+    l = ->(n) {
+      x;
+      println(123);
+      return n; 
+    };
+    // CHECK: LambdaExpr {(T) -> T}
+    // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
+    // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:7:9) {(closure@<source>:7:9)}
+  } else {
+    l = ->(n) {
+      x;
+      println(456);
+      return n; 
+    };
+    // CHECK: LambdaExpr {(T) -> T}
+    // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
+    // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:16:9) {(closure@<source>:16:9)}
+  }
+
+  return l;
+}
+
+fn main() {
+  foo(true)(unit);
+  foo(false)(0);
+}
