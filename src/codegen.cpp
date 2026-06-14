@@ -662,8 +662,7 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
   if (op == TokenKind::EqualEqual) {
-    // FIXME: pointers should also be compared as integers
-    if (lhs->getType()->isIntegerTy())
+    if (lhs->getType()->isIntOrPtrTy())
       return builder.CreateICmpEQ(lhs, rhs);
 
     return builder.CreateFCmpOEQ(lhs, rhs);
