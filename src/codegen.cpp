@@ -549,13 +549,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
   const auto *calleeFnDecl = call.getCalleeFn();
-  if (calleeFnDecl) {
-    if (calleeFnDecl->identifier == "gcCollect") {
-      builder.CreateCall(getOrInsertGCMark());
-      builder.CreateCall(getOrInsertGCSweep());
-      return nullptr;
-    }
-  }
 
   llvm::Value *callee = generateExprAndLoadValue(*call.callee);
   if (llvm::isa<llvm::Function>(callee)) {
@@ -1078,7 +1071,9 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
   function->getArg(function->arg_size() - 1)->setName("closure");
 
-  if (functionDecl->identifier == "println")
+  if (functionDecl->identifier == "gcCollect")
+    generateBuiltinGCCollectBody(*functionDecl);
+  else if (functionDecl->identifier == "println")
     generateBuiltinPrintlnBody(*functionDecl);
   else
     generateBlock(*functionDecl->body);
@@ -1099,6 +1094,11 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
     builder.CreateRetVoid();
   else
     builder.CreateRet(loadValue(retVal, returnTy));
+}
+
+void Codegen::generateBuiltinGCCollectBody(const res::FunctionDecl &gcCollect) {
+  builder.CreateCall(getOrInsertGCMark());
+  builder.CreateCall(getOrInsertGCSweep());
 }
 
 void Codegen::generateBuiltinPrintlnBody(const res::FunctionDecl &println) {
@@ -1124,10 +1124,9 @@ void Codegen::generateMainWrapper() {
   auto *entry = llvm::BasicBlock::Create(context, "entry", main);
   builder.SetInsertPoint(entry);
 
-  builder.CreateCall(builtinMain,
-                     {llvm::ConstantPointerNull::get(builder.getPtrTy())});
-  builder.CreateCall(getOrInsertGCMark());
-  builder.CreateCall(getOrInsertGCSweep());
+  llvm::Value *nullPtr = llvm::ConstantPointerNull::get(builder.getPtrTy());
+  builder.CreateCall(builtinMain, {nullPtr});
+  builder.CreateCall(module.getFunction("gcCollect"), {nullPtr});
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
