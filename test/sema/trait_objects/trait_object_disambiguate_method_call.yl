@@ -1,0 +1,21 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: &Self, x: number) {}
+}
+
+trait B : A {
+  fn foo(self: &Self, x: number) {}
+}
+
+fn foo(x: *mut impl B) {
+  @<impl B impl A>::foo(&*x, 0);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl B impl A>::foo {(&impl B, number) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&impl B}
+  // CHECK-NEXT:     UnaryOperator '*' {impl B}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {*mut impl B}
+  // CHECK-NEXT:   NumberLiteral '0' {number}
+  // CHECK-NEXT:   | value: 0
+}
+
+fn main() {}

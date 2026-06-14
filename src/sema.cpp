@@ -86,7 +86,7 @@ res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
 
 res::Type *Sema::resolveType(res::Context &ctx,
                              const ast::Type &parsedType,
-                             bool isPointee) {
+                             bool allowRawTraitObject) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
@@ -161,7 +161,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
   }
 
   if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
-    if (!isPointee)
+    if (!allowRawTraitObject)
       return err::traitObjectNotPointee(impl->location).report(reporter);
 
     auto resolvedTraits = resolveTraitInstanceList(ctx, impl->traits);
@@ -292,7 +292,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
   res::TraitInstance *parentTrait = nullptr;
 
   if (auto *traitSpecifier = pathExpr.traitSpecifier.get()) {
-    varOrReturn(type, resolveType(ctx, *traitSpecifier->type));
+    varOrReturn(type, resolveType(ctx, *traitSpecifier->type, true));
     varOrReturn(trait, resolveTraitInstance(
                            ctx, traitSpecifier->impl->traitInstance.get()));
 
@@ -315,14 +315,22 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
   res::TraitInstance *traitHelp = parentTrait;
 
   for (auto &&fragment : pathExpr.fragments) {
-    bool isLast = fragment != pathExpr.fragments.back();
-    varOrReturn(resolvedDre,
-                isLast ? resolveDeclRefExpr<res::TypeDecl>(
-                             ctx, fragment.get(), prevType, parentTrait)
-                       : resolveDeclRefExpr<Hint>(ctx, fragment.get(), prevType,
-                                                  parentTrait));
+    bool isLast = fragment == pathExpr.fragments.back();
 
-    resolvedFragments.emplace_back(resolvedDre);
+    res::DeclRefExpr *resolvedDre =
+        isLast ? resolveDeclRefExpr<Hint>(ctx, fragment.get(), prevType,
+                                          parentTrait)
+               : resolveDeclRefExpr<res::TypeDecl>(ctx, fragment.get(),
+                                                   prevType, parentTrait);
+
+    if (!resolvedFragments.emplace_back(resolvedDre))
+      return nullptr;
+
+    if (!isLast && !resolvedDre->decl->getAs<res::TypeDecl>())
+      return err::cannotAccessMember(resolvedDre->location)
+          .with(resolvedDre->decl->identifier)
+          .report(reporter);
+
     prevType = resolvedDre->getType();
     traitHelp = nullptr;
   }
@@ -333,22 +341,20 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
 template <typename Hint>
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
                                            const ast::DeclRefExpr *dre,
-                                           res::Type *in,
+                                           res::Type *parentType,
                                            res::TraitInstance *traitHelp) {
   res::DeclContext *scope = nullptr;
   res::TraitType *traitHelpTy =
       traitHelp ? traitHelp->getType()->getAs<res::TraitType>() : nullptr;
 
-  if (!in)
+  if (!parentType)
     scope = lexicalScope;
   else if (traitHelp)
     scope = traitHelp->decl;
-  else if (auto *st = in->getAs<res::StructType>())
+  else if (auto *st = parentType->getAs<res::StructType>())
     scope = st->getDecl();
 
-  // FIXME: error out if 'in' is a trait type
-
-  if (!in && dre->identifier == selfTypeId) {
+  if (!parentType && dre->identifier == selfTypeId) {
     if (!selfType)
       return err::selfTyNotAllowed(dre->location).report(reporter);
 
@@ -358,18 +364,18 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     else
       decl = selfType->getAs<res::StructType>()->getDecl();
 
-    return createDeclRefExpr(ctx, dre, in, decl, traitHelpTy);
+    return createDeclRefExpr(ctx, dre, parentType, decl, traitHelpTy);
   }
 
   if (scope)
     if (res::Decl *decl = lookupSymbolWithFallback<Hint>(scope, dre))
-      return createDeclRefExpr(ctx, dre, in, decl, traitHelpTy);
+      return createDeclRefExpr(ctx, dre, parentType, decl, traitHelpTy);
 
-  if (in) {
+  if (parentType) {
     res::TraitType *candidateTrait = nullptr;
     res::Decl *candidateDecl = nullptr;
 
-    for (auto &&trait : typeMgr.getUpperBounds(in)) {
+    for (auto &&trait : typeMgr.getUpperBounds(parentType)) {
       if (candidateTrait && typeMgr.unify(trait, candidateTrait).empty())
         continue;
 
@@ -385,14 +391,15 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     }
 
     if (candidateDecl)
-      return createDeclRefExpr(ctx, dre, in, candidateDecl, candidateTrait);
+      return createDeclRefExpr(ctx, dre, parentType, candidateDecl,
+                               candidateTrait);
 
-    if (traitHelp) {
-      in = traitHelp->getType();
-    }
+    if (traitHelp)
+      parentType = traitHelp->getType();
+
     return err::lookupInTypeFailed(dre->location)
         .with(dre->identifier)
-        .with(in->getName())
+        .with(parentType->getName())
         .report(reporter);
   }
 

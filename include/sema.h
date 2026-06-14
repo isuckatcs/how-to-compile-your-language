@@ -107,7 +107,7 @@ class Sema {
 
   res::Type *resolveType(res::Context &ctx,
                          const ast::Type &parsedType,
-                         bool isPointee = false);
+                         bool allowRawTraitObject = false);
 
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
                                            const ast::UnaryOperator &unary);
@@ -121,7 +121,7 @@ class Sema {
   template <typename Hint>
   res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
                                        const ast::DeclRefExpr *dre,
-                                       res::Type *in = nullptr,
+                                       res::Type *parentType = nullptr,
                                        res::TraitInstance *traitHelp = nullptr);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,

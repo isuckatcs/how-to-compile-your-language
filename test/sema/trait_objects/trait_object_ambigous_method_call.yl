@@ -8,8 +8,6 @@ trait B : A {
 }
 
 fn foo(x: *mut impl B) {
-  // FIXME: change syntax so that this can be disambiguates
-
   // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
   x.foo();
 }

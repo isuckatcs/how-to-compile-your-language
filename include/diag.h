@@ -154,7 +154,6 @@ diag(Error, fieldNotInitialized, "field '{}' is not initialized");
 
 // traits
 diag(Error, traitNotImplemented, "'{}' doesn't implement trait '{}'");
-diag(Error, traitMissingMember, "trait '{}' has no member '{}'");
 diag(Error, stricterParamTy, "cannot replace parameter of type '{}' with stricter implementation type '{}'");
 diag(Error, fnSignatureMismatch, "trait function declaration has '{}' signature, but the given implementation is '{}'");
 diag(Error, notATrait, "'{}' is not a trait");
