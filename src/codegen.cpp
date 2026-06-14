@@ -338,6 +338,19 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
   return constructStruct(storage, type, inits);
 }
 
+llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
+  auto *valueType = instCtx.getInstantiatedType(gcExpr.expr->getType());
+  auto *valueTy = generateType(valueType);
+
+  auto *val = generateExpr(*gcExpr.expr);
+  auto *ptr = allocateHeapVariable(valueType);
+
+  if (valueTy->isSized())
+    storeValue(val, ptr, valueTy);
+
+  return ptr;
+}
+
 llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
@@ -410,6 +423,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
     auto *res = generateCallExpr(*call);
+
+    // FIXME: revisit when tmp roots are created, this is probably wrong
     if (res)
       createTmpGCRootIfNeeded(res,
                               instCtx.getInstantiatedType(call->getType()));
@@ -434,6 +449,16 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
     return generateDeclRefExpr(*ide->outParamRef);
+
+  if (auto *gc = dynamic_cast<const res::GCExpr *>(&expr)) {
+    auto *res = generateGCExpr(*gc);
+
+    // FIXME: revisit when tmp roots are created, this is probably wrong
+    if (res)
+      createTmpGCRootIfNeeded(res, instCtx.getInstantiatedType(gc->getType()));
+
+    return res;
+  }
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
@@ -525,17 +550,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
   const auto *calleeFnDecl = call.getCalleeFn();
   if (calleeFnDecl) {
-    if (calleeFnDecl->identifier == "gc" ||
-        calleeFnDecl->identifier == "gcMut") {
-      auto *argType = instCtx.getInstantiatedType(call.arguments[0]->getType());
-      auto *ptr = allocateHeapVariable(argType);
-
-      auto *argTy = generateType(argType);
-      if (argTy->isSized())
-        storeValue(args[0], ptr, argTy);
-      return ptr;
-    }
-
     if (calleeFnDecl->identifier == "gcCollect") {
       builder.CreateCall(getOrInsertGCMark());
       builder.CreateCall(getOrInsertGCSweep());

@@ -1,0 +1,25 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+fn alloc<T>(t: T): *T {
+  gcMut(t);
+  return gc(t);
+}
+
+fn main() {
+  alloc(unit);
+  println(*alloc(123));
+  (*alloc(println))(456);
+}
+
+// CHECK: define ptr @_Y5allocGuE(ptr %closure) gc "shadow-stack" {
+// CHECK:   %0 = call ptr @gcAlloc(i32 0, ptr null)
+// CHECK:   %1 = call ptr @gcAlloc(i32 0, ptr null)
+
+// CHECK: define ptr @_Y5allocGnE(double %t, ptr %closure) gc "shadow-stack" {
+// CHECK:   %0 = call ptr @gcAlloc(i32 8, ptr null)
+// CHECK:   %1 = call ptr @gcAlloc(i32 8, ptr null)
+
+// CHECK: define ptr @_Y5allocGFnRuE(ptr byval({ ptr, ptr }) %t, ptr %closure) gc "shadow-stack" {
+// CHECK:   %0 = call ptr @gcAlloc(i32 16, ptr @function.offsets)
+// CHECK:   %1 = call ptr @gcAlloc(i32 16, ptr @function.offsets)

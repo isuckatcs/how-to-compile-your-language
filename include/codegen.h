@@ -103,6 +103,7 @@ class Codegen {
   llvm::Value *generateUnaryOperator(const res::UnaryOperator &unop);
   llvm::Value *generateMemberExpr(const res::MemberExpr &memberExpr);
   llvm::Value *generateStructInstExpr(const res::StructInstantiationExpr &sie);
+  llvm::Value *generateGCExpr(const res::GCExpr &gcExpr);
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
 
   llvm::Value *
