@@ -378,9 +378,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   if (needsClosure) {
     const auto &fieldDecls = closureType->getDecl()->getAll<res::FieldDecl>();
 
-    // FIXME: Sema guarantees that all of these are DeclRefExprs, so they cannot
-    // trigger the GC. Change the type of expressions in 'lambdaExpr.fieldInits'
-    // to reflext this.
+    // Note: none of the initializers can trigger the GC.
     std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
     for (int i = 0; i < fieldDecls.size(); ++i)
       fieldInits[fieldDecls[i]] =
