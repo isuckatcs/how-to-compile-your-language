@@ -123,6 +123,8 @@ res::Type *Sema::resolveType(res::Context &ctx,
   }
 
   if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
+    usingTraitObjects = true;
+
     if (!allowRawTraitObject)
       return err::traitObjectNotPointee(impl->location).report(reporter);
 

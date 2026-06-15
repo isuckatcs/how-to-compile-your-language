@@ -11,6 +11,11 @@
 
 namespace yl {
 class Sema {
+public:
+  // FIXME: temporary flag to disable trait objects
+  bool usingTraitObjects = false;
+
+private:
   static constexpr const char *implicitSelfId = "__Self";
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";

@@ -145,6 +145,11 @@ int main(int argc, const char **argv) {
   if (!resolvedTree)
     return 1;
 
+  if (sema.usingTraitObjects) {
+    std::cerr << "trait objects are not supported by code generation yet\n";
+    return 1;
+  }
+
   Codegen codegen(*resolvedTree, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
