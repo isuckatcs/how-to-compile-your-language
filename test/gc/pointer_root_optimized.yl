@@ -55,9 +55,9 @@ fn main() {
   // CHECK: 123
 
   gcCollect();
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (32 B) offsets: {8 @{{.*}}} {24 @{{.*}}} {heap: 200 B, threshold: 288 B}
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (32 B) offsets: {8 {{.*}}} {24 {{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (32 B) offsets: {8 {{.*}}} {24 {{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (32 B) offsets: {8 {{.*}}} {24 {{.*}}} {heap: 200 B, threshold: 288 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) {heap: 200 B, threshold: 288 B}
   // CHECK-NEXT: [1] sweep {heap: 200 B, threshold: 400 B}
 }

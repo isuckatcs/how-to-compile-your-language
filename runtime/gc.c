@@ -35,8 +35,7 @@ static const size_t minThreshold = 4 * sizeof(struct AllocHeader);
 static size_t threshold = minThreshold;
 static size_t heapSize = 0;
 
-static int32_t markCycle = 0;
-static int32_t sweepCycle = 0;
+static int32_t gcCycle = 0;
 
 enum Phase {
   ALLOC,
@@ -44,31 +43,31 @@ enum Phase {
   SWEEP,
 };
 
-static void log(enum Phase phase, struct AllocHeader *block) {
+static void gcLog(enum Phase phase, struct AllocHeader *block) {
   if (!getenv("YL_GC_DUMP"))
     return;
 
   switch (phase) {
   case ALLOC:
-    printf("alloc");
+    printf("[%d] alloc", gcCycle);
     break;
   case MARK:
-    printf("[%d] mark", markCycle);
+    printf("[%d] mark", gcCycle);
     break;
   case SWEEP:
-    printf("[%d] sweep", sweepCycle);
+    printf("[%d] sweep", gcCycle);
     break;
   }
 
   if (block) {
     void *data = (void *)block + sizeof(struct AllocHeader);
-    printf(" @%p, data: %p (%d B)", block, data, block->size);
+    printf(" %p data: %p (%d B)", block, data, block->size);
 
     if (block->metadata) {
       printf(" offsets:");
       for (int i = 0; i < block->metadata->offsetCnt; ++i) {
         int32_t offset = block->metadata->offsets[i];
-        printf(" {%d @%p}", offset, *(void **)(data + offset));
+        printf(" {%d %p}", offset, *(void **)(data + offset));
       }
     }
   }
@@ -98,7 +97,7 @@ static void mark(void *root) {
     return;
 
   header->marked = 1;
-  log(MARK, header);
+  gcLog(MARK, header);
 
   markChildren(root, header->metadata);
 }
@@ -124,8 +123,6 @@ void gcMark() {
 
     currentFrame = currentFrame->parent;
   }
-
-  ++markCycle;
 }
 
 void gcSweep() {
@@ -143,7 +140,7 @@ void gcSweep() {
     heapSize -= blockPtr->size + sizeof(struct AllocHeader);
     *blockPtrPtr = blockPtr->next;
 
-    log(SWEEP, blockPtr);
+    gcLog(SWEEP, blockPtr);
     free(blockPtr);
   }
 
@@ -151,8 +148,8 @@ void gcSweep() {
   if (threshold < minThreshold)
     threshold = minThreshold;
 
-  log(SWEEP, NULL);
-  ++sweepCycle;
+  gcLog(SWEEP, NULL);
+  ++gcCycle;
 }
 
 void *gcAlloc(int32_t size, const struct Metadata *metadata) {
@@ -166,7 +163,7 @@ void *gcAlloc(int32_t size, const struct Metadata *metadata) {
 
   heapSize += size + sizeof(struct AllocHeader);
   allocatedBlocks = header;
-  log(ALLOC, header);
+  gcLog(ALLOC, header);
 
   if (heapSize > threshold) {
     mark(ptr + offset);

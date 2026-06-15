@@ -6,18 +6,18 @@ struct S {
 
 fn main() {
   mut s = S { ptr: gc(123) };
-  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   caller(s, mutator(&s));
 }
 
 fn mutator(s: &S) {
   s.ptr = gc(456);
-  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
   
   gcCollect();
-  // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
-  // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
   // CHECK-NEXT: [0] sweep {heap: 64 B, threshold: 128 B}
 }
 
@@ -25,6 +25,6 @@ fn caller(s: S, u: unit) {
   println(*s.ptr);
   // CHECK-NEXT: 123
 }
-// CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 128 B}
-// CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 0 B, threshold: 128 B}
+// CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 128 B}
+// CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 128 B}
 // CHECK-NEXT: [1] sweep {heap: 0 B, threshold: 96 B}

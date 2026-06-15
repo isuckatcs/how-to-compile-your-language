@@ -19,9 +19,9 @@ fn main() {
   // CHECK: 123
 
   gcCollect();
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 256 B} 
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 256 B} 
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 256 B} 
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) {heap: 128 B, threshold: 256 B} 
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 128 B, threshold: 256 B} 
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 128 B, threshold: 256 B} 
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 128 B, threshold: 256 B} 
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) {heap: 128 B, threshold: 256 B} 
   // CHECK-NEXT: [1] sweep {heap: 128 B, threshold: 256 B}
 }

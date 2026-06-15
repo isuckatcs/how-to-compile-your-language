@@ -11,22 +11,22 @@ fn collect(ptr: &*mut *number) {
 
 fn main() {
   mut p = gcMut(gc(123));
-  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
-  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) offsets: {0 @(nil)} {heap: 64 B, threshold: 96 B}
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 64 B, threshold: 96 B}
 
   collect(&p);
-    // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
-    // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) offsets: {0 @(nil)} {heap: 128 B, threshold: 96 B}
-    // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @(nil)} {heap: 128 B, threshold: 96 B}
-    // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 128 B, threshold: 96 B}
-    // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 96 B}
-    // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 128 B, threshold: 96 B}
+    // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
+    // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 128 B, threshold: 96 B}
+    // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 128 B, threshold: 96 B}
+    // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 128 B, threshold: 96 B}
+    // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 128 B, threshold: 96 B}
+    // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 128 B, threshold: 96 B}
     // CHECK-NEXT: [0] sweep {heap: 128 B, threshold: 256 B}
 
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 128 B, threshold: 256 B}
-  // CHECK-NEXT: [1] mark @{{.*}}, data: {{.*}} (8 B) {heap: 128 B, threshold: 256 B}
-  // CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 96 B, threshold: 256 B}
-  // CHECK-NEXT: [1] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 256 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 128 B, threshold: 256 B}
+  // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (8 B) {heap: 128 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 96 B, threshold: 256 B}
+  // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 256 B}
   // CHECK-NEXT: [1] sweep {heap: 64 B, threshold: 128 B}
 
   println(**p);

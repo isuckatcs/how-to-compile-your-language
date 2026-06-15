@@ -8,8 +8,8 @@ fn main() {
   let x = foo();
 
   gcCollect();
-  // CHECK: [0] mark @{{.*}}, data: {{.*}} (8 B) offsets: {0 @{{.*}}} {heap: 64 B, threshold: 96 B}
-  // CHECK-NEXT: [0] mark @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK: [0] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
   // CHECK-NEXT: [0] sweep {heap: 64 B, threshold: 128 B}
 
   println(**x);

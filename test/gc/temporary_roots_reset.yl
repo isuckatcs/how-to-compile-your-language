@@ -26,15 +26,15 @@ fn bar(): S2 {
 
 fn main() {
   foo();
-  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   bar();
-  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
-  // CHECK-NEXT: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
+  // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
 
   gcCollect();
-  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
-  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
-  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
   // CHECK-NEXT: [0] sweep {heap: 0 B, threshold: 96 B}
 }

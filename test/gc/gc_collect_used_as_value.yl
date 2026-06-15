@@ -3,10 +3,10 @@ fn main() {
   let collect = gcCollect;
 
   let n = *gc(123);
-  // CHECK: alloc @{{.*}}, data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   collect();
-  // CHECK-NEXT: [0] sweep @{{.*}}, data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
+  // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
   // CHECK-NEXT: [0] sweep {heap: 0 B, threshold: 96 B}
 
   println(n);
