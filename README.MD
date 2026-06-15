@@ -119,17 +119,30 @@ Defining the `YL_GC_DUMP` environment variable when running the compiled executa
 ```
 $ compiler gc_example.yl -o gc_example
 $ YL_GC_DUMP=1 ./gc_example
-alloc @(123.header), data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
-alloc @(S.header), data: (S.data) (8 B) offsets: {0 @(nil)} {heap: 64 B, threshold: 96 B}
-alloc @(456.header), data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
-[0] mark @(S.header), data: (S.data) (8 B) offsets: {0 @(456.data)} {heap: 96 B, threshold: 96 B}
-[0] mark @(456.header), data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
-[0] sweep @(123.header), data: (123.data) (8 B) {heap: 64 B, threshold: 96 B}
+[0] alloc (123.header) data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
+[0] alloc (S.header) data: (S.data) (8 B) offsets: {0 (nil)} {heap: 64 B, threshold: 96 B}
+[0] alloc (456.header) data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
+[0] mark (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 96 B, threshold: 96 B}
+[0] mark (456.header) data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
+[0] sweep (123.header) data: (123.data) (8 B) {heap: 64 B, threshold: 96 B}
 [0] sweep {heap: 64 B, threshold: 128 B}
 456
-[1] sweep @(456.header), data: (456.data) (8 B) {heap: 32 B, threshold: 128 B}
-[1] sweep @(S.header), data: (S.data) (8 B) offsets: {0 @(456.data)} {heap: 0 B, threshold: 128 B}
+[1] sweep (456.header) data: (456.data) (8 B) {heap: 32 B, threshold: 128 B}
+[1] sweep (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 0 B, threshold: 128 B}
 [1] sweep {heap: 0 B, threshold: 96 B}
+```
+The GC log format is as follows.
+```
+[1] sweep (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 0 B, threshold: 128 B}
+
+
+- [1]: GC cycle, incremented after sweeping
+- sweep: operation the GC perfomed
+- (S.header): address of the header storing the data about the allocated memory block
+- (S.data): address of the data returned to the caller, this is the pointer value the program sees
+- (8 B): size of the object the caller allocated
+- {0 (456.data)}: optional list of offsets within (S.data) with a pointer to a heap allocated object
+- {heap: 0 B, threshold: 128 B}: total heap usage with the limit it must surpass to trigger a collection
 ```
 
 ### Generics
