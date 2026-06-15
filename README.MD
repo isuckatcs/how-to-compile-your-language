@@ -55,7 +55,7 @@ fn main() {
 }
 ```
 
-### Hindley-Milner Type System
+### Hindley-Milner Style Type System
 
 Simple Hindley-Milner style static type system currently supporting the `number`, `unit`, `function` and user-defined `struct` types with type inference capabilities. 
 
@@ -73,6 +73,63 @@ fn bar<T>(x: T): T {
 fn main() {
   println(foo(bar, 0));
 }
+```
+
+### Heap Allocated Closures
+
+Heap allocated closures to support seamless function and lambda interchangeability.
+
+```
+fn returnCapturingLambda(): () -> number {
+  let x = 123;
+  return ->(){ return x; };
+}
+
+fn consumeFunction(f: () -> number) {
+  println(f());
+}
+
+fn main() {
+  consumeFunction(returnCapturingLambda());
+}
+```
+
+### Tracing Garbage Collection
+
+A stop-the-world mark-and-sweep garbage collector built on top of the LLVM shadow stack strategy to allow access to the heap.
+
+```
+struct S {
+  ptr: *number
+}
+
+fn main() {
+  mut s = gcMut(S { ptr: gc(123) });
+  s.ptr = gc(456);
+
+  gcCollect(); // manual gc trigger point
+
+  println(*s.ptr);
+}
+// automatic gc trigger point
+```
+
+Defining the `YL_GC_DUMP` environment variable when running the compiled executable enables extensive garbage collector logging. This helps visualizing how the collector behaves for debugging and learning purposes.
+
+```
+$ compiler gc_example.yl -o gc_example
+$ YL_GC_DUMP=1 ./gc_example
+alloc @(123.header), data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
+alloc @(S.header), data: (S.data) (8 B) offsets: {0 @(nil)} {heap: 64 B, threshold: 96 B}
+alloc @(456.header), data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
+[0] mark @(S.header), data: (S.data) (8 B) offsets: {0 @(456.data)} {heap: 96 B, threshold: 96 B}
+[0] mark @(456.header), data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
+[0] sweep @(123.header), data: (123.data) (8 B) {heap: 64 B, threshold: 96 B}
+[0] sweep {heap: 64 B, threshold: 128 B}
+456
+[1] sweep @(456.header), data: (456.data) (8 B) {heap: 32 B, threshold: 128 B}
+[1] sweep @(S.header), data: (S.data) (8 B) offsets: {0 @(456.data)} {heap: 0 B, threshold: 128 B}
+[1] sweep {heap: 0 B, threshold: 96 B}
 ```
 
 ### Generics
