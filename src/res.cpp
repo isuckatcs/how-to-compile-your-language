@@ -196,18 +196,6 @@ void DeclRefExpr::dump(size_t level) const {
             << getFullPath() << " {" << getType()->getName() << '}' << '\n';
 }
 
-const res::FunctionDecl *CallExpr::getCalleeFn() const {
-  const auto *pathExpr = dynamic_cast<const res::DeclRefExpr *>(callee);
-  if (!pathExpr)
-    return nullptr;
-
-  const auto *fn = pathExpr->decl->getAs<res::FunctionDecl>();
-  if (!fn)
-    return nullptr;
-
-  return fn;
-}
-
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"
             << " {" << getType()->getName() << '}' << '\n';

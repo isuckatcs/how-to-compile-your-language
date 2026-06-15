@@ -363,7 +363,6 @@ struct CallExpr : public Expr {
         callee(callee),
         arguments(std::move(arguments)) {}
 
-  const res::FunctionDecl *getCalleeFn() const;
   void dump(size_t level = 0) const override;
 };
 
