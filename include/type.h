@@ -212,6 +212,7 @@ public:
 
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
+  Type *stripPointerAndOutTypes(Type *t);
 };
 } // namespace res
 } // namespace yl

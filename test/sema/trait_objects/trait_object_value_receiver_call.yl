@@ -10,6 +10,6 @@ struct S {
 fn main() {
   let x: *impl Foo = gc(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:4: error: methods that take 'self' by value cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods that take 'self' by value cannot be called on trait objects
   x.foo();
 }

@@ -448,121 +448,105 @@ res::Decl *Sema::lookupSymbolWithFallback(res::DeclContext *scope,
   return scope->lookupDecl<res::Decl>(dre->identifier);
 }
 
+std::pair<res::Expr *, std::vector<res::Expr *>>
+Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
+  const auto *me = dynamic_cast<const ast::MemberExpr *>(call.callee.get());
+  if (!me)
+    return {resolveExpr(ctx, *call.callee), {}};
+
+  res::MemberExpr *resMemberExpr = resolveMemberExpr(ctx, *me, true);
+  if (!resMemberExpr)
+    return {nullptr, {}};
+
+  const auto *method = resMemberExpr->member->decl->getAs<res::FunctionDecl>();
+  if (!method)
+    return {resMemberExpr, {}};
+
+  if (method->params.empty() || method->params[0]->identifier != selfParamId)
+    return {err::classMethodCallOnInstance(call.location).report(reporter), {}};
+
+  res::Expr *selfArg = resMemberExpr->base;
+  res::Type *selfArgType = selfArg->getType();
+  SourceLocation argLoc = selfArg->location;
+
+  auto *fnType = resMemberExpr->getType()->getAs<res::FunctionType>();
+  res::Type *selfParamType = fnType->getArgs()[0];
+
+  if (selfParamType->getAs<res::OutParamType>()) {
+    auto *ptrType = selfArgType->getAs<res::PointerType>();
+
+    // FIXME: rvalues are only valid for structs, which must be materialized
+    if ((ptrType && !ptrType->isMutable()) ||
+        (!ptrType && selfArg->isLvalue() && !selfArg->isMutable()))
+      return {err::structImmutable(selfArg->location).report(reporter), {}};
+
+    auto *outType = typeMgr.getOutParamType(ptrType ? ptrType->getPointeeType()
+                                                    : selfArgType);
+    if (ptrType)
+      selfArg = ctx.create<res::ImplicitCoerceExpr>(argLoc, outType, selfArg);
+    else
+      selfArg = ctx.create<res::UnaryOperator>(
+          argLoc, outType, TokenKind::Amp, selfArg, res::Expr::Kind::Rvalue);
+  } else if (!selfParamType->getAs<res::PointerType>()) {
+    if (auto *ptrType = selfArgType->getAs<res::PointerType>())
+      selfArg = insertUnaryDeref(ctx, selfArg);
+  }
+
+  SourceLocation memberLoc = resMemberExpr->member->location;
+  if (selfParamType->getAs<res::ImplType>())
+    return {err::traitObjectSelf(memberLoc).report(reporter), {}};
+
+  for (auto &&argType : fnType->getArgs()) {
+    if (argType == *fnType->getArgs().begin())
+      continue;
+
+    if (typeMgr.stripPointerAndOutTypes(argType)->getAs<res::ImplType>())
+      return {err::traitObjectSelfParam(memberLoc).report(reporter), {}};
+  }
+
+  if (typeMgr.stripPointerAndOutTypes(fnType->getReturnType())
+          ->getAs<res::ImplType>())
+    return {err::traitObjectSelfReturn(memberLoc).report(reporter), {}};
+
+  auto msgs = typeMgr.unify(selfParamType, selfArg->getType());
+  if (!msgs.empty()) {
+    for (auto &&msg : msgs)
+      err::inferenceError(selfArg->location).with(msg).report(reporter);
+
+    return {nullptr, {}};
+  }
+
+  return {resMemberExpr->member, {selfArg}};
+}
+
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
-  res::Expr *callee = nullptr;
-  res::Expr *selfArg = nullptr;
+  auto &&[callee, args] = resolveCallBase(ctx, call);
+  if (!callee)
+    return nullptr;
 
-  {
-    WithModifiersRAII isCallee(this, IsCallee);
-    callee = resolveExpr(ctx, *call.callee);
-    if (!callee)
-      return nullptr;
-  }
-
-  res::Type *calleeType = callee->getType();
-  auto *fnType = calleeType->getAs<res::FunctionType>();
+  auto *fnType = callee->getType()->getAs<res::FunctionType>();
   if (!fnType)
     return err::invalidCallTy(call.location)
-        .with(calleeType->getName())
+        .with(callee->getType()->getName())
         .report(reporter);
 
-  if (auto *me = dynamic_cast<res::MemberExpr *>(callee)) {
-    res::Expr *base = me->base;
-    res::DeclRefExpr *member = me->member;
-
-    if (auto *function = member->decl->getAs<res::FunctionDecl>()) {
-      res::ParamDecl *selfParam =
-          function->params.empty() ? nullptr : function->params[0];
-      if (!selfParam || selfParam->identifier != selfParamId)
-        return err::classMethodCallOnInstance(call.location).report(reporter);
-
-      SourceLocation baseLoc = base->location;
-      res::Expr::Kind baseKind = base->kind;
-      res::Type *baseTy = base->getType();
-
-      selfArg = base;
-      if (selfParam->getType()->getAs<res::OutParamType>()) {
-        if (selfArg->isLvalue() && !selfArg->isMutable())
-          return err::structImmutable(baseLoc).report(reporter);
-
-        selfArg = ctx.create<res::UnaryOperator>(
-            baseLoc, typeMgr.getOutParamType(baseTy), TokenKind::Amp, selfArg,
-            res::Expr::Kind::Rvalue);
-      } else if (baseTy->getAs<res::ImplType>())
-        return err::traitObjectSelf(baseLoc).report(reporter);
-
-      auto referencesSelf = [&](const res::Type *paramTy) {
-        while (true) {
-          if (auto *ptrTy = paramTy->getAs<res::PointerType>()) {
-            paramTy = ptrTy->getPointeeType();
-            continue;
-          }
-
-          if (auto *outTy = paramTy->getAs<res::OutParamType>()) {
-            paramTy = outTy->getParamType();
-            continue;
-          }
-
-          return paramTy->getRootType() ==
-                 function->typeParams[0]->getType()->getRootType();
-        }
-      };
-
-      if (baseTy->getAs<res::ImplType>()) {
-        for (auto &&param : function->params) {
-          if (param->identifier == selfParamId)
-            continue;
-
-          if (referencesSelf(param->getType()))
-            return err::traitObjectSelfParam(baseLoc).report(reporter);
-        }
-
-        if (referencesSelf(function->getType()
-                               ->getAs<res::FunctionType>()
-                               ->getReturnType()))
-          return err::traitObjectSelfReturn(baseLoc).report(reporter);
-      }
-
-      res::DeclRefExpr *baseDre = nullptr;
-      if (auto *structTy = baseTy->getAs<res::StructType>())
-        baseDre =
-            ctx.create<res::DeclRefExpr>(baseLoc, structTy, structTy->getDecl(),
-                                         baseKind, structTy->getTypeArgs());
-
-      if (auto *typeParamTy = baseTy->getAs<res::TypeParamType>())
-        baseDre = ctx.create<res::DeclRefExpr>(baseLoc, typeParamTy,
-                                               typeParamTy->decl, baseKind);
-
-      std::vector<res::DeclRefExpr *> fragments;
-      if (baseDre)
-        fragments.emplace_back(baseDre);
-      fragments.emplace_back(member);
-
-      callee = fragments.back();
-    }
-  }
-
   std::vector<res::Type *> argTypes = fnType->getArgs();
-  std::vector<res::Expr *> resolvedArgs;
 
-  if (selfArg)
-    resolvedArgs.emplace_back(selfArg);
+  size_t expectedArgCnt = argTypes.size();
+  size_t implicitArgCnt = args.size();
+  size_t sourceSpelledArgCnt = call.arguments.size();
 
-  size_t fnTypeArgCnt = argTypes.size();
-  size_t resolvedArgCnt = resolvedArgs.size();
-  size_t astArgCnt = call.arguments.size();
-
-  if ((astArgCnt + resolvedArgCnt) != fnTypeArgCnt)
+  if ((sourceSpelledArgCnt + implicitArgCnt) != expectedArgCnt)
     return err::wrongArgCount(call.location)
-        .with(fnTypeArgCnt - resolvedArgCnt)
-        .with(astArgCnt)
+        .with(expectedArgCnt - implicitArgCnt)
+        .with(sourceSpelledArgCnt)
         .report(reporter);
 
   for (auto &&arg : call.arguments) {
     WithModifiersRAII unaryAmpAllowed(this, UnaryAmpAllowed);
 
-    res::Type *expectedTy = argTypes[resolvedArgs.size()];
+    res::Type *expectedTy = argTypes[args.size()];
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, coerceIfNeeded(expectedTy, resolvedArg));
 
@@ -576,11 +560,11 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     }
 
     coercedArg->setConstantValue(cee->evaluate(*coercedArg));
-    resolvedArgs.emplace_back(coercedArg);
+    args.emplace_back(coercedArg);
   }
 
   return ctx.create<res::CallExpr>(call.location, fnType->getReturnType(),
-                                   callee, std::move(resolvedArgs));
+                                   callee, std::move(args));
 }
 
 res::StructInstantiationExpr *Sema::resolveStructInstantiation(
@@ -670,22 +654,35 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       std::move(resolvedFieldInits));
 }
 
+res::UnaryOperator *Sema::insertUnaryDeref(res::Context &ctx, res::Expr *val) {
+  res::PointerType *ptrType = val->getType()->getAs<res::PointerType>();
+
+  res::Expr::Kind kind = ptrType->isMutable() ? res::Expr::Kind::MutLvalue
+                                              : res::Expr::Kind::Lvalue;
+  return ctx.create<res::UnaryOperator>(
+      val->location, ptrType->getPointeeType(), TokenKind::Asterisk, val, kind);
+}
+
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
-                                         const ast::MemberExpr &memberExpr) {
+                                         const ast::MemberExpr &memberExpr,
+                                         bool isCallee) {
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
-  res::Type *baseType = base->getType();
-  if (auto *ptr = baseType->getAs<res::PointerType>())
-    base = ctx.create<res::UnaryOperator>(
-        memberExpr.location, ptr->getPointeeType(), TokenKind::Asterisk, base,
-        ptr->isMutable() ? res::Expr::Kind::MutLvalue
-                         : res::Expr::Kind::Lvalue);
+  auto *parentType = base->getType();
+  auto *ptrType = parentType->getAs<res::PointerType>();
+  if (ptrType)
+    parentType = ptrType->getPointeeType();
 
   varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
-                             ctx, memberExpr.member.get(), base->getType()));
+                             ctx, memberExpr.member.get(), parentType));
 
-  if (memberDre->decl->getAs<res::FunctionDecl>() && !(modifiers & IsCallee))
-    return err::expectedMethodCall(memberExpr.location).report(reporter);
+  if (!isCallee) {
+    if (memberDre->decl->getAs<res::FunctionDecl>())
+      return err::expectedMethodCall(memberExpr.location).report(reporter);
+
+    if (ptrType)
+      base = insertUnaryDeref(ctx, base);
+  }
 
   return ctx.create<res::MemberExpr>(memberExpr.location, base, memberDre);
 }

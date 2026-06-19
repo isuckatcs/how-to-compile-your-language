@@ -1,0 +1,24 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: Self) {}
+}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  let s = gc(S{});
+  s.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(S) -> unit}
+  // CHECK-NEXT:   UnaryOperator '*' {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {*S}
+
+  let s2 = gcMut(S{});
+  s2.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(S) -> unit}
+  // CHECK-NEXT:   UnaryOperator '*' {S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s2 {*mut S}
+}

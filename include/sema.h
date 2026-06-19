@@ -55,7 +55,6 @@ class Sema {
 
   enum Modifiers : unsigned char {
     UnaryAmpAllowed = 1 << 0,
-    IsCallee = 1 << 1,
     MissingTypeAnnotationsAllowed = 1 << 2,
   };
 
@@ -131,12 +130,16 @@ class Sema {
   template <typename Hint>
   res::Decl *lookupSymbolWithFallback(res::DeclContext *scope,
                                       const ast::DeclRefExpr *dre);
+  std::pair<res::Expr *, std::vector<res::Expr *>>
+  resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
+  res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
       const ast::StructInstantiationExpr &structInstantiation);
   res::MemberExpr *resolveMemberExpr(res::Context &ctx,
-                                     const ast::MemberExpr &memberExpr);
+                                     const ast::MemberExpr &memberExpr,
+                                     bool isCallee = false);
   res::Expr *resolveExpr(res::Context &ctx,
                          const ast::Expr &expr,
                          res::Type *typeHint = nullptr);

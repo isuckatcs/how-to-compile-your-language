@@ -11,9 +11,8 @@ fn foo(x: *mut impl Foo<number>) {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl Foo<number> impl Foo<number>>::foo {(&impl Foo<number>, number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {&impl Foo<number>}
-// CHECK-NEXT:         UnaryOperator '*' {impl Foo<number>}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {*mut impl Foo<number>}
+// CHECK-NEXT:       ImplicitCoerceExpr {&impl Foo<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl Foo<number>}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123
 

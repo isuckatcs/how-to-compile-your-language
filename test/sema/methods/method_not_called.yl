@@ -17,6 +17,6 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:13: error: expected to call method
   s.method().method;
   
-  // CHECK: [[# @LINE + 1 ]]:12: error: failed to find member 'method' in '(S) -> S'
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
   s.method.method();
 }

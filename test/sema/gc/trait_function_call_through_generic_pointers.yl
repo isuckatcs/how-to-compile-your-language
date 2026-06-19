@@ -11,7 +11,7 @@ fn foo<T : A>(p: *mut T) {
 }
 
 fn bar<T : A>(p: *T) {
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected mutable struct instance
+  // CHECK: [[# @LINE + 1 ]]:3: error: expected mutable struct instance
   p.bar();
 }
 
