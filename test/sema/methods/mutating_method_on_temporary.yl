@@ -4,12 +4,6 @@ struct S {
 }
 
 fn main() {
+  // CHECK: [[# @LINE + 1 ]]:4: error: expected mutable struct instance
   S{}.foo();
 }
-// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
-// CHECK-NEXT:   Block
-// CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) S::foo {(&S) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {&S}
-// CHECK-NEXT:         StructInstantiationExpr {S}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S}

@@ -11,10 +11,6 @@ struct S {
   fn printMut(mut self: Self) {
     println(*self.n * 2);
   }
-
-  fn printInout(self: &Self) {
-    println(*self.n * 3);
-  }
 }
 
 fn allocate(): *number {
@@ -50,16 +46,4 @@ fn main() {
     // CHECK-NEXT: [1] sweep {heap: 32 B, threshold: 96 B}
   }.printMut();
   // CHECK-NEXT: 246
-
-  S {
-    n: allocate(), 
-    // CHECK-NEXT: [2] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
-  
-    u: collect()
-    // CHECK-NEXT: 0
-    // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
-    // CHECK-NEXT: [2] sweep {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
-    // CHECK-NEXT: [2] sweep {heap: 32 B, threshold: 96 B}
-  }.printInout();
-  // CHECK-NEXT: 369
 }

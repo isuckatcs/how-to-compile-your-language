@@ -475,9 +475,7 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
   if (selfParamType->getAs<res::OutParamType>()) {
     auto *ptrType = selfArgType->getAs<res::PointerType>();
 
-    // FIXME: rvalues are only valid for structs, which must be materialized
-    if ((ptrType && !ptrType->isMutable()) ||
-        (!ptrType && selfArg->isLvalue() && !selfArg->isMutable()))
+    if (ptrType ? !ptrType->isMutable() : !selfArg->isMutable())
       return {err::structImmutable(selfArg->location).report(reporter), {}};
 
     auto *outType = typeMgr.getOutParamType(ptrType ? ptrType->getPointeeType()
