@@ -1,0 +1,31 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+trait Foo {
+  fn foo(self: *Self);
+  fn bar(self: *mut Self);
+}
+
+struct S {
+  x: number
+
+  impl Foo {
+    // CHECK: define void @_YT3Foo3fooGS1SE(ptr %self, ptr %closure)
+    fn foo(self: *Self) {
+      println(self.x);
+    }
+
+    // CHECK: define void @_YT3Foo3barGS1SE(ptr %self, ptr %closure)
+    fn bar(self: *mut Self) {
+      println(self.x);
+    }
+  }
+}
+
+fn main() {
+  let s = gc(S{ x: 123 });
+  let s2 = gcMut(S{ x: 456 });
+
+  s.foo();
+  s2.bar();
+}

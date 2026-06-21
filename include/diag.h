@@ -170,7 +170,7 @@ diag(Error, selfContainingStruct, "struct '{}' contains itself");
 diag(Error, selfTyNotAllowed, "'Self' is only allowed inside structs and traits");
 diag(Error, selfParamNotAllowed, "'self' parameter is only allowed in methods");
 diag(Error, selfWrongPosition, "'self' can only be the first parameter");
-diag(Error, selfWrongType, "the type of 'self' must reference 'Self'");
+diag(Error, selfWrongType, "'self' can only have 'Self', '&Self', '*Self' or '*mut Self' types");
 
 // main
 diag(Error, wrongMainReturnTy, "'main' function is expected to return 'unit'");

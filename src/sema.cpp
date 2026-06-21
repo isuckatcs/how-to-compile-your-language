@@ -1834,9 +1834,11 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
 
   auto *type = param->getType();
   auto *outTy = type->getAs<res::OutParamType>();
+  auto *ptrTy = type->getAs<res::PointerType>();
 
   if (!typeMgr.unify(type, selfType).empty() &&
-      !(outTy && typeMgr.unify(outTy->getParamType(), selfType).empty())) {
+      !(outTy && typeMgr.unify(outTy->getParamType(), selfType).empty()) &&
+      !(ptrTy && typeMgr.unify(ptrTy->getPointeeType(), selfType).empty())) {
     err::selfWrongType(param->location).report(reporter);
     return false;
   }
