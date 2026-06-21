@@ -269,19 +269,34 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
 
 std::pair<bool, std::vector<std::string>>
 TypeManager::tryCoerce(Type *target, Type *current) {
-  auto *targetPtr = target->getAs<res::PointerType>();
-  auto *currentPtr = current->getAs<res::PointerType>();
+  if (auto *targetPtr = target->getAs<res::PointerType>()) {
+    auto *currentPtr = current->getAs<res::PointerType>();
 
-  if (!targetPtr || !currentPtr ||
-      targetPtr->isMutable() != currentPtr->isMutable())
+    if (!currentPtr || targetPtr->isMutable() != currentPtr->isMutable())
+      return {false, {}};
+
+    target = targetPtr->getPointeeType();
+    current = currentPtr->getPointeeType();
+  } else if (auto *targetOut = target->getAs<res::OutParamType>()) {
+    auto *currentOut = current->getAs<res::OutParamType>();
+
+    if (!currentOut)
+      return {false, {}};
+
+    target = targetOut->getParamType();
+    current = currentOut->getParamType();
+  } else
     return {false, {}};
 
-  if (auto *targetImpl = targetPtr->getPointeeType()->getAs<res::ImplType>()) {
+  if (unify(target, current).empty())
+    return {false, {}};
+
+  if (auto *targetImpl = target->getAs<res::ImplType>()) {
     auto *tmpTargetType = getNewUninferredType();
     for (auto &&targetTrait : targetImpl->getTraits())
       withObligation(tmpTargetType, targetTrait);
 
-    return {true, unify(currentPtr->getPointeeType(), tmpTargetType)};
+    return {true, unify(current, tmpTargetType)};
   }
 
   return {false, {}};

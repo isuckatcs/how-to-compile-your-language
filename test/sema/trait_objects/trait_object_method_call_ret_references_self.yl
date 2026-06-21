@@ -24,12 +24,12 @@ struct S {
 fn main() {
   mut x: *mut impl Foo = gcMut(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called with trait objects
   x.val();
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called with trait objects
   x.ptr();
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referecing 'Self' cannot be called with trait objects
   x.ptrMut();
 }

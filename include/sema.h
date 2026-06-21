@@ -134,6 +134,7 @@ class Sema {
   resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);
+  bool isValidCallee(res::Expr *callee);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
       const ast::StructInstantiationExpr &structInstantiation);

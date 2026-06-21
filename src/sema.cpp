@@ -115,7 +115,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     if (!(modifiers & UnaryAmpAllowed))
       return err::unexpectedAmpParam(out->location).report(reporter);
 
-    varOrReturn(paramType, resolveType(ctx, *out->paramType));
+    varOrReturn(paramType, resolveType(ctx, *out->paramType, true));
     assert(!paramType->getAs<res::OutParamType>() &&
            "grammar doesn't allow nested out param types");
 
@@ -466,11 +466,11 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
     return {err::classMethodCallOnInstance(call.location).report(reporter), {}};
 
   res::Expr *selfArg = resMemberExpr->base;
-  res::Type *selfArgType = selfArg->getType();
   SourceLocation argLoc = selfArg->location;
 
-  auto *fnType = resMemberExpr->getType()->getAs<res::FunctionType>();
-  res::Type *selfParamType = fnType->getArgs()[0];
+  res::Type *selfArgType = selfArg->getType();
+  res::Type *selfParamType =
+      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
 
   if (selfParamType->getAs<res::OutParamType>()) {
     auto *ptrType = selfArgType->getAs<res::PointerType>();
@@ -490,31 +490,54 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
       selfArg = insertUnaryDeref(ctx, selfArg);
   }
 
-  SourceLocation memberLoc = resMemberExpr->member->location;
-  if (selfParamType->getAs<res::ImplType>())
-    return {err::traitObjectSelf(memberLoc).report(reporter), {}};
-
-  for (auto &&argType : fnType->getArgs()) {
-    if (argType == *fnType->getArgs().begin())
-      continue;
-
-    if (typeMgr.stripPointerAndOutTypes(argType)->getAs<res::ImplType>())
-      return {err::traitObjectSelfParam(memberLoc).report(reporter), {}};
-  }
-
-  if (typeMgr.stripPointerAndOutTypes(fnType->getReturnType())
-          ->getAs<res::ImplType>())
-    return {err::traitObjectSelfReturn(memberLoc).report(reporter), {}};
-
-  auto msgs = typeMgr.unify(selfParamType, selfArg->getType());
-  if (!msgs.empty()) {
-    for (auto &&msg : msgs)
-      err::inferenceError(selfArg->location).with(msg).report(reporter);
-
-    return {nullptr, {}};
-  }
-
   return {resMemberExpr->member, {selfArg}};
+}
+
+bool Sema::isValidCallee(res::Expr *callee) {
+  auto *dre = dynamic_cast<res::DeclRefExpr *>(callee);
+  if (!dre)
+    return true;
+
+  auto *fnDecl = dre->decl->getAs<res::FunctionDecl>();
+  if (!fnDecl)
+    return true;
+
+  if (fnDecl->typeParams.empty() ||
+      fnDecl->typeParams[0]->identifier != implicitSelfId)
+    return true;
+
+  if (!dre->typeArgs[0]->getAs<res::ImplType>())
+    return true;
+
+  auto *fnType = fnDecl->getType()->getAs<res::FunctionType>();
+  res::Type *selfTPType = fnDecl->typeParams[0]->getType();
+
+  SourceLocation calleeLoc = callee->location;
+  bool hasSelfParam =
+      !fnDecl->params.empty() && fnDecl->params[0]->identifier == selfParamId;
+
+  for (auto &&paramType : fnType->getArgs()) {
+    if (paramType == *fnType->getArgs().begin() && hasSelfParam) {
+      if (paramType == typeMgr.stripPointerAndOutTypes(paramType)) {
+        err::traitObjectSelf(calleeLoc).report(reporter);
+        return false;
+      }
+
+      continue;
+    }
+
+    if (typeMgr.stripPointerAndOutTypes(paramType) == selfTPType) {
+      err::traitObjectSelfParam(calleeLoc).report(reporter);
+      return false;
+    }
+  }
+
+  if (typeMgr.stripPointerAndOutTypes(fnType->getReturnType()) == selfTPType) {
+    err::traitObjectSelfReturn(calleeLoc).report(reporter);
+    return false;
+  }
+
+  return true;
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
@@ -528,6 +551,18 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     return err::invalidCallTy(call.location)
         .with(callee->getType()->getName())
         .report(reporter);
+
+  if (!isValidCallee(callee))
+    return nullptr;
+
+  if (!args.empty()) {
+    auto msgs = typeMgr.unify(args[0]->getType(), fnType->getArgs()[0]);
+    if (!msgs.empty()) {
+      for (auto &&msg : msgs)
+        err::inferenceError(callee->location).with(msg).report(reporter);
+      return nullptr;
+    }
+  }
 
   std::vector<res::Type *> argTypes = fnType->getArgs();
 

@@ -13,15 +13,15 @@ struct S {
 fn main() {
   mut x: *mut impl Foo = gcMut(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called with trait objects
   x.value(x);
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called with trait objects
   x.out(x);
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called with trait objects
   x.ptr(x);
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called on trait objects
+  // CHECK: [[# @LINE + 1 ]]:5: error: methods with parameters referecing 'Self' cannot be called with trait objects
   x.mutPtr(x);
 }

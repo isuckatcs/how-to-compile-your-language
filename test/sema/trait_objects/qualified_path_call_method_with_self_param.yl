@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn val(self: Self) {}
+}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:21: error: methods that take 'self' by value cannot be called with trait objects
+  @<impl A impl A>::val(S{});
+}

@@ -321,6 +321,8 @@ struct FunctionDecl : public ValueDecl {
 
   void setBody(Block *body);
 
+  bool hasSelfParam();
+
   void dump(size_t level = 0) const override;
 };
 
@@ -370,7 +372,7 @@ struct DeclRefExpr : public Expr {
   Type *owningType;
   TraitType *owningTrait;
 
-  const Decl *decl;
+  Decl *decl;
   std::vector<Type *> typeArgs;
 
   DeclRefExpr(SourceLocation location,
