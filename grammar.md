@@ -186,7 +186,7 @@
     ::= '*' 'mut'? <type>
 
 <implType>
-    ::= 'impl' <traitInstance> ('&' <traitInstance>)*
+    ::= 'impl' <traitInstance>
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
