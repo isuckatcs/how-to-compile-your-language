@@ -6,24 +6,21 @@ fn foo(): impl A {}
 // CHECK-NEXT:     TraitInstance: A
 // CHECK-NEXT:   Block
 
-fn bar(): impl A & B {}
+fn bar(): impl A<x, y> {}
 // CHECK-NEXT: FunctionDecl: bar
 // CHECK-NEXT:   ImplType
 // CHECK-NEXT:     TraitInstance: A
-// CHECK-NEXT:     TraitInstance: B
+// CHECK-NEXT:       UserDefinedType: x
+// CHECK-NEXT:       UserDefinedType: y
 // CHECK-NEXT:   Block
 
-fn baz(): impl A<x, y, z> & B<x, y> & C {}
+fn baz(): impl A<x, y, z> {}
 // CHECK-NEXT: FunctionDecl: baz
 // CHECK-NEXT:   ImplType
 // CHECK-NEXT:     TraitInstance: A
 // CHECK-NEXT:       UserDefinedType: x
 // CHECK-NEXT:       UserDefinedType: y
 // CHECK-NEXT:       UserDefinedType: z
-// CHECK-NEXT:     TraitInstance: B
-// CHECK-NEXT:       UserDefinedType: x
-// CHECK-NEXT:       UserDefinedType: y
-// CHECK-NEXT:     TraitInstance: C
 // CHECK-NEXT:   Block
 
 fn main() {}

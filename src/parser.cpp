@@ -1127,17 +1127,8 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     SourceLocation location = nextToken.location;
     eatNextToken(); // eat 'impl'
 
-    std::vector<std::unique_ptr<ast::TraitInstance>> traits;
     varOrReturn(trait, parseTraitInstance());
-    traits.emplace_back(std::move(trait));
-
-    while (nextToken.kind == TokenKind::Amp) {
-      eatNextToken(); // eat '&'
-      varOrReturn(trait, parseTraitInstance());
-      traits.emplace_back(std::move(trait));
-    }
-
-    return std::make_unique<ast::ImplType>(location, std::move(traits));
+    return std::make_unique<ast::ImplType>(location, std::move(trait));
   }
 
   return err::expected(nextToken.location)

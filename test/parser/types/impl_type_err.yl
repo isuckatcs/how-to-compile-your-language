@@ -6,7 +6,7 @@ fn foo(): impl 0 {}
 // CHECK: [[# @LINE + 1 ]]:20: error: expected function body
 fn bar(): impl Foo 0 {}
 
-// CHECK: [[# @LINE + 1 ]]:22: error: expected identifier
+// CHECK: [[# @LINE + 1 ]]:20: error: expected function body
 fn baz(): impl Foo & 0 {}
 
 fn main() {}

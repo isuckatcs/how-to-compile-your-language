@@ -48,8 +48,7 @@ void PointerType::dump(size_t level) const {
 void ImplType::dump(size_t level) const {
   std::cerr << indent(level) << "ImplType\n";
 
-  for (auto &&trait : traits)
-    trait->dump(level + 1);
+  trait->dump(level + 1);
 }
 
 void Block::dump(size_t level) const {
