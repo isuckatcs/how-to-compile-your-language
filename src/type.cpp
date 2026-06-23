@@ -108,23 +108,11 @@ std::string TraitType::getName() const {
   return ss.str();
 }
 
-ImplType::ImplType(std::vector<res::TraitType *> traits)
-    : Type("impl", {traits.begin(), traits.end()}),
-      traits(std::move(traits)) {}
+ImplType::ImplType(res::TraitType *trait)
+    : Type("impl", {trait}),
+      trait(trait) {}
 
-std::string ImplType::getName() const {
-  std::stringstream ss;
-  ss << "impl ";
-
-  for (int i = 0; i < traits.size(); ++i) {
-    ss << traits[i]->getName();
-
-    if (i < traits.size() - 1)
-      ss << ' ' << '&' << ' ';
-  }
-
-  return ss.str();
-}
+std::string ImplType::getName() const { return "impl " + trait->getName(); }
 
 void Substitution::dump() const {
   for (auto &&[from, to] : *this)
@@ -210,8 +198,8 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-ImplType *TypeManager::getImplType(std::vector<TraitType *> traits) {
-  auto *implTy = new ImplType(std::move(traits));
+ImplType *TypeManager::getImplType(TraitType *trait) {
+  auto *implTy = new ImplType(trait);
   types.emplace_back(std::unique_ptr<ImplType>(implTy));
   return implTy;
 }
@@ -293,8 +281,7 @@ TypeManager::tryCoerce(Type *target, Type *current) {
 
   if (auto *targetImpl = target->getAs<res::ImplType>()) {
     auto *tmpTargetType = getNewUninferredType();
-    for (auto &&targetTrait : targetImpl->getTraits())
-      withObligation(tmpTargetType, targetTrait);
+    withObligation(tmpTargetType, targetImpl->trait);
 
     return {true, unify(current, tmpTargetType)};
   }

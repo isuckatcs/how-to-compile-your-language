@@ -6,7 +6,7 @@ trait B : A {}
 trait C {}
 
 struct S {
-  x: *impl A & C,
+  x: *impl C,
   y: *impl B
 }
 

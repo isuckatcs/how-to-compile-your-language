@@ -161,15 +161,13 @@ public:
 };
 
 class ImplType : public Type {
-  std::vector<res::TraitType *> traits;
+  res::TraitType *trait;
 
-  ImplType(std::vector<res::TraitType *> traits);
+  ImplType(res::TraitType *trait);
 
 public:
-  std::vector<res::TraitType *> getTraits() { return traits; }
-  std::vector<const res::TraitType *> getTraits() const {
-    return {traits.begin(), traits.end()};
-  }
+  res::TraitType *getTrait() { return trait; }
+  const res::TraitType *getTrait() const { return trait; }
 
   std::string getName() const override;
 
@@ -204,7 +202,7 @@ public:
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   OutParamType *getOutParamType(Type *pointeeType);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
-  ImplType *getImplType(std::vector<TraitType *> traits);
+  ImplType *getImplType(TraitType *trait);
 
   bool moreGeneral(Type *t1, Type *t2);
   std::pair<bool, std::vector<std::string>> tryCoerce(Type *target,

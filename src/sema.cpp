@@ -126,27 +126,17 @@ res::Type *Sema::resolveType(res::Context &ctx,
     if (!allowRawTraitObject)
       return err::traitObjectNotPointee(impl->location).report(reporter);
 
-    auto resolvedTraits = resolveTraitInstanceList(ctx, impl->traits);
-    bool error = resolvedTraits.size() != impl->traits.size();
+    varOrReturn(trait, resolveTraitInstance(ctx, impl->trait.get()));
+    auto *traitType = trait->getType()->getAs<res::TraitType>();
 
-    std::vector<res::TraitType *> traitTys;
-    for (auto &&trait : resolvedTraits) {
-      if (!isTraitVtableCompatible(trait->getType()->getAs<res::TraitType>())) {
-        err::traitObjectTemplateMemberFn(trait->location).report(reporter);
-        error = true;
-      }
+    if (!isTraitVtableCompatible(traitType))
+      return err::traitObjectTemplateMemberFn(trait->location).report(reporter);
 
-      if (functionInfo)
-        error |= !checkTraitInstance(trait);
-      traitTys.emplace_back(trait->getType()->getAs<res::TraitType>());
-    }
-
-    if (error)
+    if (functionInfo && !checkTraitInstance(trait))
       return nullptr;
 
-    auto *implType = typeMgr.getImplType(traitTys);
-    for (auto &&trait : traitTys)
-      typeMgr.addUpperBound(implType, trait);
+    auto *implType = typeMgr.getImplType(traitType);
+    typeMgr.addUpperBound(implType, traitType);
 
     return implType;
   }

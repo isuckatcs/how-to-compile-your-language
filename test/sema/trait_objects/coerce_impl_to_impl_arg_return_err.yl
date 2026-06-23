@@ -5,7 +5,7 @@ trait B : A {}
 
 trait C {}
 
-fn foo(x: *impl B): *impl A & C {
+fn foo(x: *impl B): *impl C {
   // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'impl B : C'
   return x;
 }

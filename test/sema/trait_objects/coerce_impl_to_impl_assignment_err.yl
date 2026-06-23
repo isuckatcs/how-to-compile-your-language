@@ -9,7 +9,7 @@ struct S {
   impl A;
 }
 
-fn foo(x: *impl A, mut y: *impl B, mut z: *impl A & C) {
+fn foo(x: *impl A, mut y: *impl B, mut z: *impl C) {
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'impl A : B'
   y = x;
   
