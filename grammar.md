@@ -163,7 +163,7 @@
     ::= <builtinType>
     |   <userDefinedType>
     |   <functionType>
-    |   <outParamType>
+    |   <referenceType>
     |   <pointerType>
     |   <implType>
 
@@ -179,8 +179,8 @@
 <functionType>
     ::= '(' <type> (',' <type>)* ','? ')' -> type
 
-<outParamType>
-    ::= '&' <type>
+<referenceType>
+    ::= '&' 'mut'? <type>
 
 <pointerType>
     ::= '*' 'mut'? <type>
