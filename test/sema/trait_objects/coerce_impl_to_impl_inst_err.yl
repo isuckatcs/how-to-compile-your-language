@@ -12,10 +12,10 @@ struct S {
 
 fn foo(x: *impl B, y: *impl A) {
   S { 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy constraint 'impl B : C'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*impl B' with '*impl C'
     x: x,
     
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy constraint 'impl A : B'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*impl A' with '*impl B'
     y: y,
   };
 }

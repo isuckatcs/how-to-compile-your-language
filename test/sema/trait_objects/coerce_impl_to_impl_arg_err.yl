@@ -6,13 +6,14 @@ trait B : A {}
 trait C {}
 
 fn foo(x: *impl B) {
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*impl B' with '*impl A'
   bar(x);
 }
 
 fn bar(x: *impl A) {}
 
 fn baz(x: *impl A) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'impl A : B'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*impl A' with '*impl B'
   foo(x);
 }
 

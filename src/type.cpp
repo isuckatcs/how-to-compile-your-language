@@ -255,40 +255,6 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
   return false;
 }
 
-std::pair<bool, std::vector<std::string>>
-TypeManager::tryCoerce(Type *target, Type *current) {
-  if (auto *targetPtr = target->getAs<res::PointerType>()) {
-    auto *currentPtr = current->getAs<res::PointerType>();
-
-    if (!currentPtr || targetPtr->isMutable() != currentPtr->isMutable())
-      return {false, {}};
-
-    target = targetPtr->getPointeeType();
-    current = currentPtr->getPointeeType();
-  } else if (auto *targetOut = target->getAs<res::OutParamType>()) {
-    auto *currentOut = current->getAs<res::OutParamType>();
-
-    if (!currentOut)
-      return {false, {}};
-
-    target = targetOut->getParamType();
-    current = currentOut->getParamType();
-  } else
-    return {false, {}};
-
-  if (unify(target, current).empty())
-    return {false, {}};
-
-  if (auto *targetImpl = target->getAs<res::ImplType>()) {
-    auto *tmpTargetType = getNewUninferredType();
-    withObligation(tmpTargetType, targetImpl->trait);
-
-    return {true, unify(current, tmpTargetType)};
-  }
-
-  return {false, {}};
-}
-
 bool TypeManager::unifyImpl(Type *t1,
                             Type *t2,
                             std::vector<std::string> &errors) {

@@ -10,10 +10,10 @@ struct S {
 }
 
 fn foo(a: *impl A, b: *impl B) {
-  // CHECK: [[# @LINE + 1 ]]:20: error: cannot satisfy constraint 'impl B : C'
+  // CHECK: [[# @LINE + 1 ]]:20: error: an expression of type '*impl B' cannot be used to initialize a variable of type '*impl C'
   let x: *impl C = b;
   
-  // CHECK: [[# @LINE + 1 ]]:20: error: cannot satisfy constraint 'impl A : B'
+  // CHECK: [[# @LINE + 1 ]]:20: error: an expression of type '*impl A' cannot be used to initialize a variable of type '*impl B'
   let y: *impl B = a;
 }
 

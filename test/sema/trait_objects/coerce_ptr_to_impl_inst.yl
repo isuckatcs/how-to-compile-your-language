@@ -12,6 +12,6 @@ struct S2 {
 fn main() {
   S2 { x: gc(S{}) };
   // CHECK: FieldInitStmt @({{.*}}) x
-  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
   // CHECK-NEXT:     GCExpr {*S}
 }

@@ -559,6 +559,16 @@ struct ImplicitCoerceExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct TraitObjectPromoExpr : public Expr {
+  res::Expr *expr;
+
+  TraitObjectPromoExpr(SourceLocation location, Type *type, res::Expr *expr)
+      : Expr(location, type, Expr::Kind::Rvalue),
+        expr(expr) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;

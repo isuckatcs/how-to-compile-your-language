@@ -10,10 +10,10 @@ struct S {
 }
 
 fn foo(x: *impl A, mut y: *impl B, mut z: *impl C) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'impl A : B'
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*impl B' but received '*impl A' instead
   y = x;
   
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'impl B : C'
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*impl C' but received '*impl B' instead
   z = y;
 }
 

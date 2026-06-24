@@ -571,7 +571,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     res::Type *expectedTy = argTypes[args.size()];
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
-    varOrReturn(coercedArg, coerceIfNeeded(expectedTy, resolvedArg));
+    varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
 
     res::Type *actualTy = coercedArg->getType();
 
@@ -636,7 +636,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    res::Expr *coercedInitExpr = coerceIfNeeded(fieldTy, resolvedInitExpr);
+    res::Expr *coercedInitExpr =
+        asTraitObjectIfNeeded(fieldTy, resolvedInitExpr);
     if (!coercedInitExpr) {
       error = true;
       continue;
@@ -840,20 +841,36 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-res::Expr *Sema::coerceIfNeeded(res::Type *targetType, res::Expr *expr) {
-  res::Type *exprType = expr->getType();
-  auto &&[isItPossible, errors] = typeMgr.tryCoerce(targetType, exprType);
-
-  if (!isItPossible)
+// FIXME: should '&' types be allowed as well?
+res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
+  auto *targetPtrType = targetType->getAs<res::PointerType>();
+  if (!targetPtrType)
     return expr;
 
-  if (!errors.empty()) {
-    for (auto &&error : errors)
-      err::inferenceError(expr->location).with(error).report(reporter);
-    return nullptr;
-  }
+  auto *implType = targetPtrType->getPointeeType()->getAs<res::ImplType>();
+  if (!implType)
+    return expr;
 
-  return ctx.create<res::ImplicitCoerceExpr>(expr->location, targetType, expr);
+  auto *exprPtrType = expr->getType()->getAs<res::PointerType>();
+  if (!exprPtrType)
+    return expr;
+
+  auto *pointeeType = exprPtrType->getPointeeType();
+  if (pointeeType->getAs<res::ImplType>() ||
+      targetPtrType->isMutable() != exprPtrType->isMutable())
+    return expr;
+
+  auto *tmpType = typeMgr.getNewUninferredType();
+  typeMgr.withObligation(tmpType, implType->getTrait());
+
+  const auto &errors = typeMgr.unify(tmpType, pointeeType);
+  if (errors.empty())
+    return ctx.create<res::TraitObjectPromoExpr>(expr->location, targetType,
+                                                 expr);
+
+  for (auto &&error : errors)
+    err::inferenceError(expr->location).with(error).report(reporter);
+  return nullptr;
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -929,7 +946,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment(lhs->location).report(reporter);
   auto *lhsTy = lhs->getType();
 
-  varOrReturn(coercedRhs, coerceIfNeeded(lhsTy, rhs));
+  varOrReturn(coercedRhs, asTraitObjectIfNeeded(lhsTy, rhs));
   auto *rhsTy = coercedRhs->getType();
 
   if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
@@ -961,7 +978,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    varOrReturn(coercedExpr, coerceIfNeeded(retTy, expr));
+    varOrReturn(coercedExpr, asTraitObjectIfNeeded(retTy, expr));
     expr = coercedExpr;
 
     res::Type *exprTy = expr->getType();
@@ -1218,7 +1235,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
 
-    varOrReturn(coercedInit, coerceIfNeeded(declTy, init));
+    varOrReturn(coercedInit, asTraitObjectIfNeeded(declTy, init));
     init = coercedInit;
     auto *initTy = init->getType();
 

@@ -11,6 +11,6 @@ fn main() {
   foo(gc(S{}));
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A) -> unit}
-  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
   // CHECK-NEXT:     GCExpr {*S}
 }

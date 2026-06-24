@@ -26,7 +26,7 @@ fn foo(p: &impl Foo) {
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::ptr {(&impl Foo, *impl Foo) -> unit}
   // CHECK-NEXT:   ImplicitCoerceExpr {&impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
-  // CHECK-NEXT:   ImplicitCoerceExpr {*impl Foo}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl Foo}
   // CHECK-NEXT:     GCExpr {*S}
   // CHECK-NEXT:       StructInstantiationExpr {S}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}

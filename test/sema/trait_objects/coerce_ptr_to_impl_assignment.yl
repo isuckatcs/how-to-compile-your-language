@@ -9,7 +9,7 @@ fn foo(mut x: *impl A) {
   x = gc(S{});
   // CHECK: Assignment
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*impl A}
-  // CHECK-NEXT:   ImplicitCoerceExpr {*impl A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
   // CHECK-NEXT:     GCExpr {*S}
 }
 

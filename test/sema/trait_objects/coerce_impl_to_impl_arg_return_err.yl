@@ -6,12 +6,12 @@ trait B : A {}
 trait C {}
 
 fn foo(x: *impl B): *impl C {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'impl B : C'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*impl B' from a function returning '*impl C'
   return x;
 }
 
 fn bar(x: *impl A): *impl B {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'impl A : B'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*impl A' from a function returning '*impl B'
   return x;
 }
 

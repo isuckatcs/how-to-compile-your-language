@@ -201,7 +201,7 @@ class Sema {
                                size_t received,
                                size_t expected) const;
 
-  res::Expr *coerceIfNeeded(res::Type *targetType, res::Expr *expr);
+  res::Expr *asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr);
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,

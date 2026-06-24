@@ -313,6 +313,13 @@ void ImplicitCoerceExpr::dump(size_t level) const {
   expr->dump(level + 1);
 }
 
+void TraitObjectPromoExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitObjectPromoExpr"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
+}
+
 void Context::dump() const {
   for (auto &&trait : traits)
     trait->dump(0);
