@@ -111,11 +111,11 @@ res::Type *Sema::resolveType(res::Context &ctx,
     return typeMgr.getFunctionType(std::move(args), retTy);
   }
 
-  if (const auto *out = dynamic_cast<const ast::OutParamType *>(&parsedType)) {
+  if (const auto *out = dynamic_cast<const ast::ReferenceType *>(&parsedType)) {
     if (!(modifiers & UnaryAmpAllowed))
       return err::unexpectedAmpParam(out->location).report(reporter);
 
-    varOrReturn(paramType, resolveType(ctx, *out->paramType, true));
+    varOrReturn(paramType, resolveType(ctx, *out->referencedType, true));
     assert(!paramType->getAs<res::OutParamType>() &&
            "grammar doesn't allow nested out param types");
 

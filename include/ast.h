@@ -59,12 +59,16 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct OutParamType : public Type {
-  std::unique_ptr<Type> paramType;
+struct ReferenceType : public Type {
+  std::unique_ptr<Type> referencedType;
+  bool isMut;
 
-  OutParamType(SourceLocation location, std::unique_ptr<Type> paramType)
+  ReferenceType(SourceLocation location,
+                std::unique_ptr<Type> referencedType,
+                bool isMut)
       : Type(location),
-        paramType(std::move(paramType)) {}
+        referencedType(std::move(referencedType)),
+        isMut(isMut) {}
 
   void dump(size_t level = 0) const override;
 };

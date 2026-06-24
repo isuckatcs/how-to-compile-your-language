@@ -6,18 +6,18 @@ fn main() {
 
 fn foo(): &number{}
 // CHECK: FunctionDecl: foo
-// CHECK-NEXT:   OutParamType
+// CHECK-NEXT:   ReferenceType
 // CHECK-NEXT:     BuiltinType: number
 
 fn bar(x: &number) {}
 // CHECK: FunctionDecl: bar
 // CHECK-NEXT:   ParamDecl: x
-// CHECK-NEXT:     OutParamType
+// CHECK-NEXT:     ReferenceType
 // CHECK-NEXT:       BuiltinType: number
 // CHECK-NEXT:   Block
 
 fn baz() {
-  let x: &number;
+  let x: &mut number;
   
   mut x: &number;
 }
@@ -25,9 +25,9 @@ fn baz() {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: x
-// CHECK-NEXT:         OutParamType
+// CHECK-NEXT:         ReferenceType mut
 // CHECK-NEXT:           BuiltinType: number
 // CHECK-NEXT:     DeclStmt:
 // CHECK-NEXT:       VarDecl: x
-// CHECK-NEXT:         OutParamType
+// CHECK-NEXT:         ReferenceType
 // CHECK-NEXT:           BuiltinType: number

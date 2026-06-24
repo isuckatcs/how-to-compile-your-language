@@ -33,10 +33,11 @@ void FunctionType::dump(size_t level) const {
   ret->dump(level + 1);
 }
 
-void OutParamType::dump(size_t level) const {
-  std::cerr << indent(level) << "OutParamType\n";
+void ReferenceType::dump(size_t level) const {
+  std::cerr << indent(level) << "ReferenceType" << (isMut ? " mut" : "")
+            << '\n';
 
-  paramType->dump(level + 1);
+  referencedType->dump(level + 1);
 }
 
 void PointerType::dump(size_t level) const {

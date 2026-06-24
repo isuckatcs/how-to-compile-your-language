@@ -1105,9 +1105,13 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     SourceLocation location = nextToken.location;
     eatNextToken(); // eat '&'
 
+    bool isMut = nextToken.kind == TokenKind::KwMut;
+    if (isMut)
+      eatNextToken(); // eat 'mut'
+
     varOrReturn(referencedType, parseType());
-    return std::make_unique<ast::OutParamType>(location,
-                                               std::move(referencedType));
+    return std::make_unique<ast::ReferenceType>(
+        location, std::move(referencedType), isMut);
   }
 
   if (kind == TokenKind::Asterisk) {
