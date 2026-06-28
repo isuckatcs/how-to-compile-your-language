@@ -141,11 +141,10 @@ diag(Error, noReturnValue, "expected a return value");
 diag(Error, rvalueAssignment, "cannot assign to rvalue");
 diag(Error, cannotBeMutated, "'{}' cannot be mutated");
 diag(Error, pointeeCannotBeMutated, "pointee of type '{}' cannot be mutated");
-diag(Error, structImmutable, "expected mutable struct instance");
 diag(Error, unexpectedAmpParam, "only parameters can have '&' type");
 diag(Error, ampOutsideArgList, "'&' can only be used to pass arguments to '&' parameters");
-diag(Error, ampWrongCategory, "only mutable lvalues can be passed to '&' parameters");
-diag(Error, mutableAmp, "unexpected 'mut' specifier, a '&' parameter is always mutable");
+diag(Error, ampWrongCategory, "cannot create reference to rvalues");
+diag(Error, mutableAmp, "a '&' parameter cannot be 'mut'");
 
 // init
 diag(Error, notInitialized, "'{}' is not initialized");
@@ -170,7 +169,7 @@ diag(Error, selfContainingStruct, "struct '{}' contains itself");
 diag(Error, selfTyNotAllowed, "'Self' is only allowed inside structs and traits");
 diag(Error, selfParamNotAllowed, "'self' parameter is only allowed in methods");
 diag(Error, selfWrongPosition, "'self' can only be the first parameter");
-diag(Error, selfWrongType, "'self' can only have 'Self', '&Self', '*Self' or '*mut Self' types");
+diag(Error, selfWrongType, "'self' can only have '&Self' or '&mut Self' types");
 
 // main
 diag(Error, wrongMainReturnTy, "'main' function is expected to return 'unit'");

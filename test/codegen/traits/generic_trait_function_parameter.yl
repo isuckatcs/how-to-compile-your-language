@@ -2,17 +2,17 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '10\n'
 trait A<T> {
-  fn foo(self: Self, x: T);
+  fn foo(self: &Self, x: T);
 }
 
 struct S {
   x: number
 
   impl A<number> {
-    fn foo(self: Self, x: number) {
+    fn foo(self: &Self, x: number) {
       println(self.x * x);
     }
-    // CHECK: define void @_YT1AGnE3fooGS1SE(ptr byval({ double }) %self, double %x, ptr %closure) {
+    // CHECK: define void @_YT1AGnE3fooGS1SE(ptr %self, double %x, ptr %closure) {
     // CHECK-NEXT: entry:
     // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
     // CHECK-NEXT:   %1 = load double, ptr %0, align 8

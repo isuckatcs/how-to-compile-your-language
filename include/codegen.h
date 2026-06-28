@@ -108,6 +108,7 @@ class Codegen {
   llvm::Value *generateStructInstExpr(const res::StructInstantiationExpr &sie);
   llvm::Value *generateGCExpr(const res::GCExpr &gcExpr);
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
+  llvm::Value *materializeTemporary(const res::MaterializeTemporaryExpr &mte);
 
   llvm::Value *
   constructStruct(llvm::Value *storage,

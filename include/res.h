@@ -510,13 +510,11 @@ struct StructInstantiationExpr : public Expr {
 };
 
 struct ImplicitDerefExpr : public Expr {
-  const DeclRefExpr *outParamRef;
+  const DeclRefExpr *dre;
 
-  ImplicitDerefExpr(SourceLocation location,
-                    Type *type,
-                    const DeclRefExpr *outParamRef)
-      : Expr(location, type, outParamRef->kind),
-        outParamRef(outParamRef) {}
+  ImplicitDerefExpr(SourceLocation location, Type *type, const DeclRefExpr *dre)
+      : Expr(location, type, dre->kind),
+        dre(dre) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -549,11 +547,21 @@ struct LambdaExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct ImplicitCoerceExpr : public Expr {
+struct ImplicitRefPromoExpr : public Expr {
   res::Expr *expr;
 
-  ImplicitCoerceExpr(SourceLocation location, Type *type, res::Expr *expr)
+  ImplicitRefPromoExpr(SourceLocation location, Type *type, res::Expr *expr)
       : Expr(location, type, Expr::Kind::Rvalue),
+        expr(expr) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct MaterializeTemporaryExpr : public Expr {
+  res::Expr *expr;
+
+  MaterializeTemporaryExpr(SourceLocation location, Type *type, res::Expr *expr)
+      : Expr(location, type, Expr::Kind::MutLvalue),
         expr(expr) {}
 
   void dump(size_t level = 0) const override;

@@ -1,10 +1,10 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait C {
-  fn foo(self: Self) {}
+  fn foo(self: &Self) {}
 }
 
 trait B : C {
-  fn foo(self: Self) {}
+  fn foo(self: &Self) {}
 }
 
 trait A : B {}

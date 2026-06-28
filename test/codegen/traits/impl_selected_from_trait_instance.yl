@@ -2,12 +2,12 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 trait A<T> {
-  fn foo(self: Self);
+  fn foo(self: &Self);
 }
 
 struct S<T> {
   impl A<T> {
-    fn foo(self: Self) {
+    fn foo(self: &Self) {
       println(123);
     }
   }

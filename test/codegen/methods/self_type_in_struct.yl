@@ -25,11 +25,11 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn foo(self: Self) {
+  fn foo(self: &Self) {
     foo@<Self>(self);
     Self::create();
   }
-  // CHECK: define void @_YS1S3foo(ptr byval({ double }) %self, ptr %closure) {
+  // CHECK: define void @_YS1S3foo(ptr %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
   // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
@@ -41,14 +41,15 @@ struct S {
 }
 
 fn main() {
-  S::create().foo();
+  let s = S::create();
+  s.foo();
 }
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
-// CHECK-NEXT:   %struct.arg.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %s = alloca { double }, align 8
 // CHECK-NEXT:   call void @_YS1S6create(ptr sret({ double }) %struct.ret.tmp, ptr null)
-// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
-// CHECK-NEXT:   call void @_YS1S3foo(ptr byval({ double }) %struct.arg.tmp, ptr null)
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
+// CHECK-NEXT:   call void @_YS1S3foo(ptr %s, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

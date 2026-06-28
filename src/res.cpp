@@ -286,7 +286,7 @@ void ImplicitDerefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "ImplicitDerefExpr"
             << " {" << getType()->getName() << '}' << '\n';
 
-  outParamRef->dump(level + 1);
+  dre->dump(level + 1);
 }
 
 void GCExpr::dump(size_t level) const {
@@ -306,8 +306,15 @@ void LambdaExpr::dump(size_t level) const {
   closure->dump(level + 1);
 }
 
-void ImplicitCoerceExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplicitCoerceExpr"
+void ImplicitRefPromoExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitRefPromoExpr"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
+}
+
+void MaterializeTemporaryExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "MaterializeTemporaryExpr"
             << " {" << getType()->getName() << '}' << '\n';
 
   expr->dump(level + 1);

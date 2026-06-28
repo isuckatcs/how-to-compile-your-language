@@ -1,20 +1,20 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 trait Foo {
-  fn foo(self: *Self, u: unit);
+  fn foo(self: &Self, u: unit);
 }
 
 struct S {
   x: number
 
   impl Foo {
-    fn foo(self: *Self, u: unit) {
+    fn foo(self: &Self, u: unit) {
       println(self.x);
     }
   }
 }
 
-fn foo(sPtr: &*S) {
+fn foo(sPtr: &mut *S) {
   sPtr = gc(S{ x: 456 });
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
 
@@ -27,7 +27,7 @@ fn foo(sPtr: &*S) {
 fn main() {
   mut s = gc(S{ x: 123 });
 
-  s.foo(foo(&s));
+  (*s).foo(foo(&s));
   // CHECK-NEXT: 123
   
   println(s.x);

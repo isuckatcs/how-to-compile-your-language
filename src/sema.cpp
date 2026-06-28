@@ -86,7 +86,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     std::vector<res::Type *> resolvedTypeArgs;
     for (auto &&astArg : udt->typeArguments) {
       varOrReturn(resolvedType, resolveType(ctx, *astArg));
-      if (resolvedType->getAs<res::OutParamType>())
+      if (resolvedType->getAs<res::ReferenceType>())
         return err::unexpectedAmpParam(astArg->location).report(reporter);
 
       resolvedTypeArgs.emplace_back(resolvedType);
@@ -111,15 +111,14 @@ res::Type *Sema::resolveType(res::Context &ctx,
     return typeMgr.getFunctionType(std::move(args), retTy);
   }
 
-  if (const auto *out = dynamic_cast<const ast::ReferenceType *>(&parsedType)) {
+  if (const auto *ref = dynamic_cast<const ast::ReferenceType *>(&parsedType)) {
     if (!(modifiers & UnaryAmpAllowed))
-      return err::unexpectedAmpParam(out->location).report(reporter);
+      return err::unexpectedAmpParam(ref->location).report(reporter);
 
-    varOrReturn(paramType, resolveType(ctx, *out->referencedType, true));
-    assert(!paramType->getAs<res::OutParamType>() &&
-           "grammar doesn't allow nested out param types");
+    varOrReturn(referencedType, resolveType(ctx, *ref->referencedType, true));
+    assert(!referencedType->getAs<res::ReferenceType>() && "nested ref types");
 
-    return typeMgr.getOutParamType(paramType);
+    return typeMgr.getReferenceType(referencedType, ref->isMut);
   }
 
   if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
@@ -143,7 +142,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
     varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType, true));
-    if (pointeeType->getAs<res::OutParamType>())
+    if (pointeeType->getAs<res::ReferenceType>())
       return err::outParamPointer(ptr->location).report(reporter);
 
     return typeMgr.getPointerType(pointeeType, ptr->isMut);
@@ -172,10 +171,10 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
     if (!(modifiers & UnaryAmpAllowed))
       return err::ampOutsideArgList(unary.location).report(reporter);
 
-    if (!rhs->isMutable())
+    if (!rhs->isLvalue())
       return err::ampWrongCategory(rhs->location).report(reporter);
 
-    rhsTy = typeMgr.getOutParamType(rhsTy);
+    rhsTy = typeMgr.getReferenceType(rhsTy, rhs->isMutable());
   }
 
   res::Expr::Kind kind = res::Expr::Kind::Rvalue;
@@ -456,29 +455,18 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
     return {err::classMethodCallOnInstance(call.location).report(reporter), {}};
 
   res::Expr *selfArg = resMemberExpr->base;
-  SourceLocation argLoc = selfArg->location;
+  if (!selfArg->isLvalue())
+    selfArg = ctx.create<res::MaterializeTemporaryExpr>(
+        selfArg->location, selfArg->getType(), selfArg);
 
-  res::Type *selfArgType = selfArg->getType();
-  res::Type *selfParamType =
-      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
-
-  if (selfParamType->getAs<res::OutParamType>()) {
-    auto *ptrType = selfArgType->getAs<res::PointerType>();
-
-    if (ptrType ? !ptrType->isMutable() : !selfArg->isMutable())
-      return {err::structImmutable(selfArg->location).report(reporter), {}};
-
-    auto *outType = typeMgr.getOutParamType(ptrType ? ptrType->getPointeeType()
-                                                    : selfArgType);
-    if (ptrType)
-      selfArg = ctx.create<res::ImplicitCoerceExpr>(argLoc, outType, selfArg);
-    else
-      selfArg = ctx.create<res::UnaryOperator>(
-          argLoc, outType, TokenKind::Amp, selfArg, res::Expr::Kind::Rvalue);
-  } else if (!selfParamType->getAs<res::PointerType>()) {
-    if (auto *ptrType = selfArgType->getAs<res::PointerType>())
-      selfArg = insertUnaryDeref(ctx, selfArg);
-  }
+  auto *refType =
+      typeMgr.getReferenceType(selfArg->getType(), selfArg->isMutable());
+  selfArg =
+      ctx.create<res::UnaryOperator>(selfArg->location, refType, TokenKind::Amp,
+                                     selfArg, res::Expr::Kind::Rvalue);
+  selfArg = withImplicitRefPromotion(
+      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0],
+      selfArg);
 
   return {resMemberExpr->member, {selfArg}};
 }
@@ -549,7 +537,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     auto msgs = typeMgr.unify(args[0]->getType(), fnType->getArgs()[0]);
     if (!msgs.empty()) {
       for (auto &&msg : msgs)
-        err::inferenceError(callee->location).with(msg).report(reporter);
+        err::inferenceError(args[0]->location).with(msg).report(reporter);
       return nullptr;
     }
   }
@@ -572,18 +560,19 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     res::Type *expectedTy = argTypes[args.size()];
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
+    varOrReturn(promotedArg, withImplicitRefPromotion(expectedTy, coercedArg));
 
-    res::Type *actualTy = coercedArg->getType();
+    res::Type *actualTy = promotedArg->getType();
 
     if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
         !errors.empty()) {
       for (auto &&error : errors)
-        err::inferenceError(coercedArg->location).with(error).report(reporter);
+        err::inferenceError(promotedArg->location).with(error).report(reporter);
       return nullptr;
     }
 
-    coercedArg->setConstantValue(cee->evaluate(*coercedArg));
-    args.emplace_back(coercedArg);
+    promotedArg->setConstantValue(cee->evaluate(*promotedArg));
+    args.emplace_back(promotedArg);
   }
 
   return ctx.create<res::CallExpr>(call.location, fnType->getReturnType(),
@@ -873,6 +862,26 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   return nullptr;
 }
 
+res::Expr *Sema::withImplicitRefPromotion(res::Type *targetType,
+                                          res::Expr *expr) {
+  auto *targetRefType = targetType->getAs<res::ReferenceType>();
+  if (!targetRefType)
+    return expr;
+
+  if (auto *exprRefType = expr->getType()->getAs<res::ReferenceType>()) {
+    if (targetRefType->isMutable() ||
+        targetRefType->isMutable() == exprRefType->isMutable())
+      return expr;
+
+    return ctx.create<res::ImplicitRefPromoExpr>(
+        expr->location,
+        typeMgr.getReferenceType(exprRefType->getReferencedType(), false),
+        expr);
+  }
+
+  return expr;
+}
+
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
   if (auto *expr = dynamic_cast<const ast::Expr *>(&stmt))
     return resolveExpr(ctx, *expr);
@@ -1059,7 +1068,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
           .with(resPath->owningType->getName())
           .report(reporter);
 
-    auto *outType = resPath->getType()->getAs<res::OutParamType>();
+    auto *outType = resPath->getType()->getAs<res::ReferenceType>();
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl =
@@ -1102,7 +1111,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
     if (outType)
       return ctx.create<res::ImplicitDerefExpr>(
-          resPath->location, outType->getParamType(), resPath);
+          resPath->location, outType->getReferencedType(), resPath);
 
     return resPath;
   }
@@ -1461,15 +1470,16 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   if (!paramTy)
     paramTy = typeMgr.getNewUninferredType();
 
-  bool isOutputType = paramTy->getAs<res::OutParamType>();
-  if (isOutputType && param->isMutable) {
+  auto *referenceType = paramTy->getAs<res::ReferenceType>();
+  if (referenceType && param->isMutable) {
     err::mutableAmp(param->location).report(reporter);
     error = true;
   }
 
   return std::make_pair(
-      ctx.create<res::ParamDecl>(param->location, paramTy, param->identifier,
-                                 param->isMutable || isOutputType),
+      ctx.create<res::ParamDecl>(
+          param->location, paramTy, param->identifier,
+          param->isMutable || referenceType && referenceType->isMutable()),
       error);
 }
 
@@ -1839,13 +1849,9 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
     return false;
   }
 
-  auto *type = param->getType();
-  auto *outTy = type->getAs<res::OutParamType>();
-  auto *ptrTy = type->getAs<res::PointerType>();
-
-  if (!typeMgr.unify(type, selfType).empty() &&
-      !(outTy && typeMgr.unify(outTy->getParamType(), selfType).empty()) &&
-      !(ptrTy && typeMgr.unify(ptrTy->getPointeeType(), selfType).empty())) {
+  auto *refType = param->getType()->getAs<res::ReferenceType>();
+  if (!refType ||
+      !typeMgr.unify(refType->getReferencedType(), selfType).empty()) {
     err::selfWrongType(param->location).report(reporter);
     return false;
   }
@@ -2073,6 +2079,12 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 
             if (const auto *g = dynamic_cast<const res::GroupingExpr *>(base)) {
               base = g->expr;
+              continue;
+            }
+
+            if (const auto *i =
+                    dynamic_cast<const res::ImplicitDerefExpr *>(base)) {
+              base = i->dre;
               continue;
             }
 

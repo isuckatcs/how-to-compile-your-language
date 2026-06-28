@@ -1,8 +1,8 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  fn foo(self: Self) {}
+  fn foo(self: &Self) {}
 
-  fn bar(self: Self, x: number) {}
+  fn bar(self: &Self, x: number) {}
 }
 
 fn main() {

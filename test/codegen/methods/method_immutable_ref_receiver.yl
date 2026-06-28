@@ -4,11 +4,11 @@
 struct S {
   x: number
 
-  fn foo(self: Self): Self {
+  fn foo(self: &Self): Self {
     println(self.x);
     return self;
   }
-  // CHECK: define void @_YS1S3foo(ptr sret({ double }) %ret, ptr byval({ double }) %self, ptr %closure) {
+  // CHECK: define void @_YS1S3foo(ptr sret({ double }) %ret, ptr %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
   // CHECK-NEXT:   %1 = load double, ptr %0, align 8
@@ -20,10 +20,10 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn bar(self: Self) {
+  fn bar(self: &Self) {
     println(self.x * 2);
   }
-  // CHECK: define void @_YS1S3bar(ptr byval({ double }) %self, ptr %closure) {
+  // CHECK: define void @_YS1S3bar(ptr %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
   // CHECK-NEXT:   %1 = load double, ptr %0, align 8
@@ -36,11 +36,11 @@ struct S {
 fn main() {
   mut s = S{ x: 123 };
 
-  s.foo().bar();
-  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YS1S3foo(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp, ptr null)
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YS1S3bar(ptr byval({ double }) %struct.arg.tmp1, ptr null)
+  let ret = s.foo();
+  ret.bar();
+  // CHECK: call void @_YS1S3foo(ptr sret({ double }) %struct.ret.tmp, ptr %s, ptr null)
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
+  // CHECK-NEXT: call void @_YS1S3bar(ptr %ret, ptr null)
 
   println(s.x);
 }

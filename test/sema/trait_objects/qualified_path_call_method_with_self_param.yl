@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn val(self: Self) {}
+  fn val(self: &Self) {}
 }
 
 struct S {
@@ -8,6 +8,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:21: error: methods that take 'self' by value cannot be called with trait objects
+  // CHECK: [[# @LINE + 1 ]]:26: error: cannot unify 'S' with '&impl A'
   @<impl A impl A>::val(S{});
 }

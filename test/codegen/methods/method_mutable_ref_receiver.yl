@@ -1,14 +1,14 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o %t && %t | grep -Plzx '6\n123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '6\n3\n'
 struct S {
   x: number
 
-  fn foo(mut self: Self): Self {
+  fn foo(self: &mut Self): Self {
     self.x = 3;
     return self;
   }
-  // CHECK: define void @_YS1S3foo(ptr sret({ double }) %ret, ptr byval({ double }) %self, ptr %closure) {
+  // CHECK: define void @_YS1S3foo(ptr sret({ double }) %ret, ptr %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
   // CHECK-NEXT:   store double 3.000000e+00, ptr %0, align 8
@@ -19,11 +19,11 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn bar(mut self: S) {
+  fn bar(self: &mut Self) {
     self.x = self.x * 2;
     println(self.x);
   }
-  // CHECK: define void @_YS1S3bar(ptr byval({ double }) %self, ptr %closure) {
+  // CHECK: define void @_YS1S3bar(ptr %self, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
   // CHECK-NEXT:   %1 = load double, ptr %0, align 8
@@ -40,11 +40,9 @@ struct S {
 fn main() {
   mut s = S{ x: 123 };
 
-  s.foo().bar();
-  // CHECK: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp, ptr align 8 %s, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YS1S3foo(ptr sret({ double }) %struct.ret.tmp, ptr byval({ double }) %struct.arg.tmp, ptr null)
-  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %struct.arg.tmp1, ptr align 8 %struct.ret.tmp, i64 8, i1 false)
-  // CHECK-NEXT: call void @_YS1S3bar(ptr byval({ double }) %struct.arg.tmp1, ptr null)
+  mut ret = s.foo().bar();
+  // CHECK: call void @_YS1S3foo(ptr sret({ double }) %struct.ret.tmp, ptr %s, ptr null)
+  // CHECK-NEXT: call void @_YS1S3bar(ptr %struct.ret.tmp, ptr null)
 
   println(s.x);
 }

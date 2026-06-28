@@ -3,7 +3,7 @@ struct S {
   fn foo() {}
 
   // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
-  fn foo(self: Self) {}
+  fn foo(self: &Self) {}
 }
 
 fn main() {}

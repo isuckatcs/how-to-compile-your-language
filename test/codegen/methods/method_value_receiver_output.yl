@@ -4,7 +4,7 @@
 struct S {
   x:number
 
-  fn foo(self: &Self) {
+  fn foo(self: &mut Self) {
     self.x = 3;
 
     self.bar();
@@ -17,7 +17,7 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn bar(self: &S) {
+  fn bar(self: &mut S) {
     self.x = self.x * 2;
     println(self.x);
   }

@@ -1,13 +1,13 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n'
-fn swap<T>(x: &T, y: &T) {
+fn swap<T>(x: &mut T, y: &mut T) {
   let tmp = x;
   x = y;
   y = tmp;
 }
 
-fn wrapper(x: &number, y: &number) {
+fn wrapper(x: &mut number, y: &mut number) {
   x = 2;
   y = 1;
 

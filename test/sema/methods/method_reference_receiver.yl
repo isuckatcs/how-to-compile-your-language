@@ -1,0 +1,48 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  x:number
+
+  fn foo(self: &Self) {
+    println(self.x);
+  }
+
+  fn bar(self: &Self) {
+    println(self.x);
+  }
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(&S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       CallExpr {unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           ImplicitDerefExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(&S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       CallExpr {unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+// CHECK-NEXT:           ImplicitDerefExpr {S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
+
+fn main() {
+  mut s = S{ x: 123 };
+
+  s.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&S) -> unit}
+  // CHECK-NEXT:   ImplicitRefPromoExpr {&S}
+  // CHECK-NEXT:     UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S}
+
+  s.bar();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(&S) -> unit}
+  // CHECK-NEXT:   ImplicitRefPromoExpr {&S}
+  // CHECK-NEXT:     UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S}
+}

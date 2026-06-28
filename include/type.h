@@ -118,14 +118,17 @@ public:
   friend class TypeManager;
 };
 
-class OutParamType : public Type {
-  OutParamType(Type *paramType);
+class ReferenceType : public Type {
+  bool isMut;
+
+  ReferenceType(Type *paramType, bool isMutable);
 
 public:
-  Type *getParamType() { return args[0]->getRootType(); }
-  const Type *getParamType() const { return args[0]->getRootType(); }
+  Type *getReferencedType() { return args[0]->getRootType(); }
+  const Type *getReferencedType() const { return args[0]->getRootType(); }
 
-  std::string getName() const override { return "&" + args[0]->getName(); }
+  bool isMutable() const { return isMut; }
+  std::string getName() const override { return name + args[0]->getName(); }
 
   friend class TypeManager;
 };
@@ -200,7 +203,7 @@ public:
   StructType *getStructType(StructDecl &decl, std::vector<Type *> typeArgs);
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
-  OutParamType *getOutParamType(Type *pointeeType);
+  ReferenceType *getReferenceType(Type *referencedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
   ImplType *getImplType(TraitType *trait);
 

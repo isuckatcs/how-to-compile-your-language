@@ -12,8 +12,9 @@ fn main() {
   s.foo(0);
   // CHECK: CallExpr {number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) S<number>::foo {(&S<number>, number) -> number}
-  // CHECK-NEXT:   UnaryOperator '&' {&S<number>}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S<number>}
+  // CHECK-NEXT:   ImplicitRefPromoExpr {&S<number>}
+  // CHECK-NEXT:     UnaryOperator '&' {&mut S<number>}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S<number>}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
 }

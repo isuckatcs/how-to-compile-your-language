@@ -79,8 +79,9 @@ std::string StructType::getName() const {
   return ss.str();
 }
 
-OutParamType::OutParamType(Type *paramType)
-    : Type("&", std::vector<res::Type *>{paramType}){};
+ReferenceType::ReferenceType(Type *paramType, bool isMutable)
+    : Type(isMutable ? "&mut " : "&", std::vector<res::Type *>{paramType}),
+      isMut(isMutable){};
 
 PointerType::PointerType(Type *pointeeType, bool isMutable)
     : Type(isMutable ? "*mut " : "*", std::vector<res::Type *>{pointeeType}),
@@ -186,9 +187,10 @@ TypeParamType *TypeManager::getTypeParamType(TypeParamDecl &decl) {
   return typeParamTy;
 }
 
-OutParamType *TypeManager::getOutParamType(Type *pointeeType) {
-  auto *ptrTy = new OutParamType(pointeeType);
-  types.emplace_back(std::unique_ptr<OutParamType>(ptrTy));
+ReferenceType *TypeManager::getReferenceType(Type *referencedType,
+                                             bool isMutable) {
+  auto *ptrTy = new ReferenceType(referencedType, isMutable);
+  types.emplace_back(std::unique_ptr<ReferenceType>(ptrTy));
   return ptrTy;
 }
 
@@ -265,8 +267,8 @@ bool TypeManager::unifyImpl(Type *t1,
     return true;
 
   if (auto *u = t1->getAs<UninferredType>()) {
-    if (auto *ptrTy = t2->getAs<OutParamType>()) {
-      u->infer(ptrTy->getParamType());
+    if (auto *ptrTy = t2->getAs<ReferenceType>()) {
+      u->infer(ptrTy->getReferencedType());
       errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
                           t2->getName() + "'");
       return false;
@@ -361,8 +363,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
   else if (auto *s = t->getAs<StructType>())
     t = getStructType(*s->getDecl(), s->getTypeArgs());
-  else if (auto *p = t->getAs<OutParamType>())
-    t = getOutParamType(p->getParamType());
+  else if (auto *r = t->getAs<ReferenceType>())
+    t = getReferenceType(r->getReferencedType(), r->isMutable());
   else if (auto *p = t->getAs<PointerType>())
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())
@@ -380,8 +382,8 @@ Type *TypeManager::stripPointerAndOutTypes(Type *t) {
   if (auto *ptrType = t->getAs<res::PointerType>())
     return stripPointerAndOutTypes(ptrType->getPointeeType());
 
-  if (auto *outType = t->getAs<res::OutParamType>())
-    return stripPointerAndOutTypes(outType->getParamType());
+  if (auto *outType = t->getAs<res::ReferenceType>())
+    return stripPointerAndOutTypes(outType->getReferencedType());
 
   return t;
 }

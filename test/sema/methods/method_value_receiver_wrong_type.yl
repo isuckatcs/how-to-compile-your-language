@@ -2,10 +2,10 @@
 struct S {
   x: number
 
-  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have 'Self', '&Self', '*Self' or '*mut Self' types
+  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
   fn foo(self: number) {}
   
-  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have 'Self', '&Self', '*Self' or '*mut Self' types
+  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
   fn bar(self: &number) {}
 }
 

@@ -1,0 +1,28 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+trait A {
+  fn foo(self: &Self);
+}
+
+struct S {
+  x: number
+
+  impl A {
+    fn foo(self: &Self) {
+      println(self.x);
+    }
+  }
+}
+
+fn main() {
+  let s = gc(S{ x: 123 });
+  (*s).foo();
+  // CHECK: %2 = load ptr, ptr %s, align 8
+  // CHECK-NEXT: call void @_YT1A3fooGS1SE(ptr %2, ptr null)
+
+  let s2 = gcMut(S{ x: 456 });
+  (*s2).foo();
+  // CHECK: %5 = load ptr, ptr %s2, align 8
+  // CHECK-NEXT: call void @_YT1A3fooGS1SE(ptr %5, ptr null)
+}

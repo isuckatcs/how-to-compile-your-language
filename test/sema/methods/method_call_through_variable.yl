@@ -4,9 +4,9 @@ struct S {
   // CHECK: FunctionDecl @({{.*}}) classMethod {() -> unit}
   // CHECK-NEXT:   Block
 
-  fn instanceMethod(self: Self, x: number) {}
-  // CHECK: FunctionDecl @({{.*}}) instanceMethod {(S, number) -> unit}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {S}
+  fn instanceMethod(self: &Self, x: number) {}
+  // CHECK: FunctionDecl @({{.*}}) instanceMethod {(&S, number) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
   // CHECK-NEXT:   Block
 }
@@ -23,14 +23,15 @@ fn main() {
   
   let instanceLevel = S::instanceMethod;
   // CHECK: DeclStmt
-  // CHECK-NEXT:   VarDecl @({{.*}}) instanceLevel {(S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::instanceMethod {(S, number) -> unit}
+  // CHECK-NEXT:   VarDecl @({{.*}}) instanceLevel {(&S, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::instanceMethod {(&S, number) -> unit}
   
-  instanceLevel(S{}, 0);
-  // CHECK-NEXT: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) instanceLevel {(S, number) -> unit}
-  // CHECK-NEXT:   StructInstantiationExpr {S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S {S}
+  let s = S{};
+  instanceLevel(&s, 0);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) instanceLevel {(&S, number) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0
 }

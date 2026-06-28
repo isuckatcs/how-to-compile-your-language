@@ -1,9 +1,14 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  fn foo(self: &Self) {}
+  fn foo(self: &mut Self) {}
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected mutable struct instance
   S{}.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&mut S) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:     MaterializeTemporaryExpr {S}
+  // CHECK-NEXT:       StructInstantiationExpr {S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}
 }

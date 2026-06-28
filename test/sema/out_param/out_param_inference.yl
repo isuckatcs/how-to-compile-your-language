@@ -2,7 +2,7 @@
 fn foo<T>(x: &T) {}
 
 fn main() {
-  mut x = 1;
+  let x = 1;
   foo(&x);
 }
 // CHECK: CallExpr {unit}

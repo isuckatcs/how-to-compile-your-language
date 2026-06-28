@@ -4,11 +4,11 @@ struct S {
   n: *number,
   u: unit
 
-  fn print(self: Self) {
+  fn print(self: &Self) {
     println(*self.n);
   }
 
-  fn printMut(mut self: Self) {
+  fn printMut(self: &mut Self) {
     println(*self.n * 2);
   }
 }

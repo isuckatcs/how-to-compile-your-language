@@ -27,7 +27,8 @@ fn main() {
   s.foo(unit);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&S, unit) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&S}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+  // CHECK-NEXT:   ImplicitRefPromoExpr {&S}
+  // CHECK-NEXT:     UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}
 }

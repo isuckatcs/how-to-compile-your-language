@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '492\n'
 trait B {
-  fn foo(self: &Self);
+  fn foo(self: &mut Self);
 }
 
 trait A : B {
@@ -19,7 +19,7 @@ struct S {
   }
 
   impl B {
-    fn foo(self: &Self) {
+    fn foo(self: &mut Self) {
       self.x = self.x * 2;
     }
   }

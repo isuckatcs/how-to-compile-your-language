@@ -136,8 +136,8 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *o = type->getAs<res::OutParamType>()) {
-    llvm::Type *t = generateType(o->getParamType());
+  if (const auto *r = type->getAs<res::ReferenceType>()) {
+    llvm::Type *t = generateType(r->getReferencedType());
     return t->isVoidTy() ? t : llvm::PointerType::get(context, 0);
   }
 
@@ -267,6 +267,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
   bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
+  // FIXME: void variable might still need an address
   if (isConst || declTy->isVoidTy()) {
     declarations[decl] = nullptr;
     return nullptr;
@@ -391,6 +392,16 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   return lambda;
 }
 
+llvm::Value *
+Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
+  llvm::Value *tmp = generateExpr(*mte.expr);
+
+  if (mte.expr->getType()->getAs<res::StructType>())
+    return tmp;
+
+  llvm_unreachable("not yet supported");
+}
+
 llvm::Value *Codegen::constructStruct(
     llvm::Value *storage,
     const res::StructType *structType,
@@ -446,13 +457,19 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
     return generateStructInstExpr(*sie);
 
   if (auto *ide = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
-    return generateDeclRefExpr(*ide->outParamRef);
+    return generateDeclRefExpr(*ide->dre);
 
   if (auto *gc = dynamic_cast<const res::GCExpr *>(&expr))
     return generateGCExpr(*gc);
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
+
+  if (auto *promotion = dynamic_cast<const res::ImplicitRefPromoExpr *>(&expr))
+    return generateExpr(*promotion->expr);
+
+  if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(&expr))
+    return materializeTemporary(*mte);
 
   llvm_unreachable("unexpected expression");
 }
@@ -561,8 +578,19 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
-  if (unop.op == TokenKind::Amp)
-    return generateExpr(*unop.operand);
+  if (unop.op == TokenKind::Amp) {
+    const res::Expr *resOperand = unop.operand;
+    llvm::Value *value = generateExpr(*resOperand);
+
+    while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(resOperand))
+      resOperand = grouping->expr;
+
+    auto *unary = dynamic_cast<const res::UnaryOperator *>(resOperand);
+    if (unary && unary->op == TokenKind::Asterisk)
+      createTmpGCRootIfNeeded(value, unary->operand);
+
+    return value;
+  }
 
   if (unop.op == TokenKind::Asterisk) {
     if (generateType(unop.getType())->isVoidTy())
@@ -1063,7 +1091,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
 
     llvm::Value *argVal = arg;
     if (paramDecl->isMutable && !arg->hasByValAttr() &&
-        !paramDeclTy->getAs<res::OutParamType>()) {
+        !paramDeclTy->getAs<res::ReferenceType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }

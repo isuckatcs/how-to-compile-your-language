@@ -11,7 +11,7 @@ fn main() {
   caller(s, mutator(&s));
 }
 
-fn mutator(s: &S) {
+fn mutator(s: &mut S) {
   s.ptr = gc(456);
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
   

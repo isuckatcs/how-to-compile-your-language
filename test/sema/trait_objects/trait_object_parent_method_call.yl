@@ -13,7 +13,7 @@ fn foo(x: *mut impl B) {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl B impl A>::foo {(&impl B, number) -> unit}
-// CHECK-NEXT:       ImplicitCoerceExpr {&impl B}
+// CHECK-NEXT:       ImplicitRefPromoExpr {&impl B}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl B}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123
