@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(x: &number) {}
+
+fn main() {
+  let x = 123;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) x {number}
+  // CHECK-NEXT:     NumberLiteral '123' {number}
+  // CHECK-NEXT:     | value: 123
+
+  foo(&x);
+  // CHECK-NEXT: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   UnaryOperator '&' {&number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
+}

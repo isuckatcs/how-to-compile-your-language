@@ -153,6 +153,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
 res::UnaryOperator *
 Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
+  WithModifiersRAII mods(this, unary.op == TokenKind::Amp ? AddressTaken : 0);
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
   auto *rhsTy = rhs->getType();
@@ -423,9 +424,14 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  return functionInfo->declReferences.emplace_back(ctx.create<res::DeclRefExpr>(
+  auto *resDre = ctx.create<res::DeclRefExpr>(
       dre->location, typeMgr.instantiate(declTy, sub), decl, kind, typeArgs,
-      parentTy, trait));
+      parentTy, trait);
+
+  if (modifiers & AddressTaken)
+    resDre->decl->setStorageNeeded();
+
+  return functionInfo->declReferences.emplace_back(resDre);
 }
 
 template <typename Hint>
@@ -679,6 +685,7 @@ res::UnaryOperator *Sema::insertUnaryDeref(res::Context &ctx, res::Expr *val) {
 res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
                                          const ast::MemberExpr &memberExpr,
                                          bool isCallee) {
+  WithModifiersRAII mods(this, isCallee ? AddressTaken : 0);
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
   auto *parentType = base->getType();

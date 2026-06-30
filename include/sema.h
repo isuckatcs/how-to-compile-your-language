@@ -55,6 +55,7 @@ class Sema {
 
   enum Modifiers : unsigned char {
     UnaryAmpAllowed = 1 << 0,
+    AddressTaken = 1 << 1,
     MissingTypeAnnotationsAllowed = 1 << 2,
   };
 

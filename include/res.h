@@ -69,6 +69,7 @@ struct Decl : public TypedNode {
 
   std::string identifier;
   std::vector<TypeParamDecl *> typeParams;
+  bool needsStorage = false;
 
   Decl(SourceLocation location,
        Type *type,
@@ -89,6 +90,7 @@ struct Decl : public TypedNode {
     return dynamic_cast<const T *>(this);
   }
 
+  void setStorageNeeded() { needsStorage = true; }
   bool isGeneric() const { return !typeParams.empty(); }
   virtual void dump(size_t level = 0) const = 0;
 };

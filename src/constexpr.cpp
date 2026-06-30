@@ -82,9 +82,8 @@ ConstExprEvaluator::evaluateUnaryOperator(const res::UnaryOperator &unop) {
   if (!result.isKnown())
     return result;
 
-  // FIXME: cannot optimize constant variable if its address is needed
-  // if (unop.op == TokenKind::Amp)
-  //   return res::ConstVal();
+  if (unop.op == TokenKind::Amp)
+    return res::ConstVal();
 
   if (unop.op == TokenKind::Excl)
     result = !std::get<bool>(result);
