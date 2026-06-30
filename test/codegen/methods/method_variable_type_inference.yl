@@ -20,5 +20,5 @@ fn main() {
   // CHECK-NEXT: %3 = load ptr, ptr %2, align 8
   // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %x, i32 0, i32 1
   // CHECK-NEXT: %5 = load ptr, ptr %4, align 8
-  // CHECK-NEXT: call void %3(double 1.230000e+02, double 1.230000e+02, ptr %5)
+  // CHECK-NEXT: call void %3(ptr %s, double 1.230000e+02, double 1.230000e+02, ptr %5)
 }

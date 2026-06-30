@@ -1,0 +1,28 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | ( ! grep ^ )
+struct S {}
+
+fn consume(x: &unit, y: &S) {}
+
+fn foo() {}
+
+fn bar(): S {
+  return S{};
+}
+
+fn main() {
+  let u = foo();
+  let s = bar();
+
+  consume(&u, &s);
+}
+// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %u = alloca [0 x i8], align 1
+// CHECK-NEXT:   %s = alloca {}, align 8
+// CHECK-NEXT:   call void @foo(ptr null)
+// CHECK-NEXT:   call void @bar(ptr null)
+// CHECK-NEXT:   call void @consume(ptr %u, ptr %s, ptr null)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

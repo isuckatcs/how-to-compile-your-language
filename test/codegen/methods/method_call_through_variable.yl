@@ -10,7 +10,7 @@ struct S {
   fn instanceMethod(self: &Self, x: number) {
     println(x);
   }
-  // CHECK: define void @_YS1S14instanceMethod(double %x, ptr %closure) {
+  // CHECK: define void @_YS1S14instanceMethod(ptr %self, double %x, ptr %closure) {
 }
 
 fn main() {
@@ -37,5 +37,5 @@ fn main() {
   // CHECK-NEXT: %9 = load ptr, ptr %8, align 8
   // CHECK-NEXT: %10 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 1
   // CHECK-NEXT: %11 = load ptr, ptr %10, align 8
-  // CHECK-NEXT: call void %9(double 2.000000e+00, ptr %11)
+  // CHECK-NEXT: call void %9(ptr %s, double 2.000000e+00, ptr %11)
 }

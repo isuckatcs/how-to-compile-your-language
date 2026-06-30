@@ -88,6 +88,7 @@ class Codegen {
   llvm::LLVMContext context;
   llvm::IRBuilder<> builder;
   llvm::Module module;
+  const llvm::DataLayout *dl;
 
   llvm::Type *generateType(const res::Type *type);
   llvm::FunctionType *generateFunctionType(const res::FunctionType *type);

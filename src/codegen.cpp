@@ -109,7 +109,8 @@ struct Mangling {
 Codegen::Codegen(const res::Context &resolvedCtx, std::string_view sourcePath)
     : resCtx(&resolvedCtx),
       builder(context),
-      module("<translation_unit>", context) {
+      module("<translation_unit>", context),
+      dl(&module.getDataLayout()) {
   module.setSourceFileName(sourcePath);
   module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
@@ -121,7 +122,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return builder.getDoubleTy();
 
   if (type->getAs<res::BuiltinUnitType>())
-    return builder.getVoidTy();
+    return llvm::ArrayType::get(builder.getInt8Ty(), 0);
 
   if (type->getAs<res::BuiltinBoolType>())
     return builder.getInt1Ty();
@@ -136,10 +137,8 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *r = type->getAs<res::ReferenceType>()) {
-    llvm::Type *t = generateType(r->getReferencedType());
-    return t->isVoidTy() ? t : llvm::PointerType::get(context, 0);
-  }
+  if (const auto *r = type->getAs<res::ReferenceType>())
+    return llvm::PointerType::get(context, 0);
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
     auto it = instCtx.find(typeParamTy->decl);
@@ -155,7 +154,15 @@ llvm::FunctionType *
 Codegen::generateFunctionType(const res::FunctionType *type) {
   std::vector<llvm::Type *> args;
 
-  llvm::Type *res = generateType(type->getReturnType());
+  llvm::Type *res = builder.getVoidTy();
+
+  const res::Type *returnType = type->getReturnType();
+  if (!returnType->getAs<res::BuiltinUnitType>()) {
+    llvm::Type *retTy = generateType(returnType);
+    if (dl->getTypeAllocSize(retTy) != 0)
+      res = retTy;
+  }
+
   if (res->isStructTy()) {
     args.emplace_back(llvm::PointerType::get(context, 0));
     res = builder.getVoidTy();
@@ -163,7 +170,7 @@ Codegen::generateFunctionType(const res::FunctionType *type) {
 
   for (auto &&arg : type->getArgs()) {
     llvm::Type *argTy = generateType(arg);
-    if (argTy->isVoidTy())
+    if (dl->getTypeAllocSize(argTy) == 0)
       continue;
 
     args.emplace_back(argTy->isStructTy() ? llvm::PointerType::get(context, 0)
@@ -267,8 +274,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
   bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
-  // FIXME: void variable might still need an address
-  if (isConst || declTy->isVoidTy()) {
+  if (!decl->needsStorage && (isConst || dl->getTypeAllocSize(declTy) == 0)) {
     declarations[decl] = nullptr;
     return nullptr;
   }
@@ -307,7 +313,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   auto *structTy = memberExpr.base->getType()->getAs<res::StructType>();
   llvm::Type *baseTy = generateType(structTy);
 
-  if (generateType(memberExpr.getType())->isVoidTy())
+  if (dl->getTypeAllocSize(generateType(memberExpr.getType())) == 0)
     return nullptr;
 
   unsigned index = 0;
@@ -318,7 +324,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
     if (field == memberExpr.member->decl)
       break;
 
-    if (!generateType(field->getType())->isVoidTy())
+    if (dl->getTypeAllocSize(generateType(field->getType())) != 0)
       ++index;
   }
 
@@ -336,7 +342,7 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
 
   const auto *type = sie.getType()->getAs<res::StructType>();
   llvm::Type *ty = generateType(type);
-  if (!ty->isSized())
+  if (dl->getTypeAllocSize(ty) == 0)
     return nullptr;
 
   std::string id = sie.structPath->decl->identifier + ".tmp";
@@ -353,8 +359,7 @@ llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
   createTmpGCRootIfNeeded(val, gcExpr.expr);
 
   auto *ptr = allocateHeapVariable(valueType);
-  if (valueTy->isSized())
-    storeValue(val, ptr, valueTy);
+  storeValue(val, ptr, valueTy);
 
   return ptr;
 }
@@ -368,7 +373,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
       lambdaExpr.method->getType()->getAs<res::FunctionType>(), closureType,
       {});
 
-  bool needsClosure = generateType(closureType)->isSized();
+  bool needsClosure = dl->getTypeAllocSize(generateType(closureType)) != 0;
   llvm::Value *closure = needsClosure
                              ? allocateHeapVariable(closureType)
                              : llvm::Constant::getNullValue(builder.getPtrTy());
@@ -412,7 +417,7 @@ llvm::Value *Codegen::constructStruct(
   EnterInstantiationRAII structInstantiation(this, structType);
   for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(fieldDecl->getType());
-    if (!fieldTy->isSized())
+    if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
 
     llvm::Value *field = builder.CreateStructGEP(structTy, storage, gepIdx++);
@@ -536,7 +541,8 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
-  bool isReturningStruct = retTy->isStructTy();
+  bool isReturningStruct =
+      retTy->isStructTy() && dl->getTypeAllocSize(retTy) != 0;
   if (isReturningStruct)
     retVal = args.emplace_back(allocateStackVariable("struct.ret.tmp", retTy));
 
@@ -545,7 +551,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
     llvm::Type *argTy = generateType(arg->getType());
 
-    if (argTy->isVoidTy())
+    if (dl->getTypeAllocSize(argTy) == 0)
       continue;
 
     if (argTy->isStructTy()) {
@@ -593,7 +599,7 @@ llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
   }
 
   if (unop.op == TokenKind::Asterisk) {
-    if (generateType(unop.getType())->isVoidTy())
+    if (dl->getTypeAllocSize(generateType(unop.getType())) == 0)
       return nullptr;
 
     return generateExprAndLoadValue(*unop.operand);
@@ -731,6 +737,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
 
   llvm::Type *type = generateType(expr.getType());
   if (!expr.isLvalue() || expr.hasConstantValue() || type->isStructTy() ||
+      dl->getTypeAllocSize(type) == 0 ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef && !afterIgnoredDeref))
     return val;
 
@@ -748,7 +755,7 @@ llvm::Value *Codegen::loadValue(llvm::Value *val, llvm::Type *type) {
 
 llvm::Value *
 Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
-  if (type->isVoidTy())
+  if (dl->getTypeAllocSize(type) == 0)
     return nullptr;
 
   if (llvm::isa<llvm::Function>(val)) {
@@ -803,9 +810,7 @@ llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
   if (ty->isIntegerTy(1))
     ty = builder.getInt8Ty();
 
-  auto size = ty->isSized() ? module.getDataLayout().getTypeAllocSize(ty)
-                            : llvm::TypeSize::getZero();
-
+  auto size = module.getDataLayout().getTypeAllocSize(ty);
   return builder.CreateCall(getOrInsertGCAlloc(),
                             {builder.getInt32(size), getTypeMetadata(type)});
 }
@@ -839,7 +844,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
   int fieldIdx = 0;
   for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
-    if (generateType(field->getType())->isVoidTy())
+    if (dl->getTypeAllocSize(generateType(field->getType())) == 0)
       continue;
 
     llvm::TypeSize fieldOffset = structLayout->getElementOffset(fieldIdx);
@@ -992,10 +997,13 @@ llvm::Function *Codegen::getOrInsertGCSweep() {
 }
 
 llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
-  llvm::Type *retTy = generateType(ty->getReturnType());
-
   std::vector<llvm::AttributeSet> argsAttrSets;
-  if (retTy && retTy->isStructTy()) {
+
+  llvm::Type *retTy = builder.getVoidTy();
+  if (!ty->getReturnType()->getAs<res::BuiltinUnitType>())
+    retTy = generateType(ty->getReturnType());
+
+  if (retTy->isStructTy() && dl->getTypeAllocSize(retTy) != 0) {
     llvm::AttrBuilder retAttrs(context);
     retAttrs.addStructRetAttr(retTy);
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
@@ -1003,7 +1011,7 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
 
   for (auto &&argTy : ty->getArgs()) {
     llvm::Type *llvmTy = generateType(argTy);
-    if (llvmTy->isVoidTy())
+    if (dl->getTypeAllocSize(llvmTy) == 0)
       continue;
 
     llvm::AttrBuilder paramAttrs(context);
@@ -1061,7 +1069,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   rootMarkInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
                                               "mark.placeholder", entryBB);
 
-  if (!returnTy->isVoidTy())
+  if (!returnTy->isVoidTy() && dl->getTypeAllocSize(returnTy) != 0)
     retVal = allocateStackVariable("retval", returnTy);
   retBB = llvm::BasicBlock::Create(context, "return");
 
@@ -1081,8 +1089,11 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   for (auto &&paramDecl : functionDecl->params) {
     const res::Type *paramDeclTy = paramDecl->getType();
     llvm::Type *argTy = generateType(paramDeclTy);
-    if (argTy->isVoidTy()) {
-      declarations[paramDecl] = nullptr;
+    if (dl->getTypeAllocSize(argTy) == 0) {
+      declarations[paramDecl] =
+          paramDecl->needsStorage
+              ? allocateStackVariable(paramDecl->identifier, argTy)
+              : nullptr;
       continue;
     }
 
@@ -1184,14 +1195,11 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(field->getType());
-    if (fieldTy->isVoidTy())
+    if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
 
     fieldTypes.emplace_back(fieldTy);
   }
-
-  if (fieldTypes.empty())
-    return builder.getVoidTy();
 
   return llvm::StructType::get(context, fieldTypes);
 }

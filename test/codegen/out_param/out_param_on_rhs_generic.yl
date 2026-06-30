@@ -27,7 +27,9 @@ fn main() {
   // CHECK: %s1 = alloca { double, double }, align 8
   // CHECK: %s2 = alloca { double, double }, align 8
 
-  // CHECK: %f1 = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %u1 = alloca [0 x i8], align 1
+  // CHECK-NEXT: %u2 = alloca [0 x i8], align 1
+  // CHECK-NEXT: %f1 = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %f2 = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %f1, align 8
   // CHECK-NEXT: call void @llvm.gcroot(ptr %f1, ptr @function.offsets)
@@ -59,7 +61,7 @@ fn main() {
   mut u2 = unit;
   
   swap(&u1, &u2);
-  // CHECK: call void @_Y4swapGuE(ptr null)
+  // CHECK: call void @_Y4swapGuE(ptr %u1, ptr %u2, ptr null)
 
   mut f1 = eight;
   mut f2 = seven;
@@ -92,7 +94,7 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4swapGuE(ptr %closure) {
+// CHECK: define void @_Y4swapGuE(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

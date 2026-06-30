@@ -1,25 +1,18 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
-trait A<T> {
-  fn foo(self: &Self);
-}
-
-struct S<T> {
-  impl A<T> {
-    fn foo(self: &Self) {
-      println(123);
-    }
-  }
+fn foo(x: &number) {
+  println(x);
 }
 
 fn main() {
-  let s = S@<number>{};
-  s.foo();
+  let x = 123;
+  foo(&x);
 }
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %s = alloca {}, align 8
-// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE(ptr %s, ptr null)
+// CHECK-NEXT:   %x = alloca double, align 8
+// CHECK-NEXT:   store double 1.230000e+02, ptr %x, align 8
+// CHECK-NEXT:   call void @foo(ptr %x, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

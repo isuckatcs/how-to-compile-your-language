@@ -18,7 +18,8 @@ fn foo<X, U : A<X>>(u: U) {
 }
 // CHECK: define void @_Y3fooGnS1SGnEE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE(ptr null)
+// CHECK-NEXT:   %u = alloca {}, align 8
+// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE(ptr %u, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
