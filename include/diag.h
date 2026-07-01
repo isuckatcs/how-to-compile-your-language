@@ -120,6 +120,7 @@ diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed")
 diag(Error, traitObjectTemplateMemberFn, "traits with template methods cannot be used in trait objects");
 diag(Error, traitObjectSelfParam, "methods with parameters referecing 'Self' cannot be called with trait objects");
 diag(Error, traitObjectSelfReturn, "methods with return type referencing 'Self' cannot be called with trait objects");
+diag(Error, traitObjectPtrDereference, "cannot dereference pointer to trait object");
 
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");

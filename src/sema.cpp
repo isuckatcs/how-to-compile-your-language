@@ -155,11 +155,12 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
     if (!ptr)
       return err::expectedPointerOperand(rhs->location).report(reporter);
 
-    // FIXME: don't allow dereferencing pointers to trait objects
-
     kind =
         ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
     rhsTy = ptr->getPointeeType();
+
+    if (rhsTy->getAs<res::ImplType>())
+      return err::traitObjectPtrDereference(rhs->location).report(reporter);
   }
 
   return ctx.create<res::UnaryOperator>(unary.location, rhsTy, unary.op, rhs,
