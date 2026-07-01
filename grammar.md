@@ -50,7 +50,10 @@
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= 'mut'? <identifier> <typeAnnotation>
+    ::= 'mut'? <identifier> ':' <borrowedModifier>? <type>
+
+<borrowedModifier>
+    ::= 'borrowed' 'mut'?
 
 <varDecl>
     ::= <identifier> <typeAnnotation>? ('=' <expr>)?
@@ -106,7 +109,7 @@
     ::= <prefixExpression> (('*' | '/') <prefixExpression>)*
 
 <prefixExpression>
-    ::= ('!' | '-' | '&' | '*')* <postfixExpression>
+    ::= ('!' | '-' | '*')* <postfixExpression>
 
 <postfixExpression>
     ::= <primaryExpression> (<argumentList> | <memberExpr>)*
@@ -163,7 +166,6 @@
     ::= <builtinType>
     |   <userDefinedType>
     |   <functionType>
-    |   <referenceType>
     |   <pointerType>
     |   <implType>
 
@@ -178,9 +180,6 @@
 
 <functionType>
     ::= '(' <type> (',' <type>)* ','? ')' -> type
-
-<referenceType>
-    ::= '&' 'mut'? <type>
 
 <pointerType>
     ::= '*' 'mut'? <type>
