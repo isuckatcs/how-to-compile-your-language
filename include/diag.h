@@ -118,7 +118,6 @@ diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "traits with template methods cannot be used in trait objects");
-diag(Error, traitObjectSelf, "methods that take 'self' by value cannot be called with trait objects");
 diag(Error, traitObjectSelfParam, "methods with parameters referecing 'Self' cannot be called with trait objects");
 diag(Error, traitObjectSelfReturn, "methods with return type referencing 'Self' cannot be called with trait objects");
 

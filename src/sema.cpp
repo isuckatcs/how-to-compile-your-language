@@ -472,18 +472,10 @@ bool Sema::isValidCallee(res::Expr *callee) {
   res::Type *selfTPType = fnDecl->typeParams[0]->getType();
 
   SourceLocation calleeLoc = callee->location;
-  bool hasSelfParam =
-      !fnDecl->params.empty() && fnDecl->params[0]->identifier == selfParamId;
-
   for (auto &&paramType : fnType->getArgs()) {
-    if (paramType == *fnType->getArgs().begin() && hasSelfParam) {
-      if (paramType == typeMgr.stripPointerAndOutTypes(paramType)) {
-        err::traitObjectSelf(calleeLoc).report(reporter);
-        return false;
-      }
-
+    if (paramType == *fnType->getArgs().begin() &&
+        fnDecl->params[0]->identifier == selfParamId)
       continue;
-    }
 
     if (typeMgr.stripPointerAndOutTypes(paramType) == selfTPType) {
       err::traitObjectSelfParam(calleeLoc).report(reporter);
