@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: borrowed Self, x: number) {}
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:21: error: expected to call member function on trait object
+  @<impl A impl A>::foo;
+}

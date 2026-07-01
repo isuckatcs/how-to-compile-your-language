@@ -420,8 +420,10 @@ res::Decl *Sema::lookupSymbolWithFallback(res::DeclContext *scope,
 std::pair<res::Expr *, std::vector<res::Expr *>>
 Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
   const auto *me = dynamic_cast<const ast::MemberExpr *>(call.callee.get());
-  if (!me)
+  if (!me) {
+    WithModifiersRAII callee(this, IsCallee);
     return {resolveExpr(ctx, *call.callee), {}};
+  }
 
   res::MemberExpr *resMemberExpr = resolveMemberExpr(ctx, *me, true);
   if (!resMemberExpr)
@@ -1062,6 +1064,11 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       return err::memberFnLookupFailed(resPath->location)
           .with(decl->identifier)
           .with(resPath->owningType->getName())
+          .report(reporter);
+
+    if (resPath->owningType && resPath->owningType->getAs<res::ImplType>() &&
+        isFunctionDecl && !(modifiers & IsCallee))
+      return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 
     auto *outType = resPath->getType()->getAs<res::BorrowedType>();

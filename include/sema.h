@@ -54,6 +54,7 @@ class Sema {
   res::Type *selfType = nullptr;
 
   enum Modifiers : unsigned char {
+    IsCallee = 1 << 0,
     AddressTaken = 1 << 1,
     MissingTypeAnnotationsAllowed = 1 << 2,
   };

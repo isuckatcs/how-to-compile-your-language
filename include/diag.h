@@ -98,6 +98,7 @@ diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'")
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
 diag(Error, cannotAccessMember, "cannot access member of '{}'");
 diag(Error, ambigousMemberFn, "ambigous member function reference");
+diag(Error, traitObjectMethodNotCalled, "expected to call member function on trait object");
 
 // types
 diag(Error, unknownType, "the type of '{}' is unknown");
