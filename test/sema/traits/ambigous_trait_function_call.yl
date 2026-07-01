@@ -1,15 +1,15 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T> {
-  fn foo(self: &Self) {}
+  fn foo(self: borrowed Self) {}
 }
 
 struct S {
   impl A<number> {
-    fn foo(self: &Self) {}
+    fn foo(self: borrowed Self) {}
   }
 
   impl A<unit> {
-    fn foo(self: &Self) {}
+    fn foo(self: borrowed Self) {}
   }
 }
 

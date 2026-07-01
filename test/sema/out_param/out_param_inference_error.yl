@@ -1,15 +1,11 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> { x: T }
 
-fn foo<T>(x: T) {}
+fn foo<T>(x: borrowed S<T>) {}
 
 fn main() {
   mut x = 1;
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: '&' can only be used to pass arguments to '&' parameters
-  S{ x: &x };
-
-  // FIXME: why is & not unified here?
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&mut number'
-  foo(&x);
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&S<_>'
+  foo(x);
 }

@@ -512,9 +512,9 @@ struct StructInstantiationExpr : public Expr {
 };
 
 struct ImplicitDerefExpr : public Expr {
-  const DeclRefExpr *dre;
+  DeclRefExpr *dre;
 
-  ImplicitDerefExpr(SourceLocation location, Type *type, const DeclRefExpr *dre)
+  ImplicitDerefExpr(SourceLocation location, Type *type, DeclRefExpr *dre)
       : Expr(location, type, dre->kind),
         dre(dre) {}
 
@@ -549,10 +549,20 @@ struct LambdaExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct ImplicitRefPromoExpr : public Expr {
+struct ImplicitPtrToBorrowDecay : public Expr {
   res::Expr *expr;
 
-  ImplicitRefPromoExpr(SourceLocation location, Type *type, res::Expr *expr)
+  ImplicitPtrToBorrowDecay(SourceLocation location, Type *type, res::Expr *expr)
+      : Expr(location, type, Expr::Kind::Rvalue),
+        expr(expr) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct ImplicitBorrowExpr : public Expr {
+  res::Expr *expr;
+
+  ImplicitBorrowExpr(SourceLocation location, Type *type, res::Expr *expr)
       : Expr(location, type, Expr::Kind::Rvalue),
         expr(expr) {}
 

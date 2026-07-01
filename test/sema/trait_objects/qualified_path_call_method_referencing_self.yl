@@ -2,7 +2,7 @@
 trait A {
   fn ptr(s: *Self) {}
   fn mutPtr(s: *mut Self) {}
-  fn out(s: &Self) {}
+  fn out(s: borrowed Self) {}
   fn val(s: Self) {}
 
   fn retPtr(): *Self;
@@ -36,7 +36,7 @@ fn main() {
   mut s = S{};
 
   // CHECK: [[# @LINE + 1 ]]:21: error: methods with parameters referecing 'Self' cannot be called with trait objects
-  @<impl A impl A>::out(&s);
+  @<impl A impl A>::out(s);
 
   // CHECK: [[# @LINE + 1 ]]:21: error: methods with parameters referecing 'Self' cannot be called with trait objects
   @<impl A impl A>::val(s);

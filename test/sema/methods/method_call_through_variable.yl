@@ -4,7 +4,7 @@ struct S {
   // CHECK: FunctionDecl @({{.*}}) classMethod {() -> unit}
   // CHECK-NEXT:   Block
 
-  fn instanceMethod(self: &Self, x: number) {}
+  fn instanceMethod(self: borrowed Self, x: number) {}
   // CHECK: FunctionDecl @({{.*}}) instanceMethod {(&S, number) -> unit}
   // CHECK-NEXT:   ParamDecl @({{.*}}) self {&S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
@@ -27,10 +27,10 @@ fn main() {
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::instanceMethod {(&S, number) -> unit}
   
   let s = S{};
-  instanceLevel(&s, 0);
+  instanceLevel(s, 0);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) instanceLevel {(&S, number) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&S}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0

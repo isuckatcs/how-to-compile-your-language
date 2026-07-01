@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> {
-  fn foo(self: &Self, x: T) {}
+  fn foo(self: borrowed Self, x: T) {}
 }
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) S<number>::foo {(&S<number>, number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {&S<number>}
+// CHECK-NEXT:       ImplicitBorrowExpr {&S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 // CHECK-NEXT:       NumberLiteral '0' {number}
 // CHECK-NEXT:       | value: 0

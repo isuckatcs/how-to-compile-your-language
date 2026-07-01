@@ -1,11 +1,14 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn bar(x: &number) {
+fn bar(x: borrowed mut number) {
   x = 1;
 }
 
 fn main() {
   mut x = 0;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&number'
   bar(x);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(&mut number) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&mut number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}
 }

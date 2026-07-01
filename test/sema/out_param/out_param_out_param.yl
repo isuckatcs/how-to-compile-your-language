@@ -1,12 +1,12 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn swap<T>(x: &mut T, y: &mut T) {
+fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
   let tmp = x;
   x = y;
   y = tmp;
 }
 
-fn wrapper(x: &mut number, y: &mut number) {
-  swap(&x, &y);
+fn wrapper(x: borrowed mut number, y: borrowed mut number) {
+  swap(x, y);
 }
 // CHECK: FunctionDecl @({{.*}}) wrapper {(&mut number, &mut number) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {&mut number}
@@ -14,11 +14,7 @@ fn wrapper(x: &mut number, y: &mut number) {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&mut number, &mut number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {&mut number}
-// CHECK-NEXT:         ImplicitDerefExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) x {&mut number}
-// CHECK-NEXT:       UnaryOperator '&' {&mut number}
-// CHECK-NEXT:         ImplicitDerefExpr {number}
-// CHECK-NEXT:           DeclRefExpr @({{.*}}) y {&mut number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {&mut number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {&mut number}
 
 fn main() {}

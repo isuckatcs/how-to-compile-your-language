@@ -1,9 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo {
-  fn value(self: &Self, x: Self) {}
-  fn out(self: &Self, x: &Self) {}
-  fn ptr(self: &Self, x: *Self) {}
-  fn mutPtr(self: &Self, x: *mut Self) {}
+  fn value(self: borrowed Self, x: Self) {}
+  fn out(self: borrowed Self, x: borrowed Self) {}
+  fn ptr(self: borrowed Self, x: *Self) {}
+  fn mutPtr(self: borrowed Self, x: *mut Self) {}
 }
 
 struct S {

@@ -1,13 +1,13 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  fn foo(self: &mut Self) {}
+  fn foo(self: borrowed mut Self) {}
 }
 
 fn main() {
   S{}.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&mut S) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&mut S}
   // CHECK-NEXT:     MaterializeTemporaryExpr {S}
   // CHECK-NEXT:       StructInstantiationExpr {S}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) S {S}

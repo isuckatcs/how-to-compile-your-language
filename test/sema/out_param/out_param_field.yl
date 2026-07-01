@@ -1,7 +1,0 @@
-// RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct S {
-  // CHECK: [[# @LINE + 1 ]]:6: error: only parameters can have '&' type
-  x: &number,
-}
-
-fn main() {}

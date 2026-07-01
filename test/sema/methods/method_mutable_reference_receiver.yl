@@ -2,11 +2,11 @@
 struct S {
   x:number
 
-  fn foo(self: &mut Self) {
+  fn foo(self: borrowed mut Self) {
     self.x = 1;
   }
 
-  fn bar(self: &mut S) {
+  fn bar(self: borrowed mut S) {
     self.x = 1;
   }
 }
@@ -37,12 +37,12 @@ fn main() {
   s.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&mut S) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&mut S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 
   s.bar();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(&mut S) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&mut S}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&mut S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

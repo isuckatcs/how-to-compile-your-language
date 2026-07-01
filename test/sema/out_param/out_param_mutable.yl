@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 
 // CHECK: [[# @LINE + 1 ]]:12: error: a '&' parameter cannot be 'mut'
-fn foo(mut x: &number) {}
+fn foo(mut x: borrowed number) {}
 
 fn main() {}

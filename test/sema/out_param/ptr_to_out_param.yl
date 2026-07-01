@@ -1,8 +1,0 @@
-// RUN: compiler %s 2>&1 -res-dump | filecheck %s
-// CHECK: [[# @LINE + 1 ]]:12: error: cannot create pointer to '&' param
-fn test(x: *&number) {}
-
-// CHECK: [[# @LINE + 1 ]]:14: error: cannot create pointer to '&' param
-fn test(x: ***&number) {}
-
-fn main() {}

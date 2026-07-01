@@ -1,19 +1,19 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {}
 
-fn test1(x: &number) {}
+fn test1(x: borrowed number) {}
 
-fn test2(x: &S) {}
+fn test2(x: borrowed S) {}
 
-fn test3(x: &() -> unit) {}
+fn test3(x: borrowed () -> unit) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot create reference to rvalues
-  test1(&1);
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot create reference to rvalues
+  test1(1);
 
-  // CHECK: [[# @LINE + 1 ]]:10: error: expected an instance of 'S'
-  test2(&S);
+  // CHECK: [[# @LINE + 1 ]]:9: error: expected an instance of 'S'
+  test2(S);
   
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot create reference to rvalues
-  test3(&main);
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot create reference to rvalues
+  test3(main);
 }

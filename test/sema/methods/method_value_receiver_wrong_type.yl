@@ -6,7 +6,7 @@ struct S {
   fn foo(self: number) {}
   
   // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
-  fn bar(self: &number) {}
+  fn bar(self: borrowed number) {}
 }
 
 fn main() {}

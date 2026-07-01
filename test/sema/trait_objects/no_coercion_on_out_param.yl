@@ -5,11 +5,11 @@ struct S {
   impl A;
 }
 
-fn foo(x: &*impl A) {}
+fn foo(x: borrowed *impl A) {}
 
 fn main() {
   mut s = gc(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&*S' with '&*impl A'
-  foo(&s);
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*S' with '&*impl A'
+  foo(s);
 }

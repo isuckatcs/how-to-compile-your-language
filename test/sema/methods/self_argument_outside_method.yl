@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-fn foo(self: &Self) {}
-// CHECK: [[# @LINE - 1 ]]:15: error: 'Self' is only allowed inside structs
+fn foo(self: borrowed Self) {}
+// CHECK: [[# @LINE - 1 ]]:23: error: 'Self' is only allowed inside structs
 // CHECK: [[# @LINE - 2 ]]:8: error: 'self' parameter is only allowed in methods
 
 fn bar(self: number) {}

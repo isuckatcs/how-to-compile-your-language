@@ -1,30 +1,28 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo {
-  fn out(self: &Self, x: &impl Foo) {}
-  fn ptr(self: &Self, x: *impl Foo) {}
-  fn mutPtr(self: &Self, x: *mut impl Foo) {}
+  fn out(self: borrowed Self, x: borrowed impl Foo) {}
+  fn ptr(self: borrowed Self, x: *impl Foo) {}
+  fn mutPtr(self: borrowed Self, x: *mut impl Foo) {}
 }
 
 struct S {
   impl Foo;
 }
 
-fn foo(p: &impl Foo) {
+fn foo(p: borrowed impl Foo) {
   mut x: *mut impl Foo = gcMut(S{});
 
-  x.out(&p);
+  x.out(p);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::out {(&impl Foo, &impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitRefPromoExpr {&impl Foo}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
-  // CHECK-NEXT:   UnaryOperator '&' {&impl Foo}
-  // CHECK-NEXT:     ImplicitDerefExpr {impl Foo}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) p {&impl Foo}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) p {&impl Foo}
 
   x.ptr(gc(S{}));
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::ptr {(&impl Foo, *impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitRefPromoExpr {&impl Foo}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
   // CHECK-NEXT:   TraitObjectPromoExpr {*impl Foo}
   // CHECK-NEXT:     GCExpr {*S}
@@ -34,7 +32,7 @@ fn foo(p: &impl Foo) {
   x.mutPtr(x);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::mutPtr {(&impl Foo, *mut impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitRefPromoExpr {&impl Foo}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*mut impl Foo}
 }

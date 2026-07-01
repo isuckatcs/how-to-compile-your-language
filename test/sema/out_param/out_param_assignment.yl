@@ -3,7 +3,7 @@ struct S {
   x: number
 }
 
-fn foo(n: &mut number, s: &mut S) {
+fn foo(n: borrowed mut number, s: borrowed mut S) {
 // CHECK: FunctionDecl @({{.*}}) foo {(&mut number, &mut S) -> unit}
 // CHECK-NEXT:   ParamDecl @({{.*}}) n {&mut number}
 // CHECK-NEXT:   ParamDecl @({{.*}}) s {&mut S}

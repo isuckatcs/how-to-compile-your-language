@@ -1,10 +1,10 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn foo(self: &Self, x: number) {}
+  fn foo(self: borrowed Self, x: number) {}
 }
 
 trait B : A {
-  fn foo(self: &Self, x: number) {}
+  fn foo(self: borrowed Self, x: number) {}
 }
 
 fn foo(x: *mut impl B) {

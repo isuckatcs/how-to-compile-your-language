@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo<T> {
-  fn foo(self: &Self, x: T) {}
+  fn foo(self: borrowed Self, x: T) {}
 }
 
 fn foo(x: *mut impl Foo<number>) {
@@ -11,7 +11,7 @@ fn foo(x: *mut impl Foo<number>) {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl Foo<number> impl Foo<number>>::foo {(&impl Foo<number>, number) -> unit}
-// CHECK-NEXT:       ImplicitRefPromoExpr {&impl Foo<number>}
+// CHECK-NEXT:       ImplicitPtrToBorrowDecay {&impl Foo<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl Foo<number>}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123

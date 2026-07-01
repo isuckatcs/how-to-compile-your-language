@@ -1,12 +1,12 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> {
-  fn foo(self: &Self, x: T) {}
+  fn foo(self: borrowed Self, x: T) {}
 }
 
 fn main() {
   let x = S::foo;
   let s = S{};
-  x(&s, 1);
+  x(s, 1);
 }
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
@@ -19,7 +19,7 @@ fn main() {
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:     CallExpr {unit}
 // CHECK-NEXT:       DeclRefExpr @({{.*}}) x {(&S<number>, number) -> unit}
-// CHECK-NEXT:       UnaryOperator '&' {&S<number>}
+// CHECK-NEXT:       ImplicitBorrowExpr {&S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 // CHECK-NEXT:       NumberLiteral '1' {number}
 // CHECK-NEXT:       | value: 1

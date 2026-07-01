@@ -1,12 +1,12 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  fn foo(x: number, self: &Self) {}
+  fn foo(x: number, self: borrowed Self) {}
   // CHECK: [[# @LINE - 1 ]]:21: error: 'self' can only be the first parameter
 
-  fn bar(x: number, self: &Self, self: &Self) {}
+  fn bar(x: number, self: borrowed Self, self: borrowed Self) {}
   // CHECK: [[# @LINE - 1 ]]:21: error: 'self' can only be the first parameter
-  // CHECK: [[# @LINE - 2 ]]:34: error: redeclaration of 'self'
-  // CHECK: [[# @LINE - 3 ]]:34: error: 'self' can only be the first parameter
+  // CHECK: [[# @LINE - 2 ]]:42: error: redeclaration of 'self'
+  // CHECK: [[# @LINE - 3 ]]:42: error: 'self' can only be the first parameter
 }
 
 fn main() {}

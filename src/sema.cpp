@@ -98,27 +98,15 @@ res::Type *Sema::resolveType(res::Context &ctx,
   if (const auto *function =
           dynamic_cast<const ast::FunctionType *>(&parsedType)) {
     std::vector<res::Type *> args;
-    for (auto &&astArg : function->args) {
-      WithModifiersRAII ampAllowed(this, UnaryAmpAllowed);
+    for (auto &&astArg : function->args)
       if (auto *arg = resolveType(ctx, *astArg))
         args.emplace_back(arg);
-    }
 
     auto *retTy = resolveType(ctx, *function->ret);
     if (args.size() != function->args.size() || !retTy)
       return nullptr;
 
     return typeMgr.getFunctionType(std::move(args), retTy);
-  }
-
-  if (const auto *ref = dynamic_cast<const ast::ReferenceType *>(&parsedType)) {
-    if (!(modifiers & UnaryAmpAllowed))
-      return err::unexpectedAmpParam(ref->location).report(reporter);
-
-    varOrReturn(referencedType, resolveType(ctx, *ref->referencedType, true));
-    assert(!referencedType->getAs<res::ReferenceType>() && "nested ref types");
-
-    return typeMgr.getReferenceType(referencedType, ref->isMut);
   }
 
   if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
@@ -153,7 +141,6 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
 res::UnaryOperator *
 Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
-  WithModifiersRAII mods(this, unary.op == TokenKind::Amp ? AddressTaken : 0);
   varOrReturn(rhs, resolveExpr(ctx, *unary.operand));
 
   auto *rhsTy = rhs->getType();
@@ -168,21 +155,13 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
         .with("number")
         .report(reporter);
 
-  if (unary.op == TokenKind::Amp) {
-    if (!(modifiers & UnaryAmpAllowed))
-      return err::ampOutsideArgList(unary.location).report(reporter);
-
-    if (!rhs->isLvalue())
-      return err::ampWrongCategory(rhs->location).report(reporter);
-
-    rhsTy = typeMgr.getReferenceType(rhsTy, rhs->isMutable());
-  }
-
   res::Expr::Kind kind = res::Expr::Kind::Rvalue;
   if (unary.op == TokenKind::Asterisk) {
     auto *ptr = rhsTy->getAs<res::PointerType>();
     if (!ptr)
       return err::expectedPointerOperand(rhs->location).report(reporter);
+
+    // FIXME: don't allow dereferencing pointers to trait objects
 
     kind =
         ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
@@ -461,18 +440,20 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
     return {err::classMethodCallOnInstance(call.location).report(reporter), {}};
 
   res::Expr *selfArg = resMemberExpr->base;
+  if (auto *deref = dynamic_cast<res::ImplicitDerefExpr *>(selfArg))
+    selfArg = deref->dre;
+
   if (!selfArg->isLvalue())
     selfArg = ctx.create<res::MaterializeTemporaryExpr>(
         selfArg->location, selfArg->getType(), selfArg);
 
   auto *refType =
       typeMgr.getReferenceType(selfArg->getType(), selfArg->isMutable());
-  selfArg =
-      ctx.create<res::UnaryOperator>(selfArg->location, refType, TokenKind::Amp,
-                                     selfArg, res::Expr::Kind::Rvalue);
-  selfArg = withImplicitRefPromotion(
-      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0],
-      selfArg);
+
+  auto *targetType =
+      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
+  selfArg = withImplicitBorrow(targetType, selfArg);
+  selfArg = withPtrToBorrowDecay(targetType, selfArg);
 
   return {resMemberExpr->member, {selfArg}};
 }
@@ -561,12 +542,15 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
         .report(reporter);
 
   for (auto &&arg : call.arguments) {
-    WithModifiersRAII unaryAmpAllowed(this, UnaryAmpAllowed);
-
     res::Type *expectedTy = argTypes[args.size()];
+
+    WithModifiersRAII unaryAmpAllowed(
+        this, expectedTy->getAs<res::ReferenceType>() ? AddressTaken : 0);
+
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
-    varOrReturn(promotedArg, withImplicitRefPromotion(expectedTy, coercedArg));
+    varOrReturn(promotedArg, withImplicitBorrow(expectedTy, coercedArg));
+    promotedArg = withPtrToBorrowDecay(expectedTy, promotedArg);
 
     res::Type *actualTy = promotedArg->getType();
 
@@ -745,8 +729,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
   EnterScopeRAII paramScope(this);
   {
-    WithModifiersRAII lambdaParamList(this, UnaryAmpAllowed |
-                                                MissingTypeAnnotationsAllowed);
+    WithModifiersRAII lambdaParamList(this, MissingTypeAnnotationsAllowed);
     int i = 0;
     for (auto &&param : lambdaExpr.params) {
       auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
@@ -869,24 +852,44 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   return nullptr;
 }
 
-res::Expr *Sema::withImplicitRefPromotion(res::Type *targetType,
-                                          res::Expr *expr) {
+res::Expr *Sema::withPtrToBorrowDecay(res::Type *targetType, res::Expr *expr) {
+  auto *targetBorrowType = targetType->getAs<res::ReferenceType>();
+  auto *currentPtrType = expr->getType()->getAs<res::PointerType>();
+
+  if (!targetBorrowType || !currentPtrType)
+    return expr;
+
+  if (targetBorrowType->isMutable() && !currentPtrType->isMutable())
+    return expr;
+
+  res::Type *borrowedType = targetBorrowType->getReferencedType();
+  res::Type *pointerrType = currentPtrType->getPointeeType();
+  if (!typeMgr.unify(borrowedType, pointerrType).empty())
+    return expr;
+
+  return ctx.create<res::ImplicitPtrToBorrowDecay>(expr->location,
+                                                   targetBorrowType, expr);
+}
+
+res::Expr *Sema::withImplicitBorrow(res::Type *targetType, res::Expr *expr) {
   auto *targetRefType = targetType->getAs<res::ReferenceType>();
   if (!targetRefType)
     return expr;
 
-  if (auto *exprRefType = expr->getType()->getAs<res::ReferenceType>()) {
-    if (targetRefType->isMutable() ||
-        targetRefType->isMutable() == exprRefType->isMutable())
-      return expr;
+  if (!expr->isLvalue())
+    return err::ampWrongCategory(expr->location).report(reporter);
 
-    return ctx.create<res::ImplicitRefPromoExpr>(
-        expr->location,
-        typeMgr.getReferenceType(exprRefType->getReferencedType(), false),
-        expr);
-  }
+  if (targetRefType->isMutable() && !expr->isMutable())
+    return expr;
 
-  return expr;
+  if (!typeMgr.unify(targetRefType->getReferencedType(), expr->getType())
+           .empty())
+    return expr;
+
+  return ctx.create<res::ImplicitBorrowExpr>(
+      expr->location,
+      typeMgr.getReferenceType(expr->getType(), targetRefType->isMutable()),
+      expr);
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -1116,7 +1119,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       }
     }
 
-    if (outType)
+    if (outType && (!typeHint || !typeHint->getAs<res::ReferenceType>()))
       return ctx.create<res::ImplicitDerefExpr>(
           resPath->location, outType->getReferencedType(), resPath);
 
@@ -1464,18 +1467,20 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   assert((param->type || modifiers & MissingTypeAnnotationsAllowed) &&
          "param without type annotations outside lambda");
 
-  WithModifiersRAII ampAllowed(this, UnaryAmpAllowed);
-
   res::Type *paramTy = nullptr;
   bool error = false;
 
   if (param->type) {
-    paramTy = resolveType(ctx, *param->type);
+    paramTy =
+        resolveType(ctx, *param->type, param->borrowedModifier != nullptr);
     error |= !paramTy;
   }
 
   if (!paramTy)
     paramTy = typeMgr.getNewUninferredType();
+
+  if (auto *borrowed = param->borrowedModifier.get())
+    paramTy = typeMgr.getReferenceType(paramTy, borrowed->isMut);
 
   auto *referenceType = paramTy->getAs<res::ReferenceType>();
   if (referenceType && param->isMutable) {

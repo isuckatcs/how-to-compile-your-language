@@ -1,21 +1,21 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo {
-  fn val(self: &Self): Self;
-  fn ptr(self: &Self): *Self;
-  fn ptrMut(self: &Self): *mut Self;
+  fn val(self: borrowed Self): Self;
+  fn ptr(self: borrowed Self): *Self;
+  fn ptrMut(self: borrowed Self): *mut Self;
 }
 
 struct S {
   impl Foo {
-    fn val(self: &Self): Self {
+    fn val(self: borrowed Self): Self {
       return S{};
     }
 
-    fn ptr(self: &Self): *Self {
+    fn ptr(self: borrowed Self): *Self {
       return gc(S{});
     }
 
-    fn ptrMut(self: &Self): *mut Self {
+    fn ptrMut(self: borrowed Self): *mut Self {
       return gcMut(S{});
     }
   }

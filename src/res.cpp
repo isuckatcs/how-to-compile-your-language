@@ -306,8 +306,15 @@ void LambdaExpr::dump(size_t level) const {
   closure->dump(level + 1);
 }
 
-void ImplicitRefPromoExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplicitRefPromoExpr"
+void ImplicitPtrToBorrowDecay::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitPtrToBorrowDecay"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
+}
+
+void ImplicitBorrowExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitBorrowExpr"
             << " {" << getType()->getName() << '}' << '\n';
 
   expr->dump(level + 1);

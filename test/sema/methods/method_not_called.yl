@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  fn method(self: &Self): Self {
+  fn method(self: borrowed Self): Self {
     return self;
   }
 }

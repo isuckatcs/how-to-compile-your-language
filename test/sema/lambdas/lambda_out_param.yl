@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
-  ->(x: &mut number) { x = 1; };
+  ->(x: borrowed mut number) { x = 1; };
   // CHECK: LambdaExpr {(&mut number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:3:3) {(closure@<source>:3:3)}
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(&mut number, *(closure@<source>:3:3)) -> unit}

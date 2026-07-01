@@ -54,7 +54,6 @@ class Sema {
   res::Type *selfType = nullptr;
 
   enum Modifiers : unsigned char {
-    UnaryAmpAllowed = 1 << 0,
     AddressTaken = 1 << 1,
     MissingTypeAnnotationsAllowed = 1 << 2,
   };
@@ -203,7 +202,8 @@ class Sema {
                                size_t expected) const;
 
   res::Expr *asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr);
-  res::Expr *withImplicitRefPromotion(res::Type *targetType, res::Expr *expr);
+  res::Expr *withPtrToBorrowDecay(res::Type *targetType, res::Expr *expr);
+  res::Expr *withImplicitBorrow(res::Type *targetType, res::Expr *expr);
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,

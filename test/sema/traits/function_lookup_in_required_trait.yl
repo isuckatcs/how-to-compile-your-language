@@ -2,7 +2,7 @@
 trait C {}
 
 trait B : C {
-  fn foo(self: &Self) {}
+  fn foo(self: borrowed Self) {}
   // CHECK: FunctionDecl @({{.*}}) foo {(&__Self) -> unit}
   // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
   // CHECK-NEXT:   ParamDecl @({{.*}}) self {&__Self}
@@ -17,13 +17,13 @@ fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(&T) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&T}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 
-  T::foo(&t);
+  T::foo(t);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(&T) -> unit}
-  // CHECK-NEXT:   UnaryOperator '&' {&T}
+  // CHECK-NEXT:   ImplicitBorrowExpr {&T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 }
 
