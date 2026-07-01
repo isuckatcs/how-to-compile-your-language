@@ -82,9 +82,6 @@ ConstExprEvaluator::evaluateUnaryOperator(const res::UnaryOperator &unop) {
   if (!result.isKnown())
     return result;
 
-  if (unop.op == TokenKind::Amp)
-    return res::ConstVal();
-
   if (unop.op == TokenKind::Excl)
     result = !std::get<bool>(result);
   else if (unop.op == TokenKind::Minus)
