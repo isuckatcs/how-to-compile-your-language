@@ -25,7 +25,7 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn foo(self: &Self) {
+  fn foo(self: borrowed Self) {
     foo@<Self>(self);
     Self::create();
   }

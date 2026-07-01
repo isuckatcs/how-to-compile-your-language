@@ -1,13 +1,13 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
-fn foo(x: &number) {
+fn foo(x: borrowed number) {
   println(x);
 }
 
 fn main() {
   let x = 123;
-  foo(&x);
+  foo(x);
 }
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:

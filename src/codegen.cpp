@@ -470,8 +470,19 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
 
-  if (auto *promotion = dynamic_cast<const res::ImplicitRefPromoExpr *>(&expr))
-    return generateExpr(*promotion->expr);
+  if (auto *borrow = dynamic_cast<const res::ImplicitBorrowExpr *>(&expr)) {
+    llvm::Value *value = generateExpr(*borrow->expr);
+
+    const res::Expr *resOperand = borrow->expr;
+    while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(resOperand))
+      resOperand = grouping->expr;
+
+    auto *unary = dynamic_cast<const res::UnaryOperator *>(resOperand);
+    if (unary && unary->op == TokenKind::Asterisk)
+      createTmpGCRootIfNeeded(value, unary->operand);
+
+    return value;
+  }
 
   if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(&expr))
     return materializeTemporary(*mte);
@@ -584,20 +595,6 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
-  if (unop.op == TokenKind::Amp) {
-    const res::Expr *resOperand = unop.operand;
-    llvm::Value *value = generateExpr(*resOperand);
-
-    while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(resOperand))
-      resOperand = grouping->expr;
-
-    auto *unary = dynamic_cast<const res::UnaryOperator *>(resOperand);
-    if (unary && unary->op == TokenKind::Asterisk)
-      createTmpGCRootIfNeeded(value, unary->operand);
-
-    return value;
-  }
-
   if (unop.op == TokenKind::Asterisk) {
     if (dl->getTypeAllocSize(generateType(unop.getType())) == 0)
       return nullptr;

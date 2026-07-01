@@ -2,20 +2,20 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n246\n'
 trait A<T> {
-  fn foo(self: &Self, x: T) {}
+  fn foo(self: borrowed Self, x: T) {}
 }
 
 struct S {
   x: number
 
   impl A<number> {
-    fn foo(self: &Self, x: number) {
+    fn foo(self: borrowed Self, x: number) {
       println(self.x * x);
     }
   }
 
   impl A<unit> {
-    fn foo(self: &Self, x: unit) {
+    fn foo(self: borrowed Self, x: unit) {
       println(self.x);
     }
   }
@@ -24,10 +24,10 @@ struct S {
 fn main() {
   let s = S{ x: 123 };
 
-  @<S impl A<unit>>::foo(&s, unit);
+  @<S impl A<unit>>::foo(s, unit);
   // CHECK: call void @_YT1AGuE3fooGS1SE(ptr %s, ptr null)
 
-  @<S impl A<number>>::foo(&s, 2);
+  @<S impl A<number>>::foo(s, 2);
   // CHECK-NEXT: call void @_YT1AGnE3fooGS1SE(ptr %s, double 2.000000e+00, ptr null)
 }
 

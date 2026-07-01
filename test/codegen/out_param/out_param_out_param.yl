@@ -1,17 +1,17 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n'
-fn swap<T>(x: &mut T, y: &mut T) {
+fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
   let tmp = x;
   x = y;
   y = tmp;
 }
 
-fn wrapper(x: &mut number, y: &mut number) {
+fn wrapper(x: borrowed mut number, y: borrowed mut number) {
   x = 2;
   y = 1;
 
-  swap(&x, &y);
+  swap(x, y);
 }
 // CHECK: define void @wrapper(ptr %x, ptr %y, ptr %closure) {
 // CHECK-NEXT: entry:
@@ -29,7 +29,7 @@ fn main() {
   // CHECK-NEXT: store double 3.000000e+00, ptr %x, align 8
   // CHECK-NEXT: store double 4.000000e+00, ptr %y, align 8
 
-  wrapper(&x, &y);
+  wrapper(x, y);
   // CHECK-NEXT: call void @wrapper(ptr %x, ptr %y, ptr null)
 
   println(x);

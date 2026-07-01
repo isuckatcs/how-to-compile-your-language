@@ -3,7 +3,7 @@
 // RUN: compiler %s -o %t && %t | ( ! grep ^ )
 struct S {}
 
-fn consume(x: &unit, y: &S) {}
+fn consume(x: borrowed unit, y: borrowed S) {}
 
 fn foo() {}
 
@@ -15,7 +15,7 @@ fn main() {
   let u = foo();
   let s = bar();
 
-  consume(&u, &s);
+  consume(u, s);
 }
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:

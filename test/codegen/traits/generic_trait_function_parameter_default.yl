@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 trait A<T> {
-  fn foo(self: &Self, x: T) {
+  fn foo(self: borrowed Self, x: T) {
     println(123);
   }
   // CHECK: define void @_YT1AGnE3fooGS1SE(ptr %self, double %x, ptr %closure) {

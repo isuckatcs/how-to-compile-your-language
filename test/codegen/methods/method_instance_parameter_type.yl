@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 struct S<T> {
-  fn foo(self: &Self, x: S<number>, y: S<unit>) {
+  fn foo(self: borrowed Self, x: S<number>, y: S<unit>) {
     println(123);
   }
 }

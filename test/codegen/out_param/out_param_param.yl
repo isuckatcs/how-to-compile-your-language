@@ -1,7 +1,7 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '2\n1\n1\n2\n'
-fn swap<T>(x: &mut T, y: &mut T) {
+fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
   let tmp = x;
   x = y;
   y = tmp;
@@ -17,7 +17,7 @@ fn foo(mut x: number, mut y: number) {
   println(x);
   println(y);
 
-  swap(&x, &y);
+  swap(x, y);
   // CHECK: call void @_Y4swapGnE(ptr %x1, ptr %y2, ptr null)
 
   println(x);

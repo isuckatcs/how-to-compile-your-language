@@ -2,24 +2,24 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '492\n'
 trait B {
-  fn foo(self: &mut Self);
+  fn foo(self: borrowed mut Self);
 }
 
 trait A : B {
-  fn getX(self: &Self): number;
+  fn getX(self: borrowed Self): number;
 }
 
 struct S {
   x: number
 
   impl A {
-    fn getX(self: &Self): number {
+    fn getX(self: borrowed Self): number {
       return self.x;
     }
   }
 
   impl B {
-    fn foo(self: &mut Self) {
+    fn foo(self: borrowed mut Self) {
       self.x = self.x * 2;
     }
   }
@@ -28,7 +28,7 @@ struct S {
 fn bar<T : A>(mut t : T) {
   t.foo();
 
-  T::foo(&t);
+  T::foo(t);
 
   println(t.getX());
 }

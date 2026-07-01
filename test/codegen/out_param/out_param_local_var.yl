@@ -1,7 +1,7 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '0\n10\n'
-fn bar(x: &mut number) {
+fn bar(x: borrowed mut number) {
   x = 10;
 }
 // CHECK: define void @bar(ptr %x, ptr %closure) {
@@ -17,7 +17,7 @@ fn main() {
 
   println(x);
 
-  bar(&x);
+  bar(x);
   // CHECK: call void @bar(ptr %x, ptr null)
 
   println(x);

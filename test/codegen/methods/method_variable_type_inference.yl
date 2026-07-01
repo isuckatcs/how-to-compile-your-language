@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 struct S<T> {
-  fn foo(self: &Self, x: T, y: number) {
+  fn foo(self: borrowed Self, x: T, y: number) {
     println(y);
   }
 }
@@ -15,7 +15,7 @@ fn main() {
   // CHECK-NEXT: store ptr null, ptr %1, align 8
 
   let s = S{};
-  x(&s, 123, 123);
+  x(s, 123, 123);
   // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %x, i32 0, i32 0
   // CHECK-NEXT: %3 = load ptr, ptr %2, align 8
   // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %x, i32 0, i32 1

@@ -4,7 +4,7 @@
 struct S<T> {
   x: T
 
-  fn foo(self: &Self, x: T): T {
+  fn foo(self: borrowed Self, x: T): T {
     return self.x;
   }
 }

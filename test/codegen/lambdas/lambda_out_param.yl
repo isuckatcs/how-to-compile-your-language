@@ -4,8 +4,8 @@
 fn main() {
   mut x = 0;
 
-  let f = ->(x: &mut number) { x = 123; };
-  f(&x);
+  let f = ->(x: borrowed mut number) { x = 123; };
+  f(x);
 
   println(x);
 }

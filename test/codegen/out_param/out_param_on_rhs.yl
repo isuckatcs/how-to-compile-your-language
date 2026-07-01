@@ -3,7 +3,7 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n2\n2\n1\n'
 
 // CHECK: define void @swap(ptr %x, ptr %y, ptr %closure)
-fn swap(x: &mut number, y: &mut number) {
+fn swap(x: borrowed mut number, y: borrowed mut number) {
   let tmp = x;
   // CHECK: %tmp = alloca double, align 8
   // CHECK-NEXT: %0 = load double, ptr %x, align 8
@@ -31,7 +31,7 @@ fn main() {
   println(x);
   println(y);
 
-  swap(&x, &y);
+  swap(x, y);
   // CHECK: call void @swap(ptr %x, ptr %y, ptr null)
 
   println(x);

@@ -7,7 +7,7 @@ struct S {
   }
   // CHECK: define void @_YS1S11classMethod(ptr %closure) {
 
-  fn instanceMethod(self: &Self, x: number) {
+  fn instanceMethod(self: borrowed Self, x: number) {
     println(x);
   }
   // CHECK: define void @_YS1S14instanceMethod(ptr %self, double %x, ptr %closure) {
@@ -28,7 +28,7 @@ fn main() {
   
   let instanceLevel = S::instanceMethod;
   let s = S{};
-  instanceLevel(&s, 2);
+  instanceLevel(s, 2);
   // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 0
   // CHECK-NEXT: store ptr @_YS1S14instanceMethod, ptr %6, align 8
   // CHECK-NEXT: %7 = getelementptr inbounds nuw { ptr, ptr }, ptr %instanceLevel, i32 0, i32 1

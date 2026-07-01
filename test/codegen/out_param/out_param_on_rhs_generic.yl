@@ -6,7 +6,7 @@ struct S {
   y: number,
 }
 
-fn swap<T>(x: &mut T, y: &mut T) {
+fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
   let tmp = x;
   x = y;
   y = tmp;
@@ -39,7 +39,7 @@ fn main() {
   mut x = 2;
   mut y = 1;
 
-  swap(&x, &y);
+  swap(x, y);
   // CHECK: call void @_Y4swapGnE(ptr %x, ptr %y, ptr null)
 
   println(x);
@@ -48,7 +48,7 @@ fn main() {
   mut s1 = S { x: 5, y: 6 };
   mut s2 = S { x: 3, y: 4 };
 
-  swap(&s1, &s2);
+  swap(s1, s2);
   // CHECK: call void @_Y4swapGS1SE(ptr %s1, ptr %s2, ptr null)
 
   println(s1.x);
@@ -60,13 +60,13 @@ fn main() {
   mut u1 = unit;
   mut u2 = unit;
   
-  swap(&u1, &u2);
+  swap(u1, u2);
   // CHECK: call void @_Y4swapGuE(ptr %u1, ptr %u2, ptr null)
 
   mut f1 = eight;
   mut f2 = seven;
 
-  swap(&f1, &f2);
+  swap(f1, f2);
   // CHECK: call void @_Y4swapGFRuE(ptr %f1, ptr %f2, ptr null)
 
   f1();

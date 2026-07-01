@@ -1,7 +1,7 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
-fn foo(out: &mut bool, in: bool): bool {
+fn foo(out: borrowed mut bool, in: bool): bool {
 // CHECK: define zeroext i1 @foo(ptr %out, i1 zeroext %in, ptr %closure) {
 // CHECK-NEXT: entry:
 
@@ -50,7 +50,7 @@ fn main() {
   // CHECK-NEXT: store i8 0, ptr %out, align 1
 
 
-  let res = foo(&out, b);
+  let res = foo(out, b);
   // CHECK-NEXT: %0 = call zeroext i1 @foo(ptr %out, i1 zeroext false, ptr null)
   // CHECK-NEXT: %1 = zext i1 %0 to i8
   // CHECK-NEXT: store i8 %1, ptr %res, align 1

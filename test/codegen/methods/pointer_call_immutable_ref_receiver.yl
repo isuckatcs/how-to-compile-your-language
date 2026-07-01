@@ -2,14 +2,14 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 trait A {
-  fn foo(self: &Self);
+  fn foo(self: borrowed Self);
 }
 
 struct S {
   x: number
 
   impl A {
-    fn foo(self: &Self) {
+    fn foo(self: borrowed Self) {
       println(self.x);
     }
   }

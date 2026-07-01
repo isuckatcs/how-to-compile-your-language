@@ -2,14 +2,14 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '10\n'
 trait A<T> {
-  fn foo(self: &Self, x: T);
+  fn foo(self: borrowed Self, x: T);
 }
 
 struct S {
   x: number
 
   impl A<number> {
-    fn foo(self: &Self, x: number) {
+    fn foo(self: borrowed Self, x: number) {
       println(self.x * x);
     }
     // CHECK: define void @_YT1AGnE3fooGS1SE(ptr %self, double %x, ptr %closure) {

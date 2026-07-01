@@ -1,6 +1,6 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
-fn collect(ptr: &mut *mut *number) {
+fn collect(ptr: borrowed mut *mut *number) {
   ptr = gcMut(
     gc(456)
     // implicit collection triggered when gcMut allocates here
@@ -14,7 +14,7 @@ fn main() {
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 64 B, threshold: 96 B}
 
-  collect(&p);
+  collect(p);
     // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 96 B, threshold: 96 B}
     // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 128 B, threshold: 96 B}
     // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 128 B, threshold: 96 B}

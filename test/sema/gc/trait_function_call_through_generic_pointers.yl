@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {
-  fn foo(self: &Self) {}
-  fn bar(self: &Self) {}
-  fn baz(self: &Self) {}
-  fn bazMut(self: &mut Self) {}
+  fn foo(self: borrowed Self) {}
+  fn bar(self: borrowed Self) {}
+  fn baz(self: borrowed Self) {}
+  fn bazMut(self: borrowed mut Self) {}
 }
 
 fn foo<T : A>(p: *mut T) {
@@ -19,7 +19,7 @@ fn baz<T : A>(p: *T) {
 }
 
 fn bazMut<T : A>(p: *T) {
-  // CHECK: [[# @LINE + 1 ]]:3: error: cannot unify '&T' with '&mut T'
+  // CHECK: [[# @LINE + 1 ]]:3: error: cannot unify 'T' with '&mut T'
   (*p).bazMut();
 }
 
