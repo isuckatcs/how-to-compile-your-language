@@ -41,12 +41,12 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:21: error: methods with parameters referecing 'Self' cannot be called with trait objects
   @<impl A impl A>::val(s);
 
-  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referecing 'Self' cannot be called with trait objects
+  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referencing 'Self' cannot be called with trait objects
   @<impl A impl A>::retPtr();
 
-  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referecing 'Self' cannot be called with trait objects
+  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referencing 'Self' cannot be called with trait objects
   @<impl A impl A>::retMut();
 
-  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referecing 'Self' cannot be called with trait objects
+  // CHECK: [[# @LINE + 1 ]]:21: error: methods with return type referencing 'Self' cannot be called with trait objects
   @<impl A impl A>::retVal();
 }
