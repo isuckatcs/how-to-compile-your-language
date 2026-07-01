@@ -8,13 +8,13 @@ fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
 fn wrapper(x: borrowed mut number, y: borrowed mut number) {
   swap(x, y);
 }
-// CHECK: FunctionDecl @({{.*}}) wrapper {(&mut number, &mut number) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {&mut number}
-// CHECK-NEXT:   ParamDecl @({{.*}}) y {&mut number}
+// CHECK: FunctionDecl @({{.*}}) wrapper {(borrowed mut number, borrowed mut number) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {borrowed mut number}
+// CHECK-NEXT:   ParamDecl @({{.*}}) y {borrowed mut number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&mut number, &mut number) -> unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {&mut number}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {&mut number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(borrowed mut number, borrowed mut number) -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {borrowed mut number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) y {borrowed mut number}
 
 fn main() {}

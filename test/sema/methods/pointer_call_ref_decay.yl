@@ -11,14 +11,14 @@ fn main() {
   let s = gc(S{});
   s.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(&S) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {*S}
 
   let s2 = gcMut(S{});
   s2.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(&S) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S impl A>::foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s2 {*mut S}
 }

@@ -3,9 +3,9 @@ trait C {}
 
 trait B : C {
   fn foo(self: borrowed Self) {}
-  // CHECK: FunctionDecl @({{.*}}) foo {(&__Self) -> unit}
+  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed __Self) -> unit}
   // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&__Self}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed __Self}
   // CHECK-NEXT:   Block
 }
 
@@ -16,14 +16,14 @@ fn foo<T : C>(t : T) {}
 fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(&T) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {&T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(borrowed T) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 
   T::foo(t);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(&T) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {&T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(borrowed T) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 }
 

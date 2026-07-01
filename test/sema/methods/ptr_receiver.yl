@@ -1,9 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo {
-  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
+  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have 'borrowed Self' or 'borrowed mut Self' types
   fn foo(self: *Self) {}
 
-  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
+  // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have 'borrowed Self' or 'borrowed mut Self' types
   fn bar(self: *mut Self) {}
 }
 

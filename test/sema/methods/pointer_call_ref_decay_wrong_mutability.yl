@@ -10,6 +10,6 @@ struct S {
 fn main() {
   let s = gc(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:3: error: cannot unify '*S' with '&mut S'
+  // CHECK: [[# @LINE + 1 ]]:3: error: cannot unify '*S' with 'borrowed mut S'
   s.foo();
 }

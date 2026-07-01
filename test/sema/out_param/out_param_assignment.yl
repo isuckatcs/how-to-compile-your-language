@@ -4,15 +4,15 @@ struct S {
 }
 
 fn foo(n: borrowed mut number, s: borrowed mut S) {
-// CHECK: FunctionDecl @({{.*}}) foo {(&mut number, &mut S) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) n {&mut number}
-// CHECK-NEXT:   ParamDecl @({{.*}}) s {&mut S}
+// CHECK: FunctionDecl @({{.*}}) foo {(borrowed mut number, borrowed mut S) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) n {borrowed mut number}
+// CHECK-NEXT:   ParamDecl @({{.*}}) s {borrowed mut S}
 // CHECK-NEXT:   Block
 
   n = 1;
   // CHECK-NEXT: Assignment
   // CHECK-NEXT:   ImplicitDerefExpr {number}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {&mut number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {borrowed mut number}
   // CHECK-NEXT:   NumberLiteral '1' {number}
   // CHECK-NEXT:   | value: 1
 
@@ -21,7 +21,7 @@ fn foo(n: borrowed mut number, s: borrowed mut S) {
   // CHECK-NEXT: Assignment
   // CHECK-NEXT:   MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:     ImplicitDerefExpr {S}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {&mut S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) s {borrowed mut S}
   // CHECK-NEXT:   NumberLiteral '2' {number}
   // CHECK-NEXT:   | value: 2
 }

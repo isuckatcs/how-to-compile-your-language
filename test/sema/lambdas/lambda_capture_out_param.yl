@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn foo(x: borrowed number) {
-  // CHECK: [[# @LINE + 1 ]]:9: error: capturing '&' parameter 'x' in lambda is not allowed
+  // CHECK: [[# @LINE + 1 ]]:9: error: capturing borrowed parameter 'x' in lambda is not allowed
   ->(){ x; };
 }
 

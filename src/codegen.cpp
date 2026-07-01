@@ -137,7 +137,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *r = type->getAs<res::ReferenceType>())
+  if (const auto *r = type->getAs<res::BorrowedType>())
     return llvm::PointerType::get(context, 0);
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
@@ -1099,7 +1099,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
 
     llvm::Value *argVal = arg;
     if (paramDecl->isMutable && !arg->hasByValAttr() &&
-        !paramDeclTy->getAs<res::ReferenceType>()) {
+        !paramDeclTy->getAs<res::BorrowedType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }

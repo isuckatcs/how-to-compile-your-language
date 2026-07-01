@@ -13,10 +13,10 @@ fn wrapper(mut x: number, mut y: number) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) y {number}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(&mut number, &mut number) -> unit}
-// CHECK-NEXT:       ImplicitBorrowExpr {&mut number}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) swap {(borrowed mut number, borrowed mut number) -> unit}
+// CHECK-NEXT:       ImplicitBorrowExpr {borrowed mut number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
-// CHECK-NEXT:       ImplicitBorrowExpr {&mut number}
+// CHECK-NEXT:       ImplicitBorrowExpr {borrowed mut number}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) y {number}
 
 fn main() {}

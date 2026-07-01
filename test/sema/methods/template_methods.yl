@@ -26,8 +26,8 @@ fn main() {
   
   s.foo(unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&S, unit) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {&S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(borrowed S, unit) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}
 }

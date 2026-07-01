@@ -11,15 +11,15 @@ fn main() {
 // CHECK: FunctionDecl @({{.*}}) main {() -> unit}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
-// CHECK-NEXT:       VarDecl @({{.*}}) x {(&S<number>, number) -> unit}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S<number>::foo {(&S<number>, number) -> unit}
+// CHECK-NEXT:       VarDecl @({{.*}}) x {(borrowed S<number>, number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) S<number>::foo {(borrowed S<number>, number) -> unit}
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S<number>}
 // CHECK-NEXT:         StructInstantiationExpr {S<number>}
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {(&S<number>, number) -> unit}
-// CHECK-NEXT:       ImplicitBorrowExpr {&S<number>}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) x {(borrowed S<number>, number) -> unit}
+// CHECK-NEXT:       ImplicitBorrowExpr {borrowed S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 // CHECK-NEXT:       NumberLiteral '1' {number}
 // CHECK-NEXT:       | value: 1

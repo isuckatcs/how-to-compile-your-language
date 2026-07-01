@@ -6,6 +6,6 @@ fn main() {
   foo(x);
 }
 // CHECK: CallExpr {unit}
-// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
-// CHECK-NEXT:   ImplicitBorrowExpr {&number}
+// CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed number) -> unit}
+// CHECK-NEXT:   ImplicitBorrowExpr {borrowed number}
 // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {number}

@@ -20,13 +20,13 @@ struct S {
     foo@<Self>(self);
     Self::create();
   }
-  // CHECK: FunctionDecl @({{.*}}) foo {(&S) -> unit}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&S}
+  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
   // CHECK-NEXT:   Block
   // CHECK-NEXT:     CallExpr {unit}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(S) -> unit}
   // CHECK-NEXT:       ImplicitDerefExpr {S}
-  // CHECK-NEXT:         DeclRefExpr @({{.*}}) self {&S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) self {borrowed S}
   // CHECK-NEXT:     CallExpr {S}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) S::create {() -> S}
 }

@@ -14,8 +14,8 @@ fn foo(x: *mut impl A) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut impl A}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl A impl A>::foo {(&impl A, number) -> unit}
-// CHECK-NEXT:       ImplicitPtrToBorrowDecay {&impl A}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl A impl A>::foo {(borrowed impl A, number) -> unit}
+// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed impl A}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl A}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123

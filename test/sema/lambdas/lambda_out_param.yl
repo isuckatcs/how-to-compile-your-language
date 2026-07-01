@@ -1,15 +1,15 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
   ->(x: borrowed mut number) { x = 1; };
-  // CHECK: LambdaExpr {(&mut number) -> unit}
+  // CHECK: LambdaExpr {(borrowed mut number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:3:3) {(closure@<source>:3:3)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(&mut number, *(closure@<source>:3:3)) -> unit}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) x {&mut number}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(borrowed mut number, *(closure@<source>:3:3)) -> unit}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) x {borrowed mut number}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:3:3)}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         Assignment
   // CHECK-NEXT:           ImplicitDerefExpr {number}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) x {&mut number}
+  // CHECK-NEXT:             DeclRefExpr @({{.*}}) x {borrowed mut number}
   // CHECK-NEXT:           NumberLiteral '1' {number}
   // CHECK-NEXT:           | value: 1
 }

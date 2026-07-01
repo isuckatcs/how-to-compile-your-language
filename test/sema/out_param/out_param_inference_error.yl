@@ -6,6 +6,6 @@ fn foo<T>(x: borrowed S<T>) {}
 fn main() {
   mut x = 1;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&S<_>'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with 'borrowed S<_>'
   foo(x);
 }

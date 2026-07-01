@@ -14,8 +14,8 @@ fn main() {
 // CHECK-NEXT:         StructInstantiationExpr {S<number>}
 // CHECK-NEXT:           DeclRefExpr @({{.*}}) S {S<number>}
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) S<number>::foo {(&S<number>, number) -> unit}
-// CHECK-NEXT:       ImplicitBorrowExpr {&S<number>}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) S<number>::foo {(borrowed S<number>, number) -> unit}
+// CHECK-NEXT:       ImplicitBorrowExpr {borrowed S<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) s {S<number>}
 // CHECK-NEXT:       NumberLiteral '0' {number}
 // CHECK-NEXT:       | value: 0

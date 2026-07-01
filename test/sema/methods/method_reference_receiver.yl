@@ -12,35 +12,35 @@ struct S {
 }
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
-// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(&S) -> unit}
-// CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(borrowed S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {borrowed S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       CallExpr {unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:           ImplicitDerefExpr {S}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
-// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(&S) -> unit}
-// CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(borrowed S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {borrowed S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       CallExpr {unit}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:           ImplicitDerefExpr {S}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed S}
 
 fn main() {
   mut s = S{ x: 123 };
 
   s.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(&S) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {&S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 
   s.bar();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(&S) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {&S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::bar {(borrowed S) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

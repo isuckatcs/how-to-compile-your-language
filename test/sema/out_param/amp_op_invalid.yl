@@ -8,7 +8,7 @@ fn bar(x: borrowed number) {}
 fn main() {
   let x = 1;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&mut number'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with 'borrowed mut number'
   foo(x);
 
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot create reference to rvalues

@@ -14,15 +14,15 @@ fn foo(p: borrowed impl Foo) {
 
   x.out(p);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::out {(&impl Foo, &impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::out {(borrowed impl Foo, borrowed impl Foo) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) p {&impl Foo}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) p {borrowed impl Foo}
 
   x.ptr(gc(S{}));
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::ptr {(&impl Foo, *impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::ptr {(borrowed impl Foo, *impl Foo) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
   // CHECK-NEXT:   TraitObjectPromoExpr {*impl Foo}
   // CHECK-NEXT:     GCExpr {*S}
@@ -31,8 +31,8 @@ fn foo(p: borrowed impl Foo) {
 
   x.mutPtr(x);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::mutPtr {(&impl Foo, *mut impl Foo) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {&impl Foo}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl Foo impl Foo>::mutPtr {(borrowed impl Foo, *mut impl Foo) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed impl Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl Foo}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*mut impl Foo}
 }
