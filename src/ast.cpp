@@ -33,13 +33,6 @@ void FunctionType::dump(size_t level) const {
   ret->dump(level + 1);
 }
 
-void ReferenceType::dump(size_t level) const {
-  std::cerr << indent(level) << "ReferenceType" << (isMut ? " mut" : "")
-            << '\n';
-
-  referencedType->dump(level + 1);
-}
-
 void PointerType::dump(size_t level) const {
   std::cerr << indent(level) << "PointerType" << (isMut ? " mut" : "") << '\n';
 
@@ -195,6 +188,11 @@ void TypeParamDecl::dump(size_t level) const {
     restriction->dump(level + 1);
 }
 
+void BorrowedModifier::dump(size_t level) const {
+  std::cerr << indent(level) << "BorrowedModifier" << (isMut ? " mut" : "")
+            << '\n';
+}
+
 void FieldDecl::dump(size_t level) const {
   std::cerr << indent(level) << "FieldDecl: " << identifier << '\n';
 
@@ -226,6 +224,9 @@ void TraitDecl::dump(size_t level) const {
 
 void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl: " << identifier << '\n';
+
+  if (borrowedModifier)
+    borrowedModifier->dump(level + 1);
 
   if (type)
     type->dump(level + 1);

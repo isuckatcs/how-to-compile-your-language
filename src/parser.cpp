@@ -395,7 +395,10 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
 }
 
 // <paramDecl>
-//  ::= 'mut'? <identifier> ':' <type>
+//  ::= 'mut'? <identifier> ':' <borrowedModifier>? <type>
+//
+// <borrowedModifier>
+//  ::= 'borrowed' 'mut'?
 std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   bool isMut = nextToken.kind == TokenKind::KwMut;
   if (isMut)
@@ -410,9 +413,23 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
+  std::unique_ptr<ast::BorrowedModifier> borrowedModifier;
   std::unique_ptr<ast::Type> type;
+
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat :
+
+    if (nextToken.kind == TokenKind::KwBorrowed) {
+      SourceLocation borrowedLoc = nextToken.location;
+      eatNextToken(); // eat 'borrowed'
+
+      bool isMut = nextToken.kind == TokenKind::KwMut;
+      if (isMut)
+        eatNextToken(); // eat 'mut'
+
+      borrowedModifier =
+          std::make_unique<ast::BorrowedModifier>(borrowedLoc, isMut);
+    }
 
     type = parseType();
     if (!type)
@@ -423,6 +440,7 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
     return err::expected(nextToken.location).with("':'").report(reporter);
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
+                                          std::move(borrowedModifier),
                                           std::move(type), isMut);
 }
 
@@ -691,14 +709,14 @@ std::unique_ptr<ast::Expr> Parser::parseExprRHS(std::unique_ptr<ast::Expr> lhs,
 }
 
 // <prefixExpression>
-//  ::= ('!' | '-' | '&' | '*' )* <postfixExpression>
+//  ::= ('!' | '-' | '*' )* <postfixExpression>
 std::unique_ptr<ast::Expr> Parser::parsePrefixExpr() {
   Token tok = nextToken;
 
   if (tok.kind != TokenKind::Excl && tok.kind != TokenKind::Minus &&
-      tok.kind != TokenKind::Amp && tok.kind != TokenKind::Asterisk)
+      tok.kind != TokenKind::Asterisk)
     return parsePostfixExpr();
-  eatNextToken(); // eat '!', '-', '&' or '*'
+  eatNextToken(); // eat '!', '-', or '*'
 
   varOrReturn(rhs, parsePrefixExpr());
 
@@ -1043,7 +1061,6 @@ Parser::parseListWithTrailingComma(
 //  ::= <builtinType>
 //  |   <userDefinedDeclInstance>
 //  |   <functionType>
-//  |   <outParamType>
 //  |   <pointerType>
 //  |   <implType>
 //
@@ -1058,9 +1075,6 @@ Parser::parseListWithTrailingComma(
 //
 // <functionType>
 //  ::= '(' <type> (',' <type>)* ','? ')' -> type
-//
-// <outParamType>
-//  ::= '&' <type>
 //
 // <pointerType>
 //  ::= '*' 'mut'? <type>
@@ -1099,19 +1113,6 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     varOrReturn(returnType, parseType());
     return std::make_unique<ast::FunctionType>(
         location, std::move(*argTypeList), std::move(returnType));
-  }
-
-  if (kind == TokenKind::Amp) {
-    SourceLocation location = nextToken.location;
-    eatNextToken(); // eat '&'
-
-    bool isMut = nextToken.kind == TokenKind::KwMut;
-    if (isMut)
-      eatNextToken(); // eat 'mut'
-
-    varOrReturn(referencedType, parseType());
-    return std::make_unique<ast::ReferenceType>(
-        location, std::move(referencedType), isMut);
   }
 
   if (kind == TokenKind::Asterisk) {

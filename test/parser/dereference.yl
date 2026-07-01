@@ -13,10 +13,4 @@ fn main() {
   // CHECK-NEXT:   UnaryOperator: '!'
   // CHECK-NEXT:     PathExpr:
   // CHECK-NEXT:       DeclRefExpr: x
-  
-  &*x;
-  // CHECK-NEXT: UnaryOperator: '&'
-  // CHECK-NEXT:   UnaryOperator: '*'
-  // CHECK-NEXT:     PathExpr:
-  // CHECK-NEXT:       DeclRefExpr: x
 }

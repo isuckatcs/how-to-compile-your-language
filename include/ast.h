@@ -59,20 +59,6 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct ReferenceType : public Type {
-  std::unique_ptr<Type> referencedType;
-  bool isMut;
-
-  ReferenceType(SourceLocation location,
-                std::unique_ptr<Type> referencedType,
-                bool isMut)
-      : Type(location),
-        referencedType(std::move(referencedType)),
-        isMut(isMut) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct PointerType : public Type {
   std::unique_ptr<Type> pointeeType;
   bool isMut;
@@ -393,15 +379,29 @@ struct TypeParamDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
+struct BorrowedModifier {
+  SourceLocation location;
+  bool isMut;
+
+  BorrowedModifier(SourceLocation location, bool isMut)
+      : location(location),
+        isMut(isMut) {}
+
+  void dump(size_t level = 0) const;
+};
+
 struct ParamDecl : public Decl {
+  std::unique_ptr<BorrowedModifier> borrowedModifier;
   std::unique_ptr<Type> type;
   bool isMutable;
 
   ParamDecl(SourceLocation location,
             std::string identifier,
+            std::unique_ptr<BorrowedModifier> borrowedModifier,
             std::unique_ptr<Type> type,
             bool isMutable)
       : Decl(location, std::move(identifier)),
+        borrowedModifier(std::move(borrowedModifier)),
         type(std::move(type)),
         isMutable(isMutable) {}
 
