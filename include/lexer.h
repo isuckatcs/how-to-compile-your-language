@@ -49,6 +49,7 @@ enum class TokenKind : char {
   KwImpl,
   KwGC,
   KwGCMut,
+  KwBorrowed,
 
   Eof = singleCharTokens[0],
   Lpar = singleCharTokens[1],
@@ -69,15 +70,25 @@ enum class TokenKind : char {
 std::string_view getOpStr(TokenKind op);
 
 const std::unordered_map<std::string_view, TokenKind> keywords = {
-    {"unit", TokenKind::KwUnit},     {"fn", TokenKind::KwFn},
-    {"number", TokenKind::KwNumber}, {"if", TokenKind::KwIf},
-    {"else", TokenKind::KwElse},     {"let", TokenKind::KwLet},
-    {"mut", TokenKind::KwMut},       {"while", TokenKind::KwWhile},
-    {"return", TokenKind::KwReturn}, {"struct", TokenKind::KwStruct},
-    {"Self", TokenKind::KwSelf},     {"trait", TokenKind::KwTrait},
-    {"impl", TokenKind::KwImpl},     {"bool", TokenKind::KwBool},
-    {"true", TokenKind::KwTrue},     {"false", TokenKind::KwFalse},
-    {"gc", TokenKind::KwGC},         {"gcMut", TokenKind::KwGCMut}};
+    {"unit", TokenKind::KwUnit},
+    {"fn", TokenKind::KwFn},
+    {"number", TokenKind::KwNumber},
+    {"if", TokenKind::KwIf},
+    {"else", TokenKind::KwElse},
+    {"let", TokenKind::KwLet},
+    {"mut", TokenKind::KwMut},
+    {"while", TokenKind::KwWhile},
+    {"return", TokenKind::KwReturn},
+    {"struct", TokenKind::KwStruct},
+    {"Self", TokenKind::KwSelf},
+    {"trait", TokenKind::KwTrait},
+    {"impl", TokenKind::KwImpl},
+    {"bool", TokenKind::KwBool},
+    {"true", TokenKind::KwTrue},
+    {"false", TokenKind::KwFalse},
+    {"gc", TokenKind::KwGC},
+    {"gcMut", TokenKind::KwGCMut},
+    {"borrowed", TokenKind::KwBorrowed}};
 
 struct Token {
   SourceLocation location;
