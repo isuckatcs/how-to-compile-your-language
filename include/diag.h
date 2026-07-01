@@ -116,7 +116,6 @@ diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
-diag(Error, outParamPointer, "cannot create pointer to '&' param");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "traits with template methods cannot be used in trait objects");
 diag(Error, traitObjectSelf, "methods that take 'self' by value cannot be called with trait objects");
@@ -141,8 +140,6 @@ diag(Error, noReturnValue, "expected a return value");
 diag(Error, rvalueAssignment, "cannot assign to rvalue");
 diag(Error, cannotBeMutated, "'{}' cannot be mutated");
 diag(Error, pointeeCannotBeMutated, "pointee of type '{}' cannot be mutated");
-diag(Error, unexpectedAmpParam, "only parameters can have '&' type");
-diag(Error, ampOutsideArgList, "'&' can only be used to pass arguments to '&' parameters");
 diag(Error, ampWrongCategory, "cannot create reference to rvalues");
 diag(Error, mutableAmp, "a borrowed parameter cannot be 'mut'");
 

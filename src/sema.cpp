@@ -86,9 +86,6 @@ res::Type *Sema::resolveType(res::Context &ctx,
     std::vector<res::Type *> resolvedTypeArgs;
     for (auto &&astArg : udt->typeArguments) {
       varOrReturn(resolvedType, resolveType(ctx, *astArg));
-      if (resolvedType->getAs<res::BorrowedType>())
-        return err::unexpectedAmpParam(astArg->location).report(reporter);
-
       resolvedTypeArgs.emplace_back(resolvedType);
     }
 
@@ -130,9 +127,6 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
     varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType, true));
-    if (pointeeType->getAs<res::BorrowedType>())
-      return err::outParamPointer(ptr->location).report(reporter);
-
     return typeMgr.getPointerType(pointeeType, ptr->isMut);
   }
 
