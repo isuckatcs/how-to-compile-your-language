@@ -8,6 +8,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:26: error: cannot create reference to rvalues
+  // CHECK: [[# @LINE + 1 ]]:26: error: only lvalues can be borrowed
   @<impl A impl A>::val(S{});
 }

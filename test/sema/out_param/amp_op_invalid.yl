@@ -11,7 +11,7 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with 'borrowed mut number'
   foo(x);
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot create reference to rvalues
+  // CHECK: [[# @LINE + 1 ]]:7: error: only lvalues can be borrowed
   bar(1);
 
   let z = 0;

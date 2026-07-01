@@ -8,12 +8,12 @@ fn test2(x: borrowed S) {}
 fn test3(x: borrowed () -> unit) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:9: error: cannot create reference to rvalues
+  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be borrowed
   test1(1);
 
   // CHECK: [[# @LINE + 1 ]]:9: error: expected an instance of 'S'
   test2(S);
   
-  // CHECK: [[# @LINE + 1 ]]:9: error: cannot create reference to rvalues
+  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be borrowed
   test3(main);
 }

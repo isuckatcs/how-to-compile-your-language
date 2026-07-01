@@ -871,7 +871,7 @@ res::Expr *Sema::withImplicitBorrow(res::Type *targetType, res::Expr *expr) {
     return expr;
 
   if (!expr->isLvalue())
-    return err::ampWrongCategory(expr->location).report(reporter);
+    return err::rvalueBorrow(expr->location).report(reporter);
 
   if (targetRefType->isMutable() && !expr->isMutable())
     return expr;
@@ -1477,7 +1477,7 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
 
   auto *referenceType = paramTy->getAs<res::BorrowedType>();
   if (referenceType && param->isMutable) {
-    err::mutableAmp(param->location).report(reporter);
+    err::mutBorrowParameter(param->location).report(reporter);
     error = true;
   }
 

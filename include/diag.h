@@ -140,8 +140,8 @@ diag(Error, noReturnValue, "expected a return value");
 diag(Error, rvalueAssignment, "cannot assign to rvalue");
 diag(Error, cannotBeMutated, "'{}' cannot be mutated");
 diag(Error, pointeeCannotBeMutated, "pointee of type '{}' cannot be mutated");
-diag(Error, ampWrongCategory, "cannot create reference to rvalues");
-diag(Error, mutableAmp, "a borrowed parameter cannot be 'mut'");
+diag(Error, rvalueBorrow, "only lvalues can be borrowed");
+diag(Error, mutBorrowParameter, "a borrowed parameter cannot be 'mut'");
 
 // init
 diag(Error, notInitialized, "'{}' is not initialized");
