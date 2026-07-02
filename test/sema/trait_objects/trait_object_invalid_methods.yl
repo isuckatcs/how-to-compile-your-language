@@ -1,0 +1,22 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait Foo {
+  // CHECK: [[# @LINE + 1 ]]:31: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn arg(self: borrowed Self, x: Self) {}
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
+  fn ret(self: borrowed Self): Self {}
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a static method cannot be used as a trait object
+  fn static() {}
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a template method cannot be used as a trait object
+  fn generic<T>(self: borrowed Self) {}
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a template method cannot be used as a trait object
+  fn staticGeneric<T>(self: borrowed Self) {}
+}
+
+// CHECK: [[# @LINE + 1 ]]:17: error: trait 'Foo' is not trait object compatible
+fn foo(x: *impl Foo) {}
+
+fn main() {}

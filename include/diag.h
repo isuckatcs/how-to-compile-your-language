@@ -118,9 +118,12 @@ diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
-diag(Error, traitObjectTemplateMemberFn, "traits with template methods cannot be used in trait objects");
-diag(Error, traitObjectSelfParam, "methods with parameters referecing 'Self' cannot be called with trait objects");
-diag(Error, traitObjectSelfReturn, "methods with return type referencing 'Self' cannot be called with trait objects");
+diag(Error, traitObjectTemplateMemberFn, "trait '{}' with a template method cannot be used as a trait object");
+diag(Error, traitObjectStaticMemberFn, "trait '{}' with a static method cannot be used as a trait object");
+diag(Error, traitObjectSelfParam, "trait '{}' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object");
+diag(Error, traitObjectSelfReturn, "trait '{}' with a method returning a type referencing 'Self' cannot be used as a trait object");
+diag(Error, superTraitNotTraitObjectCompatible, "super trait '{}' of trait '{}' is not trait object compatible");
+diag(Error, traitNotTraitObjectCompatible, "trait '{}' is not trait object compatible");
 diag(Error, traitObjectPtrDereference, "cannot dereference pointer to trait object");
 
 // generics

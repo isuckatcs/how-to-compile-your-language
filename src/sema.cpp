@@ -113,8 +113,11 @@ res::Type *Sema::resolveType(res::Context &ctx,
     varOrReturn(trait, resolveTraitInstance(ctx, impl->trait.get()));
     auto *traitType = trait->getType()->getAs<res::TraitType>();
 
-    if (!isTraitVtableCompatible(traitType))
-      return err::traitObjectTemplateMemberFn(trait->location).report(reporter);
+    std::set<std::string> visited;
+    if (!checkVtableCompatibility(trait->location, traitType, visited))
+      return err::traitNotTraitObjectCompatible(trait->location)
+          .with(traitType->getName())
+          .report(reporter);
 
     if (functionInfo && !checkTraitInstance(trait))
       return nullptr;
@@ -455,45 +458,6 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
   return {resMemberExpr->member, {selfArg}};
 }
 
-bool Sema::isValidCallee(res::Expr *callee) {
-  auto *dre = dynamic_cast<res::DeclRefExpr *>(callee);
-  if (!dre)
-    return true;
-
-  auto *fnDecl = dre->decl->getAs<res::FunctionDecl>();
-  if (!fnDecl)
-    return true;
-
-  if (fnDecl->typeParams.empty() ||
-      fnDecl->typeParams[0]->identifier != implicitSelfId)
-    return true;
-
-  if (!dre->typeArgs[0]->getAs<res::ImplType>())
-    return true;
-
-  auto *fnType = fnDecl->getType()->getAs<res::FunctionType>();
-  res::Type *selfTPType = fnDecl->typeParams[0]->getType();
-
-  SourceLocation calleeLoc = callee->location;
-  for (auto &&paramType : fnType->getArgs()) {
-    if (paramType == *fnType->getArgs().begin() &&
-        fnDecl->params[0]->identifier == selfParamId)
-      continue;
-
-    if (typeMgr.stripPointerAndOutTypes(paramType) == selfTPType) {
-      err::traitObjectSelfParam(calleeLoc).report(reporter);
-      return false;
-    }
-  }
-
-  if (typeMgr.stripPointerAndOutTypes(fnType->getReturnType()) == selfTPType) {
-    err::traitObjectSelfReturn(calleeLoc).report(reporter);
-    return false;
-  }
-
-  return true;
-}
-
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
   auto &&[callee, args] = resolveCallBase(ctx, call);
@@ -505,9 +469,6 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     return err::invalidCallTy(call.location)
         .with(callee->getType()->getName())
         .report(reporter);
-
-  if (!isValidCallee(callee))
-    return nullptr;
 
   if (!args.empty()) {
     auto msgs = typeMgr.unify(args[0]->getType(), fnType->getArgs()[0]);
@@ -1937,22 +1898,70 @@ bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
   return true;
 }
 
-bool Sema::isTraitVtableCompatible(res::TraitType *trait) {
+bool Sema::checkVtableCompatibility(SourceLocation loc,
+                                    res::TraitType *trait,
+                                    std::set<std::string> &visited) {
+  if (!visited.emplace(trait->getName()).second)
+    return true;
+
+  bool error = false;
   for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
-    bool hasSelfParam =
-        fn->params.size() > 0 && fn->params[0]->identifier == selfParamId;
+    SourceLocation fnLoc = fn->location;
 
-    if (!fn->isGeneric() || !hasSelfParam || fn->typeParams.size() == 1)
+    if (fn->typeParams.size() > 1) {
+      err::traitObjectTemplateMemberFn(fnLoc)
+          .with(trait->getName())
+          .report(reporter);
+      error = true;
       continue;
+    }
 
-    return false;
+    if (fn->params.empty() || fn->params[0]->identifier != selfParamId) {
+      err::traitObjectStaticMemberFn(fnLoc)
+          .with(trait->getName())
+          .report(reporter);
+      error = true;
+      continue;
+    }
+
+    res::Type *selfTPType = fn->typeParams[0]->getType();
+    res::Substitution testSub;
+    testSub[selfTPType] = typeMgr.getBuiltinUnitType();
+
+    auto *fnType = fn->getType()->getAs<res::FunctionType>();
+    for (int i = 1; i < fn->params.size(); ++i) {
+      const auto &param = fn->params[i];
+      res::Type *paramType = param->getType();
+
+      if (!typeMgr.unify(paramType, typeMgr.instantiate(paramType, testSub))
+               .empty()) {
+        err::traitObjectSelfParam(param->location)
+            .with(trait->getName())
+            .report(reporter);
+        error = true;
+        break;
+      }
+    }
+
+    res::Type *retType =
+        fn->getType()->getAs<res::FunctionType>()->getReturnType();
+    if (!typeMgr.unify(retType, typeMgr.instantiate(retType, testSub))
+             .empty()) {
+      err::traitObjectSelfReturn(fnLoc).with(trait->getName()).report(reporter);
+      error = true;
+    }
   }
 
   for (auto &&parentTrait : typeMgr.getUpperBounds(trait))
-    if (!isTraitVtableCompatible(parentTrait))
-      return false;
+    if (!checkVtableCompatibility(loc, parentTrait, visited)) {
+      err::superTraitNotTraitObjectCompatible(loc)
+          .with(parentTrait->getName())
+          .with(trait->getName())
+          .report(reporter);
+      error = true;
+    }
 
-  return true;
+  return !error;
 }
 
 bool Sema::runPostFunctionBodyChecks() {

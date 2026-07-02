@@ -135,7 +135,6 @@ class Sema {
   resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);
-  bool isValidCallee(res::Expr *callee);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
       const ast::StructInstantiationExpr &structInstantiation);
@@ -230,7 +229,9 @@ class Sema {
   bool hasSelfContainingStructs(res::Context &ctx);
   bool checkTraitInstances(res::Context &ctx);
   bool checkTraitInstance(res::TraitInstance *traitInstance);
-  bool isTraitVtableCompatible(res::TraitType *trait);
+  bool checkVtableCompatibility(SourceLocation loc,
+                                res::TraitType *trait,
+                                std::set<std::string> &visited);
 
   // Post-body checks
   bool runPostFunctionBodyChecks();

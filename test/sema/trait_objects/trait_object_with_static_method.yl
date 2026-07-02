@@ -1,0 +1,10 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'A' with a static method cannot be used as a trait object
+  fn foo() {}
+}
+
+// CHECK: [[# @LINE + 1 ]]:17: error: trait 'A' is not trait object compatible
+fn foo(x: *impl A) {}
+
+fn main() {}

@@ -7,10 +7,15 @@ trait Bar : Foo {}
 
 trait Baz : Bar {}
 
-// CHECK: [[# @LINE + 1 ]]:17: error: traits with template methods cannot be used in trait objects
 fn bar(x: *impl Bar) {}
+// CHECK: [[# @LINE - 8 ]]:6: error: trait 'Foo' with a template method cannot be used as a trait object
+// CHECK: [[# @LINE - 2 ]]:17: error: super trait 'Foo' of trait 'Bar' is not trait object compatible
+// CHECK: [[# @LINE - 3 ]]:17: error: trait 'Bar' is not trait object compatible
 
-// CHECK: [[# @LINE + 1 ]]:17: error: traits with template methods cannot be used in trait objects
 fn baz(x: *impl Baz) {}
+// CHECK: [[# @LINE - 13 ]]:6: error: trait 'Foo' with a template method cannot be used as a trait object
+// CHECK: [[# @LINE - 2 ]]:17: error: super trait 'Foo' of trait 'Bar' is not trait object compatible
+// CHECK: [[# @LINE - 3 ]]:17: error: super trait 'Bar' of trait 'Baz' is not trait object compatible
+// CHECK: [[# @LINE - 4 ]]:17: error: trait 'Baz' is not trait object compatible
 
 fn main() {}

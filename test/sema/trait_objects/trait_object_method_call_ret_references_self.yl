@@ -1,8 +1,18 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct T<T> {}
+
 trait Foo {
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
   fn val(self: borrowed Self): Self;
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
   fn ptr(self: borrowed Self): *Self;
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
   fn ptrMut(self: borrowed Self): *mut Self;
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
+  fn template(self: borrowed Self): T<Self>;
 }
 
 struct S {
@@ -18,18 +28,14 @@ struct S {
     fn ptrMut(self: borrowed Self): *mut Self {
       return gcMut(S{});
     }
+
+    fn template(self: borrowed Self): T<Self> {
+      return T{};
+    }
   }
 }
 
 fn main() {
+  // CHECK: [[# @LINE + 1 ]]:20: error: trait 'Foo' is not trait object compatible
   mut x: *mut impl Foo = gcMut(S{});
-
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referencing 'Self' cannot be called with trait objects
-  x.val();
-
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referencing 'Self' cannot be called with trait objects
-  x.ptr();
-
-  // CHECK: [[# @LINE + 1 ]]:5: error: methods with return type referencing 'Self' cannot be called with trait objects
-  x.ptrMut();
 }

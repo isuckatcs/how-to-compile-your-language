@@ -375,17 +375,5 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
 
   return t;
 }
-
-Type *TypeManager::stripPointerAndOutTypes(Type *t) {
-  t = t->getRootType();
-
-  if (auto *ptrType = t->getAs<res::PointerType>())
-    return stripPointerAndOutTypes(ptrType->getPointeeType());
-
-  if (auto *outType = t->getAs<res::BorrowedType>())
-    return stripPointerAndOutTypes(outType->getBorrowedType());
-
-  return t;
-}
 } // namespace res
 } // namespace yl
