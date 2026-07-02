@@ -895,8 +895,17 @@ llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
 }
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
-  if (const auto *p = type->getAs<res::PointerType>())
+  if (const auto *p = type->getAs<res::PointerType>()) {
+    if (p->getPointeeType()->getAs<res::ImplType>()) {
+      llvm::Type *ty = generateType(p);
+      auto offset = module.getDataLayout()
+                        .getStructLayout(llvm::cast<llvm::StructType>(ty))
+                        ->getElementOffset(0);
+      return {offset};
+    }
+
     return {0};
+  }
 
   if (const auto *fn = type->getAs<res::FunctionType>()) {
     llvm::Type *fnTy = generateType(fn);
@@ -945,9 +954,16 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   EnterInstantiationRAII inst(this, type->getAs<res::StructType>());
 
-  std::string globalPrefix = type->getAs<res::FunctionType>()
-                                 ? "function"
-                                 : Mangling::mangleType(type, instCtx);
+  std::string globalPrefix = "";
+
+  auto *ptr = type->getAs<res::PointerType>();
+  if (ptr && ptr->getPointeeType()->getAs<res::ImplType>())
+    globalPrefix = "fat.ptr";
+  else if (type->getAs<res::FunctionType>())
+    globalPrefix = "function";
+  else
+    globalPrefix = Mangling::mangleType(type, instCtx);
+
   std::string globalId = globalPrefix + ".offsets";
 
   if (auto *global = module.getGlobalVariable(globalId, true))
@@ -1037,8 +1053,9 @@ void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
   tmpBuilder.CreateStore(
       llvm::Constant::getNullValue(alloca->getAllocatedType()), alloca);
 
+  auto *ptr = type->getAs<res::PointerType>();
   llvm::Value *metadata =
-      type->getAs<res::PointerType>()
+      ptr && !ptr->getPointeeType()->getAs<res::ImplType>()
           ? llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
           : getTypeMetadata(type);
   tmpBuilder.CreateCall(gcroot, {alloca, metadata});

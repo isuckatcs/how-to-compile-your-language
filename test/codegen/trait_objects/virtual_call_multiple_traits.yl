@@ -1,0 +1,67 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '369\n789\n246\n456\n'
+
+// CHECK: @vtable.S.A = internal constant [2 x ptr] [ptr @_YT1B3barGS1SE, ptr @_YT1A3fooGS1SE]
+// CHECK: @vtable.S2.A = internal constant [2 x ptr] [ptr @_YT1B3barGS2S2E, ptr @_YT1A3fooGS2S2E]
+
+trait A : B {
+  fn foo(self: borrowed Self, x: number) {}
+}
+
+trait B {
+  fn bar(self: borrowed Self) {
+    println(789);
+  }
+}
+
+struct S {
+  n: number
+
+  impl A {
+    fn foo(self: borrowed Self, x: number) {
+      println(self.n * x);
+    }
+  }
+
+  impl B;
+}
+
+struct S2 {
+  impl A {
+    fn foo(self: borrowed Self, x: number) {
+      println(2 * x);
+    }
+  }
+
+  impl B {
+    fn bar(self: borrowed Self) {
+      println(456);
+    }
+  }
+}
+
+fn vcall(traitObject: *impl A) {
+  traitObject.foo(123);
+  // CHECK: %objPtr = getelementptr inbounds nuw { ptr, ptr }, ptr %decay, i32 0, i32 0
+  // CHECK-NEXT: %obj = load ptr, ptr %objPtr, align 8
+  // CHECK-NEXT: %vtablePtr = getelementptr inbounds nuw { ptr, ptr }, ptr %decay, i32 0, i32 1
+  // CHECK-NEXT: %vtable = load ptr, ptr %vtablePtr, align 8
+  // CHECK-NEXT: %vFnPtr = getelementptr ptr, ptr %vtable, i32 1
+  // CHECK-NEXT: %vFn = load ptr, ptr %vFnPtr, align 8
+  // CHECK-NEXT: call void %vFn(ptr %obj, double 1.230000e+02, ptr null)
+    
+  @<impl A impl B>::bar(traitObject);
+  // CHECK: %objPtr2 = getelementptr inbounds nuw { ptr, ptr }, ptr %decay1, i32 0, i32 0
+  // CHECK-NEXT: %obj3 = load ptr, ptr %objPtr2, align 8
+  // CHECK-NEXT: %vtablePtr4 = getelementptr inbounds nuw { ptr, ptr }, ptr %decay1, i32 0, i32 1
+  // CHECK-NEXT: %vtable5 = load ptr, ptr %vtablePtr4, align 8
+  // CHECK-NEXT: %vFnPtr6 = getelementptr ptr, ptr %vtable5, i32 0
+  // CHECK-NEXT: %vFn7 = load ptr, ptr %vFnPtr6, align 8
+  // CHECK-NEXT: call void %vFn7(ptr %obj3, ptr null)
+}
+
+fn main() {
+  vcall(gc(S { n: 3 }));
+  vcall(gc(S2 {}));
+}
