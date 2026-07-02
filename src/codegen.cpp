@@ -919,14 +919,10 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (!structType)
     return {};
 
-  llvm::Type *structTy = generateType(structType);
-  if (!structTy->isStructTy())
-    return {};
-
   EnterInstantiationRAII structInst(this, structType);
   const auto &dataLayout = module.getDataLayout();
-  const auto *structLayout =
-      dataLayout.getStructLayout(llvm::cast<llvm::StructType>(structTy));
+  const auto *structLayout = dataLayout.getStructLayout(
+      llvm::cast<llvm::StructType>(generateType(structType)));
 
   std::vector<size_t> offsets;
 
@@ -1169,7 +1165,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   rootMarkInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
                                               "mark.placeholder", entryBB);
 
-  if (!returnTy->isVoidTy() && dl->getTypeAllocSize(returnTy) != 0)
+  if (!returnTy->isVoidTy())
     retVal = allocateStackVariable("retval", returnTy);
   retBB = llvm::BasicBlock::Create(context, "return");
 
