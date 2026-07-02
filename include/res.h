@@ -365,8 +365,9 @@ struct CallExpr : public Expr {
            std::vector<Expr *> arguments)
       : Expr(location, type, Expr::Kind::Rvalue),
         callee(callee),
-        arguments(std::move(arguments)) {}
+        arguments(std::move(arguments)){};
 
+  bool isVirtual() const;
   void dump(size_t level = 0) const override;
 };
 

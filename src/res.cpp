@@ -196,6 +196,11 @@ void DeclRefExpr::dump(size_t level) const {
             << getFullPath() << " {" << getType()->getName() << '}' << '\n';
 }
 
+bool CallExpr::isVirtual() const {
+  const auto *dre = dynamic_cast<const res::DeclRefExpr *>(callee);
+  return dre && dre->owningType && dre->owningType->getAs<res::ImplType>();
+}
+
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"
             << " {" << getType()->getName() << '}' << '\n';
