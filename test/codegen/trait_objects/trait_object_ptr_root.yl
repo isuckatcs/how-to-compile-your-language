@@ -1,0 +1,29 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A {
+  fn a(self: borrowed Self) { println(123); }
+}
+
+struct Empty {
+  impl A;
+}
+
+struct S {
+  x: number,
+  p: *impl A
+}
+
+fn main() {
+  let s = S { x: 123, p: gc(Empty {}) };
+
+  s.p.a();
+}
+// CHECK: @fat.ptr.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] zeroinitializer }
+// CHECK: @S1S.offsets = internal constant { i32, i32, [1 x i32] } { i32 24, i32 1, [1 x i32] [i32 8] }
+
+// CHECK: %traitObject = alloca { ptr, ptr }, align 8
+// CHECK: %S.tmp = alloca { double, { ptr, ptr } }, align 8
+
+// CHECK: call void @llvm.gcroot(ptr %traitObject, ptr @fat.ptr.offsets)
+// CHECK: call void @llvm.gcroot(ptr %s, ptr @S1S.offsets)

@@ -1,0 +1,29 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A {}
+
+struct S {
+  impl A;
+}
+
+// CHECK: @fat.ptr.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] zeroinitializer }
+
+fn main() {
+  let s: *impl A = gc(S {});
+  // CHECK: %traitObject = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %s = alloca { ptr, ptr }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %s, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %s, ptr @fat.ptr.offsets)
+  
+  // CHECK-NEXT: %0 = call ptr @gcAlloc(i32 0, ptr null)
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 0
+  // CHECK-NEXT: store ptr %0, ptr %1, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
+  // CHECK-NEXT: store ptr @vtable.S.A, ptr %2, align 8
+
+  // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %traitObject, i64 16, i1 false)
+
+  println(123);
+}
