@@ -1353,6 +1353,9 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
         layoutTrait, {const_cast<res::StructType *>(structType)}));
   }
 
+  if (vFunctions.empty())
+    return llvm::ConstantPointerNull::get(builder.getPtrTy());
+
   auto *arrTy = llvm::ArrayType::get(builder.getPtrTy(), vFunctions.size());
   auto *arr = llvm::ConstantArray::get(arrTy, vFunctions);
 

@@ -21,7 +21,7 @@ fn main() {
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 0
   // CHECK-NEXT: store ptr %0, ptr %1, align 8
   // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
-  // CHECK-NEXT: store ptr @vtable.S.A, ptr %2, align 8
+  // CHECK-NEXT: store ptr null, ptr %2, align 8
 
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %s, ptr align 8 %traitObject, i64 16, i1 false)
 
