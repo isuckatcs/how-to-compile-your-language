@@ -1,0 +1,22 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+struct S {
+  impl A;
+}
+
+fn main() {
+  let s = gc(S{});
+  // CHECK: %0 = call ptr @gcAlloc(i32 0, ptr null)
+  // CHECK-NEXT: store ptr %0, ptr %s, align 8
+
+  s.foo();
+  // CHECK-NEXT: %1 = load ptr, ptr %s, align 8
+  // CHECK-NEXT: call void @_YT1A3fooGS1SE(ptr %1, ptr null)
+}
