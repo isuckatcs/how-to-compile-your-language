@@ -25,8 +25,6 @@ std::string_view getOpStr(TokenKind op) {
     return "/";
   if (op == TokenKind::EqualEqual)
     return "==";
-  if (op == TokenKind::Amp)
-    return "&";
   if (op == TokenKind::AmpAmp)
     return "&&";
   if (op == TokenKind::PipePipe)
