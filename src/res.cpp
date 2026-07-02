@@ -196,6 +196,39 @@ void DeclRefExpr::dump(size_t level) const {
             << getFullPath() << " {" << getType()->getName() << '}' << '\n';
 }
 
+CallExpr::CallExpr(SourceLocation location,
+                   Type *type,
+                   Expr *callee,
+                   std::vector<Expr *> arguments)
+    : Expr(location, type, Expr::Kind::Rvalue),
+      callee(callee),
+      arguments(std::move(arguments)) {
+  // FIXME: move this somewhere else
+  if (this->arguments.empty())
+    return;
+
+  auto *borrowedType =
+      this->arguments[0]->getType()->getAs<res::BorrowedType>();
+  if (!borrowedType || !borrowedType->getBorrowedType()->getAs<res::ImplType>())
+    return;
+
+  auto *decl = getCalledFunction();
+
+  isVirtualCall = decl->params[0]->identifier == "self";
+}
+
+res::FunctionDecl *CallExpr::getCalledFunction() const {
+  res::Expr *callee = this->callee;
+  while (auto *group = dynamic_cast<GroupingExpr *>(callee))
+    callee = group->expr;
+
+  auto *dre = dynamic_cast<DeclRefExpr *>(callee);
+  if (!dre)
+    return nullptr;
+
+  return dre->decl->getAs<res::FunctionDecl>();
+}
+
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"
             << " {" << getType()->getName() << '}' << '\n';

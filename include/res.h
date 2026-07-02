@@ -358,15 +358,14 @@ struct UnitLiteral : public Expr {
 struct CallExpr : public Expr {
   Expr *callee;
   std::vector<Expr *> arguments;
+  bool isVirtualCall = false;
 
   CallExpr(SourceLocation location,
            Type *type,
            Expr *callee,
-           std::vector<Expr *> arguments)
-      : Expr(location, type, Expr::Kind::Rvalue),
-        callee(callee),
-        arguments(std::move(arguments)) {}
+           std::vector<Expr *> arguments);
 
+  res::FunctionDecl *getCalledFunction() const;
   void dump(size_t level = 0) const override;
 };
 

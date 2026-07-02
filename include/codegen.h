@@ -110,6 +110,9 @@ class Codegen {
   llvm::Value *generateGCExpr(const res::GCExpr &gcExpr);
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
   llvm::Value *materializeTemporary(const res::MaterializeTemporaryExpr &mte);
+  llvm::Value *generateImplicitBorrow(const res::ImplicitBorrowExpr &borrow);
+  llvm::Value *generatePtrToBorrow(const res::ImplicitPtrToBorrowDecay &decay);
+  llvm::Value *generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo);
 
   llvm::Value *
   constructStruct(llvm::Value *storage,
@@ -132,7 +135,8 @@ class Codegen {
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
                                           llvm::Type *type);
   llvm::Value *allocateHeapVariable(const res::Type *type);
-  llvm::AttributeList constructAttrList(const res::FunctionType *ty);
+  llvm::AttributeList constructAttrList(const res::FunctionType *ty,
+                                        bool isVirtualCall = false);
 
   void generateBlock(const res::Block &block);
   llvm::Function *generateFunctionDecl(const res::FunctionDecl &decl,
@@ -154,6 +158,12 @@ class Codegen {
   llvm::Function *getOrInsertGCAlloc();
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
+
+  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
+  getVtableLayout(const res::TraitType *trait) const;
+  llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
+                                      llvm::Value *receiver);
+  llvm::Value *getVtable(const res::TraitType *trait, const res::Type *type);
 
 public:
   Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);

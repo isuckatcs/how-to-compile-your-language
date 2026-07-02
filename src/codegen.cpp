@@ -130,15 +130,25 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
   if (const auto *s = type->getAs<res::StructType>())
     return generateStructType(s);
 
-  if (const auto *p = type->getAs<res::PointerType>())
-    return llvm::PointerType::get(context, 0);
+  if (const auto *p = type->getAs<res::PointerType>()) {
+    if (p->getPointeeType()->getAs<res::ImplType>())
+      return llvm::StructType::get(context,
+                                   {builder.getPtrTy(), builder.getPtrTy()});
+
+    return builder.getPtrTy();
+  }
 
   if (type->getAs<res::FunctionType>())
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *r = type->getAs<res::BorrowedType>())
-    return llvm::PointerType::get(context, 0);
+  if (const auto *b = type->getAs<res::BorrowedType>()) {
+    if (b->getBorrowedType()->getAs<res::ImplType>())
+      return llvm::StructType::get(context,
+                                   {builder.getPtrTy(), builder.getPtrTy()});
+
+    return builder.getPtrTy();
+  }
 
   if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
     auto it = instCtx.find(typeParamTy->decl);
@@ -407,6 +417,64 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   llvm_unreachable("not yet supported");
 }
 
+llvm::Value *
+Codegen::generateImplicitBorrow(const res::ImplicitBorrowExpr &borrow) {
+  llvm::Value *value = generateExpr(*borrow.expr);
+
+  const res::Expr *expr = borrow.expr;
+  while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(expr))
+    expr = grouping->expr;
+
+  auto *unary = dynamic_cast<const res::UnaryOperator *>(expr);
+  if (unary && unary->op == TokenKind::Asterisk)
+    createTmpGCRootIfNeeded(value, unary->operand);
+
+  return value;
+}
+
+llvm::Value *
+Codegen::generatePtrToBorrow(const res::ImplicitPtrToBorrowDecay &decay) {
+  llvm::Value *val = generateExpr(*decay.expr);
+  llvm::Type *ty = generateType(decay.getType());
+
+  if (ty->isStructTy()) {
+    llvm::Value *decayedPtr = allocateStackVariable("decay", ty);
+    storeValue(val, decayedPtr, ty);
+
+    llvm::Value *objPtr = builder.CreateStructGEP(ty, decayedPtr, 0);
+    llvm::Value *obj = builder.CreateLoad(builder.getPtrTy(), objPtr);
+    builder.CreateStore(obj, objPtr);
+
+    return decayedPtr;
+  }
+
+  return builder.CreateLoad(ty, val);
+}
+
+llvm::Value *
+Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
+  llvm::Value *obj = generateExpr(*promo.expr);
+  if (promo.expr->isLvalue())
+    obj = builder.CreateLoad(builder.getPtrTy(), obj);
+
+  const auto *implType = promo.getType()
+                             ->getAs<res::PointerType>()
+                             ->getPointeeType()
+                             ->getAs<res::ImplType>();
+  const auto *valueType =
+      promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
+
+  auto *vtable = getVtable(implType->getTrait(), valueType);
+
+  auto *traitObjTy = generateType(promo.getType());
+  auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
+
+  builder.CreateStore(obj, builder.CreateStructGEP(traitObjTy, traitObj, 0));
+  builder.CreateStore(vtable, builder.CreateStructGEP(traitObjTy, traitObj, 1));
+
+  return traitObj;
+}
+
 llvm::Value *Codegen::constructStruct(
     llvm::Value *storage,
     const res::StructType *structType,
@@ -470,19 +538,14 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
 
-  if (auto *borrow = dynamic_cast<const res::ImplicitBorrowExpr *>(&expr)) {
-    llvm::Value *value = generateExpr(*borrow->expr);
+  if (auto *borrow = dynamic_cast<const res::ImplicitBorrowExpr *>(&expr))
+    return generateImplicitBorrow(*borrow);
 
-    const res::Expr *resOperand = borrow->expr;
-    while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(resOperand))
-      resOperand = grouping->expr;
+  if (auto *decay = dynamic_cast<const res::ImplicitPtrToBorrowDecay *>(&expr))
+    return generatePtrToBorrow(*decay);
 
-    auto *unary = dynamic_cast<const res::UnaryOperator *>(resOperand);
-    if (unary && unary->op == TokenKind::Asterisk)
-      createTmpGCRootIfNeeded(value, unary->operand);
-
-    return value;
-  }
+  if (auto *promo = dynamic_cast<const res::TraitObjectPromoExpr *>(&expr))
+    return generateTraitObjectPromo(*promo);
 
   if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(&expr))
     return materializeTemporary(*mte);
@@ -545,8 +608,11 @@ bool Codegen::isImplOf(const res::ImplBlock *impl,
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
-  llvm::Value *callee = generateExprAndLoadValue(*call.callee);
-  createTmpGCRootIfNeeded(callee, call.callee);
+  llvm::Value *callee = nullptr;
+  if (!call.isVirtualCall) {
+    callee = generateExprAndLoadValue(*call.callee);
+    createTmpGCRootIfNeeded(callee, call.callee);
+  }
 
   llvm::Type *retTy = generateType(call.getType());
   llvm::Value *retVal = nullptr;
@@ -558,12 +624,23 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     retVal = args.emplace_back(allocateStackVariable("struct.ret.tmp", retTy));
 
   size_t argIdx = 0;
+
+  llvm::Value *incomingArg = nullptr;
+
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
     llvm::Type *argTy = generateType(arg->getType());
 
     if (dl->getTypeAllocSize(argTy) == 0)
       continue;
+
+    if (argIdx == 0 && call.isVirtualCall) {
+      incomingArg = argVal;
+      llvm::Value *objPtr = builder.CreateStructGEP(argTy, argVal, 0, "objPtr");
+      args.emplace_back(builder.CreateLoad(builder.getPtrTy(), objPtr, "obj"));
+      ++argIdx;
+      continue;
+    }
 
     if (argTy->isStructTy()) {
       llvm::Value *tmpVar = allocateStackVariable("struct.arg.tmp", argTy);
@@ -576,7 +653,10 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  if (llvm::isa<llvm::Function>(callee)) {
+  if (call.isVirtualCall)
+    callee = lookupCalleeFromVtable(&call, incomingArg);
+
+  if (llvm::isa<llvm::Function>(callee) || call.isVirtualCall) {
     args.emplace_back(llvm::Constant::getNullValue(builder.getPtrTy()));
   } else {
     llvm::Type *fnVarTy = generateType(fnTy);
@@ -589,7 +669,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   llvm::CallInst *callInst =
       builder.CreateCall(generateFunctionType(fnTy), callee, args);
-  callInst->setAttributes(constructAttrList(fnTy));
+  callInst->setAttributes(constructAttrList(fnTy, call.isVirtualCall));
 
   return isReturningStruct ? retVal : callInst;
 }
@@ -993,7 +1073,8 @@ llvm::Function *Codegen::getOrInsertGCSweep() {
       llvm::Function::ExternalLinkage, "gcSweep", module);
 }
 
-llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
+llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty,
+                                               bool isVirtualCall) {
   std::vector<llvm::AttributeSet> argsAttrSets;
 
   llvm::Type *retTy = builder.getVoidTy();
@@ -1011,8 +1092,11 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty) {
     if (dl->getTypeAllocSize(llvmTy) == 0)
       continue;
 
+    if (isVirtualCall && argsAttrSets.empty())
+      continue;
+
     llvm::AttrBuilder paramAttrs(context);
-    if (argTy->getAs<res::StructType>() || argTy->getAs<res::FunctionType>())
+    if (llvmTy->isStructTy())
       paramAttrs.addByValAttr(llvmTy);
     else if (argTy->getAs<res::BuiltinBoolType>())
       paramAttrs.addAttribute(llvm::Attribute::ZExt);
@@ -1199,6 +1283,95 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   }
 
   return llvm::StructType::get(context, fieldTypes);
+}
+
+std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
+Codegen::getVtableLayout(const res::TraitType *trait) const {
+  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
+      layout;
+
+  // FIXME: super traits need to be instantiated
+  for (auto &&superTrait : trait->getDecl()->traits) {
+    const auto &superLayout =
+        getVtableLayout(superTrait->getType()->getAs<res::TraitType>());
+    layout.insert(layout.end(), superLayout.begin(), superLayout.end());
+  }
+
+  for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
+    layout.emplace_back(trait, fn);
+
+  return layout;
+}
+
+llvm::Value *Codegen::getVtable(const res::TraitType *trait,
+                                const res::Type *type) {
+  auto *structType = type->getAs<res::StructType>();
+
+  // only structs can implement traits for now
+  if (!structType)
+    return nullptr;
+
+  std::string id = "vtable." + type->getName() + "." + trait->getName();
+  if (auto *vtable = module.getGlobalVariable(id, true))
+    return vtable;
+
+  std::vector<llvm::Constant *> vFunctions;
+  for (auto &&[layoutTrait, layoutFn] : getVtableLayout(trait)) {
+    const res::FunctionDecl *vFunction = layoutFn;
+
+    for (auto &&impl : structType->getDecl()->implBlocks) {
+      if (!isImplOf(impl, layoutTrait))
+        continue;
+
+      if (auto *fn = impl->lookupDecl<res::FunctionDecl>(layoutFn->identifier))
+        vFunction = fn;
+      break;
+    };
+
+    // FIXME: const_cast
+    vFunctions.push_back(generateFunctionDecl(
+        *vFunction, vFunction->getType()->getAs<res::FunctionType>(),
+        layoutTrait, {const_cast<res::StructType *>(structType)}));
+  }
+
+  auto *arrTy = llvm::ArrayType::get(builder.getPtrTy(), vFunctions.size());
+  auto *arr = llvm::ConstantArray::get(arrTy, vFunctions);
+
+  auto *vtable = new llvm::GlobalVariable(
+      arrTy, true, llvm::GlobalVariable::InternalLinkage, arr, id);
+  module.insertGlobalVariable(vtable);
+
+  return vtable;
+}
+
+llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
+                                             llvm::Value *receiver) {
+  assert(call->isVirtualCall && "vtable lookup for non-virtual call");
+  auto *fn = call->getCalledFunction();
+
+  auto *receiverType =
+      call->arguments[0]->getType()->getAs<res::BorrowedType>();
+
+  auto *implType = receiverType->getBorrowedType()->getAs<res::ImplType>();
+
+  const auto &vtableLayout = getVtableLayout(implType->getTrait());
+
+  unsigned idx = 0;
+  for (auto &&[_, vtableEntry] : vtableLayout) {
+    if (vtableEntry == fn)
+      break;
+
+    ++idx;
+  }
+
+  llvm::Value *vtablePtr = builder.CreateStructGEP(generateType(receiverType),
+                                                   receiver, 1, "vtablePtr");
+  llvm::Value *vtable =
+      builder.CreateLoad(builder.getPtrTy(), vtablePtr, "vtable");
+
+  llvm::Value *fnPtr = builder.CreateGEP(builder.getPtrTy(), vtable,
+                                         builder.getInt32(idx), "vFnPtr");
+  return builder.CreateLoad(builder.getPtrTy(), fnPtr, "vFn");
 }
 
 llvm::Module *Codegen::generateIR() {
