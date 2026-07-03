@@ -300,6 +300,12 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (res::Decl *decl = lookupSymbolWithFallback<Hint>(scope, dre))
       return createDeclRefExpr(ctx, dre, parentType, decl, traitHelpTy);
 
+  if (traitHelp)
+    return err::lookupInTypeFailed(dre->location)
+        .with(dre->identifier)
+        .with(traitHelp->getType()->getName())
+        .report(reporter);
+
   if (parentType) {
     res::TraitType *candidateTrait = nullptr;
     res::Decl *candidateDecl = nullptr;
@@ -322,9 +328,6 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     if (candidateDecl)
       return createDeclRefExpr(ctx, dre, parentType, candidateDecl,
                                candidateTrait);
-
-    if (traitHelp)
-      parentType = traitHelp->getType();
 
     return err::lookupInTypeFailed(dre->location)
         .with(dre->identifier)

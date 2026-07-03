@@ -1,0 +1,16 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A : B {
+  fn foo() {}
+}
+
+trait B {}
+
+struct S {
+  impl A;
+  impl B;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:16: error: failed to find member 'foo' in 'B'
+  @<S impl B>::foo();
+}
