@@ -267,20 +267,11 @@ bool TypeManager::unifyImpl(Type *t1,
     return true;
 
   if (auto *u = t1->getAs<UninferredType>()) {
-    if (auto *borrowedTy = t2->getAs<BorrowedType>()) {
-      u->infer(borrowedTy->getBorrowedType());
-      errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
-                          t2->getName() + "'");
-      return false;
-    }
-
     std::vector<std::pair<res::Type *, res::TraitType *>> constraints;
 
-    if (auto *ut1 = t1->getAs<UninferredType>()) {
-      for (auto &&trait : obligations[ut1]) {
-        constraints.emplace_back(ut1, trait);
-      }
-    }
+    // FIXME: separate constraint solving from unification
+    for (auto &&trait : obligations[u])
+      constraints.emplace_back(u, trait);
 
     if (auto *ut2 = t2->getAs<UninferredType>()) {
       for (auto &&trait : obligations[ut2]) {
@@ -314,6 +305,8 @@ bool TypeManager::unifyImpl(Type *t1,
   if (t2->getAs<UninferredType>())
     return unifyImpl(t2, t1, errors);
 
+  // FIXME: add an isSame method to the `Type *` class which gets called here
+  // then `eq()` becomes isSame + eq on every arg.
   if (t1->name != t2->name || t1->args.size() != t2->args.size()) {
     errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
                         t2->getName() + "'");

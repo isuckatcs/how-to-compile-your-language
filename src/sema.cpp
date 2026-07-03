@@ -829,6 +829,9 @@ res::Expr *Sema::withImplicitBorrow(res::Type *targetType, res::Expr *expr) {
   if (!targetRefType)
     return expr;
 
+  if (expr->getType()->getAs<res::BorrowedType>())
+    return expr;
+
   if (!expr->isLvalue())
     return err::rvalueBorrow(expr->location).report(reporter);
 

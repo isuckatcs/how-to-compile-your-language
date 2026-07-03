@@ -14,6 +14,7 @@ class StructDecl;
 class TraitDecl;
 class TypedNode;
 
+// FIXME: add operator== to compare types instead of their "name" field
 struct Type {
   template <typename T> T *getAs() {
     return const_cast<T *>(const_cast<const Type *>(this)->getAs<T>());
@@ -211,6 +212,7 @@ public:
 
   bool moreGeneral(Type *t1, Type *t2);
 
+  // FIXME: add an eq method as well
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
 };
