@@ -259,6 +259,20 @@ bool TypeManager::moreGeneral(Type *t1, Type *t2) {
   return false;
 }
 
+bool TypeManager::eq(const Type *t1, const Type *t2) const {
+  t1 = t1->getRootType();
+  t2 = t2->getRootType();
+
+  if (!t1->isSameKind(t2))
+    return false;
+
+  for (size_t i = 0; i < t1->args.size(); ++i)
+    if (!eq(t1->args[i], t2->args[i]))
+      return false;
+
+  return true;
+}
+
 bool TypeManager::unifyImpl(Type *t1,
                             Type *t2,
                             std::vector<std::string> &errors) {
@@ -307,7 +321,7 @@ bool TypeManager::unifyImpl(Type *t1,
   if (t2->getAs<UninferredType>())
     return unifyImpl(t2, t1, errors);
 
-  if (t1->isSameKind(t2)) {
+  if (!t1->isSameKind(t2)) {
     errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
                         t2->getName() + "'");
     return false;
@@ -331,17 +345,9 @@ std::vector<std::string> TypeManager::unify(Type *t1, Type *t2) {
 }
 
 Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
-  for (auto &&[from, to] : substitution) {
-    if (from->getAs<UninferredType>() || t->getAs<UninferredType>()) {
-      if (from->getRootType() == t->getRootType())
-        return to;
-
-      continue;
-    }
-
-    if (unify(from, t).empty())
+  for (auto &&[from, to] : substitution)
+    if (eq(from->getRootType(), t->getRootType()))
       return to;
-  }
 
   if (auto *fnTy = t->getAs<FunctionType>())
     t = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());

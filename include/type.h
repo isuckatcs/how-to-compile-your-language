@@ -33,7 +33,7 @@ struct Type {
   virtual std::string getName() const { return name; };
 
   bool isSameKind(const Type *other) const {
-    return typeid(*this) != typeid(*other) || uniqueId != other->uniqueId;
+    return typeid(*this) == typeid(*other) && uniqueId == other->uniqueId;
   }
 
   virtual ~Type() = default;
@@ -221,7 +221,7 @@ public:
 
   bool moreGeneral(Type *t1, Type *t2);
 
-  // FIXME: add an eq method as well
+  bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
 };
