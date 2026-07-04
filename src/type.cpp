@@ -129,14 +129,21 @@ Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
 
   Substitution sub;
 
-  if (auto *structTy = ty->getAs<res::StructType>())
-    for (int i = 0; i < structTy->getTypeArgs().size(); ++i)
-      sub[structTy->decl->typeParams[i]->getType()] =
-          structTy->getTypeArgs()[i];
+  std::vector<res::TypeParamDecl *> from;
+  std::vector<res::Type *> to;
 
-  if (auto *traitTy = ty->getAs<res::TraitType>())
-    for (int i = 0; i < traitTy->getTypeArgs().size(); ++i)
-      sub[traitTy->decl->typeParams[i]->getType()] = traitTy->getTypeArgs()[i];
+  if (auto *structTy = ty->getAs<res::StructType>()) {
+    from = structTy->decl->typeParams;
+    to = structTy->getTypeArgs();
+  }
+
+  if (auto *traitTy = ty->getAs<res::TraitType>()) {
+    from = traitTy->decl->typeParams;
+    to = traitTy->getTypeArgs();
+  }
+
+  for (int i = 0; i < from.size(); ++i)
+    sub[from[i]->getType()] = to[i];
 
   return sub;
 }
@@ -244,27 +251,6 @@ std::vector<TraitType *> TypeManager::getConstraints(const res::Type *type) {
 
 void TypeManager::createObligation(UninferredType *type, TraitType *trait) {
   obligations[type].emplace_back(trait);
-}
-
-bool TypeManager::moreGeneral(Type *t1, Type *t2) {
-  t1 = t1->getRootType();
-  t2 = t2->getRootType();
-
-  auto *typeParamTy1 = t1->getAs<res::TypeParamType>();
-  auto *typeParamTy2 = t2->getAs<res::TypeParamType>();
-
-  if (typeParamTy1 &&
-      (!typeParamTy2 || typeParamTy1->decl != typeParamTy2->decl))
-    return true;
-
-  if (t1->name != t2->name || t1->args.size() != t2->args.size())
-    return false;
-
-  for (size_t i = 0; i < t1->args.size(); ++i)
-    if (moreGeneral(t1->args[i], t2->args[i]))
-      return true;
-
-  return false;
 }
 
 bool TypeManager::eq(const Type *t1, const Type *t2) const {

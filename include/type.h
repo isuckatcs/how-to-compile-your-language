@@ -223,8 +223,6 @@ public:
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
   ImplType *getImplType(TraitType *trait);
 
-  bool moreGeneral(Type *t1, Type *t2);
-
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);

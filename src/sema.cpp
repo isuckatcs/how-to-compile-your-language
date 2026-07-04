@@ -1629,24 +1629,32 @@ bool Sema::resolveStructBody(res::Context &ctx,
   auto impls = structDecl.implBlocks;
   for (auto &&impl : impls) {
     auto *traitTy = impl->traitInstance->getType()->getAs<res::TraitType>();
-    res::Substitution sub = typeMgr.extractSubstitutionFrom(traitTy);
+    res::Substitution traitSub = typeMgr.extractSubstitutionFrom(traitTy);
 
     for (auto &&moreSpecificImpl : impls) {
-      res::Type *moreSpecificTy =
-          typeMgr.instantiate(moreSpecificImpl->traitInstance->getType(), sub);
+      if (impl->traitInstance->decl != moreSpecificImpl->traitInstance->decl)
+        continue;
 
-      if (typeMgr.moreGeneral(traitTy, moreSpecificTy)) {
-        err::conflictingTrait(impl->location)
-            .with(traitTy->getName())
-            .with(moreSpecificTy->getName())
-            .report(reporter);
-        error = true;
+      res::Type *moreSpecificTy = moreSpecificImpl->traitInstance->getType();
+      res::Substitution moreSpecificSub =
+          typeMgr.extractSubstitutionFrom(moreSpecificTy);
+
+      for (auto &&[from, to] : moreSpecificSub) {
+        if (traitSub[from]->getAs<res::TypeParamType>() &&
+            !typeMgr.eq(traitSub[from], to)) {
+          err::conflictingTrait(impl->location)
+              .with(traitTy->getName())
+              .with(moreSpecificTy->getName())
+              .report(reporter);
+          error = true;
+          break;
+        }
       }
     }
 
     for (res::Type *req :
          typeMgr.getConstraints(impl->traitInstance->decl->getType())) {
-      req = typeMgr.instantiate(req, sub);
+      req = typeMgr.instantiate(req, traitSub);
 
       bool found = false;
       for (auto &&impl : impls)
