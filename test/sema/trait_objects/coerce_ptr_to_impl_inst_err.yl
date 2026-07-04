@@ -17,7 +17,7 @@ fn main() {
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*impl A'
     x: gcMut(S{}),
 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy constraint 'S : B'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy requirement 'S : B'
     y: gc(S{}),
   };
 }

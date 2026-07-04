@@ -13,7 +13,7 @@ fn foo(): *impl A {
 }
 
 fn bar(): *impl B {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy constraint 'S : B'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy requirement 'S : B'
   return gc(S{});
 }
 

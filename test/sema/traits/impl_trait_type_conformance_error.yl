@@ -6,7 +6,7 @@ trait A<T : B> {
 }
 
 struct S {
-  // CHECK: [[# @LINE + 1]]:10: error: cannot satisfy constraint 'number : B'
+  // CHECK: [[# @LINE + 1]]:10: error: cannot satisfy requirement 'number : B'
   impl A<number> {
     fn foo() {}
   }

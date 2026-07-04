@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-// CHECK: [[# @LINE + 1]]:18: error: cannot satisfy constraint 'T : B'
+// CHECK: [[# @LINE + 1]]:18: error: cannot satisfy requirement 'T : B'
 trait A<T : Base<T>> {}
 
 trait B {}

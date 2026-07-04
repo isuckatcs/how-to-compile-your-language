@@ -1,0 +1,24 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+struct Dummy<T> {}
+
+struct S {
+  impl A<unit>;
+  impl A<number>;
+  impl A<Dummy<number>>;
+}
+
+fn foo<T, U: A<T>>(t: T, u: U) {}
+
+fn main() {
+  foo(Dummy@<unit>{}, S{});
+  // CHECK: [[# @LINE - 1 ]]:24: error: cannot unify 'Dummy<unit>' with 'unit'
+  // CHECK: [[# @LINE - 2 ]]:24: error: cannot unify 'A<Dummy<unit>>' with 'A<unit>'
+  // CHECK: [[# @LINE - 3 ]]:24: error: cannot unify 'Dummy<unit>' with 'number'
+  // CHECK: [[# @LINE - 4 ]]:24: error: cannot unify 'A<Dummy<unit>>' with 'A<number>'
+  // CHECK: [[# @LINE - 5 ]]:24: error: cannot unify 'unit' with 'number'
+  // CHECK: [[# @LINE - 6 ]]:24: error: cannot unify 'Dummy<unit>' with 'Dummy<number>'
+  // CHECK: [[# @LINE - 7 ]]:24: error: cannot unify 'A<Dummy<unit>>' with 'A<Dummy<number>>'
+  // CHECK: [[# @LINE - 8 ]]:24: error: cannot satisfy requirement 'S : A<Dummy<unit>>'
+}

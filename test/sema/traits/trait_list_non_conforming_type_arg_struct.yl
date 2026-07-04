@@ -4,7 +4,7 @@ trait Base {}
 trait A<T : Base> {}
 
 struct S {
-    // CHECK: [[# @LINE + 1]]:12: error: cannot satisfy constraint 'number : Base'
+    // CHECK: [[# @LINE + 1]]:12: error: cannot satisfy requirement 'number : Base'
     impl A<number>;
 }
 

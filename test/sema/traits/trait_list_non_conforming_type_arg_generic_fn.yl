@@ -8,7 +8,8 @@ struct B<T> {
 trait A<T, U : Base<T>> {}
 
 fn foo<T : A<number, B<unit>>>() {}
-// CHECK: [[# @LINE - 1]]:22: error: cannot unify 'unit' with 'number'
-// CHECK: [[# @LINE - 2]]:22: error: cannot satisfy constraint 'B<unit> : Base<number>'
+// CHECK: [[# @LINE - 1]]:22: error: cannot unify 'number' with 'unit'
+// CHECK: [[# @LINE - 2]]:22: error: cannot unify 'Base<number>' with 'Base<unit>'
+// CHECK: [[# @LINE - 3]]:22: error: cannot satisfy requirement 'B<unit> : Base<number>'
 
 fn main() {}

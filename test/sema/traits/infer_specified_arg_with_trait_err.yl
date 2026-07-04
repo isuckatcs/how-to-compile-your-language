@@ -9,9 +9,9 @@ fn main() {
   let s = S{};
   let f = foo;
 
-  // CHECK: [[# @LINE + 1 ]]:5: error: cannot satisfy constraint 'S : A'
+  // CHECK: [[# @LINE + 1 ]]:5: error: cannot satisfy requirement 'S : A'
   f(s);
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy constraint 'S : A'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'S : A'
   foo(s);
 }

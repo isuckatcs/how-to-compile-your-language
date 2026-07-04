@@ -123,7 +123,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return nullptr;
 
     auto *implType = typeMgr.getImplType(traitType);
-    typeMgr.addUpperBound(implType, traitType);
+    typeMgr.addConstraint(implType, traitType);
 
     return implType;
   }
@@ -226,8 +226,8 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
                            ctx, traitSpecifier->impl->traitInstance.get()));
 
     res::TraitType *traitTy = trait->getType()->getAs<res::TraitType>();
-    auto *checkTy =
-        typeMgr.withObligation(typeMgr.getNewUninferredType(), traitTy);
+    auto *checkTy = typeMgr.getNewUninferredType();
+    typeMgr.createObligation(checkTy, traitTy);
 
     if (!typeMgr.unify(type, checkTy).empty())
       return err::traitNotImplemented(trait->location)
@@ -310,7 +310,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     res::TraitType *candidateTrait = nullptr;
     res::Decl *candidateDecl = nullptr;
 
-    for (auto &&trait : typeMgr.getUpperBounds(parentType)) {
+    for (auto &&trait : typeMgr.getConstraints(parentType)) {
       if (candidateTrait && typeMgr.unify(trait, candidateTrait).empty())
         continue;
 
@@ -372,8 +372,8 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     sub[typeParamTy] = typeArgs.emplace_back(subTy);
 
     if (auto *u = subTy->getAs<res::UninferredType>())
-      for (auto &&trait : typeMgr.getUpperBounds(typeParamTy))
-        typeMgr.withObligation(
+      for (auto &&trait : typeMgr.getConstraints(typeParamTy))
+        typeMgr.createObligation(
             u, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
   }
 
@@ -793,7 +793,7 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
     return expr;
 
   auto *tmpType = typeMgr.getNewUninferredType();
-  typeMgr.withObligation(tmpType, implType->getTrait());
+  typeMgr.createObligation(tmpType, implType->getTrait());
 
   const auto &errors = typeMgr.unify(tmpType, pointeeType);
   if (errors.empty())
@@ -1124,7 +1124,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
   varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
 
   auto *traitTy = traitInstance->getType()->getAs<res::TraitType>();
-  typeMgr.addUpperBound(parent->getType(), traitTy);
+  typeMgr.addConstraint(parent->getType(), traitTy);
 
   auto *resImpl = ctx.create<res::ImplBlock>(decl.location, traitInstance);
 
@@ -1161,8 +1161,8 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
       sub[implParamTy] = traitParamTy;
       reverseSub[implParamTy] = checkTy;
 
-      for (auto &&trait : typeMgr.getUpperBounds(implParamTy))
-        typeMgr.withObligation(
+      for (auto &&trait : typeMgr.getConstraints(implParamTy))
+        typeMgr.createObligation(
             checkTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 
       if (const auto &errors = typeMgr.unify(traitParamTy, checkTy);
@@ -1217,6 +1217,10 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     varOrReturn(coercedInit, asTraitObjectIfNeeded(declTy, init));
     init = coercedInit;
     auto *initTy = init->getType();
+
+    for (auto &&err : typeMgr.unify(declTy, initTy)) {
+      std::cout << err << '\n';
+    }
 
     if (!typeMgr.unify(declTy, initTy).empty())
       return err::initTyMismatch(init->location)
@@ -1275,7 +1279,7 @@ bool Sema::resolveGenericParamsInCurrentScope(
 
     for (auto &&trait : traits) {
       resParam->traits.emplace_back(trait);
-      typeMgr.addUpperBound(resParam->getType(),
+      typeMgr.addConstraint(resParam->getType(),
                             trait->getType()->getAs<res::TraitType>());
     }
   }
@@ -1303,7 +1307,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                                 res::StructDecl *structDecl) {
   bool error = false;
 
-  for (auto &&trait : typeMgr.getUpperBounds(structDecl->getType())) {
+  for (auto &&trait : typeMgr.getConstraints(structDecl->getType())) {
     res::DeclContext *implCtx = nullptr;
     for (auto &&impl : structDecl->implBlocks) {
       if (typeMgr.unify(impl->traitInstance->getType(), trait).empty()) {
@@ -1354,7 +1358,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
         ctx.create<res::TypeParamDecl>(decl.location, selfType, implicitSelfId);
 
     typeMgr.unify(selfType, typeMgr.getTypeParamType(*implicitSelf));
-    typeMgr.addUpperBound(implicitSelf->getType(),
+    typeMgr.addConstraint(implicitSelf->getType(),
                           parent->getType()->getAs<res::TraitType>());
 
     insertDeclToScope(implicitSelf, lexicalScope);
@@ -1514,7 +1518,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 
   for (auto &&trait : traits) {
     traitDecl.traits.emplace_back(trait);
-    typeMgr.addUpperBound(traitDecl.getType(),
+    typeMgr.addConstraint(traitDecl.getType(),
                           trait->getType()->getAs<res::TraitType>());
   }
 
@@ -1641,7 +1645,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
     }
 
     for (res::Type *req :
-         typeMgr.getUpperBounds(impl->traitInstance->decl->getType())) {
+         typeMgr.getConstraints(impl->traitInstance->decl->getType())) {
       req = typeMgr.instantiate(req, sub);
 
       bool found = false;
@@ -1886,8 +1890,8 @@ bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
     auto *subTy = typeMgr.getNewUninferredType();
 
     for (auto &&trait :
-         typeMgr.getUpperBounds(traitInstance->decl->typeParams[i]->getType()))
-      typeMgr.withObligation(
+         typeMgr.getConstraints(traitInstance->decl->typeParams[i]->getType()))
+      typeMgr.createObligation(
           subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 
     if (const auto &msg = typeMgr.unify(traitInstance->typeArgs[i], subTy);
@@ -1958,7 +1962,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     }
   }
 
-  for (auto &&parentTrait : typeMgr.getUpperBounds(trait))
+  for (auto &&parentTrait : typeMgr.getConstraints(trait))
     if (!checkVtableCompatibility(loc, parentTrait, visited)) {
       err::superTraitNotTraitObjectCompatible(loc)
           .with(parentTrait->getName())

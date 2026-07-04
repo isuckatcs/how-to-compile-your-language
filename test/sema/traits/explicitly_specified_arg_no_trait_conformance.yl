@@ -6,6 +6,6 @@ struct S {}
 fn foo<T : A>() {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:8: error: cannot satisfy constraint 'S : A'
+  // CHECK: [[# @LINE + 1]]:8: error: cannot satisfy requirement 'S : A'
   foo@<S>();
 }

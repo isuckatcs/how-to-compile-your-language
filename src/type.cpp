@@ -123,7 +123,7 @@ void Substitution::dump() const {
     std::cerr << from->getName() << " -> " << to->getName() << '\n';
 }
 
-Substitution TypeManager::extractSubstitutionFrom(Type *ty) {
+Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
   if (!ty)
     return {};
 
@@ -142,7 +142,7 @@ Substitution TypeManager::extractSubstitutionFrom(Type *ty) {
 }
 
 UninferredType *TypeManager::getNewUninferredType() {
-  auto *typeVariable = new UninferredType(types.size());
+  auto *typeVariable = new UninferredType(uninferredTypeId++);
   types.emplace_back(std::unique_ptr<UninferredType>(typeVariable));
   return typeVariable;
 }
@@ -208,34 +208,42 @@ ImplType *TypeManager::getImplType(TraitType *trait) {
   return implTy;
 }
 
-void TypeManager::addUpperBound(Type *type, TraitType *trait) {
-  upperBounds.emplace_back(type, trait);
+void TypeManager::addConstraint(Type *type, TraitType *trait) {
+  constraints.emplace_back(type, trait);
 }
 
-std::vector<TraitType *> TypeManager::getUpperBounds(res::Type *type) {
+std::vector<TraitType *> TypeManager::getConstraints(const res::Type *type) {
   type = type->getRootType();
-  if (auto *uninferredType = type->getAs<res::UninferredType>())
-    return {};
-
-  std::vector<TraitType *> traitInstances;
   Substitution sub = extractSubstitutionFrom(type);
 
-  for (auto &&[declTy, traitTy] : upperBounds)
-    if (unify(type, instantiate(declTy, sub)).empty()) {
-      auto *traitInst = instantiate(traitTy, sub)->getAs<res::TraitType>();
-      traitInstances.emplace_back(traitInst);
+  std::vector<TraitType *> traits;
 
-      for (auto &&instUpperBound : getUpperBounds(traitInst))
-        traitInstances.emplace_back(instUpperBound);
+  for (auto &&[constrainedType, trait] : constraints)
+    if (eq(type, instantiate(constrainedType, sub))) {
+      traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
+
+      for (auto &&traitConstraint : getConstraints(traits.back()))
+        traits.emplace_back(traitConstraint);
     }
 
-  return traitInstances;
+  // FIXME: clean this up
+  std::vector<TraitType *> filtered;
+  for (auto &&t : traits) {
+    bool found = false;
+    for (auto &&f : filtered)
+      found |= eq(t, f);
+
+    if (found)
+      continue;
+
+    filtered.emplace_back(t);
+  }
+
+  return filtered;
 }
 
-UninferredType *TypeManager::withObligation(UninferredType *type,
-                                            TraitType *obligation) {
-  obligations[type].emplace_back(obligation);
-  return type;
+void TypeManager::createObligation(UninferredType *type, TraitType *trait) {
+  obligations[type].emplace_back(trait);
 }
 
 bool TypeManager::moreGeneral(Type *t1, Type *t2) {
@@ -273,74 +281,110 @@ bool TypeManager::eq(const Type *t1, const Type *t2) const {
   return true;
 }
 
-bool TypeManager::unifyImpl(Type *t1,
-                            Type *t2,
-                            std::vector<std::string> &errors) {
+std::vector<std::string> TypeManager::unifyImpl(
+    Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
 
   if (t1 == t2)
-    return true;
+    return {};
 
   if (auto *u = t1->getAs<UninferredType>()) {
-    std::vector<std::pair<res::Type *, res::TraitType *>> constraints;
-
-    // FIXME: separate constraint solving from unification
-    for (auto &&trait : obligations[u])
-      constraints.emplace_back(u, trait);
-
-    if (auto *ut2 = t2->getAs<UninferredType>()) {
-      for (auto &&trait : obligations[ut2]) {
-        constraints.emplace_back(ut2, trait);
-      }
-    }
-
     u->infer(t2);
-
-    for (auto &&[type, trait] : constraints) {
-      bool satisfied = false;
-
-      for (auto &&typeTraitImpl : getUpperBounds(type)) {
-        if (trait->decl == typeTraitImpl->decl &&
-            unifyImpl(typeTraitImpl, trait, errors)) {
-          satisfied = true;
-          break;
-        }
-      }
-
-      if (!satisfied) {
-        errors.emplace_back("cannot satisfy constraint '" + type->getName() +
-                            " : " + trait->getName() + "'");
-        return false;
-      }
-    }
-
-    return true;
+    inferredTypes.emplace_back(u);
+    return {};
   }
 
   if (t2->getAs<UninferredType>())
-    return unifyImpl(t2, t1, errors);
+    return unifyImpl(t2, t1, inferredTypes);
 
-  if (!t1->isSameKind(t2)) {
-    errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
+  if (!t1->isSameKind(t2))
+    return {"cannot unify '" + t1->getName() + "' with '" + t2->getName() +
+            "'"};
+
+  for (size_t i = 0; i < t1->args.size(); ++i) {
+    auto errs = unifyImpl(t1->args[i], t2->args[i], inferredTypes);
+    if (!errs.empty()) {
+      errs.emplace_back("cannot unify '" + t1->getName() + "' with '" +
                         t2->getName() + "'");
-    return false;
+      return errs;
+    }
   }
 
-  for (size_t i = 0; i < t1->args.size(); ++i)
-    if (!unifyImpl(t1->args[i], t2->args[i], errors)) {
-      errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
-                          t2->getName() + "'");
-      return false;
-    }
+  return {};
+}
 
-  return true;
+std::vector<std::string> TypeManager::checkObligations(
+    const std::vector<UninferredType *> &inferredTypes) {
+  std::vector<std::string> errors;
+
+  for (auto &&u : inferredTypes) {
+    for (auto &&requiredTrait : obligations[u]) {
+      std::vector<TraitType *> foundTraits;
+      std::vector<std::pair<TraitType *, std::vector<std::string>>>
+          pendingErrors;
+
+      for (auto &&currentTrait : getConstraints(u->getRootType())) {
+        Substitution sub = extractSubstitutionFrom(requiredTrait);
+        for (auto &[key, val] : sub)
+          if (auto *u = val->getAs<res::UninferredType>()) {
+            auto *newVal = getNewUninferredType();
+            for (auto &&o : obligations[u])
+              createObligation(newVal, o);
+
+            val = newVal;
+          }
+
+        auto *probedType = instantiate(requiredTrait->decl->getType(), sub)
+                               ->getAs<res::TraitType>();
+        const auto &errors = unify(probedType, currentTrait);
+        if (errors.empty())
+          foundTraits.emplace_back(currentTrait);
+        else
+          pendingErrors.emplace_back(probedType, std::move(errors));
+      };
+
+      // FIXME: clean this up
+      if (foundTraits.empty()) {
+        if (pendingErrors.empty()) {
+          errors.emplace_back("cannot satisfy requirement '" + u->getName() +
+                              " : " + requiredTrait->getName() + "'");
+        } else {
+          for (auto &&[trait, errs] : pendingErrors) {
+            errors.insert(errors.end(), errs.begin(), errs.end());
+
+            errors.emplace_back("cannot satisfy requirement '" + u->getName() +
+                                " : " + trait->getName() + "'");
+          }
+        }
+
+        continue;
+      }
+
+      if (foundTraits.size() == 1) {
+        unify(requiredTrait, foundTraits[0]);
+        continue;
+      }
+
+      for (auto &&trait : foundTraits)
+        errors.emplace_back(
+            "'" + trait->getName() + "' ambigously satisfies requirement '" +
+            u->getName() + " : " + requiredTrait->getName() + "'");
+    }
+  }
+
+  return errors;
 }
 
 std::vector<std::string> TypeManager::unify(Type *t1, Type *t2) {
-  std::vector<std::string> errors;
-  if (unifyImpl(t1, t2, errors))
-    errors.clear();
+  std::vector<UninferredType *> inferredTypes;
+  std::vector<std::string> errors = unifyImpl(t1, t2, inferredTypes);
+
+  if (errors.empty())
+    for (auto &&err : checkObligations(inferredTypes))
+      errors.emplace_back(err);
+
+  inferredTypes.clear();
   return errors;
 }
 

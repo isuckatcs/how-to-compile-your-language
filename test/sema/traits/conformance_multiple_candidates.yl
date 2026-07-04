@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+struct Dummy<T> {}
+
+struct S {
+  impl A<unit>;
+  impl A<number>;
+}
+
+fn foo<T, U: A<T>>(u: U) {}
+
+fn main() {
+  foo(S{});
+  // CHECK: [[# @LINE - 1 ]]:8: error: 'A<unit>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:8: error: 'A<number>' ambigously satisfies requirement 'S : A<_>'
+}

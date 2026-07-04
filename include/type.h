@@ -189,23 +189,27 @@ public:
   friend class TypeManager;
 };
 
-class Substitution : public std::unordered_map<res::Type *, res::Type *> {
+class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
   void dump() const;
 };
 
 class TypeManager {
+  size_t uninferredTypeId = 0;
   std::vector<std::unique_ptr<Type>> types;
-  std::vector<std::pair<Type *, TraitType *>> upperBounds;
+  std::vector<std::pair<Type *, TraitType *>> constraints;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
-  bool unifyImpl(Type *t1, Type *t2, std::vector<std::string> &errors);
+  std::vector<std::string>
+  unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
+  std::vector<std::string>
+  checkObligations(const std::vector<UninferredType *> &inferredTypes);
 
 public:
-  void addUpperBound(Type *type, TraitType *trait);
-  UninferredType *withObligation(UninferredType *type, TraitType *obligation);
-  std::vector<TraitType *> getUpperBounds(Type *type);
+  void addConstraint(Type *type, TraitType *trait);
+  std::vector<TraitType *> getConstraints(const Type *type);
+  void createObligation(UninferredType *type, TraitType *trait);
 
-  Substitution extractSubstitutionFrom(Type *ty);
+  Substitution extractSubstitutionFrom(const Type *ty);
 
   UninferredType *getNewUninferredType();
   BuiltinUnitType *getBuiltinUnitType();

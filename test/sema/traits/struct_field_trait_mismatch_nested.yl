@@ -13,6 +13,6 @@ struct S<T : B, U : A<T>> {
 
 fn main() {
   let s = S{ x: S2{} };
-  // CHECK: [[# @LINE - 1 ]]:19: error: cannot satisfy constraint 'unit : B'
-  // CHECK: [[# @LINE - 2 ]]:19: error: cannot satisfy constraint 'S2 : A<unit>'
+  // CHECK: [[# @LINE - 1 ]]:19: error: cannot satisfy requirement 'unit : B'
+  // CHECK: [[# @LINE - 2 ]]:19: error: cannot satisfy requirement 'S2 : A<unit>'
 }

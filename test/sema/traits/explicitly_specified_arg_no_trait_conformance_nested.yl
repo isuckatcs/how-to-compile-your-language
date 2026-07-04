@@ -15,6 +15,7 @@ fn foo<T : A, U : B<T>>() {}
 
 fn main() {
   foo@<S, S2>();
-  // CHECK: [[# @LINE - 1]]:11: error: cannot unify 'number' with 'S'
-  // CHECK: [[# @LINE - 2]]:11: error: cannot satisfy constraint 'S2 : B<S>'
+  // CHECK: [[# @LINE - 1]]:11: error: cannot unify 'S' with 'number'
+  // CHECK: [[# @LINE - 2]]:11: error: cannot unify 'B<S>' with 'B<number>'
+  // CHECK: [[# @LINE - 3]]:11: error: cannot satisfy requirement 'S2 : B<S>'
 }

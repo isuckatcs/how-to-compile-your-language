@@ -21,15 +21,18 @@ fn main() {
   let b = bar;
 
   f(0, s);
-  // CHECK: [[# @LINE - 1 ]]:8: error: cannot unify 'S' with 'number'
-  // CHECK: [[# @LINE - 2 ]]:8: error: cannot satisfy constraint 'S2 : B<number>'
+  // CHECK: [[# @LINE - 1 ]]:8: error: cannot unify 'number' with 'S'
+  // CHECK: [[# @LINE - 2 ]]:8: error: cannot unify 'B<number>' with 'B<S>'
+  // CHECK: [[# @LINE - 3 ]]:8: error: cannot satisfy requirement 'S2 : B<number>'
+
 
   b(s, 0);
   // CHECK: [[# @LINE - 1 ]]:8: error: cannot unify 'number' with 'S'
 
   foo(0, s);
-  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'S' with 'number'
-  // CHECK: [[# @LINE - 2 ]]:10: error: cannot satisfy constraint 'S2 : B<number>'
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'number' with 'S'
+  // CHECK: [[# @LINE - 2 ]]:10: error: cannot unify 'B<number>' with 'B<S>'
+  // CHECK: [[# @LINE - 3 ]]:10: error: cannot satisfy requirement 'S2 : B<number>'
 
   bar(s, 0);
   // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'number' with 'S'

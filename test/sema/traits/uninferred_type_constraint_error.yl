@@ -14,7 +14,6 @@ fn bar<T : B>(t: T): T {
 fn main() {
   mut x = foo;
   x = bar;
-  // CHECK: [[# @LINE - 1 ]]:7: error: cannot satisfy constraint '_ : A'
-  // CHECK: [[# @LINE - 2 ]]:7: error: cannot unify '(_) -> _' with '(_) -> _'
-  // CHECK: [[# @LINE - 3 ]]:7: error: expected to assign '(_) -> _' but received '(_) -> _' instead
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot satisfy requirement '_ : A'
+  // CHECK: [[# @LINE - 2 ]]:7: error: expected to assign '(_) -> _' but received '(_) -> _' instead
 }
