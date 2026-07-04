@@ -2,13 +2,12 @@
 #include <sstream>
 
 #include "res.h"
-#include "sema.h"
 #include "type.h"
 
 namespace yl {
 namespace res {
-UninferredType::UninferredType(std::string name)
-    : Type(name, {}){};
+UninferredType::UninferredType(size_t id)
+    : Type("t" + std::to_string(id), reinterpret_cast<void *>(id)){};
 
 void UninferredType::infer(Type *t) {
   assert(!parent && "already inferred");
@@ -28,20 +27,20 @@ std::string UninferredType::getName() const {
 };
 
 BuiltinUnitType::BuiltinUnitType()
-    : Type("unit", {}){};
+    : Type("unit"){};
 
 BuiltinNumberType::BuiltinNumberType()
-    : Type("number", {}){};
+    : Type("number"){};
 
 BuiltinBoolType::BuiltinBoolType()
-    : Type("bool", {}){};
+    : Type("bool"){};
 
 TypeParamType::TypeParamType(TypeParamDecl &decl)
-    : Type(decl.identifier, {}),
+    : Type(decl.identifier, &decl),
       decl(&decl) {}
 
 FunctionType::FunctionType(std::vector<Type *> args)
-    : Type("fn", std::move(args)) {}
+    : Type("fn", reinterpret_cast<void *>(args.size()), std::move(args)) {}
 
 std::string FunctionType::getName() const {
   std::stringstream ss;
@@ -58,7 +57,7 @@ std::string FunctionType::getName() const {
 }
 
 StructType::StructType(StructDecl &decl, std::vector<Type *> typeArgs)
-    : Type(decl.identifier, std::move(typeArgs)),
+    : Type(decl.identifier, &decl, std::move(typeArgs)),
       decl(&decl){};
 
 std::string StructType::getName() const {
@@ -81,15 +80,18 @@ std::string StructType::getName() const {
 
 BorrowedType::BorrowedType(Type *borrowedType, bool isMutable)
     : Type(isMutable ? "borrowed mut" : "borrowed",
+           reinterpret_cast<void *>(isMutable),
            std::vector<res::Type *>{borrowedType}),
       isMut(isMutable){};
 
 PointerType::PointerType(Type *pointeeType, bool isMutable)
-    : Type(isMutable ? "*mut " : "*", std::vector<res::Type *>{pointeeType}),
+    : Type(isMutable ? "*mut " : "*",
+           reinterpret_cast<void *>(isMutable),
+           std::vector<res::Type *>{pointeeType}),
       isMut(isMutable){};
 
 TraitType::TraitType(TraitDecl &decl, std::vector<Type *> args)
-    : Type(decl.identifier, std::move(args)),
+    : Type(decl.identifier, &decl, std::move(args)),
       decl(&decl) {}
 
 std::string TraitType::getName() const {
@@ -111,7 +113,7 @@ std::string TraitType::getName() const {
 }
 
 ImplType::ImplType(res::TraitType *trait)
-    : Type("impl", {trait}),
+    : Type("impl", nullptr, {trait}),
       trait(trait) {}
 
 std::string ImplType::getName() const { return "impl " + trait->getName(); }
@@ -140,7 +142,7 @@ Substitution TypeManager::extractSubstitutionFrom(Type *ty) {
 }
 
 UninferredType *TypeManager::getNewUninferredType() {
-  auto *typeVariable = new UninferredType("t" + std::to_string(types.size()));
+  auto *typeVariable = new UninferredType(types.size());
   types.emplace_back(std::unique_ptr<UninferredType>(typeVariable));
   return typeVariable;
 }
@@ -305,21 +307,10 @@ bool TypeManager::unifyImpl(Type *t1,
   if (t2->getAs<UninferredType>())
     return unifyImpl(t2, t1, errors);
 
-  // FIXME: add an isSame method to the `Type *` class which gets called here
-  // then `eq()` becomes isSame + eq on every arg.
-  if (t1->name != t2->name || t1->args.size() != t2->args.size()) {
+  if (t1->isSameKind(t2)) {
     errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
                         t2->getName() + "'");
     return false;
-  }
-
-  if (auto *tpt1 = t1->getAs<TypeParamType>()) {
-    auto *tpt2 = t2->getAs<TypeParamType>();
-    if (!tpt2 || tpt1->decl != tpt2->decl) {
-      errors.emplace_back("cannot unify '" + t1->getName() + "' with '" +
-                          t2->getName() + "'");
-      return false;
-    }
   }
 
   for (size_t i = 0; i < t1->args.size(); ++i)

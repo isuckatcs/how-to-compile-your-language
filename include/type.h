@@ -14,7 +14,6 @@ class StructDecl;
 class TraitDecl;
 class TypedNode;
 
-// FIXME: add operator== to compare types instead of their "name" field
 struct Type {
   template <typename T> T *getAs() {
     return const_cast<T *>(const_cast<const Type *>(this)->getAs<T>());
@@ -29,26 +28,36 @@ struct Type {
     return const_cast<Type *>(const_cast<const Type *>(this)->getRootType());
   }
 
+  virtual const Type *getRootType() const { return this; }
+
   virtual std::string getName() const { return name; };
 
-  virtual const Type *getRootType() const { return this; }
+  bool isSameKind(const Type *other) const {
+    return typeid(*this) != typeid(*other) || uniqueId != other->uniqueId;
+  }
+
   virtual ~Type() = default;
 
 protected:
   std::string name;
   std::vector<Type *> args;
+  void *uniqueId;
 
-  Type(std::string identifier, std::vector<Type *> args)
+  Type(std::string identifier,
+       void *uniqueId = nullptr,
+       std::vector<Type *> args = {})
       : name(std::move(identifier)),
-        args(std::move(args)){};
+        args(std::move(args)),
+        uniqueId(uniqueId){};
 
   friend class TypeManager;
 };
 
 class UninferredType : public Type {
   Type *parent = nullptr;
+  size_t id;
 
-  UninferredType(std::string name);
+  UninferredType(size_t id);
 
   void infer(Type *t);
 
