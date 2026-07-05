@@ -113,10 +113,11 @@ std::string TraitType::getName() const {
 }
 
 ImplType::ImplType(res::TraitType *trait)
-    : Type("impl", nullptr, {trait}),
-      trait(trait) {}
+    : Type("impl", nullptr, {trait}) {}
 
-std::string ImplType::getName() const { return "impl " + trait->getName(); }
+std::string ImplType::getName() const {
+  return "impl " + getTrait()->getName();
+}
 
 void Substitution::dump() const {
   for (auto &&[from, to] : *this)
@@ -389,6 +390,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
+  else if (auto *i = t->getAs<res::ImplType>())
+    t = getImplType(i->getTrait());
 
   for (auto &arg : t->args)
     arg = instantiate(arg, substitution);

@@ -180,13 +180,15 @@ public:
 };
 
 class ImplType : public Type {
-  res::TraitType *trait;
-
   ImplType(res::TraitType *trait);
 
 public:
-  res::TraitType *getTrait() { return trait; }
-  const res::TraitType *getTrait() const { return trait; }
+  res::TraitType *getTrait() {
+    return args[0]->getRootType()->getAs<res::TraitType>();
+  }
+  const res::TraitType *getTrait() const {
+    return args[0]->getRootType()->getAs<res::TraitType>();
+  }
 
   std::string getName() const override;
 

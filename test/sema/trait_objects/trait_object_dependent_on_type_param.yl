@@ -1,0 +1,27 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self, t: T) {}
+}
+
+struct S<T> {
+  impl A<T>;
+}
+
+fn foo<T>(x: *impl A<T>) {}
+
+fn main() {
+  foo(gc(S@<unit>{}));
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A<unit>) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A<unit>}
+
+  foo(gc(S@<number>{}));
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A<number>) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A<number>}
+
+  foo(gc(S@<() -> unit>{}));
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A<() -> unit>) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A<() -> unit>}
+}
