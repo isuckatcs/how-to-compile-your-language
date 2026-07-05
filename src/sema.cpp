@@ -189,11 +189,14 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   TokenKind op = binop.op;
 
   bool isLogicalOp = op == TokenKind::AmpAmp || op == TokenKind::PipePipe;
-  bool isNumbericOp = !isLogicalOp && op != TokenKind::EqualEqual;
+  bool isNumericOp = !isLogicalOp && op != TokenKind::EqualEqual;
 
   bool typeError = !typeMgr.unify(lhsTy, rhsTy).empty();
   typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
-  typeError |= isNumbericOp && !rhsTy->getAs<res::BuiltinNumberType>();
+  typeError |= isNumericOp && !rhsTy->getAs<res::BuiltinNumberType>();
+  typeError |=
+      op == TokenKind::EqualEqual &&
+      (rhsTy->getAs<res::StructType>() || rhsTy->getAs<res::TypeParamType>());
   if (typeError)
     return err::binopIncompatibleOperands(loc)
         .with(lhsTy->getName())

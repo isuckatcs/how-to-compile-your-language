@@ -1,6 +1,6 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o %t && %t | grep -Plzx '123\n123\n123\n123\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n123\n123\n123\n123\n123\n'
 
 // CHECK: @"vtable.S<number>.A<S<number>>" = internal constant [1 x ptr] [ptr @_YT1AGS1SGnEE3fooGS1SGnEE]
 // CHECK: @"vtable.S<unit>.A<S<unit>>" = internal constant [1 x ptr] [ptr @_YT1AGS1SGuEE3fooGS1SGuEE]
@@ -15,9 +15,7 @@ struct S<T> {
 
   impl A<S<T>> {
     fn foo(self: borrowed Self, t: S<T>) {
-      if self.x == t.x {
-        println(123);
-      }
+      println(123);
     }
   }
 }
@@ -43,7 +41,6 @@ fn main() {
   // CHECK: call void @_YT1AGS1SGuEE3fooGS1SGuEE(ptr %su, ptr null)
 
   let sf = S@<() -> unit>{ x: main };
-  // FIXME: the comparison in these methods is failing
   foo(sf);
   sf.foo(sf);
   // CHECK: call void @_YT1AGS1SGFRuEE3fooGS1SGFRuEE(ptr %sf, ptr byval({ { ptr, ptr } }) %struct.arg.tmp4, ptr null)
