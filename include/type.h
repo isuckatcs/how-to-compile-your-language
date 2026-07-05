@@ -33,23 +33,17 @@ struct Type {
 
   virtual std::string getName() const { return name; };
 
-  bool isSameKind(const Type *other) const {
-    return typeid(*this) == typeid(*other) && uniqueId == other->uniqueId;
-  }
+  virtual bool isSameKind(const Type *other) const = 0;
 
   virtual ~Type() = default;
 
 protected:
   std::string name;
   std::vector<Type *> args;
-  void *uniqueId;
 
-  Type(std::string identifier,
-       void *uniqueId = nullptr,
-       std::vector<Type *> args = {})
+  Type(std::string identifier, std::vector<Type *> args = {})
       : name(std::move(identifier)),
-        args(std::move(args)),
-        uniqueId(uniqueId){};
+        args(std::move(args)){};
 
   friend class TypeManager;
 };
@@ -62,6 +56,8 @@ class UninferredType : public Type {
 
   void infer(Type *t);
 
+  bool isSameKind(const Type *other) const override;
+
 public:
   const Type *getRootType() const override;
   std::string getName() const override;
@@ -72,11 +68,15 @@ public:
 class BuiltinUnitType : public Type {
   BuiltinUnitType();
 
+  bool isSameKind(const Type *other) const override;
+
   friend class TypeManager;
 };
 
 class BuiltinNumberType : public Type {
   BuiltinNumberType();
+
+  bool isSameKind(const Type *other) const override;
 
   friend class TypeManager;
 };
@@ -84,11 +84,15 @@ class BuiltinNumberType : public Type {
 class BuiltinBoolType : public Type {
   BuiltinBoolType();
 
+  bool isSameKind(const Type *other) const override;
+
   friend class TypeManager;
 };
 
 class TypeParamType : public Type {
   TypeParamType(TypeParamDecl &decl);
+
+  bool isSameKind(const Type *other) const override;
 
 public:
   TypeParamDecl *decl;
@@ -98,6 +102,8 @@ public:
 
 class FunctionType : public Type {
   FunctionType(std::vector<Type *> args);
+
+  bool isSameKind(const Type *other) const override;
 
 public:
   std::vector<Type *> getArgs() { return {args.begin(), --args.end()}; }
@@ -118,6 +124,8 @@ class StructType : public Type {
 
   StructType(StructDecl &decl, std::vector<Type *> typeArgs);
 
+  bool isSameKind(const Type *other) const override;
+
 public:
   StructDecl *getDecl() { return decl; }
   const StructDecl *getDecl() const { return decl; }
@@ -133,6 +141,8 @@ class BorrowedType : public Type {
   bool isMut;
 
   BorrowedType(Type *borrowedType, bool isMutable);
+
+  bool isSameKind(const Type *other) const override;
 
 public:
   Type *getBorrowedType() { return args[0]->getRootType(); }
@@ -151,6 +161,8 @@ class PointerType : public Type {
 
   PointerType(Type *pointeeType, bool isMutable);
 
+  bool isSameKind(const Type *other) const override;
+
 public:
   Type *getPointeeType() { return args[0]->getRootType(); }
   const Type *getPointeeType() const { return args[0]->getRootType(); }
@@ -165,6 +177,8 @@ class TraitType : public Type {
   TraitDecl *decl;
 
   TraitType(TraitDecl &decl, std::vector<Type *> args);
+
+  bool isSameKind(const Type *other) const override;
 
 public:
   TraitDecl *getDecl() { return decl; }
@@ -181,6 +195,8 @@ public:
 
 class ImplType : public Type {
   ImplType(res::TraitType *trait);
+
+  bool isSameKind(const Type *other) const override;
 
 public:
   res::TraitType *getTrait() {

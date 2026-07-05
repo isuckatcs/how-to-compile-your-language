@@ -7,7 +7,12 @@
 namespace yl {
 namespace res {
 UninferredType::UninferredType(size_t id)
-    : Type("t" + std::to_string(id), reinterpret_cast<void *>(id)){};
+    : Type("t" + std::to_string(id)){};
+
+bool UninferredType::isSameKind(const Type *other) const {
+  const auto *u = other->getAs<UninferredType>();
+  return u && u->id == id;
+};
 
 void UninferredType::infer(Type *t) {
   assert(!parent && "already inferred");
@@ -29,18 +34,40 @@ std::string UninferredType::getName() const {
 BuiltinUnitType::BuiltinUnitType()
     : Type("unit"){};
 
+bool BuiltinUnitType::isSameKind(const Type *other) const {
+  return other->getAs<BuiltinUnitType>();
+};
+
 BuiltinNumberType::BuiltinNumberType()
     : Type("number"){};
+
+bool BuiltinNumberType::isSameKind(const Type *other) const {
+  return other->getAs<BuiltinNumberType>();
+};
 
 BuiltinBoolType::BuiltinBoolType()
     : Type("bool"){};
 
+bool BuiltinBoolType::isSameKind(const Type *other) const {
+  return other->getAs<BuiltinBoolType>();
+};
+
 TypeParamType::TypeParamType(TypeParamDecl &decl)
-    : Type(decl.identifier, &decl),
+    : Type(decl.identifier),
       decl(&decl) {}
 
+bool TypeParamType::isSameKind(const Type *other) const {
+  const auto *p = other->getAs<TypeParamType>();
+  return p && p->decl == decl;
+};
+
 FunctionType::FunctionType(std::vector<Type *> args)
-    : Type("fn", reinterpret_cast<void *>(args.size()), std::move(args)) {}
+    : Type("fn", std::move(args)) {}
+
+bool FunctionType::isSameKind(const Type *other) const {
+  const auto *f = other->getAs<FunctionType>();
+  return f && f->args.size() == args.size();
+};
 
 std::string FunctionType::getName() const {
   std::stringstream ss;
@@ -57,8 +84,13 @@ std::string FunctionType::getName() const {
 }
 
 StructType::StructType(StructDecl &decl, std::vector<Type *> typeArgs)
-    : Type(decl.identifier, &decl, std::move(typeArgs)),
+    : Type(decl.identifier, std::move(typeArgs)),
       decl(&decl){};
+
+bool StructType::isSameKind(const Type *other) const {
+  const auto *s = other->getAs<StructType>();
+  return s && s->decl == decl;
+};
 
 std::string StructType::getName() const {
   std::stringstream ss;
@@ -80,19 +112,31 @@ std::string StructType::getName() const {
 
 BorrowedType::BorrowedType(Type *borrowedType, bool isMutable)
     : Type(isMutable ? "borrowed mut" : "borrowed",
-           reinterpret_cast<void *>(isMutable),
            std::vector<res::Type *>{borrowedType}),
       isMut(isMutable){};
 
+bool BorrowedType::isSameKind(const Type *other) const {
+  const auto *b = other->getAs<BorrowedType>();
+  return b && b->isMut == isMut;
+};
+
 PointerType::PointerType(Type *pointeeType, bool isMutable)
-    : Type(isMutable ? "*mut " : "*",
-           reinterpret_cast<void *>(isMutable),
-           std::vector<res::Type *>{pointeeType}),
+    : Type(isMutable ? "*mut " : "*", std::vector<res::Type *>{pointeeType}),
       isMut(isMutable){};
 
+bool PointerType::isSameKind(const Type *other) const {
+  const auto *p = other->getAs<PointerType>();
+  return p && p->isMut == isMut;
+};
+
 TraitType::TraitType(TraitDecl &decl, std::vector<Type *> args)
-    : Type(decl.identifier, &decl, std::move(args)),
+    : Type(decl.identifier, std::move(args)),
       decl(&decl) {}
+
+bool TraitType::isSameKind(const Type *other) const {
+  const auto *t = other->getAs<TraitType>();
+  return t && t->decl == decl;
+};
 
 std::string TraitType::getName() const {
   std::stringstream ss;
@@ -113,7 +157,11 @@ std::string TraitType::getName() const {
 }
 
 ImplType::ImplType(res::TraitType *trait)
-    : Type("impl", nullptr, {trait}) {}
+    : Type("impl", {trait}) {}
+
+bool ImplType::isSameKind(const Type *other) const {
+  return other->getAs<ImplType>();
+};
 
 std::string ImplType::getName() const {
   return "impl " + getTrait()->getName();
