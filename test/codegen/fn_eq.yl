@@ -1,0 +1,35 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n'
+
+fn main() {
+  let f1 = main;
+  let f2 = main;
+
+  // CHECK: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %f1, i32 0, i32 0
+  // CHECK-NEXT: %lhs.fn = load ptr, ptr %4, align 8
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { ptr, ptr }, ptr %f2, i32 0, i32 0
+  // CHECK-NEXT: %rhs.fn = load ptr, ptr %5, align 8
+  // CHECK-NEXT: %fn.cmp = icmp eq ptr %lhs.fn, %rhs.fn
+  // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %f1, i32 0, i32 1
+  // CHECK-NEXT: %lhs.closure = load ptr, ptr %6, align 8
+  // CHECK-NEXT: %7 = getelementptr inbounds nuw { ptr, ptr }, ptr %f2, i32 0, i32 1
+  // CHECK-NEXT: %rhs.closure = load ptr, ptr %7, align 8
+  // CHECK-NEXT: %closure.cmp = icmp eq ptr %lhs.closure, %rhs.closure
+  // CHECK-NEXT: %fn.eq = and i1 %fn.cmp, %closure.cmp
+  // CHECK-NEXT: br i1 %fn.eq, label %if.true, label %if.exit
+  if f1 == f2 {
+    println(123);
+  }
+
+  let l1 = ->(){ f1(); };
+  let l2 = ->(){ f2(); };
+
+  if l1 == l1 {
+    println(456);
+  }
+
+  if !(l1 == l2) {
+    println(789);
+  }
+}

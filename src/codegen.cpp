@@ -780,11 +780,33 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
 
   llvm::Value *lhs = generateExprAndLoadValue(*binop.lhs);
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
-  if (!lhs && !rhs)
-    return builder.getInt1(true);
 
-  // FIXME: this is wrong for struct types
   if (op == TokenKind::EqualEqual) {
+    const res::Type *lhsType = binop.lhs->getType();
+    if (lhsType->getAs<res::BuiltinUnitType>())
+      return builder.getInt1(true);
+
+    if (lhsType->getAs<res::FunctionType>()) {
+      llvm::Type *fnTy = generateType(binop.lhs->getType());
+
+      llvm::Value *lhsFn = builder.CreateLoad(
+          builder.getPtrTy(), builder.CreateStructGEP(fnTy, lhs, 0), "lhs.fn");
+      llvm::Value *rhsFn = builder.CreateLoad(
+          builder.getPtrTy(), builder.CreateStructGEP(fnTy, rhs, 0), "rhs.fn");
+      llvm::Value *fnCmp = builder.CreateICmpEQ(lhsFn, rhsFn, "fn.cmp");
+
+      llvm::Value *lhsClosure = builder.CreateLoad(
+          builder.getPtrTy(), builder.CreateStructGEP(fnTy, lhs, 1),
+          "lhs.closure");
+      llvm::Value *rhsClosure = builder.CreateLoad(
+          builder.getPtrTy(), builder.CreateStructGEP(fnTy, rhs, 1),
+          "rhs.closure");
+      llvm::Value *closureCmp =
+          builder.CreateICmpEQ(lhsClosure, rhsClosure, "closure.cmp");
+
+      return builder.CreateAnd(fnCmp, closureCmp, "fn.eq");
+    }
+
     if (lhs->getType()->isIntOrPtrTy())
       return builder.CreateICmpEQ(lhs, rhs);
 
