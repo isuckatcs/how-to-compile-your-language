@@ -1118,6 +1118,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
+// FIXME: allow implementing traits for arbitrary types
 res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
                                        const ast::ImplDecl &decl,
                                        res::StructDecl *parent) {
@@ -1153,6 +1154,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
     res::Substitution sub;
     res::Substitution reverseSub;
 
+    bool error = false;
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
       res::Type *traitParamTy = traitFn->typeParams[i + 1]->getType();
       res::Type *implParamTy = implFn->typeParams[i]->getType();
@@ -1177,8 +1179,11 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
             .with(traitParamTy->getName())
             .with(implParamTy->getName())
             .report(reporter);
+        error = true;
       }
     }
+    if (error)
+      continue;
 
     auto traitSub = typeMgr.extractSubstitutionFrom(traitTy);
     sub[traitFn->typeParams[0]->getType()] = parent->getType();
@@ -1187,11 +1192,13 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
         typeMgr.instantiate(traitFn->getType(), traitSub), sub);
     res::Type *actualType = implFn->getType();
 
-    if (!typeMgr.unify(expectedType, actualType).empty())
+    if (!typeMgr.unify(expectedType, actualType).empty()) {
       err::fnSignatureMismatch(implFn->location)
           .with(expectedType->getName())
           .with(actualType->getName())
           .report(reporter);
+      continue;
+    }
 
     if (!resImpl->insertDecl(implFn))
       err::alreadyImplementedFn(implFn->location)

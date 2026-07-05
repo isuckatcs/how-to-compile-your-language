@@ -1,0 +1,23 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self, t: T);
+}
+
+struct S<T> {
+  impl A<S<T>> {
+    // CHECK: [[# @LINE + 1 ]]:8: error: trait function declaration has '(borrowed S<T>, S<T>) -> unit' signature, but the given implementation is '(borrowed S<T>, T) -> unit'
+    fn foo(self: borrowed Self, t: T) {
+      println(123);
+    }
+  }
+}
+
+fn foo<T : A<T>>(t: T) {
+  let x: *impl A<T> = gc(t);
+  x.foo(t);
+}
+
+fn main() {
+  foo(S@<number>{});
+}
+// CHECK-NOT: FunctionDecl @({{.*}}) main {() -> unit}
