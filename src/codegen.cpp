@@ -106,8 +106,11 @@ struct Mangling {
 };
 } // namespace
 
-Codegen::Codegen(const res::Context &resolvedCtx, std::string_view sourcePath)
-    : resCtx(&resolvedCtx),
+Codegen::Codegen(const res::Context &resolvedCtx,
+                 const res::TypeManager &typeMgr,
+                 std::string_view sourcePath)
+    : typeMgr(&typeMgr),
+      resCtx(&resolvedCtx),
       builder(context),
       module("<translation_unit>", context),
       dl(&module.getDataLayout()) {
@@ -567,6 +570,8 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
     EnterInstantiationRAII structInst(this, structTy);
 
     for (auto &&impl : structTy->getDecl()->implBlocks) {
+      // FIXME: get rid of this... in template structs the impl blocks must be
+      // instantiated
       if (!isImplOf(impl, trait))
         continue;
 
@@ -1300,24 +1305,6 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   return llvm::StructType::get(context, fieldTypes);
 }
 
-std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
-Codegen::getVtableLayout(const res::TraitType *trait) const {
-  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
-      layout;
-
-  // FIXME: super traits need to be instantiated
-  for (auto &&superTrait : trait->getDecl()->traits) {
-    const auto &superLayout =
-        getVtableLayout(superTrait->getType()->getAs<res::TraitType>());
-    layout.insert(layout.end(), superLayout.begin(), superLayout.end());
-  }
-
-  for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
-    layout.emplace_back(trait, fn);
-
-  return layout;
-}
-
 llvm::Value *Codegen::getVtable(const res::TraitType *trait,
                                 const res::Type *type) {
   auto *structType = type->getAs<res::StructType>();
@@ -1326,22 +1313,25 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
   if (!structType)
     return nullptr;
 
+  // FIXME: mangle these types
   std::string id = "vtable." + type->getName() + "." + trait->getName();
   if (auto *vtable = module.getGlobalVariable(id, true))
     return vtable;
 
   std::vector<llvm::Constant *> vFunctions;
-  for (auto &&[layoutTrait, layoutFn] : getVtableLayout(trait)) {
+  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
     const res::FunctionDecl *vFunction = layoutFn;
 
     for (auto &&impl : structType->getDecl()->implBlocks) {
-      if (!isImplOf(impl, layoutTrait))
+      if (!typeMgr->eq(layoutTrait, impl->traitInstance->getType()))
         continue;
 
       if (auto *fn = impl->lookupDecl<res::FunctionDecl>(layoutFn->identifier))
         vFunction = fn;
       break;
     };
+
+    EnterInstantiationRAII traitInst(this, layoutTrait);
 
     // FIXME: const_cast
     vFunctions.push_back(generateFunctionDecl(
@@ -1370,11 +1360,11 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
   auto *fn = dre->decl->getAs<res::FunctionDecl>();
   auto *implType = dre->owningType->getAs<res::ImplType>();
 
-  const auto &vtableLayout = getVtableLayout(implType->getTrait());
+  const auto &vtableLayout = typeMgr->getVtableLayout(implType->getTrait());
 
   unsigned idx = 0;
-  for (auto &&[_, vtableEntry] : vtableLayout) {
-    if (vtableEntry == fn)
+  for (auto &&[trait, vtableEntry] : vtableLayout) {
+    if (typeMgr->eq(trait, dre->owningTrait) && vtableEntry == fn)
       break;
 
     ++idx;

@@ -1,0 +1,40 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n123\n456\n'
+
+// CHECK: @"vtable.S.A<number>" = internal constant [2 x ptr] [ptr @_YT1BGnE3barGS1SE, ptr @_YT1AGnE3fooGS1SE]
+
+trait A<T> : B<T> {
+  fn foo(self: borrowed Self, t: T) {
+    println(123);
+  }
+}
+
+trait B<T> {
+  fn bar(self: borrowed Self, t: T) {
+    println(456);
+  }
+}
+
+struct S {
+  impl A<number>;
+  impl B<number>;
+}
+
+fn main() {
+  let s = gc(S {});
+
+  s.foo(0);
+  // CHECK: call void @_YT1AGnE3fooGS1SE(ptr %1, double 0.000000e+00, ptr null)
+
+  s.bar(0);
+  // CHECK: call void @_YT1BGnE3barGS1SE(ptr %2, double 0.000000e+00, ptr null)
+
+  mut p: *impl A<number> = s;
+
+  p.foo(0);
+  // CHECK: %vFnPtr = getelementptr ptr, ptr %vtable, i32 1
+
+  p.bar(0);
+  // CHECK: %vFnPtr6 = getelementptr ptr, ptr %vtable5, i32 0
+}

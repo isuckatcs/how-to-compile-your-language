@@ -123,7 +123,7 @@ int main(int argc, const char **argv) {
 
   ConstExprEvaluator cee(true);
   Sema sema(reporter, cee, ast);
-  auto *resolvedTree = sema.resolveAST();
+  auto &&[resolvedTree, typeMgr] = sema.resolveAST();
 
   if (options.resDump) {
     if (resolvedTree)
@@ -145,7 +145,7 @@ int main(int argc, const char **argv) {
   if (!resolvedTree)
     return 1;
 
-  Codegen codegen(*resolvedTree, options.source.c_str());
+  Codegen codegen(*resolvedTree, *typeMgr, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.verifyOnly)

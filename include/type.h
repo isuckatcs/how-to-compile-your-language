@@ -10,6 +10,7 @@ namespace yl {
 namespace res {
 class Decl;
 class TypeParamDecl;
+class FunctionDecl;
 class StructDecl;
 class TraitDecl;
 class TypedNode;
@@ -172,6 +173,9 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
   std::string getName() const override;
 
+  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
+  getVtableLayout() const;
+
   friend class TypeManager;
 };
 
@@ -198,6 +202,13 @@ class TypeManager {
   std::vector<std::unique_ptr<Type>> types;
   std::vector<std::pair<Type *, TraitType *>> constraints;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
+
+  using VtableEntryTy =
+      std::pair<const res::TraitType *, const res::FunctionDecl *>;
+  using VtableLayoutTy = std::vector<VtableEntryTy>;
+  std::vector<std::pair<const TraitType *, VtableLayoutTy>> vtableLayouts;
+
+  VtableLayoutTy constructVtableLayoutImpl(res::TraitType *trait);
 
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
@@ -226,6 +237,9 @@ public:
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
+
+  VtableLayoutTy getVtableLayout(const res::TraitType *trait) const;
+  void constructVtableLayout(res::TraitType *trait);
 };
 } // namespace res
 } // namespace yl

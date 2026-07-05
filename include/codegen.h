@@ -40,6 +40,13 @@ class Codegen {
     }
 
   public:
+    EnterInstantiationRAII(Codegen *codegen, const res::TraitType *t)
+        : codegen(codegen),
+          instCtxSnapshot(codegen->instCtx) {
+      if (t)
+        impl(t->getDecl()->typeParams, t->getTypeArgs());
+    }
+
     EnterInstantiationRAII(Codegen *codegen, const res::StructType *st)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
@@ -70,7 +77,9 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
+  const res::TypeManager *typeMgr;
   const res::Context *resCtx;
+
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
@@ -159,14 +168,14 @@ class Codegen {
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
 
-  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
-  getVtableLayout(const res::TraitType *trait) const;
   llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
                                       llvm::Value *receiver);
   llvm::Value *getVtable(const res::TraitType *trait, const res::Type *type);
 
 public:
-  Codegen(const res::Context &resolvedCtx, std::string_view sourcePath);
+  Codegen(const res::Context &resolvedCtx,
+          const res::TypeManager &typeMgr,
+          std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };

@@ -247,7 +247,7 @@ public:
         cee(&cee),
         ast(&ast) {}
 
-  res::Context *resolveAST();
+  std::pair<const res::Context *, const res::TypeManager *> resolveAST();
 };
 } // namespace yl
 

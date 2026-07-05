@@ -1,3 +1,4 @@
+// FIXME: this test doesn't error out
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait B<T> {}
 

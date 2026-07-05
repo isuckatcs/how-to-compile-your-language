@@ -1,0 +1,67 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n101112\n123\n456\n789\n101112\n'
+
+// CHECK: @"vtable.S.A<unit, number, () -> unit>" = internal constant [4 x ptr] [ptr @_YT1BGuE3barGS1SE, ptr @_YT1BGnE3barGS1SE, ptr @_YT1BGFRuE3barGS1SE, ptr @_YT1AGunFRuE3fooGS1SE]
+
+trait A<T, U, V> : B<T> & B<U> & B<V> {
+  fn foo(self: borrowed Self, t: T) {
+    println(123);
+  }
+}
+
+trait B<T> {
+  fn bar(self: borrowed Self, t: T);
+}
+
+struct S {
+  impl A<unit, number, () -> unit>;
+
+  impl B<unit> {
+    fn bar(self: borrowed Self, u: unit) {
+      println(456);
+    }
+  }
+
+  impl B<number> {
+    fn bar(self: borrowed Self, n: number) {
+      println(789);
+    }
+  }
+
+  impl B<() -> unit> {
+    fn bar(self: borrowed Self, f: () -> unit) {
+      println(101112);
+    }
+  }
+}
+
+fn main() {
+  let s = gc(S {});
+
+  s.foo(unit);
+  // CHECK: call void @_YT1AGunFRuE3fooGS1SE(ptr %1, ptr null)
+
+  @<S impl B<unit>>::bar(s, unit);
+  // CHECK: call void @_YT1BGuE3barGS1SE(ptr %2, ptr null)
+
+  @<S impl B<number>>::bar(s, 0);
+  // CHECK: call void @_YT1BGnE3barGS1SE(ptr %3, double 0.000000e+00, ptr null)
+  
+  @<S impl B<() -> unit>>::bar(s, main);
+  // CHECK: call void @_YT1BGFRuE3barGS1SE(ptr %4, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+
+  mut p: *impl A<unit, number, () -> unit> = s;
+
+  p.foo(unit);
+  // CHECK: %vFnPtr = getelementptr ptr, ptr %vtable, i32 3
+
+  @<impl A<unit, number, () -> unit> impl B<unit>>::bar(p, unit);
+  // CHECK: %vFnPtr6 = getelementptr ptr, ptr %vtable5, i32 0
+
+  @<impl A<unit, number, () -> unit> impl B<number>>::bar(p, 0);
+  // CHECK: %vFnPtr13 = getelementptr ptr, ptr %vtable12, i32 1
+
+  @<impl A<unit, number, () -> unit> impl B<() -> unit>>::bar(p, main);
+  // CHECK: %vFnPtr21 = getelementptr ptr, ptr %vtable20, i32 2
+}

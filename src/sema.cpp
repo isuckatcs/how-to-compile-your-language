@@ -124,6 +124,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
     auto *implType = typeMgr.getImplType(traitType);
     typeMgr.addConstraint(implType, traitType);
+    typeMgr.constructVtableLayout(traitType);
 
     return implType;
   }
@@ -1719,7 +1720,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   return !error;
 }
 
-res::Context *Sema::resolveAST() {
+std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   EnterScopeRAII globalScope(this);
   bool error = false;
 
@@ -1763,7 +1764,7 @@ res::Context *Sema::resolveAST() {
   error |= hasSelfContainingStructs(ctx);
   error |= !checkTraitInstances(ctx);
   if (error)
-    return nullptr;
+    return {nullptr, nullptr};
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *rs = resDecl->getAs<res::StructDecl>()) {
@@ -1782,9 +1783,9 @@ res::Context *Sema::resolveAST() {
   }
 
   if (error)
-    return nullptr;
+    return {nullptr, nullptr};
 
-  return &ctx;
+  return {&ctx, &typeMgr};
 }
 
 bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
