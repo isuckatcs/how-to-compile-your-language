@@ -1,0 +1,23 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+
+// CHECK: @"vtable.S<number>.A<number>" = internal constant [1 x ptr] [ptr @_YT1AGnE3fooGS1SGnEE]
+
+trait A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+struct S<T> {
+  impl A<T>;
+}
+
+fn foo<T>(x: *impl A<T>) {
+  x.foo();
+}
+
+fn main() {
+  foo(gc(S@<number>{}));
+}

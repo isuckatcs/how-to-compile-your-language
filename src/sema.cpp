@@ -124,7 +124,6 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
     auto *implType = typeMgr.getImplType(traitType);
     typeMgr.addConstraint(implType, traitType);
-    typeMgr.constructVtableLayout(traitType);
 
     return implType;
   }

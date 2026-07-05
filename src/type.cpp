@@ -400,23 +400,25 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
 }
 
 TypeManager::VtableLayoutTy
-TypeManager::getVtableLayout(const res::TraitType *trait) const {
-  for (auto &&[t, layout] : vtableLayouts)
-    if (eq(t, trait))
-      return layout;
-
-  return {};
-}
-
-TypeManager::VtableLayoutTy
-TypeManager::constructVtableLayoutImpl(res::TraitType *trait) {
+TypeManager::getVtableLayout(const res::TraitType *trait) {
   VtableLayoutTy layout;
 
   Substitution sub = extractSubstitutionFrom(trait);
 
   for (auto &&superTrait : trait->getDecl()->traits) {
-    const auto &superLayout = constructVtableLayoutImpl(
-        instantiate(superTrait->getType(), sub)->getAs<res::TraitType>());
+    auto *superType =
+        instantiate(superTrait->getType(), sub)->getAs<res::TraitType>();
+
+    // FIXME: find a more efficient filtering
+    bool alreadyInserted = false;
+
+    for (auto &&[trait, _] : layout)
+      alreadyInserted |= eq(trait, superType);
+
+    if (alreadyInserted)
+      continue;
+
+    const auto &superLayout = getVtableLayout(superType);
     layout.insert(layout.end(), superLayout.begin(), superLayout.end());
   }
 
@@ -425,14 +427,5 @@ TypeManager::constructVtableLayoutImpl(res::TraitType *trait) {
 
   return layout;
 }
-
-void TypeManager::constructVtableLayout(res::TraitType *trait) {
-  if (getVtableLayout(trait).empty()) {
-    auto layout = constructVtableLayoutImpl(trait);
-    if (!layout.empty())
-      vtableLayouts.emplace_back(trait, std::move(layout));
-  }
-}
-
 } // namespace res
 } // namespace yl

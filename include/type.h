@@ -210,8 +210,6 @@ class TypeManager {
   using VtableLayoutTy = std::vector<VtableEntryTy>;
   std::vector<std::pair<const TraitType *, VtableLayoutTy>> vtableLayouts;
 
-  VtableLayoutTy constructVtableLayoutImpl(res::TraitType *trait);
-
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
   std::vector<std::string>
@@ -240,8 +238,7 @@ public:
   std::vector<std::string> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &substitution);
 
-  VtableLayoutTy getVtableLayout(const res::TraitType *trait) const;
-  void constructVtableLayout(res::TraitType *trait);
+  VtableLayoutTy getVtableLayout(const res::TraitType *trait);
 };
 } // namespace res
 } // namespace yl

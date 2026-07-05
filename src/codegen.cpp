@@ -109,7 +109,8 @@ struct Mangling {
 Codegen::Codegen(const res::Context &resolvedCtx,
                  const res::TypeManager &typeMgr,
                  std::string_view sourcePath)
-    : typeMgr(&typeMgr),
+    // FIXME: const_cast
+    : typeMgr(const_cast<res::TypeManager *>(&typeMgr)),
       resCtx(&resolvedCtx),
       builder(context),
       module("<translation_unit>", context),
@@ -779,7 +780,10 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
 
   llvm::Value *lhs = generateExprAndLoadValue(*binop.lhs);
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
+  if (!lhs && !rhs)
+    return builder.getInt1(true);
 
+  // FIXME: this is wrong for struct types
   if (op == TokenKind::EqualEqual) {
     if (lhs->getType()->isIntOrPtrTy())
       return builder.CreateICmpEQ(lhs, rhs);
@@ -1112,8 +1116,10 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty,
     if (dl->getTypeAllocSize(llvmTy) == 0)
       continue;
 
-    if (isVirtualCall && argsAttrSets.empty())
+    if (isVirtualCall && argsAttrSets.empty()) {
+      argsAttrSets.emplace_back(llvm::AttributeSet::get(context, {}));
       continue;
+    }
 
     llvm::AttrBuilder paramAttrs(context);
     if (llvmTy->isStructTy())
@@ -1307,6 +1313,15 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
 
 llvm::Value *Codegen::getVtable(const res::TraitType *trait,
                                 const res::Type *type) {
+  // FIXME: rework instantiation
+  res::Substitution sub;
+  for (auto &&[param, ty] : instCtx)
+    sub[param->getType()] = ty;
+
+  type = typeMgr->instantiate(const_cast<res::Type *>(type), sub);
+  trait = typeMgr->instantiate(const_cast<res::TraitType *>(trait), sub)
+              ->getAs<res::TraitType>();
+
   auto *structType = type->getAs<res::StructType>();
 
   // only structs can implement traits for now
@@ -1323,7 +1338,9 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
     const res::FunctionDecl *vFunction = layoutFn;
 
     for (auto &&impl : structType->getDecl()->implBlocks) {
-      if (!typeMgr->eq(layoutTrait, impl->traitInstance->getType()))
+      EnterInstantiationRAII structInst(this, structType);
+
+      if (!isImplOf(impl, layoutTrait))
         continue;
 
       if (auto *fn = impl->lookupDecl<res::FunctionDecl>(layoutFn->identifier))
@@ -1360,11 +1377,18 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
   auto *fn = dre->decl->getAs<res::FunctionDecl>();
   auto *implType = dre->owningType->getAs<res::ImplType>();
 
-  const auto &vtableLayout = typeMgr->getVtableLayout(implType->getTrait());
+  // FIXME: rework instantiation
+  res::Substitution sub;
+  for (auto &&[param, ty] : instCtx)
+    sub[param->getType()] = ty;
+
+  const auto &vtableLayout = typeMgr->getVtableLayout(
+      typeMgr->instantiate(implType->getTrait(), sub)->getAs<res::TraitType>());
 
   unsigned idx = 0;
   for (auto &&[trait, vtableEntry] : vtableLayout) {
-    if (typeMgr->eq(trait, dre->owningTrait) && vtableEntry == fn)
+    if (typeMgr->eq(trait, typeMgr->instantiate(dre->owningTrait, sub)) &&
+        vtableEntry == fn)
       break;
 
     ++idx;

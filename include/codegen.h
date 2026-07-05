@@ -32,8 +32,13 @@ class Codegen {
               std::vector<res::Type *> typeArgs) {
       for (size_t i = 0; i < typeParams.size(); ++i) {
         res::Type *type = typeArgs[i];
-        if (const auto *typeParamTy = type->getAs<res::TypeParamType>())
+        if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
           type = instCtxSnapshot[typeParamTy->decl];
+
+          if (type == nullptr) {
+            int x = 0;
+          }
+        }
 
         codegen->instCtx[typeParams[i]] = type;
       }
@@ -77,7 +82,7 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
-  const res::TypeManager *typeMgr;
+  res::TypeManager *typeMgr;
   const res::Context *resCtx;
 
   std::map<const res::Decl *, llvm::Value *> declarations;
