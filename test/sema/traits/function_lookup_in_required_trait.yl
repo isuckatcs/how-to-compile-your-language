@@ -16,13 +16,13 @@ fn foo<T : C>(t : T) {}
 fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(borrowed T) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T : B>::foo {(borrowed T) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 
   T::foo(t);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T impl B>::foo {(borrowed T) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<T : B>::foo {(borrowed T) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 }

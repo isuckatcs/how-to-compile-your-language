@@ -8,9 +8,9 @@ trait B : A {
 }
 
 fn foo(x: *mut impl B) {
-  @<impl B impl A>::foo(x, 0);
+  @<impl B : A>::foo(x, 0);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl B impl A>::foo {(borrowed impl B, number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<impl B : A>::foo {(borrowed impl B, number) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed impl B}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut impl B}
   // CHECK-NEXT:   NumberLiteral '0' {number}

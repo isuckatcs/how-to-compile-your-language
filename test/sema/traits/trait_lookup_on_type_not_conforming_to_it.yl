@@ -6,6 +6,6 @@ struct SB {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:19: error: '() -> SB' doesn't implement trait 'B'
-  @<() -> SB impl B>::foo();
+  // CHECK: [[# @LINE + 1]]:16: error: '() -> SB' doesn't implement trait 'B'
+  @<() -> SB : B>::foo();
 }

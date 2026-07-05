@@ -11,7 +11,7 @@ trait B : A & A & A {
   // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
   // CHECK-NEXT:   Block
   // CHECK-NEXT:     CallExpr {unit}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<__Self impl A>::foo {() -> unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<__Self : A>::foo {() -> unit}
 }
 
 fn main() {}

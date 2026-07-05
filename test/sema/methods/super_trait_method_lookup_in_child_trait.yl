@@ -11,6 +11,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:16: error: failed to find member 'foo' in 'B'
-  @<S impl B>::foo();
+  // CHECK: [[# @LINE + 1 ]]:13: error: failed to find member 'foo' in 'B'
+  @<S : B>::foo();
 }

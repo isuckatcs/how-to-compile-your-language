@@ -225,8 +225,8 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
 
   if (auto *traitSpecifier = pathExpr.traitSpecifier.get()) {
     varOrReturn(type, resolveType(ctx, *traitSpecifier->type, true));
-    varOrReturn(trait, resolveTraitInstance(
-                           ctx, traitSpecifier->impl->traitInstance.get()));
+    varOrReturn(trait,
+                resolveTraitInstance(ctx, traitSpecifier->traitInstance.get()));
 
     res::TraitType *traitTy = trait->getType()->getAs<res::TraitType>();
     auto *checkTy = typeMgr.getNewUninferredType();

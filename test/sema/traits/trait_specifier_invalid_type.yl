@@ -3,5 +3,5 @@ trait A {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:5: error: failed to resolve type 'Error'
-  @<Error impl A>::foo;
+  @<Error : A>::foo;
 }

@@ -28,7 +28,7 @@ struct S {
 }
 
 fn main() {
-  @<S impl A>::foo();
+  @<S : A>::foo();
   S::foo();
 }
 // CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {

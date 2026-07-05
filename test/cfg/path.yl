@@ -14,7 +14,7 @@ struct S2 {
 fn main() {
   S@<number>::foo@<number>();
 
-  @<S2 impl A>::foo();
+  @<S2 : A>::foo();
 }
 // CHECK: main:
 // CHECK-NEXT: [2 (entry)]
@@ -26,7 +26,7 @@ fn main() {
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   1: S<number>::foo
 // CHECK-NEXT:   2: [1.1]()
-// CHECK-NEXT:   3: @<S2 impl A>::foo
+// CHECK-NEXT:   3: @<S2 : A>::foo
 // CHECK-NEXT:   4: [1.3]()
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]

@@ -3,7 +3,7 @@ trait A {
   fn foo() {
     ->(){
       Self::foo;
-      // CHECK: DeclRefExpr @({{.*}}) @<__Self impl A>::foo {() -> unit}
+      // CHECK: DeclRefExpr @({{.*}}) @<__Self : A>::foo {() -> unit}
     };
   }
 }

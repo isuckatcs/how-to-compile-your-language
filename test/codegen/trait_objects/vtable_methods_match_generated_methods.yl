@@ -26,8 +26,8 @@ struct S {
 
 fn generateVtable(c: *impl C) {
   c.a();
-  @<impl C impl B1>::b(c);
-  @<impl C impl B2>::b(c);
+  @<impl C : B1>::b(c);
+  @<impl C : B2>::b(c);
   c.c();
 }
 
@@ -41,10 +41,10 @@ fn main() {
   s.a();
   // CHECK: call void @_YT1A1aGS1SE(ptr %4, ptr null)
 
-  @<S impl B1>::b(s);
+  @<S : B1>::b(s);
   // CHECK: call void @_YT2B11bGS1SE(ptr %5, ptr null)
   
-  @<S impl B2>::b(s);
+  @<S : B2>::b(s);
   // CHECK: call void @_YT2B21bGS1SE(ptr %6, ptr null)
   
   s.c();

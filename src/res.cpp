@@ -183,7 +183,7 @@ std::string DeclRefExpr::getFullPath() const {
     ss << owningType->getName();
 
     if (owningTrait)
-      ss << " impl " << owningTrait->getName() << '>';
+      ss << ' ' << ':' << ' ' << owningTrait->getName() << '>';
     ss << ':' << ':';
   }
 
