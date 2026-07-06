@@ -35,10 +35,7 @@
     ::= <identifier> <typeAnnotation>
 
 <implDecl> 
-    ::= <implSpecifier> (';' | ('{' <functionDecl>* '}'))
-
-<implSpecifier>
-    ::= 'impl' <traitInstance>
+    ::= 'impl' <traitInstance> (';' | ('{' <functionDecl>* '}'))
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
