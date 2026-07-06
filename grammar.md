@@ -164,7 +164,7 @@
     |   <userDefinedType>
     |   <functionType>
     |   <pointerType>
-    |   <implType>
+    |   <anyType>
 
 <builtinType>
     ::= 'number'
@@ -181,8 +181,8 @@
 <pointerType>
     ::= '*' 'mut'? <type>
 
-<implType>
-    ::= 'impl' <traitInstance>
+<anyType>
+    ::= 'any' <traitInstance>
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
