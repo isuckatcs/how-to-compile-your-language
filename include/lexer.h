@@ -50,6 +50,7 @@ enum class TokenKind : char {
   KwGC,
   KwGCMut,
   KwBorrowed,
+  KwAny,
 
   Eof = singleCharTokens[0],
   Lpar = singleCharTokens[1],
@@ -88,7 +89,8 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"false", TokenKind::KwFalse},
     {"gc", TokenKind::KwGC},
     {"gcMut", TokenKind::KwGCMut},
-    {"borrowed", TokenKind::KwBorrowed}};
+    {"borrowed", TokenKind::KwBorrowed},
+    {"any", TokenKind::KwAny}};
 
 struct Token {
   SourceLocation location;
