@@ -74,10 +74,10 @@ struct PointerType : public Type {
 };
 
 struct TraitInstance;
-struct ImplType : public Type {
+struct AnyType : public Type {
   std::unique_ptr<TraitInstance> trait;
 
-  ImplType(SourceLocation location, std::unique_ptr<TraitInstance> trait)
+  AnyType(SourceLocation location, std::unique_ptr<TraitInstance> trait)
       : Type(location),
         trait(std::move(trait)) {}
 

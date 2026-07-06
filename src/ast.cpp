@@ -39,8 +39,8 @@ void PointerType::dump(size_t level) const {
   pointeeType->dump(level + 1);
 }
 
-void ImplType::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplType\n";
+void AnyType::dump(size_t level) const {
+  std::cerr << indent(level) << "AnyType\n";
 
   trait->dump(level + 1);
 }

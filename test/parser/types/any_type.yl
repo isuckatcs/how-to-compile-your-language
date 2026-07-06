@@ -1,22 +1,22 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
 
-fn foo(): impl A {}
+fn foo(): any A {}
 // CHECK: FunctionDecl: foo
-// CHECK-NEXT:   ImplType
+// CHECK-NEXT:   AnyType
 // CHECK-NEXT:     TraitInstance: A
 // CHECK-NEXT:   Block
 
-fn bar(): impl A<x, y> {}
+fn bar(): any A<x, y> {}
 // CHECK-NEXT: FunctionDecl: bar
-// CHECK-NEXT:   ImplType
+// CHECK-NEXT:   AnyType
 // CHECK-NEXT:     TraitInstance: A
 // CHECK-NEXT:       UserDefinedType: x
 // CHECK-NEXT:       UserDefinedType: y
 // CHECK-NEXT:   Block
 
-fn baz(): impl A<x, y, z> {}
+fn baz(): any A<x, y, z> {}
 // CHECK-NEXT: FunctionDecl: baz
-// CHECK-NEXT:   ImplType
+// CHECK-NEXT:   AnyType
 // CHECK-NEXT:     TraitInstance: A
 // CHECK-NEXT:       UserDefinedType: x
 // CHECK-NEXT:       UserDefinedType: y

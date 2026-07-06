@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -ast-dump | filecheck %s
+
+// CHECK: [[# @LINE + 1 ]]:15: error: expected identifier
+fn foo(): any 0 {}
+
+// CHECK: [[# @LINE + 1 ]]:19: error: expected function body
+fn bar(): any Foo 0 {}
+
+// CHECK: [[# @LINE + 1 ]]:19: error: expected function body
+fn baz(): any Foo & 0 {}
+
+fn main() {}
