@@ -137,18 +137,6 @@ struct TraitInstance {
   void dump(size_t level = 0) const;
 };
 
-struct ImplSpecifier {
-  SourceLocation location;
-  std::unique_ptr<TraitInstance> traitInstance;
-
-  ImplSpecifier(SourceLocation location,
-                std::unique_ptr<TraitInstance> traitInstance)
-      : location(location),
-        traitInstance(std::move(traitInstance)) {}
-
-  void dump(size_t level = 0) const;
-};
-
 struct IfStmt : public Stmt {
   std::unique_ptr<Expr> condition;
   std::unique_ptr<Block> trueBlock;

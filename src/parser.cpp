@@ -1170,17 +1170,6 @@ std::unique_ptr<ast::TraitInstance> Parser::parseTraitInstance() {
   return parseIdentifierWithTypelist<ast::TraitInstance>();
 }
 
-std::unique_ptr<ast::ImplSpecifier> Parser::parseImplSpecifier() {
-  SourceLocation location = nextToken.location;
-
-  expectOrReturn(TokenKind::KwImpl,
-                 err::expected(nextToken.location).with("'impl'"));
-  eatNextToken(); // eat 'impl'
-
-  varOrReturn(trait, parseTraitInstance());
-  return std::make_unique<ast::ImplSpecifier>(location, std::move(trait));
-}
-
 // <sourceFile>
 //     ::= (<traitDecl> | <structDecl> | <functionDecl>)* EOF
 std::pair<ast::Context, bool> Parser::parseSourceFile() {

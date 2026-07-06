@@ -176,11 +176,6 @@ void TraitInstance::dump(size_t level) const {
     type->dump(level + 1);
 }
 
-void ImplSpecifier::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplSpecifier\n";
-  traitInstance->dump(level + 1);
-}
-
 void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
 
