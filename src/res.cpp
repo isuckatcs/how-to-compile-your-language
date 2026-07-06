@@ -198,7 +198,7 @@ void DeclRefExpr::dump(size_t level) const {
 
 bool CallExpr::isVirtual() const {
   const auto *dre = dynamic_cast<const res::DeclRefExpr *>(callee);
-  return dre && dre->owningType && dre->owningType->getAs<res::ImplType>();
+  return dre && dre->owningType && dre->owningType->getAs<res::AnyType>();
 }
 
 void CallExpr::dump(size_t level) const {

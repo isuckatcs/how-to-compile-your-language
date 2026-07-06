@@ -6,8 +6,8 @@ struct S {
 }
 
 fn main() {
-  let x: *impl A = gc(S{});
-  // CHECK: VarDecl @({{.*}}) x {*impl A}
-  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
+  let x: *any A = gc(S{});
+  // CHECK: VarDecl @({{.*}}) x {*any A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}
 }

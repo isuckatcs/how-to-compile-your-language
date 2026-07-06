@@ -31,7 +31,7 @@ fn main() {
 }
 
 fn foo<T : A<T>>(t: T) {
-  let x: *impl A<T> = gc(t);
+  let x: *any A<T> = gc(t);
   x.foo(t);
   // CHECK: %vFnPtr = getelementptr ptr, ptr %vtable, i32 0
 }

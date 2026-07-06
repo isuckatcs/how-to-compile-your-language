@@ -6,16 +6,16 @@ trait B : A {}
 trait C {}
 
 struct S {
-  x: *impl C,
-  y: *impl B
+  x: *any C,
+  y: *any B
 }
 
-fn foo(x: *impl B, y: *impl A) {
+fn foo(x: *any B, y: *any A) {
   S { 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*impl B' with '*impl C'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*any B' with '*any C'
     x: x,
     
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*impl A' with '*impl B'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*any A' with '*any B'
     y: y,
   };
 }

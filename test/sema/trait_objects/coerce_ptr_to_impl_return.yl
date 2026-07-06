@@ -5,10 +5,10 @@ struct S {
   impl A;
 }
 
-fn foo(): *impl A {
+fn foo(): *any A {
   return gc(S{});
   // CHECK: ReturnStmt
-  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}
 }
 

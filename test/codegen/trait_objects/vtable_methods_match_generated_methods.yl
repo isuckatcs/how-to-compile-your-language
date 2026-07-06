@@ -24,10 +24,10 @@ struct S {
   impl C;
 }
 
-fn generateVtable(c: *impl C) {
+fn generateVtable(c: *any C) {
   c.a();
-  @<impl C : B1>::b(c);
-  @<impl C : B2>::b(c);
+  @<any C : B1>::b(c);
+  @<any C : B2>::b(c);
   c.c();
 }
 

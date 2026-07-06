@@ -41,7 +41,7 @@ struct S2 {
   }
 }
 
-fn vcall(traitObject: *impl A) {
+fn vcall(traitObject: *any A) {
   traitObject.foo(123);
   // CHECK: %objPtr = getelementptr inbounds nuw { ptr, ptr }, ptr %decay, i32 0, i32 0
   // CHECK-NEXT: %obj = load ptr, ptr %objPtr, align 8
@@ -51,7 +51,7 @@ fn vcall(traitObject: *impl A) {
   // CHECK-NEXT: %vFn = load ptr, ptr %vFnPtr, align 8
   // CHECK-NEXT: call void %vFn(ptr %obj, double 1.230000e+02, ptr null)
     
-  @<impl A : B>::bar(traitObject);
+  @<any A : B>::bar(traitObject);
   // CHECK: %objPtr2 = getelementptr inbounds nuw { ptr, ptr }, ptr %decay1, i32 0, i32 0
   // CHECK-NEXT: %obj3 = load ptr, ptr %objPtr2, align 8
   // CHECK-NEXT: %vtablePtr4 = getelementptr inbounds nuw { ptr, ptr }, ptr %decay1, i32 0, i32 1

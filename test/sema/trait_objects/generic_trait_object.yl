@@ -3,16 +3,16 @@ trait Foo<T> {
   fn foo(self: borrowed Self, x: T) {}
 }
 
-fn foo(x: *mut impl Foo<number>) {
+fn foo(x: *mut any Foo<number>) {
   x.foo(123);
 }
-// CHECK: FunctionDecl @({{.*}}) foo {(*mut impl Foo<number>) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut impl Foo<number>}
+// CHECK: FunctionDecl @({{.*}}) foo {(*mut any Foo<number>) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut any Foo<number>}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl Foo<number> : Foo<number>>::foo {(borrowed impl Foo<number>, number) -> unit}
-// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed impl Foo<number>}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl Foo<number>}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<any Foo<number> : Foo<number>>::foo {(borrowed any Foo<number>, number) -> unit}
+// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed any Foo<number>}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut any Foo<number>}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123
 

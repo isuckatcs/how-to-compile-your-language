@@ -135,7 +135,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return generateStructType(s);
 
   if (const auto *p = type->getAs<res::PointerType>()) {
-    if (p->getPointeeType()->getAs<res::ImplType>())
+    if (p->getPointeeType()->getAs<res::AnyType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 
@@ -147,7 +147,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
   if (const auto *b = type->getAs<res::BorrowedType>()) {
-    if (b->getBorrowedType()->getAs<res::ImplType>())
+    if (b->getBorrowedType()->getAs<res::AnyType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 
@@ -464,7 +464,7 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   const auto *implType = promo.getType()
                              ->getAs<res::PointerType>()
                              ->getPointeeType()
-                             ->getAs<res::ImplType>();
+                             ->getAs<res::AnyType>();
   const auto *valueType =
       promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
 
@@ -927,7 +927,7 @@ llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (const auto *p = type->getAs<res::PointerType>()) {
-    if (p->getPointeeType()->getAs<res::ImplType>()) {
+    if (p->getPointeeType()->getAs<res::AnyType>()) {
       llvm::Type *ty = generateType(p);
       auto offset = module.getDataLayout()
                         .getStructLayout(llvm::cast<llvm::StructType>(ty))
@@ -984,7 +984,7 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   std::string globalPrefix = "";
 
   auto *ptr = type->getAs<res::PointerType>();
-  if (ptr && ptr->getPointeeType()->getAs<res::ImplType>())
+  if (ptr && ptr->getPointeeType()->getAs<res::AnyType>())
     globalPrefix = "fat.ptr";
   else if (type->getAs<res::FunctionType>())
     globalPrefix = "function";
@@ -1082,7 +1082,7 @@ void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
 
   auto *ptr = type->getAs<res::PointerType>();
   llvm::Value *metadata =
-      ptr && !ptr->getPointeeType()->getAs<res::ImplType>()
+      ptr && !ptr->getPointeeType()->getAs<res::AnyType>()
           ? llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
           : getTypeMetadata(type);
   tmpBuilder.CreateCall(gcroot, {alloca, metadata});
@@ -1397,7 +1397,7 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   const auto *dre = dynamic_cast<const res::DeclRefExpr *>(call->callee);
   auto *fn = dre->decl->getAs<res::FunctionDecl>();
-  auto *implType = dre->owningType->getAs<res::ImplType>();
+  auto *implType = dre->owningType->getAs<res::AnyType>();
 
   // FIXME: rework instantiation
   res::Substitution sub;

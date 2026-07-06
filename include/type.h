@@ -193,8 +193,8 @@ public:
   friend class TypeManager;
 };
 
-class ImplType : public Type {
-  ImplType(res::TraitType *trait);
+class AnyType : public Type {
+  AnyType(res::TraitType *trait);
 
   bool isSameKind(const Type *other) const override;
 
@@ -248,7 +248,7 @@ public:
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   BorrowedType *getBorrowedType(Type *borrowedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
-  ImplType *getImplType(TraitType *trait);
+  AnyType *getImplType(TraitType *trait);
 
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2);

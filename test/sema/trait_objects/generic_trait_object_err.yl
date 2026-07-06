@@ -3,7 +3,7 @@ trait Foo<T> {
   fn foo(self: borrowed Self, x: T) {}
 }
 
-fn foo(x: *mut impl Foo<number>) {
+fn foo(x: *mut any Foo<number>) {
   // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'unit' with 'number'
   x.foo(unit);
 }

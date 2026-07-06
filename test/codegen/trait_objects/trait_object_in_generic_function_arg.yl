@@ -14,7 +14,7 @@ struct S<T> {
   impl A<T>;
 }
 
-fn foo<T>(x: *impl A<T>) {
+fn foo<T>(x: *any A<T>) {
   x.foo();
 }
 

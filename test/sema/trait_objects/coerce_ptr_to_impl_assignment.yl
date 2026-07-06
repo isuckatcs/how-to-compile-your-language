@@ -5,11 +5,11 @@ struct S {
   impl A;
 }
 
-fn foo(mut x: *impl A) {
+fn foo(mut x: *any A) {
   x = gc(S{});
   // CHECK: Assignment
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*impl A}
-  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*any A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}
 }
 

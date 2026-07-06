@@ -31,7 +31,7 @@ fn main() {
 
   s.bar(456);
 
-  mut p: *impl A<number, number, number> = s;
+  mut p: *any A<number, number, number> = s;
 
   p.foo(0);
   

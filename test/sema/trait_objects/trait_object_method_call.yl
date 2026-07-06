@@ -7,16 +7,16 @@ struct S {
   impl A;
 }
 
-fn foo(x: *mut impl A) {
+fn foo(x: *mut any A) {
   x.foo(123);
 }
-// CHECK: FunctionDecl @({{.*}}) foo {(*mut impl A) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut impl A}
+// CHECK: FunctionDecl @({{.*}}) foo {(*mut any A) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut any A}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl A : A>::foo {(borrowed impl A, number) -> unit}
-// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed impl A}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl A}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<any A : A>::foo {(borrowed any A, number) -> unit}
+// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed any A}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut any A}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123
 

@@ -6,12 +6,12 @@ struct S {
 }
 
 struct S2 {
-  x: *impl A
+  x: *any A
 }
 
 fn main() {
   S2 { x: gc(S{}) };
   // CHECK: FieldInitStmt @({{.*}}) x
-  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}
 }

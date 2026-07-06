@@ -4,6 +4,6 @@ trait A {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:18: error: expected to call member function on trait object
-  @<impl A : A>::foo;
+  // CHECK: [[# @LINE + 1 ]]:17: error: expected to call member function on trait object
+  @<any A : A>::foo;
 }

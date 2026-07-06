@@ -5,16 +5,16 @@ trait A {
 
 trait B : A {}
 
-fn foo(x: *mut impl B) {
+fn foo(x: *mut any B) {
   x.foo(123);
 }
-// CHECK: FunctionDecl @({{.*}}) foo {(*mut impl B) -> unit}
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut impl B}
+// CHECK: FunctionDecl @({{.*}}) foo {(*mut any B) -> unit}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut any B}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<impl B : A>::foo {(borrowed impl B, number) -> unit}
-// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed impl B}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut impl B}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<any B : A>::foo {(borrowed any B, number) -> unit}
+// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed any B}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut any B}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123
 

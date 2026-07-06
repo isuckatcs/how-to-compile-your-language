@@ -16,7 +16,7 @@ trait Foo {
   fn staticGeneric<T>(self: borrowed Self) {}
 }
 
-// CHECK: [[# @LINE + 1 ]]:17: error: trait 'Foo' is not trait object compatible
-fn foo(x: *impl Foo) {}
+// CHECK: [[# @LINE + 1 ]]:16: error: trait 'Foo' is not trait object compatible
+fn foo(x: *any Foo) {}
 
 fn main() {}

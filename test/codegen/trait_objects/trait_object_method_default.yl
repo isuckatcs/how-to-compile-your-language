@@ -23,7 +23,7 @@ struct S2 {
 // CHECK: @vtable.S2.A = internal constant [1 x ptr] [ptr @_YT1A3fooGS2S2E]
 
 fn main() {
-  mut p: *impl A = gc(S {});
+  mut p: *any A = gc(S {});
   p.foo();
 
   p = gc(S2 {});

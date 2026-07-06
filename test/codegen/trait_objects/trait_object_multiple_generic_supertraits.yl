@@ -51,17 +51,17 @@ fn main() {
   @<S : B<() -> unit>>::bar(s, main);
   // CHECK: call void @_YT1BGFRuE3barGS1SE(ptr %4, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 
-  mut p: *impl A<unit, number, () -> unit> = s;
+  mut p: *any A<unit, number, () -> unit> = s;
 
   p.foo(unit);
   // CHECK: %vFnPtr = getelementptr ptr, ptr %vtable, i32 3
 
-  @<impl A<unit, number, () -> unit> : B<unit>>::bar(p, unit);
+  @<any A<unit, number, () -> unit> : B<unit>>::bar(p, unit);
   // CHECK: %vFnPtr6 = getelementptr ptr, ptr %vtable5, i32 0
 
-  @<impl A<unit, number, () -> unit> : B<number>>::bar(p, 0);
+  @<any A<unit, number, () -> unit> : B<number>>::bar(p, 0);
   // CHECK: %vFnPtr13 = getelementptr ptr, ptr %vtable12, i32 1
 
-  @<impl A<unit, number, () -> unit> : B<() -> unit>>::bar(p, main);
+  @<any A<unit, number, () -> unit> : B<() -> unit>>::bar(p, main);
   // CHECK: %vFnPtr21 = getelementptr ptr, ptr %vtable20, i32 2
 }

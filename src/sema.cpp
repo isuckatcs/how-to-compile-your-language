@@ -106,7 +106,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     return typeMgr.getFunctionType(std::move(args), retTy);
   }
 
-  if (const auto *impl = dynamic_cast<const ast::ImplType *>(&parsedType)) {
+  if (const auto *impl = dynamic_cast<const ast::AnyType *>(&parsedType)) {
     if (!allowRawTraitObject)
       return err::traitObjectNotPointee(impl->location).report(reporter);
 
@@ -162,7 +162,7 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
         ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
     rhsTy = ptr->getPointeeType();
 
-    if (rhsTy->getAs<res::ImplType>())
+    if (rhsTy->getAs<res::AnyType>())
       return err::traitObjectPtrDereference(rhs->location).report(reporter);
   }
 
@@ -782,7 +782,7 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   if (!targetPtrType)
     return expr;
 
-  auto *implType = targetPtrType->getPointeeType()->getAs<res::ImplType>();
+  auto *implType = targetPtrType->getPointeeType()->getAs<res::AnyType>();
   if (!implType)
     return expr;
 
@@ -791,7 +791,7 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
     return expr;
 
   auto *pointeeType = exprPtrType->getPointeeType();
-  if (pointeeType->getAs<res::ImplType>() ||
+  if (pointeeType->getAs<res::AnyType>() ||
       targetPtrType->isMutable() != exprPtrType->isMutable())
     return expr;
 
@@ -1036,7 +1036,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
           .with(resPath->owningType->getName())
           .report(reporter);
 
-    if (resPath->owningType && resPath->owningType->getAs<res::ImplType>() &&
+    if (resPath->owningType && resPath->owningType->getAs<res::AnyType>() &&
         isFunctionDecl && !(modifiers & IsCallee))
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);

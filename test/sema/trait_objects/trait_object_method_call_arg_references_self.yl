@@ -23,6 +23,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:20: error: trait 'Foo' is not trait object compatible
-  mut x: *mut impl Foo = gcMut(S{});
+  // CHECK: [[# @LINE + 1 ]]:19: error: trait 'Foo' is not trait object compatible
+  mut x: *mut any Foo = gcMut(S{});
 }

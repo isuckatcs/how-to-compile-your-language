@@ -25,7 +25,7 @@ struct S {
 }
 
 fn main() {
-  let s: *impl C = gc(S {});
+  let s: *any C = gc(S {});
   s.c();
 }
 

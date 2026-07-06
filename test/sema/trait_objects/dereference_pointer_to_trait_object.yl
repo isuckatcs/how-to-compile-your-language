@@ -2,7 +2,7 @@
 trait A {}
 
 fn main() {
-  let x: *impl A;
+  let x: *any A;
 
   // CHECK: [[# @LINE + 1 ]]:4: error: cannot dereference pointer to trait object
   *x;

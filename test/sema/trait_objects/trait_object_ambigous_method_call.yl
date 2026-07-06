@@ -7,7 +7,7 @@ trait B : A {
   fn foo(self: borrowed Self, x: number) {}
 }
 
-fn foo(x: *mut impl B) {
+fn foo(x: *mut any B) {
   // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
   x.foo();
 }

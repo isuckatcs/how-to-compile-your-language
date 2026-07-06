@@ -156,15 +156,15 @@ std::string TraitType::getName() const {
   return ss.str();
 }
 
-ImplType::ImplType(res::TraitType *trait)
-    : Type("impl", {trait}) {}
+AnyType::AnyType(res::TraitType *trait)
+    : Type("any", {trait}) {}
 
-bool ImplType::isSameKind(const Type *other) const {
-  return other->getAs<ImplType>();
+bool AnyType::isSameKind(const Type *other) const {
+  return other->getAs<AnyType>();
 };
 
-std::string ImplType::getName() const {
-  return "impl " + getTrait()->getName();
+std::string AnyType::getName() const {
+  return name + ' ' + getTrait()->getName();
 }
 
 void Substitution::dump() const {
@@ -258,9 +258,9 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-ImplType *TypeManager::getImplType(TraitType *trait) {
-  auto *implTy = new ImplType(trait);
-  types.emplace_back(std::unique_ptr<ImplType>(implTy));
+AnyType *TypeManager::getImplType(TraitType *trait) {
+  auto *implTy = new AnyType(trait);
+  types.emplace_back(std::unique_ptr<AnyType>(implTy));
   return implTy;
 }
 
@@ -438,7 +438,7 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
-  else if (auto *i = t->getAs<res::ImplType>())
+  else if (auto *i = t->getAs<res::AnyType>())
     t = getImplType(i->getTrait());
 
   for (auto &arg : t->args)

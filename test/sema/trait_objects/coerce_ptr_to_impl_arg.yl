@@ -5,12 +5,12 @@ struct S {
   impl A;
 }
 
-fn foo(x: *impl A) {}
+fn foo(x: *any A) {}
 
 fn main() {
   foo(gc(S{}));
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*impl A) -> unit}
-  // CHECK-NEXT:   TraitObjectPromoExpr {*impl A}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*any A) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}
 }

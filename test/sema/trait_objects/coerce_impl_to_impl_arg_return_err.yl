@@ -5,13 +5,13 @@ trait B : A {}
 
 trait C {}
 
-fn foo(x: *impl B): *impl C {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*impl B' from a function returning '*impl C'
+fn foo(x: *any B): *any C {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*any B' from a function returning '*any C'
   return x;
 }
 
-fn bar(x: *impl A): *impl B {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*impl A' from a function returning '*impl B'
+fn bar(x: *any A): *any B {
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*any A' from a function returning '*any B'
   return x;
 }
 

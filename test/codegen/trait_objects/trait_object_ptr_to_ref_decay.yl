@@ -12,7 +12,7 @@ struct S {
 }
 
 fn main() {
-  let s: *impl A = gc(S {});
+  let s: *any A = gc(S {});
 
   // CHECK: %decay = alloca { ptr, ptr }, align 8
 

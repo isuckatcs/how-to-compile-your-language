@@ -10,7 +10,7 @@ struct S {
 // CHECK: @fat.ptr.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] zeroinitializer }
 
 fn main() {
-  let s: *impl A = gc(S {});
+  let s: *any A = gc(S {});
   // CHECK: %traitObject = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %s = alloca { ptr, ptr }, align 8
 

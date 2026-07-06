@@ -8,13 +8,13 @@ struct S {
 }
 
 struct S2 {
-  x: *impl A
-  y: *impl B
+  x: *any A
+  y: *any B
 }
 
 fn main() {
   S2{ 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*impl A'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*any A'
     x: gcMut(S{}),
 
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy requirement 'S : B'

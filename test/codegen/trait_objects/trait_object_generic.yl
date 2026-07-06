@@ -19,7 +19,7 @@ fn main() {
   s.foo(0);
   // CHECK: call void @_YT1AGnE3fooGS1SE(ptr %1, double 0.000000e+00, ptr null)
 
-  mut p: *impl A<number> = s;
+  mut p: *any A<number> = s;
   p.foo(0);
   // CHECK: %vtable = load ptr, ptr %vtablePtr, align 8
   // CHECK-NEXT: %vFnPtr = getelementptr ptr, ptr %vtable, i32 0

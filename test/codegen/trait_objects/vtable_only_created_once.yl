@@ -13,11 +13,11 @@ struct S {
 }
 
 fn main() {
-  let s: *impl A = gc(S {});
-  let s2: *impl A = gc(S {});
-  let s3: *impl A = gc(S {});
-  let s4: *impl A = gc(S {});
-  let s5: *impl A = gc(S {});
+  let s: *any A = gc(S {});
+  let s2: *any A = gc(S {});
+  let s3: *any A = gc(S {});
+  let s4: *any A = gc(S {});
+  let s5: *any A = gc(S {});
 
   println(123);
 }

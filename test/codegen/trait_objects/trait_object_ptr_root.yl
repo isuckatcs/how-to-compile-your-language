@@ -11,7 +11,7 @@ struct Empty {
 
 struct S {
   x: number,
-  p: *impl A
+  p: *any A
 }
 
 fn main() {

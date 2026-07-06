@@ -13,7 +13,7 @@ struct S<T> {
 }
 
 fn foo<T : A<T>>(t: T) {
-  let x: *impl A<T> = gc(t);
+  let x: *any A<T> = gc(t);
   x.foo(t);
 }
 

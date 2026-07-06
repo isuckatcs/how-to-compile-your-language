@@ -8,10 +8,10 @@ struct S<T> {
 }
 
 fn foo<T : A<T>>(t: T) {
-  let x: *impl A<T> = gc(t);
+  let x: *any A<T> = gc(t);
   // CHECK: DeclStmt
-  // CHECK-NEXT:   VarDecl @({{.*}}) x {*impl A<T>}
-  // CHECK-NEXT:     TraitObjectPromoExpr {*impl A<T>}
+  // CHECK-NEXT:   VarDecl @({{.*}}) x {*any A<T>}
+  // CHECK-NEXT:     TraitObjectPromoExpr {*any A<T>}
   // CHECK-NEXT:       GCExpr {*T}
 }
 

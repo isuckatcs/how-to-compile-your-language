@@ -9,11 +9,11 @@ struct S {
   impl A;
 }
 
-fn foo(x: *impl A, mut y: *impl B, mut z: *impl C) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*impl B' but received '*impl A' instead
+fn foo(x: *any A, mut y: *any B, mut z: *any C) {
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any B' but received '*any A' instead
   y = x;
   
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*impl C' but received '*impl B' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any C' but received '*any B' instead
   z = y;
 }
 

@@ -30,7 +30,7 @@ fn main() {
   s.bar(0);
   // CHECK: call void @_YT1BGnE3barGS1SE(ptr %2, double 0.000000e+00, ptr null)
 
-  mut p: *impl A<number> = s;
+  mut p: *any A<number> = s;
 
   p.foo(0);
   // CHECK: %vFnPtr = getelementptr ptr, ptr %vtable, i32 1
