@@ -2,7 +2,7 @@
 
 ```bnf
 <sourceFile> 
-    ::= (<traitDecl> | <structDecl> | <functionDecl>)* EOF
+    ::= (<traitDecl> | <structDecl> | <functionDecl> | <typeExtension>)* EOF
 
 <traitDecl>
     ::= 'trait' <identifier> <typeParamList>? <traitList>? '{' <traitFunctionDecl>* '}'
@@ -17,7 +17,7 @@
     ::= <identifier> <typeList>?
 
 <structDecl>
-    ::= 'struct' <identifier> <typeParamList>? '{' <memberList>? '}'
+    ::= 'struct' <identifier> <typeParamList>? '{' (<fieldList> | <functionDecl>)* '}'
 
 <typeParamList>
     ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
@@ -25,17 +25,14 @@
 <typeParamDecl>
     ::= <identifier> <traitList>?
 
-<memberList>
-    ::= (<fieldList> | <implDecl> | <functionDecl>)*
-
 <fieldList>
     ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
 
 <fieldDecl>
     ::= <identifier> <typeAnnotation>
 
-<implDecl> 
-    ::= 'impl' <traitInstance> (';' | ('{' <functionDecl>* '}'))
+<typeExtension> 
+    ::= 'extension' <typeParamList> <type> ':' <traitInstance> '{' <functionDecl>* '}'
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
