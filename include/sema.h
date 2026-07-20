@@ -11,7 +11,6 @@
 
 namespace yl {
 class Sema {
-  static constexpr const char *implicitSelfId = "__Self";
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";
   static constexpr const char *lambdaFunctionId = "__builtin_lambda_call";
@@ -51,6 +50,7 @@ class Sema {
     ~WithSelfTypeRAII() { sema->selfType = oldSelfType; }
   };
 
+  // FIXME: remove this?
   res::Type *selfType = nullptr;
 
   enum Modifiers : unsigned char {
@@ -115,22 +115,18 @@ class Sema {
                                              const ast::BinaryOperator &binop);
   res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
                                          const ast::GroupingExpr &grouping);
-  template <typename Hint>
+
+  template <typename ExpectedDecl>
   res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
                                     const ast::PathExpr &pathExpr);
-  template <typename Hint>
-  res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
-                                       const ast::DeclRefExpr *dre,
-                                       res::Type *parentType = nullptr,
-                                       res::TraitInstance *traitHelp = nullptr);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,
-                                      res::Type *parentTy,
                                       res::Decl *decl,
-                                      res::TraitType *trait);
-  template <typename Hint>
-  res::Decl *lookupSymbolWithFallback(res::DeclContext *scope,
-                                      const ast::DeclRefExpr *dre);
+                                      res::Substitution sub = {});
+
+  std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
+      std::string identifier, res::Type *type, res::TraitType *trait = nullptr);
+
   std::pair<res::Expr *, std::vector<res::Expr *>>
   resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
@@ -162,9 +158,8 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  res::ImplBlock *resolveImplBlock(res::Context &ctx,
-                                   const ast::ImplDecl &decl,
-                                   res::StructDecl *parent);
+  res::TypeExtension *resolveTypeExtension(res::Context &ctx,
+                                           const ast::TypeExtension &extension);
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *
   resolveFunctionDecl(res::Context &ctx,
@@ -178,7 +173,8 @@ class Sema {
   resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param);
 
   res::TraitInstance *resolveTraitInstance(res::Context &ctx,
-                                           const ast::TraitInstance *trait);
+                                           const ast::TraitInstance *trait,
+                                           res::Type *receiver);
   res::TraitDecl *resolveTraitDecl(res::Context &ctx,
                                    const ast::TraitDecl &decl);
   bool resolveTraitBody(res::Context &ctx,
@@ -215,10 +211,11 @@ class Sema {
 
   std::vector<res::TraitInstance *> resolveTraitInstanceList(
       res::Context &ctx,
-      const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances);
+      const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances,
+      res::Type *receiver);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                            res::StructDecl *structDecl);
+                                            res::TypeExtension *extension);
 
   bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);

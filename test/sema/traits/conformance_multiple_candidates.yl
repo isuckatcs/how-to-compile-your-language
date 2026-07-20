@@ -3,10 +3,10 @@ trait A<T> {}
 
 struct Dummy<T> {}
 
-struct S {
-  impl A<unit>;
-  impl A<number>;
-}
+struct S {}
+
+extension S : A<unit> {}
+extension S : A<number> {}
 
 fn foo<T, U: A<T>>(u: U) {}
 

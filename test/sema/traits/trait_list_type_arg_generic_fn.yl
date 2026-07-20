@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait Base<T> {}
 
-struct B<T> {
-  impl Base<T>;
-}
+struct B<T> {}
+
+extension<T> B<T> : Base<T> {}
 
 trait A<T, U : Base<T>> {}
 

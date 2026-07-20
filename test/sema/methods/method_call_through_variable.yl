@@ -15,7 +15,7 @@ fn main() {
   let classLevel = S::classMethod;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) classLevel {() -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::classMethod {() -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) classMethod {() -> unit}
   
   classLevel();
   // CHECK-NEXT: CallExpr {unit}
@@ -24,7 +24,7 @@ fn main() {
   let instanceLevel = S::instanceMethod;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) instanceLevel {(borrowed S, number) -> unit}
-  // CHECK-NEXT:     DeclRefExpr @({{.*}}) S::instanceMethod {(borrowed S, number) -> unit}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) instanceMethod {(borrowed S, number) -> unit}
   
   let s = S{};
   instanceLevel(s, 0);

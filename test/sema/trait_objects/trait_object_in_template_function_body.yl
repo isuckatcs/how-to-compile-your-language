@@ -3,9 +3,9 @@ trait A<T> {
   fn foo(self: borrowed Self, t: T) {}
 }
 
-struct S<T> {
-  impl A<T>;
-}
+struct S<T> {}
+
+extension<T> S<T> : A<T> {}
 
 fn foo<T : A<T>>(t: T) {
   let x: *any A<T> = gc(t);

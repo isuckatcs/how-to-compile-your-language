@@ -5,11 +5,11 @@ trait A<T : B> {
   fn foo();
 }
 
-struct S {
-  // CHECK: [[# @LINE + 1]]:10: error: cannot satisfy requirement 'number : B'
-  impl A<number> {
-    fn foo() {}
-  }
+struct S {}
+
+// CHECK: [[# @LINE + 1]]:17: error: cannot satisfy requirement 'number : B'
+extension S : A<number> {
+  fn foo() {}
 }
 
 fn main() {}

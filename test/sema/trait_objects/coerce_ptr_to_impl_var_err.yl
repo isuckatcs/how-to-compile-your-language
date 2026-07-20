@@ -5,9 +5,9 @@ trait B : A {}
 
 trait C {}
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn foo(a: *any A, b: *any B) {
   // CHECK: [[# @LINE + 1 ]]:19: error: an expression of type '*any B' cannot be used to initialize a variable of type '*any C'

@@ -3,9 +3,9 @@ trait Base {}
 
 trait A<T : Base> {}
 
-struct S {
-    // CHECK: [[# @LINE + 1]]:12: error: cannot satisfy requirement 'number : Base'
-    impl A<number>;
-}
+struct S {}
+
+// CHECK: [[# @LINE + 1]]:17: error: cannot satisfy requirement 'number : Base'
+extension S : A<number> {}
 
 fn main() {}

@@ -3,9 +3,9 @@ trait A {
   fn foo(self: borrowed mut Self) {}
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   let s = gc(S{});

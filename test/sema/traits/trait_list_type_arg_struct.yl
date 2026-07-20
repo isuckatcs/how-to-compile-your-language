@@ -1,15 +1,15 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait Base {}
 
-struct B {
-    impl Base;
-}
+struct B {}
+
+extension B : Base {}
 
 trait A<T : Base> {}
 
-struct S {
-    impl A<B>;
-}
+struct S {}
+
+extension S : A<B> {}
 // CHECK: StructDecl @({{.*}}) S {S}
 
 fn main() {}

@@ -96,6 +96,7 @@ diag(Error, missingSymbol, "symbol '{}' not found");
 diag(Error, lookupInTypeFailed, "failed to find member '{}' in '{}'");
 diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'");
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
+// FIXME: expected type, found value
 diag(Error, cannotAccessMember, "cannot access member of '{}'");
 diag(Error, ambigousMemberFn, "ambigous member function reference");
 diag(Error, traitObjectMethodNotCalled, "expected to call member function on trait object");
@@ -157,10 +158,11 @@ diag(Error, traitNotImplemented, "'{}' doesn't implement trait '{}'");
 diag(Error, stricterParamTy, "cannot replace parameter of type '{}' with stricter implementation type '{}'");
 diag(Error, fnSignatureMismatch, "trait function declaration has '{}' signature, but the given implementation is '{}'");
 diag(Error, notATrait, "'{}' is not a trait");
-diag(Error, alreadyImplementedTrait, "trait '{}' is already implemented for struct '{}'");
 diag(Error, alreadyImplementedFn, "function '{}' is already implemented for trait '{}'");
 diag(Error, missingTraitFn, "struct '{}' must implement function '{}' from trait '{}'");
-diag(Error, conflictingTrait, "implementing trait '{}' conflicts with more specific implementation '{}'");
+// FIXME: extension 'A : B' conflicts with extension 'C : D'
+diag(Error, conflictingTrait, "implementing trait '{}' conflicts with implementation '{}'");
+// FIXME: extension 'A : B' requires extension 'C : D'
 diag(Error, missingRequirement, "implementing trait '{}' requires implementing trait '{}'");
 
 // structs

@@ -32,7 +32,30 @@ bool DeclContext::insertDecl(res::Decl *decl) {
       return false;
 
   decls.emplace_back(decl);
+
+  // FIXME: unify these cases, and move this logic somewhere else
+  if (dynamic_cast<Decl *>(this)) {
+    decl->setParent(this);
+  } else if (dynamic_cast<TypeExtension *>(this)) {
+    decl->setParent(this);
+  }
+
   return true;
+}
+
+std::vector<res::Decl *> DeclContext::lookupDecl(const std::string id) const {
+  std::vector<res::Decl *> result;
+
+  const DeclContext *ctx = this;
+  while (ctx) {
+    for (auto &&decl : ctx->decls)
+      if (decl->identifier == id)
+        result.emplace_back(decl);
+
+    ctx = ctx->parent;
+  }
+
+  return result;
 }
 
 void Block::dump(size_t level) const {
@@ -103,9 +126,12 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
-void ImplBlock::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplBlock "
-            << traitInstance->getType()->getName() << '\n';
+void TypeExtension::dump(size_t level) const {
+  std::cerr << indent(level) << "TypeExtension " << type->getName() << " : "
+            << trait->getType()->getName() << '\n';
+
+  for (auto &&typeParam : typeParams)
+    typeParam->dump(level + 1);
 
   for (auto &&decl : decls)
     decl->dump(level + 1);
@@ -117,9 +143,6 @@ void StructDecl::dump(size_t level) const {
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
-
-  for (auto &&implBlock : implBlocks)
-    implBlock->dump(level + 1);
 
   for (auto &&decl : decls)
     decl->dump(level + 1);
@@ -173,19 +196,29 @@ void UnitLiteral::dump(size_t level) const {
             << '\n';
 }
 
+Type *DeclRefExpr::getReceiverType() const {
+  for (auto &&[from, to] : sub)
+    if (auto *t = from->getAs<res::TypeParamType>();
+        t && t->decl->isImplicitSelf)
+      return to;
+
+  return nullptr;
+}
+
 std::string DeclRefExpr::getFullPath() const {
   std::stringstream ss;
 
-  if (owningType) {
-    if (owningTrait)
-      ss << '@' << '<';
+  // FIXME: should print these?
+  // if (auto *receiverType = getReceiverType()) {
+  //   // if (owningTrait)
+  //   //   ss << '@' << '<';
 
-    ss << owningType->getName();
+  //   ss << receiverType->getName();
 
-    if (owningTrait)
-      ss << ' ' << ':' << ' ' << owningTrait->getName() << '>';
-    ss << ':' << ':';
-  }
+  //   // if (owningTrait)
+  //   //   ss << ' ' << ':' << ' ' << owningTrait->getName() << '>';
+  //   ss << ':' << ':';
+  // }
 
   ss << decl->identifier;
   return ss.str();
@@ -197,8 +230,10 @@ void DeclRefExpr::dump(size_t level) const {
 }
 
 bool CallExpr::isVirtual() const {
+  // FIXME: revisit
   const auto *dre = dynamic_cast<const res::DeclRefExpr *>(callee);
-  return dre && dre->owningType && dre->owningType->getAs<res::AnyType>();
+  return dre && dre->getReceiverType() &&
+         dre->getReceiverType()->getAs<res::AnyType>();
 }
 
 void CallExpr::dump(size_t level) const {
@@ -343,11 +378,14 @@ void Context::dump() const {
   for (auto &&trait : traits)
     trait->dump(0);
 
-  for (auto &&decl : structs)
-    decl->dump(0);
+  for (auto &&s : structs)
+    s->dump(0);
 
-  for (auto &&decl : functions)
-    decl->dump(0);
+  for (auto &&extension : typeExtensions)
+    extension->dump(0);
+
+  for (auto &&fn : functions)
+    fn->dump(0);
 }
 } // namespace res
 } // namespace yl

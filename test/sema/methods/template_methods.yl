@@ -10,12 +10,12 @@ struct S2<T> {
 fn main() {
   S2@<unit>::foo(unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S2<unit>::foo {(unit) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(unit) -> unit}
   // CHECK-NEXT:   UnitLiteral {unit}
 
   S2@<number>::foo(unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S2<number>::foo {(unit) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(unit) -> unit}
   // CHECK-NEXT:   UnitLiteral {unit}
   
   mut s = S{};
@@ -26,7 +26,7 @@ fn main() {
   
   s.foo(unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(borrowed S, unit) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S, unit) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}

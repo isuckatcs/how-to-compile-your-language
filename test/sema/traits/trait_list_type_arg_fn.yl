@@ -3,9 +3,9 @@ trait Base {}
 
 trait A<T : Base> {}
 
-struct B {
-  impl Base;
-}
+struct B {}
+
+extension B : Base {}
 
 fn foo<T : A<B>>() {}
 // CHECK: FunctionDecl @({{.*}}) foo {() -> unit}

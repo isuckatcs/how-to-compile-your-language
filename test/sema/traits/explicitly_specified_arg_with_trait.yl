@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {}
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn foo<T : A>(x: T) {}
 

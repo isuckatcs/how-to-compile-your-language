@@ -3,7 +3,7 @@ trait A {
   fn foo() {
     ->(){
       Self::foo;
-      // CHECK: DeclRefExpr @({{.*}}) @<__Self : A>::foo {() -> unit}
+      // CHECK: DeclRefExpr @({{.*}}) foo {() -> unit}
     };
   }
 }
@@ -12,7 +12,7 @@ struct S {
   fn foo() {
     ->(){
       Self::foo;
-      // CHECK: DeclRefExpr @({{.*}}) S::foo {() -> unit}
+      // CHECK: DeclRefExpr @({{.*}}) foo {() -> unit}
     };
   }
 }

@@ -3,19 +3,17 @@ trait A {}
 
 trait B<T> {}
 
-struct S {
-  impl A;
-}
+struct S {}
 
-struct S2 {
-  impl B<number>;
-}
+extension S : A {}
+
+struct S2 {}
+
+extension S2 : B<number> {}
 
 fn foo<T : A, U : B<T>>() {}
 
 fn main() {
   foo@<S, S2>();
-  // CHECK: [[# @LINE - 1]]:11: error: cannot unify 'S' with 'number'
-  // CHECK: [[# @LINE - 2]]:11: error: cannot unify 'B<S>' with 'B<number>'
-  // CHECK: [[# @LINE - 3]]:11: error: cannot satisfy requirement 'S2 : B<S>'
+  // CHECK: [[# @LINE - 1]]:11: error: cannot satisfy requirement 'S2 : B<S>'
 }

@@ -18,9 +18,9 @@ trait Foo {
   fn template(self: borrowed Self, x: T<Self>) {}
 }
 
-struct S {
-  impl Foo;
-}
+struct S {}
+
+extension S : Foo {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:19: error: trait 'Foo' is not trait object compatible

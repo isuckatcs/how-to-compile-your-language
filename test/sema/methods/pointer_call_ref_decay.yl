@@ -3,22 +3,22 @@ trait A {
   fn foo(self: borrowed Self) {}
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   let s = gc(S{});
   s.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S : A>::foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {*S}
 
   let s2 = gcMut(S{});
   s2.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S : A>::foo {(borrowed S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s2 {*mut S}
 }

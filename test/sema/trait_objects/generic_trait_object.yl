@@ -10,7 +10,7 @@ fn foo(x: *mut any Foo<number>) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut any Foo<number>}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) @<any Foo<number> : Foo<number>>::foo {(borrowed any Foo<number>, number) -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(borrowed any Foo<number>, number) -> unit}
 // CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed any Foo<number>}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut any Foo<number>}
 // CHECK-NEXT:       NumberLiteral '123' {number}

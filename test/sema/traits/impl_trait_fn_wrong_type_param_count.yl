@@ -5,15 +5,14 @@ trait A {
   fn bar();
 }
 
-struct S {
-  impl A {
-    // CHECK: [[# @LINE + 1]]:8: error: type argument count mismatch, expected 3, but received 0
-    fn foo() {}
+struct S {}
 
-    // CHECK: [[# @LINE + 1]]:8: error: type argument count mismatch, expected 0, but received 3
-    fn bar<T, U, V>() {}
-  }
+extension S : A {
+  // CHECK: [[# @LINE + 1]]:6: error: type argument count mismatch, expected 3, but received 0
+  fn foo() {}
 
+  // CHECK: [[# @LINE + 1]]:6: error: type argument count mismatch, expected 0, but received 3
+  fn bar<T, U, V>() {}
 }
 
 fn main() {

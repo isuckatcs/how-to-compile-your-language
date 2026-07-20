@@ -5,10 +5,11 @@ trait A : B {
 
 trait B {}
 
-struct S {
-  impl A;
-  impl B;
-}
+struct S {}
+
+extension S : A {}
+
+extension S : B {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:13: error: failed to find member 'foo' in 'B'

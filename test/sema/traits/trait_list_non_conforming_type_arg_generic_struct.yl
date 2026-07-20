@@ -1,17 +1,15 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait Base<T> {}
 
-struct B<T> {
-    impl Base<T>;
-}
+struct B<T> {}
+
+extension<T> B<T> : Base<T> {}
 
 trait A<T, U : Base<T>> {}
 
-struct S {
-    impl A<number, B<unit>>;
-    // CHECK: [[# @LINE - 1]]:20: error: cannot unify 'number' with 'unit'
-    // CHECK: [[# @LINE - 2]]:20: error: cannot unify 'Base<number>' with 'Base<unit>'
-    // CHECK: [[# @LINE - 3]]:20: error: cannot satisfy requirement 'B<unit> : Base<number>'
-}
+struct S {}
+
+extension S : A<number, B<unit>> {}
+// CHECK: [[# @LINE - 1 ]]:25: error: cannot satisfy requirement 'B<unit> : Base<number>'
 
 fn main() {}

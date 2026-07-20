@@ -6,15 +6,15 @@ struct S<T, U : A<T>> {
 }
 
 struct S2<X> {
-  impl A<X>;
-
   x: X
 }
+
+extension<X> S2<X> : A<X> {}
 
 fn main() {
   let s2 = S2{ x: 0 };
   S::foo(s2);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S<number, S2<number>>::foo {(S2<number>) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(S2<number>) -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) s2 {S2<number>}
 }

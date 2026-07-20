@@ -3,9 +3,9 @@ trait B {}
 
 trait A : B {}
 
-struct S {
-    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A' requires implementing trait 'B'
-    impl A;
-}
+struct S {}
+
+// CHECK: [[# @LINE + 1 ]]:15: error: implementing trait 'A' requires implementing trait 'B'
+extension S : A {}
 
 fn main() {}

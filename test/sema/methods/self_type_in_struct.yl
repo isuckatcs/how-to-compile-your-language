@@ -28,7 +28,7 @@ struct S {
   // CHECK-NEXT:       ImplicitDerefExpr {S}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) self {borrowed S}
   // CHECK-NEXT:     CallExpr {S}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) S::create {() -> S}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) create {() -> S}
 }
 
 fn main() {}

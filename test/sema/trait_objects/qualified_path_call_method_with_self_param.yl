@@ -3,9 +3,9 @@ trait A {
   fn val(self: borrowed Self) {}
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:22: error: only lvalues can be borrowed

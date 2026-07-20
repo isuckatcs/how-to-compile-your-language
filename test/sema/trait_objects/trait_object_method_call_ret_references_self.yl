@@ -15,23 +15,23 @@ trait Foo {
   fn template(self: borrowed Self): T<Self>;
 }
 
-struct S {
-  impl Foo {
-    fn val(self: borrowed Self): Self {
-      return S{};
-    }
+struct S {}
 
-    fn ptr(self: borrowed Self): *Self {
-      return gc(S{});
-    }
+extension S : Foo {
+  fn val(self: borrowed Self): Self {
+    return S{};
+  }
 
-    fn ptrMut(self: borrowed Self): *mut Self {
-      return gcMut(S{});
-    }
+  fn ptr(self: borrowed Self): *Self {
+    return gc(S{});
+  }
 
-    fn template(self: borrowed Self): T<Self> {
-      return T{};
-    }
+  fn ptrMut(self: borrowed Self): *mut Self {
+    return gcMut(S{});
+  }
+
+  fn template(self: borrowed Self): T<Self> {
+    return T{};
   }
 }
 

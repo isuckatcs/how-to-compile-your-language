@@ -5,12 +5,12 @@ trait A<T, U> : B<T> & B<U> {}
 
 struct Empty {}
 
-struct S<T, U> {
-  impl A<Empty, number>;
-  impl A<number, Empty>;
-  impl B<Empty>;
-  impl B<number>;
-}
+struct S<T, U> {}
+
+extension<T, U> S<T, U> : A<Empty, number> {}
+extension<T, U> S<T, U> : A<number, Empty> {}
+extension<T, U> S<T, U> : B<Empty> {}
+extension<T, U> S<T, U> : B<number> {}
 
 fn foo<T, U, V : B<T> & B<U>>(v: V) {}
 

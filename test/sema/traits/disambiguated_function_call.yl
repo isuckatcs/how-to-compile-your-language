@@ -7,40 +7,40 @@ struct S {
 // CHECK: StructDecl @({{.*}}) S {S}
 
   x: number
+}
 
-  impl A<number> {
-    fn foo(self: borrowed Self, x: number) {
-      println(self.x * x);
-    }
-    // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, number) -> unit}
-    // CHECK-NEXT: | implements 'foo' @({{.*}})
-    // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
-    // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
-    // CHECK-NEXT:   Block
-    // CHECK-NEXT:     CallExpr {unit}
-    // CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
-    // CHECK-NEXT:       BinaryOperator '*' {number}
-    // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
-    // CHECK-NEXT:           ImplicitDerefExpr {S}
-    // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed S}
-    // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+extension S : A<number> {
+  fn foo(self: borrowed Self, x: number) {
+    println(self.x * x);
   }
+  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, number) -> unit}
+  // CHECK-NEXT: | implements 'foo' @({{.*}})
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:       BinaryOperator '*' {number}
+  // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
+  // CHECK-NEXT:           ImplicitDerefExpr {S}
+  // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed S}
+  // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
+}
 
-  impl A<unit> {
-    fn foo(self: borrowed Self, x: unit) {
-      println(self.x);
-    }
-    // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, unit) -> unit}
-    // CHECK-NEXT: | implements 'foo' @({{.*}})
-    // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
-    // CHECK-NEXT:   ParamDecl @({{.*}}) x {unit}
-    // CHECK-NEXT:   Block
-    // CHECK-NEXT:     CallExpr {unit}
-    // CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
-    // CHECK-NEXT:       MemberExpr @({{.*}}) x {number}
-    // CHECK-NEXT:         ImplicitDerefExpr {S}
-    // CHECK-NEXT:           DeclRefExpr @({{.*}}) self {borrowed S}
+extension S : A<unit> {
+  fn foo(self: borrowed Self, x: unit) {
+    println(self.x);
   }
+  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, unit) -> unit}
+  // CHECK-NEXT: | implements 'foo' @({{.*}})
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) x {unit}
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     CallExpr {unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:       MemberExpr @({{.*}}) x {number}
+  // CHECK-NEXT:         ImplicitDerefExpr {S}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) self {borrowed S}
 }
 
 fn main() {
@@ -48,14 +48,14 @@ fn main() {
 
   @<S : A<unit>>::foo(s, unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S : A<unit>>::foo {(borrowed S, unit) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S, unit) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}
 
   @<S : A<number>>::foo(s, 2);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<S : A<number>>::foo {(borrowed S, number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S, number) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '2' {number}

@@ -12,7 +12,7 @@ fn main() {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) x {(borrowed S<number>, number) -> unit}
-// CHECK-NEXT:         DeclRefExpr @({{.*}}) S<number>::foo {(borrowed S<number>, number) -> unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) foo {(borrowed S<number>, number) -> unit}
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl @({{.*}}) s {S<number>}
 // CHECK-NEXT:         StructInstantiationExpr {S<number>}

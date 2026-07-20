@@ -6,7 +6,7 @@ struct S {
 fn main() {
   S{}.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) S::foo {(borrowed mut S) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed mut S) -> unit}
   // CHECK-NEXT:   ImplicitBorrowExpr {borrowed mut S}
   // CHECK-NEXT:     MaterializeTemporaryExpr {S}
   // CHECK-NEXT:       StructInstantiationExpr {S}

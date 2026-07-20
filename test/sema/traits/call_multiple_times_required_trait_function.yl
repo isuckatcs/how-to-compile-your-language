@@ -8,10 +8,9 @@ trait B : A & A & A {
     Self::foo();
   }
   // CHECK: FunctionDecl @({{.*}}) bar {() -> unit}
-  // CHECK-NEXT:   TypeParamDecl @({{.*}}) __Self {__Self}
   // CHECK-NEXT:   Block
   // CHECK-NEXT:     CallExpr {unit}
-  // CHECK-NEXT:       DeclRefExpr @({{.*}}) @<__Self : A>::foo {() -> unit}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> unit}
 }
 
 fn main() {}

@@ -5,14 +5,14 @@ trait A<T> {
   fn foo(self: borrowed Self) {}
 }
 
-struct S {
-  impl A<number> {
-    fn foo(self: borrowed Self) {}
-  }
+struct S {}
 
-  impl A<unit> {
-    fn foo(self: borrowed Self) {}
-  }
+extension S : A<number> {
+  fn foo(self: borrowed Self) {}
+}
+
+extension S : A<unit> {
+  fn foo(self: borrowed Self) {}
 }
 
 fn main() {

@@ -7,14 +7,12 @@ struct S<T : A<T>> {
 
 struct S2<X> {
   x: X
-
-  impl A<X>;
 }
+
+extension<X> S2<X> : A<X> {}
 
 fn main() {
   let s2 = S2{ x: 0 };
   S::foo(s2);
-  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'S2<number>' with 'number'
-  // CHECK: [[# @LINE - 2 ]]:10: error: cannot unify 'A<S2<number>>' with 'A<number>'
-  // CHECK: [[# @LINE - 3 ]]:10: error: cannot satisfy requirement 'S2<number> : A<S2<number>>'
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot satisfy requirement 'S2<number> : A<S2<number>>'
 }

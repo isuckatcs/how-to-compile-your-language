@@ -67,7 +67,15 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *udt =
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
-    res::Decl *decl = lexicalScope->lookupDecl<res::TypeDecl>(udt->identifier);
+    res::TypeDecl *decl = nullptr;
+
+    for (auto &&d : lexicalScope->lookupDecl(udt->identifier)) {
+      decl = d->getAs<res::TypeDecl>();
+
+      if (decl)
+        break;
+    }
+
     if (!decl)
       return err::failedToResolveType(udt->location)
           .with(udt->identifier)
@@ -110,11 +118,14 @@ res::Type *Sema::resolveType(res::Context &ctx,
     if (!allowRawTraitObject)
       return err::traitObjectNotPointee(impl->location).report(reporter);
 
-    varOrReturn(trait, resolveTraitInstance(ctx, impl->trait.get()));
-    auto *traitType = trait->getType()->getAs<res::TraitType>();
+    varOrReturn(trait, resolveTraitInstance(ctx, impl->trait.get(), nullptr));
+    auto *traitType = trait->getType()->getAs<res::AnyTraitType>();
 
     std::set<std::string> visited;
-    if (!checkVtableCompatibility(trait->location, traitType, visited))
+    if (!checkVtableCompatibility(
+            trait->location,
+            typeMgr.withSelfType(traitType, typeMgr.getNewUninferredType()),
+            visited))
       return err::traitNotTraitObjectCompatible(trait->location)
           .with(traitType->getName())
           .report(reporter);
@@ -123,7 +134,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return nullptr;
 
     auto *implType = typeMgr.getImplType(traitType);
-    typeMgr.addConstraint(implType, traitType);
+    typeMgr.addConstraint(implType, typeMgr.withSelfType(traitType, implType));
 
     return implType;
   }
@@ -217,141 +228,169 @@ Sema::resolveGroupingExpr(res::Context &ctx,
   return ctx.create<res::GroupingExpr>(grouping.location, expr);
 }
 
-template <typename Hint>
+template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
                                         const ast::PathExpr &pathExpr) {
   res::Type *parentType = nullptr;
-  res::TraitInstance *parentTrait = nullptr;
+  res::TraitType *parentTrait = nullptr;
 
-  if (auto *traitSpecifier = pathExpr.traitSpecifier.get()) {
-    varOrReturn(type, resolveType(ctx, *traitSpecifier->type, true));
-    varOrReturn(trait,
-                resolveTraitInstance(ctx, traitSpecifier->traitInstance.get()));
+  if (auto *traitSpec = pathExpr.traitSpecifier.get()) {
+    parentType = resolveType(ctx, *traitSpec->type, true);
+    if (auto *traitInst = resolveTraitInstance(
+            ctx, traitSpec->traitInstance.get(), parentType))
+      parentTrait = traitInst->getType()->getAs<res::TraitType>();
 
-    res::TraitType *traitTy = trait->getType()->getAs<res::TraitType>();
-    auto *checkTy = typeMgr.getNewUninferredType();
-    typeMgr.createObligation(checkTy, traitTy);
-
-    if (!typeMgr.unify(type, checkTy).empty())
-      return err::traitNotImplemented(trait->location)
-          .with(type->getName())
-          .with(traitTy->getName())
-          .report(reporter);
-
-    parentType = type;
-    parentTrait = trait;
-  }
-
-  std::vector<res::DeclRefExpr *> resolvedFragments;
-  res::Type *prevType = parentType;
-  res::TraitInstance *traitHelp = parentTrait;
-
-  for (auto &&fragment : pathExpr.fragments) {
-    bool isLast = fragment == pathExpr.fragments.back();
-
-    res::DeclRefExpr *resolvedDre =
-        isLast ? resolveDeclRefExpr<Hint>(ctx, fragment.get(), prevType,
-                                          parentTrait)
-               : resolveDeclRefExpr<res::TypeDecl>(ctx, fragment.get(),
-                                                   prevType, parentTrait);
-
-    if (!resolvedFragments.emplace_back(resolvedDre))
+    if (!parentType || !parentTrait)
       return nullptr;
 
-    if (!isLast && !resolvedDre->decl->getAs<res::TypeDecl>())
-      return err::cannotAccessMember(resolvedDre->location)
-          .with(resolvedDre->decl->identifier)
+    if (!typeMgr.hasConstraint(parentType, parentTrait) &&
+        typeMgr.getExtensions(parentType, parentTrait).empty())
+      return err::traitNotImplemented(traitSpec->traitInstance->location)
+          .with(parentType->getName())
+          .with(parentTrait->getName())
           .report(reporter);
-
-    prevType = resolvedDre->getType();
-    traitHelp = nullptr;
   }
 
-  return resolvedFragments.back();
-}
+  std::vector<res::DeclRefExpr *> results;
 
-template <typename Hint>
-res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
-                                           const ast::DeclRefExpr *dre,
-                                           res::Type *parentType,
-                                           res::TraitInstance *traitHelp) {
-  res::DeclContext *scope = nullptr;
-  res::TraitType *traitHelpTy =
-      traitHelp ? traitHelp->getType()->getAs<res::TraitType>() : nullptr;
+  for (auto &&fragment : pathExpr.fragments) {
+    if (!results.empty()) {
+      parentType = nullptr;
+      parentTrait = nullptr;
 
-  if (!parentType)
-    scope = lexicalScope;
-  else if (traitHelp)
-    scope = traitHelp->decl;
-  else if (auto *st = parentType->getAs<res::StructType>())
-    scope = st->getDecl();
+      for (auto &&result : results) {
+        if (result->decl->getAs<res::TypeDecl>()) {
+          parentType = result->getType();
+          break;
+        }
+      }
 
-  if (!parentType && dre->identifier == selfTypeId) {
-    if (!selfType)
-      return err::selfTyNotAllowed(dre->location).report(reporter);
+      // FIXME: report ambigous associated items?
 
-    res::Decl *decl = nullptr;
-    if (auto *paramTy = selfType->getAs<res::TypeParamType>())
-      decl = paramTy->decl;
-    else
-      decl = selfType->getAs<res::StructType>()->getDecl();
+      if (!parentType)
+        return err::cannotAccessMember(results[0]->location)
+            .with(results[0]->decl->identifier)
+            .report(reporter);
 
-    return createDeclRefExpr(ctx, dre, parentType, decl, traitHelpTy);
-  }
-
-  if (scope)
-    if (res::Decl *decl = lookupSymbolWithFallback<Hint>(scope, dre))
-      return createDeclRefExpr(ctx, dre, parentType, decl, traitHelpTy);
-
-  if (traitHelp)
-    return err::lookupInTypeFailed(dre->location)
-        .with(dre->identifier)
-        .with(traitHelp->getType()->getName())
-        .report(reporter);
-
-  if (parentType) {
-    res::TraitType *candidateTrait = nullptr;
-    res::Decl *candidateDecl = nullptr;
-
-    for (auto &&trait : typeMgr.getConstraints(parentType)) {
-      if (candidateTrait && typeMgr.unify(trait, candidateTrait).empty())
-        continue;
-
-      auto *declInTrait = lookupSymbolWithFallback<Hint>(trait->getDecl(), dre);
-      if (!declInTrait)
-        continue;
-
-      if (candidateDecl)
-        return err::ambigousMemberFn(dre->location).report(reporter);
-
-      candidateTrait = trait;
-      candidateDecl = declInTrait;
+      results.clear();
     }
 
-    if (candidateDecl)
-      return createDeclRefExpr(ctx, dre, parentType, candidateDecl,
-                               candidateTrait);
+    if (parentType) {
+      // FIXME: could simplify these branches if both lookup methods returned
+      // the same type... introduce struct LookupResult...
+      auto candidates =
+          lookupAssociatedDecls(fragment->identifier, parentType, parentTrait);
 
-    return err::lookupInTypeFailed(dre->location)
-        .with(dre->identifier)
-        .with(parentType->getName())
-        .report(reporter);
+      if (candidates.empty())
+        return err::lookupInTypeFailed(fragment->location)
+            .with(fragment->identifier)
+            .with(parentTrait ? parentTrait->getName() : parentType->getName())
+            .report(reporter);
+
+      assert(candidates.size() == 1 || !parentTrait);
+
+      for (auto &&[candidate, sub] : candidates) {
+        varOrReturn(dre,
+                    createDeclRefExpr(ctx, fragment.get(), candidate, sub));
+        results.emplace_back(dre);
+      }
+
+      continue;
+    }
+
+    if (fragment->identifier == selfTypeId) {
+      if (!selfType)
+        return err::selfTyNotAllowed(fragment->location).report(reporter);
+
+      res::Decl *decl = nullptr;
+      res::Substitution sub;
+
+      if (auto *paramType = selfType->getAs<res::TypeParamType>())
+        decl = paramType->decl;
+      else if (auto *structType = selfType->getAs<res::StructType>()) {
+        decl = structType->getDecl();
+        sub = typeMgr.extractSubstitutionFrom(structType);
+      }
+
+      assert(decl && "unexpect self type");
+
+      varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), decl, sub));
+      results.emplace_back(dre);
+      continue;
+    }
+
+    auto candidates = lexicalScope->lookupDecl(fragment->identifier);
+    if (candidates.empty())
+      return err::missingSymbol(fragment->location)
+          .with(fragment->identifier)
+          .report(reporter);
+
+    bool hasNonValue = false;
+    bool hasValue = false;
+
+    // FIXME: once the parent type and trait are part of the decl, this can be
+    // simplified
+    for (auto &&candidate : candidates) {
+      if (candidate->getAs<res::ValueDecl>()) {
+        if (hasValue)
+          continue;
+
+        varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), candidate, {}));
+        results.emplace_back(dre);
+        hasValue = true;
+        continue;
+      }
+
+      if (hasNonValue)
+        continue;
+
+      varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), candidate, {}));
+      results.emplace_back(dre);
+      hasNonValue = true;
+    }
   }
 
-  return err::missingSymbol(dre->location)
-      .with(dre->identifier)
+  res::DeclRefExpr *result = nullptr;
+  for (auto &&res : results) {
+    if (res->decl->getAs<ExpectedDecl>()) {
+      if (result)
+        return err::ambigousMemberFn(res->location).report(reporter);
+
+      result = res;
+    }
+  }
+
+  if (result)
+    return result;
+
+  // FIXME: should just return all candidates and handle errors in wrappers?
+  if constexpr (std::is_same_v<ExpectedDecl, res::StructDecl>)
+    return err::notStructInstance(pathExpr.fragments.back()->location)
+        .report(reporter);
+
+  if constexpr (std::is_same_v<ExpectedDecl, res::ValueDecl>) {
+    if (results[0]->decl->getAs<res::StructDecl>())
+      return err::expectedInstance(pathExpr.fragments.back()->location)
+          .with(results[0]->decl->identifier)
+          .report(reporter);
+
+    if (results[0]->decl->getAs<res::TypeParamDecl>())
+      return err::unexpectedTypeParam(pathExpr.fragments.back()->location)
+          .report(reporter);
+  }
+
+  // FIXME: be more descriptive
+  return err::missingSymbol(pathExpr.fragments.back()->location)
+      .with(pathExpr.fragments.back()->identifier)
       .report(reporter);
 }
 
 res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
                                           const ast::DeclRefExpr *dre,
-                                          res::Type *parentTy,
                                           res::Decl *decl,
-                                          res::TraitType *trait) {
+                                          res::Substitution sub) {
   res::Type *declTy = decl->getType();
-  declTy = typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(trait));
-  declTy =
-      typeMgr.instantiate(declTy, typeMgr.extractSubstitutionFrom(parentTy));
+  declTy = typeMgr.instantiate(declTy, sub);
 
   auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
@@ -360,17 +399,12 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   else if (valueDecl->isMutable)
     kind = res::Expr::Kind::MutLvalue;
 
-  res::Substitution sub;
   std::vector<res::TypeParamDecl *> typeParams = decl->typeParams;
   std::vector<res::Type *> typeArgs;
 
   for (auto &&typeParam : typeParams) {
-    bool isImplicitSelf = typeParam == typeParams.front() &&
-                          typeParam->identifier == implicitSelfId;
-
     res::Type *typeParamTy = typeParam->getType();
-    res::Type *subTy =
-        isImplicitSelf ? parentTy : typeMgr.getNewUninferredType();
+    res::Type *subTy = typeMgr.getNewUninferredType();
 
     sub[typeParamTy] = typeArgs.emplace_back(subTy);
 
@@ -386,7 +420,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
           .with(decl->identifier)
           .report(reporter);
 
-    bool hasImplicitSelf = typeParams.front()->identifier == implicitSelfId;
+    bool hasImplicitSelf = typeParams.front()->isImplicitSelf;
     varOrReturn(res, checkTypeParameterCount(
                          typeArgList->location, typeArgList->args.size(),
                          typeParams.size() - hasImplicitSelf));
@@ -407,9 +441,9 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
     }
   }
 
-  auto *resDre = ctx.create<res::DeclRefExpr>(
-      dre->location, typeMgr.instantiate(declTy, sub), decl, kind, typeArgs,
-      parentTy, trait);
+  auto *resDre = ctx.create<res::DeclRefExpr>(dre->location,
+                                              typeMgr.instantiate(declTy, sub),
+                                              decl, kind, sub, typeArgs);
 
   if (modifiers & AddressTaken)
     resDre->decl->setStorageNeeded();
@@ -417,13 +451,56 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   return functionInfo->declReferences.emplace_back(resDre);
 }
 
-template <typename Hint>
-res::Decl *Sema::lookupSymbolWithFallback(res::DeclContext *scope,
-                                          const ast::DeclRefExpr *dre) {
-  if (auto *decl = scope->lookupDecl<Hint>(dre->identifier))
-    return decl;
+std::vector<std::pair<res::Decl *, res::Substitution>>
+Sema::lookupAssociatedDecls(std::string identifier,
+                            res::Type *type,
+                            res::TraitType *trait) {
+  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
-  return scope->lookupDecl<res::Decl>(dre->identifier);
+  if (!trait) {
+    if (auto *t = type->getAs<res::TraitType>())
+      for (auto &&decl : t->getDecl()->lookupDecl(identifier))
+        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
+
+    if (auto *s = type->getAs<res::StructType>())
+      for (auto &&decl : s->getDecl()->lookupDecl(identifier))
+        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
+
+    if (!candidates.empty())
+      return candidates;
+  }
+
+  for (auto &&constraint : typeMgr.getConstraints(type)) {
+    // FIXME: cannot EQ due to the Self type being _ ... should be probed?
+    // if (trait && !typeMgr.eq(trait, constraint))
+    if (trait && trait->getName() != constraint->getName())
+      continue;
+
+    for (auto &&decl : constraint->getDecl()->lookupDecl(identifier))
+      candidates.emplace_back(decl,
+                              typeMgr.extractSubstitutionFrom(constraint));
+  }
+
+  auto extensions = typeMgr.getExtensions(type, trait);
+
+  // FIXME: ambiguity can only be decided here... introduce a struct
+  // LookupResult, which will allow to set a flag to not ambiguity...
+  for (auto &&[extension, sub] : extensions) {
+    // FIXME: should every extension decl be prioritized over every trait decl?
+    if (auto r = extension->lookupDecl(identifier); !r.empty()) {
+      for (auto &&decl : r)
+        candidates.emplace_back(decl, sub);
+      continue;
+    }
+
+    for (auto &&decl : extension->trait->decl->lookupDecl(identifier))
+      candidates.emplace_back(
+          // FIXME: add an API for substitution composition?
+          decl, typeMgr.extractSubstitutionFrom(
+                    typeMgr.instantiate(extension->trait->getType(), sub)));
+  }
+
+  return candidates;
 }
 
 std::pair<res::Expr *, std::vector<res::Expr *>>
@@ -458,8 +535,8 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
 
   auto *targetType =
       resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
-  selfArg = withImplicitBorrow(targetType, selfArg);
   selfArg = withPtrToBorrowDecay(targetType, selfArg);
+  selfArg = withImplicitBorrow(targetType, selfArg);
 
   return {resMemberExpr->member, {selfArg}};
 }
@@ -530,9 +607,6 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     const ast::StructInstantiationExpr &structInstantiation) {
   varOrReturn(path, resolvePathExpr<res::StructDecl>(
                         ctx, *structInstantiation.structRef));
-
-  if (!path->decl->getAs<res::StructDecl>())
-    return err::notStructInstance(path->location).report(reporter);
 
   auto *structTy = path->getType()->getAs<res::StructType>();
   auto *sd = structTy->getDecl();
@@ -633,8 +707,21 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   if (ptrType)
     parentType = ptrType->getPointeeType();
 
-  varOrReturn(memberDre, resolveDeclRefExpr<res::ValueDecl>(
-                             ctx, memberExpr.member.get(), parentType));
+  const ast::DeclRefExpr *dre = memberExpr.member.get();
+  auto candidates = lookupAssociatedDecls(dre->identifier, parentType);
+
+  if (candidates.empty())
+    return err::lookupInTypeFailed(dre->location)
+        .with(dre->identifier)
+        .with(parentType->getName())
+        .report(reporter);
+
+  if (candidates.size() > 1)
+    return err::ambigousMemberFn(dre->location).report(reporter);
+
+  auto &&[decl, sub] = candidates.back();
+
+  varOrReturn(memberDre, createDeclRefExpr(ctx, dre, decl, sub));
 
   if (!isCallee) {
     if (memberDre->decl->getAs<res::FunctionDecl>())
@@ -796,7 +883,9 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
     return expr;
 
   auto *tmpType = typeMgr.getNewUninferredType();
-  typeMgr.createObligation(tmpType, implType->getTrait());
+  typeMgr.createObligation(
+      tmpType, typeMgr.withSelfType(implType->getTrait(),
+                                    typeMgr.getNewUninferredType()));
 
   const auto &errors = typeMgr.unify(tmpType, pointeeType);
   if (errors.empty())
@@ -1022,33 +1111,33 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     const res::Decl *decl = resPath->decl;
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
-    if (decl->getAs<res::TypeParamDecl>())
-      return err::unexpectedTypeParam(resPath->location).report(reporter);
-
-    if (decl->getAs<res::StructDecl>())
-      return err::expectedInstance(resPath->location)
-          .with(decl->identifier)
-          .report(reporter);
-
-    if (resPath->owningType && !isFunctionDecl)
+    // FIXME: check these
+    if (resPath->decl->parent && !isFunctionDecl)
       return err::memberFnLookupFailed(resPath->location)
           .with(decl->identifier)
-          .with(resPath->owningType->getName())
+          // FIXME: remove this once every parent is a decl
+          .with(((res::StructDecl *)resPath->decl->parent)->identifier)
           .report(reporter);
 
-    if (resPath->owningType && resPath->owningType->getAs<res::AnyType>() &&
-        isFunctionDecl && !(modifiers & IsCallee))
+    // FIXME: remove this limitation
+    if (resPath->getReceiverType() &&
+        resPath->getReceiverType()->getAs<res::AnyType>() && isFunctionDecl &&
+        !(modifiers & IsCallee))
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 
     auto *outType = resPath->getType()->getAs<res::BorrowedType>();
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
-      res::Decl *insideDecl =
-          lexicalScope->lookupDecl<res::Decl>(decl->identifier);
-      res::Decl *outsideDecl =
-          functionInfo->lambdaParamScope->parent->lookupDecl<res::Decl>(
+      res::Decl *insideDecl = nullptr;
+      if (auto r = lexicalScope->lookupDecl(decl->identifier); !r.empty())
+        insideDecl = r.front();
+
+      res::Decl *outsideDecl = nullptr;
+      if (auto r = functionInfo->lambdaParamScope->parent->lookupDecl(
               decl->identifier);
+          !r.empty())
+        outsideDecl = r.front();
 
       if (outsideDecl == insideDecl) {
         if (outType)
@@ -1058,8 +1147,10 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
         auto *lambda = functionInfo->lambda;
 
-        auto *field =
-            lambda->closure->lookupDecl<res::FieldDecl>(decl->identifier);
+        res::FieldDecl *field = nullptr;
+        if (auto r = lambda->closure->lookupDecl(decl->identifier); !r.empty())
+          field = r.front()->getAs<res::FieldDecl>();
+
         if (!field) {
           field = ctx.create<res::FieldDecl>(
               lambda->location, resPath->getType(), decl->identifier);
@@ -1069,14 +1160,16 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
         res::Expr *base = ctx.create<res::DeclRefExpr>(
             lambda->location, lambda->method->params.back()->getType(),
-            lambda->method->params.back(), res::Expr::Kind::Lvalue);
+            lambda->method->params.back(), res::Expr::Kind::Lvalue,
+            res::Substitution{});
 
         base = ctx.create<res::UnaryOperator>(
             lambda->location, lambda->closure->getType(), TokenKind::Asterisk,
             base, res::Expr::Kind::Lvalue);
 
         auto *fieldDre = ctx.create<res::DeclRefExpr>(
-            lambda->location, field->getType(), field, res::Expr::Kind::Lvalue);
+            lambda->location, field->getType(), field, res::Expr::Kind::Lvalue,
+            res::Substitution{});
 
         return ctx.create<res::MemberExpr>(lambda->location, base, fieldDre);
       }
@@ -1121,29 +1214,62 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-// FIXME: allow implementing traits for arbitrary types
-res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
-                                       const ast::ImplDecl &decl,
-                                       res::StructDecl *parent) {
-  varOrReturn(traitInstance, resolveTraitInstance(ctx, decl.trait.get()));
+res::TypeExtension *
+Sema::resolveTypeExtension(res::Context &ctx,
+                           const ast::TypeExtension &extension) {
+  EnterScopeRAII typeParamScope(this);
 
-  auto *traitTy = traitInstance->getType()->getAs<res::TraitType>();
-  typeMgr.addConstraint(parent->getType(), traitTy);
+  auto typeParams = resolveTypeParamsWithoutBounds(ctx, extension.typeParams);
+  if (!resolveGenericParamsInCurrentScope(ctx, typeParams,
+                                          extension.typeParams))
+    return nullptr;
 
-  auto *resImpl = ctx.create<res::ImplBlock>(decl.location, traitInstance);
+  varOrReturn(type, resolveType(ctx, *extension.type));
 
-  for (auto &&astFunction : decl.functions) {
-    auto *traitFn = traitTy->getDecl()->lookupDecl<res::FunctionDecl>(
-        astFunction->identifier);
+  varOrReturn(traitInstance,
+              resolveTraitInstance(ctx, extension.trait.get(), type));
+
+  auto *traitType = traitInstance->getType()->getAs<res::TraitType>();
+
+  res::Substitution probeSub;
+  for (auto &&typeParam : typeParams)
+    probeSub[typeParam->getType()] = typeMgr.getNewUninferredType();
+
+  auto conflictingExtensions = typeMgr.getExtensions(
+      typeMgr.instantiate(type, probeSub),
+      typeMgr.instantiate(traitType, probeSub)->getAs<res::TraitType>());
+  if (!conflictingExtensions.empty()) {
+    for (auto &&[extension, sub] : conflictingExtensions)
+      err::conflictingTrait(traitInstance->location)
+          .with(traitType->getName())
+          .with(extension->trait->getType()->getName())
+          .report(reporter);
+
+    return nullptr;
+  }
+
+  auto *typeExtension = ctx.create<res::TypeExtension>(std::move(typeParams),
+                                                       type, traitInstance);
+  typeMgr.addExtension(typeExtension);
+
+  selfType = type;
+  for (auto &&fn : extension.functions) {
+    res::FunctionDecl *traitFn = nullptr;
+    if (auto r = traitType->getDecl()->lookupDecl(fn->identifier); !r.empty())
+      traitFn = r.front()->getAs<res::FunctionDecl>();
+
     if (!traitFn) {
-      err::memberFnLookupFailed(astFunction->location)
-          .with(astFunction->identifier)
-          .with(traitTy->getDecl()->identifier)
+      err::memberFnLookupFailed(fn->location)
+          .with(fn->identifier)
+          .with(traitType->getDecl()->identifier)
           .report(reporter);
       continue;
     }
 
-    auto *implFn = resolveFunctionDecl(ctx, *astFunction, parent, traitFn);
+    // FIXME: is adding the trait as a parent correct? Probably not, but it is
+    // needed by codegen...
+    // should __Self be part of the extension as well?
+    auto *implFn = resolveFunctionDecl(ctx, *fn, nullptr, traitFn);
     if (!implFn)
       continue;
 
@@ -1151,7 +1277,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
     auto implTypeParams = implFn->typeParams;
 
     if (!checkTypeParameterCount(implFn->location, implTypeParams.size(),
-                                 traitFnTypeParams.size() - 1))
+                                 traitFnTypeParams.size()))
       continue;
 
     res::Substitution sub;
@@ -1159,7 +1285,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
 
     bool error = false;
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
-      res::Type *traitParamTy = traitFn->typeParams[i + 1]->getType();
+      res::Type *traitParamTy = traitFn->typeParams[i]->getType();
       res::Type *implParamTy = implFn->typeParams[i]->getType();
 
       auto *checkTy = typeMgr.getNewUninferredType();
@@ -1188,8 +1314,7 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
     if (error)
       continue;
 
-    auto traitSub = typeMgr.extractSubstitutionFrom(traitTy);
-    sub[traitFn->typeParams[0]->getType()] = parent->getType();
+    auto traitSub = typeMgr.extractSubstitutionFrom(traitType);
 
     res::Type *expectedType = typeMgr.instantiate(
         typeMgr.instantiate(traitFn->getType(), traitSub), sub);
@@ -1203,14 +1328,18 @@ res::ImplBlock *Sema::resolveImplBlock(res::Context &ctx,
       continue;
     }
 
-    if (!resImpl->insertDecl(implFn))
+    if (!typeExtension->insertDecl(implFn))
       err::alreadyImplementedFn(implFn->location)
           .with(implFn->identifier)
-          .with(traitTy->getName())
+          .with(traitType->getName())
           .report(reporter);
   }
+  selfType = nullptr;
 
-  return resImpl;
+  if (typeExtension->decls.size() != extension.functions.size())
+    return nullptr;
+
+  return typeExtension;
 }
 
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
@@ -1278,13 +1407,22 @@ bool Sema::resolveGenericParamsInCurrentScope(
     const std::vector<res::TypeParamDecl *> &resParams,
     const std::vector<std::unique_ptr<ast::TypeParamDecl>> &astParams) {
   bool error = false;
+  int offset = 0;
 
   for (size_t i = 0; i < resParams.size(); ++i) {
+    if (resParams[i]->isImplicitSelf) {
+      assert(i == 0 && "implicit self can only be the first parameter");
+      insertDeclToScope(resParams[0], lexicalScope);
+      offset = 1;
+      continue;
+    }
+
     res::TypeParamDecl *resParam = resParams[i];
     error |= !insertDeclToScope(resParam, lexicalScope);
 
-    const auto &restrictions = astParams[i]->restrictions;
-    auto traits = resolveTraitInstanceList(ctx, restrictions);
+    const auto &restrictions = astParams[i - offset]->restrictions;
+    auto traits =
+        resolveTraitInstanceList(ctx, restrictions, resParam->getType());
     error |= traits.size() != restrictions.size();
 
     for (auto &&trait : traits) {
@@ -1299,11 +1437,12 @@ bool Sema::resolveGenericParamsInCurrentScope(
 
 std::vector<res::TraitInstance *> Sema::resolveTraitInstanceList(
     res::Context &ctx,
-    const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances) {
+    const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances,
+    res::Type *receiver) {
   std::vector<res::TraitInstance *> resolvedTraits;
 
   for (auto &&trait : traitInstances) {
-    auto *resTrait = resolveTraitInstance(ctx, trait.get());
+    auto *resTrait = resolveTraitInstance(ctx, trait.get(), receiver);
     if (!resTrait)
       continue;
 
@@ -1314,30 +1453,19 @@ std::vector<res::TraitInstance *> Sema::resolveTraitInstanceList(
 }
 
 bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                                res::StructDecl *structDecl) {
+                                                res::TypeExtension *extension) {
   bool error = false;
 
-  for (auto &&trait : typeMgr.getConstraints(structDecl->getType())) {
-    res::DeclContext *implCtx = nullptr;
-    for (auto &&impl : structDecl->implBlocks) {
-      if (typeMgr.unify(impl->traitInstance->getType(), trait).empty()) {
-        implCtx = impl;
-        break;
-      }
-    }
-    assert(implCtx && "failed to find impl block");
+  for (auto &&fn : extension->trait->decl->getAll<res::FunctionDecl>()) {
+    if (fn->body || !extension->lookupDecl(fn->identifier).empty())
+      continue;
 
-    for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
-      if (fn->body || implCtx->lookupDecl<res::FunctionDecl>(fn->identifier))
-        continue;
-
-      err::missingTraitFn(fn->location)
-          .with(structDecl->identifier)
-          .with(fn->identifier)
-          .with(trait->getName())
-          .report(reporter);
-      error = true;
-    }
+    err::missingTraitFn(fn->location)
+        .with(extension->type->getName())
+        .with(fn->identifier)
+        .with(extension->trait->getType()->getName())
+        .report(reporter);
+    error = true;
   }
 
   return !error;
@@ -1352,30 +1480,19 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
   bool error =
       !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
-  for (auto &&tp : typeParams)
-    if (lexicalScope->parent->lookupDecl<res::TypeParamDecl>(tp->identifier)) {
-      err::typeParamShadowed(tp->location)
-          .with(tp->identifier)
-          .report(reporter);
-      error = true;
+  for (auto &&tp : typeParams) {
+    for (auto &&decl : lexicalScope->parent->lookupDecl(tp->identifier)) {
+      if (decl->getAs<res::TypeParamDecl>()) {
+        err::typeParamShadowed(tp->location)
+            .with(tp->identifier)
+            .report(reporter);
+        error = true;
+        break;
+      }
     }
+  }
 
   res::Type *currentSelfType = selfType;
-  res::TypeParamDecl *implicitSelf = nullptr;
-  if (parent && parent->getAs<res::TraitDecl>()) {
-    selfType = typeMgr.getNewUninferredType();
-    implicitSelf =
-        ctx.create<res::TypeParamDecl>(decl.location, selfType, implicitSelfId);
-
-    typeMgr.unify(selfType, typeMgr.getTypeParamType(*implicitSelf));
-    typeMgr.addConstraint(implicitSelf->getType(),
-                          parent->getType()->getAs<res::TraitType>());
-
-    insertDeclToScope(implicitSelf, lexicalScope);
-  }
-  if (implicitSelf)
-    typeParams.emplace(typeParams.begin(), implicitSelf);
-
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
@@ -1469,33 +1586,54 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
       error);
 }
 
-res::TraitInstance *
-Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
+res::TraitInstance *Sema::resolveTraitInstance(res::Context &ctx,
+                                               const ast::TraitInstance *trait,
+                                               res::Type *receiver) {
   SourceLocation location = trait->location;
   std::string identifier = trait->identifier;
   const auto &typeArguments = trait->typeArguments;
 
-  auto *traitDecl = lexicalScope->lookupDecl<res::TraitDecl>(identifier);
+  res::TraitDecl *traitDecl = nullptr;
+
+  for (auto &&decl : lexicalScope->lookupDecl(identifier))
+    if (auto *td = decl->getAs<res::TraitDecl>()) {
+      traitDecl = td;
+      break;
+    }
+
   if (!traitDecl)
     return err::notATrait(location).with(identifier).report(reporter);
 
   std::vector<res::Type *> resTypeArgs;
+  if (receiver)
+    resTypeArgs.emplace_back(receiver);
 
   if (!checkTypeParameterCount(location, typeArguments.size(),
-                               traitDecl->typeParams.size()))
+                               traitDecl->typeParams.size() - 1))
     return nullptr;
 
+  // FIXME: clean this up once arbitrary types can be referenced and their
+  // locations are known... until then place a location for the implicit
+  // receiver
   std::vector<SourceLocation> resTypeArgsLocs;
+  if (receiver)
+    resTypeArgsLocs.emplace_back(trait->location);
+
   for (auto &&typeArg : typeArguments)
     if (auto *resTypeArg = resolveType(ctx, *typeArg.get())) {
       resTypeArgs.emplace_back(resTypeArg);
       resTypeArgsLocs.emplace_back(typeArg->location);
     }
 
-  if (typeArguments.size() != resTypeArgs.size())
+  if (typeArguments.size() != resTypeArgs.size() - (receiver ? 1 : 0))
     return nullptr;
 
-  auto *traitTy = typeMgr.getTraitType(*traitDecl, resTypeArgs);
+  res::Type *traitTy = nullptr;
+  if (receiver)
+    traitTy = typeMgr.getTraitType(*traitDecl, resTypeArgs);
+  else
+    traitTy = typeMgr.getAnyTraitType(*traitDecl, resTypeArgs);
+
   return ctx.create<res::TraitInstance>(location, traitTy, traitDecl,
                                         std::move(resTypeArgs),
                                         std::move(resTypeArgsLocs));
@@ -1503,16 +1641,26 @@ Sema::resolveTraitInstance(res::Context &ctx, const ast::TraitInstance *trait) {
 
 res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
                                        const ast::TraitDecl &decl) {
+  auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
+
+  auto *implicitSelfType = typeMgr.getNewUninferredType();
+  auto *implicitSelf = ctx.create<res::TypeParamDecl>(
+      decl.location, implicitSelfType, selfTypeId, true);
+  typeMgr.unify(implicitSelfType, typeMgr.getTypeParamType(*implicitSelf));
+
+  // FIXME: something is wrong with the design
+  typeParams.emplace(typeParams.begin(), implicitSelf);
+
   auto *traitTy = typeMgr.getNewUninferredType();
   auto *traitDecl = ctx.create<res::TraitDecl>(
-      decl.location, traitTy, decl.identifier,
-      resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
+      decl.location, traitTy, decl.identifier, std::move(typeParams));
 
   std::vector<res::Type *> typeParamTys;
   for (auto &&typeParam : traitDecl->typeParams)
     typeParamTys.emplace_back(typeParam->getType());
 
   typeMgr.unify(traitTy, typeMgr.getTraitType(*traitDecl, typeParamTys));
+  typeMgr.addConstraint(implicitSelfType, traitTy->getAs<res::TraitType>());
   return traitDecl;
 }
 
@@ -1523,7 +1671,8 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
-  auto traits = resolveTraitInstanceList(ctx, astDecl.requirements);
+  auto traits = resolveTraitInstanceList(ctx, astDecl.requirements,
+                                         traitDecl.typeParams[0]->getType());
   error |= astDecl.requirements.size() != traits.size();
 
   for (auto &&trait : traits) {
@@ -1532,6 +1681,8 @@ bool Sema::resolveTraitBody(res::Context &ctx,
                           trait->getType()->getAs<res::TraitType>());
   }
 
+  // FIXME: is this correct?
+  selfType = traitDecl.typeParams[0]->getType();
   for (auto &&fn : astDecl.traitFunctions)
     error |= !insertDeclToScope(resolveFunctionDecl(ctx, *fn, &traitDecl),
                                 &traitDecl);
@@ -1549,7 +1700,7 @@ bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
   bool error = false;
   int idx = 0;
   for (auto &&fn : traitDecl.getAll<res::FunctionDecl>()) {
-    selfType = fn->typeParams[0]->getType();
+    selfType = traitDecl.typeParams[0]->getType();
     error |= !resolveFunctionBody(ctx, *astDecl.traitFunctions[idx], fn);
     selfType = nullptr;
     ++idx;
@@ -1606,78 +1757,6 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
       error |= !insertDeclToScope(memberFn, &structDecl);
     }
-
-    if (auto *implDecl = dynamic_cast<ast::ImplDecl *>(decl.get())) {
-      auto *resImpl = resolveImplBlock(ctx, *implDecl, &structDecl);
-      if (!resImpl) {
-        error = true;
-        continue;
-      }
-
-      res::Type *resImplTraitTy = resImpl->traitInstance->getType();
-      for (auto &&implBlock : structDecl.implBlocks) {
-        res::Type *implBlockTraitTy = implBlock->traitInstance->getType();
-        if (!typeMgr.unify(resImplTraitTy, implBlockTraitTy).empty())
-          continue;
-
-        err::alreadyImplementedTrait(resImpl->location)
-            .with(resImplTraitTy->getName())
-            .with(structDecl.identifier)
-            .report(reporter);
-
-        error = true;
-        break;
-      }
-
-      if (resImpl->decls.size() != implDecl->functions.size())
-        error = true;
-
-      structDecl.implBlocks.emplace_back(resImpl);
-    }
-  }
-
-  auto impls = structDecl.implBlocks;
-  for (auto &&impl : impls) {
-    auto *traitTy = impl->traitInstance->getType()->getAs<res::TraitType>();
-    res::Substitution traitSub = typeMgr.extractSubstitutionFrom(traitTy);
-
-    for (auto &&moreSpecificImpl : impls) {
-      if (impl->traitInstance->decl != moreSpecificImpl->traitInstance->decl)
-        continue;
-
-      res::Type *moreSpecificTy = moreSpecificImpl->traitInstance->getType();
-      res::Substitution moreSpecificSub =
-          typeMgr.extractSubstitutionFrom(moreSpecificTy);
-
-      for (auto &&[from, to] : moreSpecificSub) {
-        if (traitSub[from]->getAs<res::TypeParamType>() &&
-            !typeMgr.eq(traitSub[from], to)) {
-          err::conflictingTrait(impl->location)
-              .with(traitTy->getName())
-              .with(moreSpecificTy->getName())
-              .report(reporter);
-          error = true;
-          break;
-        }
-      }
-    }
-
-    for (res::Type *req :
-         typeMgr.getConstraints(impl->traitInstance->decl->getType())) {
-      req = typeMgr.instantiate(req, traitSub);
-
-      bool found = false;
-      for (auto &&impl : impls)
-        found |= typeMgr.unify(impl->traitInstance->getType(), req).empty();
-
-      if (!found) {
-        err::missingRequirement(impl->location)
-            .with(traitTy->getName())
-            .with(req->getName())
-            .report(reporter);
-        error = true;
-      }
-    }
   }
 
   selfType = nullptr;
@@ -1697,31 +1776,11 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   for (auto &&memberDecl : astDecl.decls) {
     if (const auto *memberFn =
             dynamic_cast<const ast::FunctionDecl *>(memberDecl.get())) {
-      error |= !resolveFunctionBody(
-          ctx, *memberFn,
-          decl.lookupDecl<res::FunctionDecl>(memberFn->identifier));
+      for (auto &&d : decl.lookupDecl(memberFn->identifier))
+        if (auto *fd = d->getAs<res::FunctionDecl>())
+          error |= !resolveFunctionBody(ctx, *memberFn, fd);
+
       continue;
-    }
-
-    if (const auto *implBlock =
-            dynamic_cast<const ast::ImplDecl *>(memberDecl.get())) {
-      auto *traitInstance = resolveTraitInstance(ctx, implBlock->trait.get());
-
-      res::ImplBlock *resImplBlock = nullptr;
-      for (auto &&impl : decl.implBlocks) {
-        if (typeMgr
-                .unify(impl->traitInstance->getType(), traitInstance->getType())
-                .empty()) {
-          resImplBlock = impl;
-          break;
-        }
-      }
-      assert(resImplBlock && "failed to find resolved impl block");
-
-      for (auto &&fn : implBlock->functions)
-        error |= !resolveFunctionBody(
-            ctx, *fn,
-            resImplBlock->lookupDecl<res::FunctionDecl>(fn->identifier));
     }
   }
 
@@ -1760,6 +1819,9 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
                                  *static_cast<const ast::TraitDecl *>(astDecl));
   }
 
+  for (auto &&extension : ast->extensions)
+    error |= !resolveTypeExtension(ctx, *extension);
+
   insertDeclToScope(createBuiltinGCCollect(ctx), lexicalScope);
   insertDeclToScope(createBuiltinPrintln(ctx), lexicalScope);
 
@@ -1775,16 +1837,49 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   if (error)
     return {nullptr, nullptr};
 
-  for (auto &&[resDecl, astDecl] : resDecls) {
-    if (auto *rs = resDecl->getAs<res::StructDecl>()) {
-      error |= !resolveMemberFunctionBodies(
-          ctx, *rs, *static_cast<const ast::StructDecl *>(astDecl));
-      error |= !implementsAllNecessaryTraitFunctions(ctx, rs);
-    }
-
+  for (auto &&[resDecl, astDecl] : resDecls)
     if (auto *rt = resDecl->getAs<res::TraitDecl>())
       error |= !resolveTraitFunctionBodies(
           ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
+
+  // FIXME: extract into a separate function
+  const auto &astExtensions = ast->extensions;
+  auto resExtensions = ctx.getTypeExtensions();
+
+  for (int i = 0; i < astExtensions.size(); ++i) {
+    auto *astExtension = astExtensions[i].get();
+    auto *resExtension = resExtensions[i];
+
+    auto *traitTy = resExtension->trait->getType()->getAs<res::TraitType>();
+
+    // FIXME: extract this, it can also be checked in checkTraitInstances
+    for (auto &&requirement : typeMgr.getConstraints(traitTy))
+      if (typeMgr.getExtensions(resExtension->type, requirement).empty()) {
+        err::missingRequirement(resExtension->trait->location)
+            .with(traitTy->getName())
+            .with(requirement->getName())
+            .report(reporter);
+        error |= true;
+      }
+
+    selfType = resExtension->type;
+    for (int j = 0; j < astExtension->functions.size(); ++j)
+      error |= !resolveFunctionBody(
+          ctx, *astExtension->functions[j],
+          resExtension->decls[j]->getAs<res::FunctionDecl>());
+    selfType = nullptr;
+
+    error |= !implementsAllNecessaryTraitFunctions(ctx, resExtension);
+  }
+
+  for (auto &&[resDecl, astDecl] : resDecls) {
+    if (auto *rs = resDecl->getAs<res::StructDecl>())
+      error |= !resolveMemberFunctionBodies(
+          ctx, *rs, *static_cast<const ast::StructDecl *>(astDecl));
+
+    // if (auto *rt = resDecl->getAs<res::TraitDecl>())
+    //   error |= !resolveTraitFunctionBodies(
+    //       ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
 
     if (auto *resFN = resDecl->getAs<res::FunctionDecl>())
       error |= !resolveFunctionBody(
@@ -1907,8 +2002,16 @@ bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
   for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
     auto *subTy = typeMgr.getNewUninferredType();
 
-    for (auto &&trait :
-         typeMgr.getConstraints(traitInstance->decl->typeParams[i]->getType()))
+    // FIXME: we shouldn't need these hacks
+    int typeParamOffset =
+        traitInstance->getType()->getAs<res::AnyTraitType>() ? 1 : 0;
+    auto *typeParamDecl = traitInstance->decl->typeParams[i + typeParamOffset];
+
+    // FIXME: with Self being on the trait, this can be checked here
+    if (typeParamDecl->isImplicitSelf)
+      continue;
+
+    for (auto &&trait : typeMgr.getConstraints(typeParamDecl->getType()))
       typeMgr.createObligation(
           subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 
@@ -1936,7 +2039,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
   for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
     SourceLocation fnLoc = fn->location;
 
-    if (fn->typeParams.size() > 1) {
+    if (fn->typeParams.size() > 0) {
       err::traitObjectTemplateMemberFn(fnLoc)
           .with(trait->getName())
           .report(reporter);
@@ -1952,7 +2055,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
       continue;
     }
 
-    res::Type *selfTPType = fn->typeParams[0]->getType();
+    res::Type *selfTPType = trait->getDecl()->typeParams[0]->getType();
     res::Substitution testSub;
     testSub[selfTPType] = typeMgr.getBuiltinUnitType();
 

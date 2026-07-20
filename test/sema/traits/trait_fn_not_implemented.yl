@@ -4,9 +4,9 @@ trait A {
   fn foo();
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   S::foo();

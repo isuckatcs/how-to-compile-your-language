@@ -2,13 +2,12 @@
 trait A {}
 
 struct S {
-  impl A;
-    
   fn A() {}
 }
 // CHECK: StructDecl @({{.*}}) S {S}
-// CHECK-NEXT:   ImplBlock A
 // CHECK-NEXT:   FunctionDecl @({{.*}}) A {() -> unit}
 // CHECK-NEXT:     Block
+
+extension S : A {}
 
 fn main() {}

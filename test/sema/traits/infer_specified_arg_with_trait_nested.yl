@@ -3,9 +3,9 @@ trait A<T> {}
 
 trait B {}
 
-struct S {
-  impl A<number>;
-}
+struct S {}
+
+extension S : A<number> {}
 
 fn foo<T, U : A<T>>(x: U, y: T) {}
 

@@ -5,23 +5,23 @@ trait Foo {
   fn mutPtr(self: borrowed Self, x: *mut any Foo) {}
 }
 
-struct S {
-  impl Foo;
-}
+struct S {}
+
+extension S : Foo {}
 
 fn foo(p: borrowed any Foo) {
   mut x: *mut any Foo = gcMut(S{});
 
   x.out(p);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<any Foo : Foo>::out {(borrowed any Foo, borrowed any Foo) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) out {(borrowed any Foo, borrowed any Foo) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed any Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut any Foo}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) p {borrowed any Foo}
 
   x.ptr(gc(S{}));
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<any Foo : Foo>::ptr {(borrowed any Foo, *any Foo) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) ptr {(borrowed any Foo, *any Foo) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed any Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut any Foo}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any Foo}
@@ -31,7 +31,7 @@ fn foo(p: borrowed any Foo) {
 
   x.mutPtr(x);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) @<any Foo : Foo>::mutPtr {(borrowed any Foo, *mut any Foo) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) mutPtr {(borrowed any Foo, *mut any Foo) -> unit}
   // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed any Foo}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut any Foo}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*mut any Foo}

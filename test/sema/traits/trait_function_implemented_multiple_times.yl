@@ -3,16 +3,16 @@ trait A {
   fn foo() {}
 }
 
-struct S {
-  impl A {
-    fn foo() {}
+struct S {}
 
-    // CHECK: [[# @LINE + 1]]:8: error: function 'foo' is already implemented for trait 'A'
-    fn foo() {}
+extension S : A {
+  fn foo() {}
 
-    // CHECK: [[# @LINE + 1]]:8: error: function 'foo' is already implemented for trait 'A'
-    fn foo() {}
-  }
+  // CHECK: [[# @LINE + 1]]:6: error: function 'foo' is already implemented for trait 'A'
+  fn foo() {}
+
+  // CHECK: [[# @LINE + 1]]:6: error: function 'foo' is already implemented for trait 'A'
+  fn foo() {}
 }
 
 fn main() {}

@@ -1,20 +1,23 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T : Base<S>> {}
 // CHECK: TraitDecl @({{.*}}) A
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) Self {Self}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
 // CHECK-NEXT:     TraitInstance @({{.*}}) Base {Base<S>}
 
 trait B {}
 // CHECK-NEXT: TraitDecl @({{.*}}) B
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) Self {Self}
 
 trait Base<T : B> {}
 // CHECK-NEXT: TraitDecl @({{.*}}) Base
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) Self {Self}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
 // CHECK-NEXT:     TraitInstance @({{.*}}) B {B}
 
-struct S {
-    impl B;
-}
+struct S {}
+
+extension S : B {}
 // CHECK: StructDecl @({{.*}}) S {S}
 
 fn main() {}

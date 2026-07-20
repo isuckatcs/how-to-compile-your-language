@@ -64,9 +64,13 @@ struct Expr : public TypedNode, public Stmt {
 
 struct TypeParamDecl;
 
+struct DeclContext;
+
 struct Decl : public TypedNode {
   SourceLocation location;
 
+  // FIXME: for local scopes this becomes dangling
+  DeclContext *parent = nullptr;
   std::string identifier;
   std::vector<TypeParamDecl *> typeParams;
   bool needsStorage = false;
@@ -92,9 +96,11 @@ struct Decl : public TypedNode {
 
   void setStorageNeeded() { needsStorage = true; }
   bool isGeneric() const { return !typeParams.empty(); }
+  void setParent(DeclContext *parent) { this->parent = parent; }
   virtual void dump(size_t level = 0) const = 0;
 };
 
+// FIXME: symbol tables should be separated from declaration
 struct DeclContext {
   DeclContext *parent;
   std::vector<res::Decl *> decls;
@@ -104,28 +110,9 @@ struct DeclContext {
   virtual ~DeclContext() = default;
 
   bool insertDecl(res::Decl *decl);
+  std::vector<res::Decl *> lookupDecl(const std::string id) const;
 
-  template <typename T> T *lookupDecl(const std::string id) const {
-    static_assert(std::is_base_of_v<res::Decl, T>);
-
-    for (auto &&decl : decls) {
-      auto *correctDecl = dynamic_cast<T *>(decl);
-
-      if (!correctDecl)
-        continue;
-
-      if (decl->identifier != id)
-        continue;
-
-      return correctDecl;
-    }
-
-    if (!parent)
-      return nullptr;
-
-    return parent->lookupDecl<T>(id);
-  }
-
+  // FIXME: remove this
   template <typename T> std::vector<T *> getAll() const {
     std::vector<T *> out;
     for (auto &&decl : decls)
@@ -240,23 +227,32 @@ struct TraitInstance : public TypedNode {
   void dump(size_t level = 0) const;
 };
 
-struct ImplBlock : public DeclContext {
-  SourceLocation location;
-  TraitInstance *traitInstance;
+struct TypeExtension : public DeclContext {
+  std::vector<TypeParamDecl *> typeParams;
+  Type *type;
+  TraitInstance *trait;
 
-  ImplBlock(SourceLocation location, TraitInstance *traitInstance)
+  TypeExtension(std::vector<TypeParamDecl *> typeParams,
+                Type *type,
+                TraitInstance *trait)
       : DeclContext(nullptr),
-        location(location),
-        traitInstance(traitInstance) {}
+        typeParams(std::move(typeParams)),
+        type(type),
+        trait(trait) {}
 
   void dump(size_t level = 0) const;
 };
 
 struct TypeParamDecl : public TypeDecl {
   std::vector<TraitInstance *> traits;
+  bool isImplicitSelf;
 
-  TypeParamDecl(SourceLocation location, Type *type, std::string identifier)
-      : TypeDecl(location, type, std::move(identifier)) {}
+  TypeParamDecl(SourceLocation location,
+                Type *type,
+                std::string identifier,
+                bool isImplicitSelf = false)
+      : TypeDecl(location, type, std::move(identifier)),
+        isImplicitSelf(isImplicitSelf) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -283,7 +279,6 @@ struct VarDecl : public ValueDecl {
 };
 
 struct StructDecl : public TypeDecl, public DeclContext {
-  std::vector<ImplBlock *> implBlocks;
   bool isLambda;
 
   StructDecl(SourceLocation location,
@@ -300,6 +295,7 @@ struct StructDecl : public TypeDecl, public DeclContext {
 
 struct FunctionDecl : public ValueDecl {
   std::vector<ParamDecl *> params;
+  // FIXME: remove this field
   Decl *parent = nullptr;
   FunctionDecl *implements = nullptr;
   Block *body = nullptr;
@@ -372,27 +368,23 @@ struct CallExpr : public Expr {
 };
 
 struct DeclRefExpr : public Expr {
-  Type *owningType;
-  TraitType *owningTrait;
-
   Decl *decl;
+  Substitution sub;
+  // FIXME: remove this field
   std::vector<Type *> typeArgs;
 
   DeclRefExpr(SourceLocation location,
               Type *type,
               Decl *decl,
               Expr::Kind kind,
-              std::vector<Type *> typeArgs = {},
-              Type *owningType = nullptr,
-              TraitType *owningTrait = nullptr)
+              Substitution sub,
+              std::vector<Type *> typeArgs = {})
       : Expr(location, type, kind),
-        owningType(owningType),
-        owningTrait(owningTrait),
         decl(decl),
-        typeArgs(std::move(typeArgs)) {
-    assert((!owningTrait || owningType) && "trait without a type?");
-  }
+        sub(sub),
+        typeArgs(std::move(typeArgs)) {}
 
+  Type *getReceiverType() const;
   std::string getFullPath() const;
 
   void dump(size_t level = 0) const override;
@@ -594,14 +586,16 @@ class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
-  std::vector<std::unique_ptr<ImplBlock>> implBlocks;
+  std::vector<std::unique_ptr<TypeExtension>> typeExtensions;
   std::vector<std::unique_ptr<TraitInstance>> traitInstances;
 
   std::vector<TraitDecl *> traits;
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
+  std::vector<TypeExtension *> extensions;
 
 public:
+  // FIXME: rethink this whole method
   template <typename T, typename... Args> T *create(Args &&...args) {
     auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
     T *raw = static_cast<T *>(ptr.get());
@@ -612,8 +606,8 @@ public:
       decls.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<Block, T>)
       blocks.emplace_back(std::move(ptr));
-    else if constexpr (std::is_base_of_v<ImplBlock, T>)
-      implBlocks.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<TypeExtension, T>)
+      typeExtensions.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<TraitInstance, T>)
       traitInstances.emplace_back(std::move(ptr));
     else
@@ -622,11 +616,14 @@ public:
 
     if constexpr (std::is_base_of_v<TraitDecl, T>)
       traits.emplace_back(raw);
+    else if constexpr (std::is_base_of_v<TypeExtension, T>)
+      extensions.emplace_back(raw);
     else if constexpr (std::is_base_of_v<StructDecl, T>) {
       if (!raw->isLambda)
         structs.emplace_back(raw);
     } else if constexpr (std::is_base_of_v<FunctionDecl, T>)
-      if (!static_cast<FunctionDecl *>(raw)->parent)
+      if (!static_cast<FunctionDecl *>(raw)->parent &&
+          !static_cast<FunctionDecl *>(raw)->implements)
         functions.emplace_back(raw);
 
     return raw;
@@ -637,6 +634,11 @@ public:
 
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
   std::vector<FunctionDecl *> &getFunctions() { return functions; }
+
+  const std::vector<TypeExtension *> &getTypeExtensions() const {
+    return extensions;
+  }
+  std::vector<TypeExtension *> &getTypeExtensions() { return extensions; }
 
   std::vector<TraitInstance *> getTraitInstances() {
     std::vector<TraitInstance *> out;

@@ -14,6 +14,8 @@ class FunctionDecl;
 class StructDecl;
 class TraitDecl;
 class TypedNode;
+class TypeExtension;
+class TraitInstance;
 
 struct Type {
   template <typename T> T *getAs() {
@@ -25,7 +27,7 @@ struct Type {
     return dynamic_cast<const T *>(getRootType());
   }
 
-  Type *getRootType() {
+  virtual Type *getRootType() {
     return const_cast<Type *>(const_cast<const Type *>(this)->getRootType());
   }
 
@@ -55,10 +57,12 @@ class UninferredType : public Type {
   UninferredType(size_t id);
 
   void infer(Type *t);
+  void reset();
 
   bool isSameKind(const Type *other) const override;
 
 public:
+  Type *getRootType() override;
   const Type *getRootType() const override;
   std::string getName() const override;
 
@@ -187,29 +191,52 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
   std::string getName() const override;
 
-  std::vector<std::pair<const res::TraitType *, const res::FunctionDecl *>>
-  getVtableLayout() const;
+  friend class TypeManager;
+};
+
+class AnyTraitType : public Type {
+  TraitDecl *decl;
+
+  AnyTraitType(TraitDecl &decl, std::vector<Type *> args);
+
+  bool isSameKind(const Type *other) const override;
+
+public:
+  TraitDecl *getDecl() { return decl; }
+  const TraitDecl *getDecl() const { return decl; }
+
+  std::vector<Type *> getTypeArgs() const { return args; }
+  std::string getName() const override;
 
   friend class TypeManager;
 };
 
 class AnyType : public Type {
-  AnyType(res::TraitType *trait);
+  AnyType(res::AnyTraitType *trait);
 
   bool isSameKind(const Type *other) const override;
 
 public:
-  res::TraitType *getTrait() {
-    return args[0]->getRootType()->getAs<res::TraitType>();
+  res::AnyTraitType *getTrait() {
+    return args[0]->getRootType()->getAs<res::AnyTraitType>();
   }
-  const res::TraitType *getTrait() const {
-    return args[0]->getRootType()->getAs<res::TraitType>();
+  const res::AnyTraitType *getTrait() const {
+    return args[0]->getRootType()->getAs<res::AnyTraitType>();
   }
 
   std::string getName() const override;
 
   friend class TypeManager;
 };
+
+// struct ExtensionInfo {
+//   std::vector<TypeParamType *> typeParams;
+//   Type *type;
+//   TraitType *trait;
+//   TypeExtension *extensionNode;
+
+//   void dump() const;
+// };
 
 class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
   void dump() const;
@@ -218,7 +245,9 @@ class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
 class TypeManager {
   size_t uninferredTypeId = 0;
   std::vector<std::unique_ptr<Type>> types;
+  // FIXME: this should only contain the trait prerequisites
   std::vector<std::pair<Type *, TraitType *>> constraints;
+  std::vector<TypeExtension *> extensions;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
   using VtableEntryTy =
@@ -229,12 +258,18 @@ class TypeManager {
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
   std::vector<std::string>
-  checkObligations(const std::vector<UninferredType *> &inferredTypes);
+  checkObligations(std::vector<UninferredType *> &inferredTypes);
 
 public:
   void addConstraint(Type *type, TraitType *trait);
   std::vector<TraitType *> getConstraints(const Type *type);
+  bool hasConstraint(Type *type, TraitType *trait);
+
   void createObligation(UninferredType *type, TraitType *trait);
+
+  void addExtension(TypeExtension *typeExtension);
+  std::vector<std::pair<TypeExtension *, Substitution>>
+  getExtensions(Type *type, TraitType *trait = nullptr);
 
   Substitution extractSubstitutionFrom(const Type *ty);
 
@@ -245,15 +280,18 @@ public:
   FunctionType *getFunctionType(std::vector<Type *> args, Type *ret);
   StructType *getStructType(StructDecl &decl, std::vector<Type *> typeArgs);
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);
+  AnyTraitType *getAnyTraitType(TraitDecl &decl, std::vector<Type *> args);
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   BorrowedType *getBorrowedType(Type *borrowedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
-  AnyType *getImplType(TraitType *trait);
+  AnyType *getImplType(AnyTraitType *trait);
 
   bool eq(const Type *t1, const Type *t2) const;
-  std::vector<std::string> unify(Type *t1, Type *t2);
+  std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);
   Type *instantiate(Type *t, const Substitution &substitution);
 
+  // FIXME: these should live in the types
+  TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
   VtableLayoutTy getVtableLayout(const res::TraitType *trait);
 };
 } // namespace res

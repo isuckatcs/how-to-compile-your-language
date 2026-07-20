@@ -19,6 +19,14 @@ void UninferredType::infer(Type *t) {
   parent = t;
 }
 
+void UninferredType::reset() { parent = nullptr; }
+
+Type *UninferredType::getRootType() {
+  if (parent)
+    return parent->getRootType();
+  return this;
+}
+
 const Type *UninferredType::getRootType() const {
   if (parent)
     return parent->getRootType();
@@ -71,6 +79,7 @@ bool FunctionType::isSameKind(const Type *other) const {
 
 std::string FunctionType::getName() const {
   std::stringstream ss;
+  // FIXME: repeated pattern
   ss << '(';
   for (int i = 0; i < args.size() - 1; ++i) {
     ss << args[i]->getRootType()->getName();
@@ -142,6 +151,34 @@ std::string TraitType::getName() const {
   std::stringstream ss;
   ss << decl->identifier;
 
+  if (args.size() > 1) {
+    ss << '<';
+    // FIXME: print Self type as well
+    for (int i = 1; i < args.size(); ++i) {
+      ss << args[i]->getName();
+
+      if (i < args.size() - 1)
+        ss << ',' << ' ';
+    }
+    ss << '>';
+  }
+
+  return ss.str();
+}
+
+AnyTraitType::AnyTraitType(TraitDecl &decl, std::vector<Type *> args)
+    : Type(decl.identifier, std::move(args)),
+      decl(&decl) {}
+
+bool AnyTraitType::isSameKind(const Type *other) const {
+  const auto *t = other->getAs<AnyTraitType>();
+  return t && t->decl == decl;
+};
+
+std::string AnyTraitType::getName() const {
+  std::stringstream ss;
+  ss << decl->identifier;
+
   if (!args.empty()) {
     ss << '<';
     for (int i = 0; i < args.size(); ++i) {
@@ -156,7 +193,7 @@ std::string TraitType::getName() const {
   return ss.str();
 }
 
-AnyType::AnyType(res::TraitType *trait)
+AnyType::AnyType(res::AnyTraitType *trait)
     : Type("any", {trait}) {}
 
 bool AnyType::isSameKind(const Type *other) const {
@@ -172,6 +209,7 @@ void Substitution::dump() const {
     std::cerr << from->getName() << " -> " << to->getName() << '\n';
 }
 
+// FIXME: what if the substitution is stored in the type?
 Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
   if (!ty)
     return {};
@@ -188,6 +226,13 @@ Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
 
   if (auto *traitTy = ty->getAs<res::TraitType>()) {
     from = traitTy->decl->typeParams;
+    to = traitTy->getTypeArgs();
+  }
+
+  if (auto *traitTy = ty->getAs<res::AnyTraitType>()) {
+    auto declParams = traitTy->decl->typeParams;
+    // FIXME: Skip Self
+    from.insert(from.end(), declParams.begin() + 1, declParams.end());
     to = traitTy->getTypeArgs();
   }
 
@@ -240,6 +285,13 @@ TraitType *TypeManager::getTraitType(TraitDecl &decl,
   return traitTy;
 }
 
+AnyTraitType *TypeManager::getAnyTraitType(TraitDecl &decl,
+                                           std::vector<Type *> args) {
+  auto *traitTy = new AnyTraitType(decl, std::move(args));
+  types.emplace_back(std::unique_ptr<AnyTraitType>(traitTy));
+  return traitTy;
+}
+
 TypeParamType *TypeManager::getTypeParamType(TypeParamDecl &decl) {
   auto *typeParamTy = new TypeParamType(decl);
   types.emplace_back(std::unique_ptr<TypeParamType>(typeParamTy));
@@ -258,7 +310,7 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-AnyType *TypeManager::getImplType(TraitType *trait) {
+AnyType *TypeManager::getImplType(AnyTraitType *trait) {
   auto *implTy = new AnyType(trait);
   types.emplace_back(std::unique_ptr<AnyType>(implTy));
   return implTy;
@@ -268,12 +320,48 @@ void TypeManager::addConstraint(Type *type, TraitType *trait) {
   constraints.emplace_back(type, trait);
 }
 
+void TypeManager::addExtension(TypeExtension *typeExtension) {
+  extensions.emplace_back(typeExtension);
+}
+
+std::vector<std::pair<TypeExtension *, Substitution>>
+TypeManager::getExtensions(Type *type, TraitType *trait) {
+  std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
+  for (auto &&extension : extensions) {
+    Substitution extSub;
+    for (auto &&typeParam : extension->typeParams)
+      extSub[typeParam->getType()] = getNewUninferredType();
+
+    Type *probedType = instantiate(extension->type, extSub);
+    // FIXME: here both types should only be probed in case there are multiple
+    // extensions that might apply e.g.: A<_> -> A<number>; A<_> -> A<unit>
+
+    // FIXME: propagate errors for more decriptive messages?
+    if (!unify(type, probedType, true).empty())
+      continue;
+
+    if (!trait) {
+      foundExtensions.emplace_back(extension, extSub);
+      continue;
+    }
+
+    Type *probedTrait = instantiate(extension->trait->getType(), extSub);
+    if (!unify(trait, probedTrait, true).empty())
+      continue;
+
+    foundExtensions.emplace_back(extension, extSub);
+  }
+
+  return foundExtensions;
+}
+
 std::vector<TraitType *> TypeManager::getConstraints(const res::Type *type) {
   type = type->getRootType();
   Substitution sub = extractSubstitutionFrom(type);
 
   std::vector<TraitType *> traits;
 
+  // FIXME: this needs to traverse the extensions
   for (auto &&[constrainedType, trait] : constraints)
     if (eq(type, instantiate(constrainedType, sub))) {
       traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
@@ -296,6 +384,14 @@ std::vector<TraitType *> TypeManager::getConstraints(const res::Type *type) {
   }
 
   return filtered;
+}
+
+bool TypeManager::hasConstraint(Type *type, TraitType *trait) {
+  for (auto &&constraint : getConstraints(type))
+    if (unify(trait, constraint).empty())
+      return true;
+
+  return false;
 }
 
 void TypeManager::createObligation(UninferredType *type, TraitType *trait) {
@@ -349,75 +445,49 @@ std::vector<std::string> TypeManager::unifyImpl(
   return {};
 }
 
-std::vector<std::string> TypeManager::checkObligations(
-    const std::vector<UninferredType *> &inferredTypes) {
+std::vector<std::string>
+TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
   std::vector<std::string> errors;
 
-  for (auto &&u : inferredTypes) {
-    for (auto &&requiredTrait : obligations[u]) {
-      std::vector<TraitType *> foundTraits;
-      std::vector<std::pair<TraitType *, std::vector<std::string>>>
-          pendingErrors;
-
-      for (auto &&currentTrait : getConstraints(u->getRootType())) {
-        Substitution sub = extractSubstitutionFrom(requiredTrait);
-        for (auto &[key, val] : sub)
-          if (auto *u = val->getAs<res::UninferredType>()) {
-            auto *newVal = getNewUninferredType();
-            for (auto &&o : obligations[u])
-              createObligation(newVal, o);
-
-            val = newVal;
-          }
-
-        auto *probedType = instantiate(requiredTrait->decl->getType(), sub)
-                               ->getAs<res::TraitType>();
-        const auto &errors = unify(probedType, currentTrait);
-        if (errors.empty())
-          foundTraits.emplace_back(currentTrait);
-        else
-          pendingErrors.emplace_back(probedType, std::move(errors));
-      };
-
-      // FIXME: clean this up
-      if (foundTraits.empty()) {
-        if (pendingErrors.empty()) {
-          errors.emplace_back("cannot satisfy requirement '" + u->getName() +
-                              " : " + requiredTrait->getName() + "'");
-        } else {
-          for (auto &&[trait, errs] : pendingErrors) {
-            errors.insert(errors.end(), errs.begin(), errs.end());
-
-            errors.emplace_back("cannot satisfy requirement '" + u->getName() +
-                                " : " + trait->getName() + "'");
-          }
-        }
-
+  for (auto &&type : inferredTypes) {
+    for (auto &&requiredTrait : obligations[type]) {
+      if (hasConstraint(type, requiredTrait))
         continue;
-      }
 
-      if (foundTraits.size() == 1) {
-        unify(requiredTrait, foundTraits[0]);
-        continue;
-      }
+      // FIXME: consider returning candidates
+      auto extensions = getExtensions(type->getRootType(), requiredTrait);
 
-      for (auto &&trait : foundTraits)
-        errors.emplace_back(
-            "'" + trait->getName() + "' ambigously satisfies requirement '" +
-            u->getName() + " : " + requiredTrait->getName() + "'");
+      if (extensions.empty())
+        errors.emplace_back("cannot satisfy requirement '" + type->getName() +
+                            " : " + requiredTrait->getName() + "'");
+      else if (extensions.size() == 1) {
+        auto [extension, sub] = extensions[0];
+        unify(type, instantiate(extension->type, sub));
+        unify(requiredTrait, instantiate(extension->trait->getType(), sub));
+      } else
+        for (auto &&extension : extensions)
+          errors.emplace_back(
+              "'" + extension.first->trait->getType()->getName() +
+              "' ambigously satisfies requirement '" + type->getName() + " : " +
+              requiredTrait->getName() + "'");
     }
   }
 
   return errors;
 }
 
-std::vector<std::string> TypeManager::unify(Type *t1, Type *t2) {
+std::vector<std::string>
+TypeManager::unify(Type *t1, Type *t2, bool probeOnly) {
   std::vector<UninferredType *> inferredTypes;
   std::vector<std::string> errors = unifyImpl(t1, t2, inferredTypes);
 
   if (errors.empty())
     for (auto &&err : checkObligations(inferredTypes))
       errors.emplace_back(err);
+
+  if (probeOnly)
+    for (auto &&ty : inferredTypes)
+      ty->reset();
 
   inferredTypes.clear();
   return errors;
@@ -438,6 +508,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())
     t = getTraitType(*trait->decl, trait->args);
+  else if (auto *trait = t->getAs<AnyTraitType>())
+    t = getAnyTraitType(*trait->decl, trait->args);
   else if (auto *i = t->getAs<res::AnyType>())
     t = getImplType(i->getTrait());
 
@@ -445,6 +517,14 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     arg = instantiate(arg, substitution);
 
   return t;
+}
+
+TraitType *TypeManager::withSelfType(AnyTraitType *anyTraitType,
+                                     Type *selfType) {
+  std::vector<Type *> args = {selfType};
+  auto currentArgs = anyTraitType->getTypeArgs();
+  args.insert(args.end(), currentArgs.begin(), currentArgs.end());
+  return getTraitType(*anyTraitType->decl, std::move(args));
 }
 
 TypeManager::VtableLayoutTy

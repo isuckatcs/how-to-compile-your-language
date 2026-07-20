@@ -1,9 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {}
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn foo(x: borrowed *any A) {}
 

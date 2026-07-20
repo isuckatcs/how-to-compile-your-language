@@ -1,11 +1,11 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {}
 
-struct S {
-  impl A;
+struct S {}
 
-  // CHECK: [[# @LINE + 1]]:8: error: trait 'A' is already implemented for struct 'S'
-  impl A;
-}
+extension S : A {}
+
+// CHECK: [[# @LINE + 1]]:15: error: implementing trait 'A' conflicts with implementation 'A'
+extension S : A {}
 
 fn main() {}

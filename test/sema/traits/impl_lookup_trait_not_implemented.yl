@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T> {}
 
-struct S {
-  impl A<number>;
-}
+struct S {}
+
+extension S : A<number> {}
 
 fn main() {
   // CHECK: [[# @LINE + 1]]:9: error: 'S' doesn't implement trait 'A<unit>'

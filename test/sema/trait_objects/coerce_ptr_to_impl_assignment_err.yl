@@ -3,9 +3,9 @@ trait A {}
 
 trait B {}
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn foo(mut x: *any A, y: *any B) {
   // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any A' but received '*mut S' instead

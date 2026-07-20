@@ -5,14 +5,11 @@ trait A {
   fn foo<T, U : B<T>>();
 }
 
-struct S {
-  impl A {
-    fn foo<X, Y : B<X> & B<unit>>() {}
-    // CHECK: [[# @LINE - 1]]:15: error: cannot unify 'unit' with 'T'
-    // CHECK: [[# @LINE - 2]]:15: error: cannot unify 'B<unit>' with 'B<T>'
-    // CHECK: [[# @LINE - 3]]:15: error: cannot satisfy requirement 'U : B<unit>'
-    // CHECK: [[# @LINE - 4]]:15: error: cannot replace parameter of type 'U' with stricter implementation type 'Y'
-  }
+struct S {}
+
+extension S : A {
+  fn foo<X, Y : B<X> & B<unit>>() {}
+  // CHECK: [[# @LINE - 1]]:13: error: cannot replace parameter of type 'U' with stricter implementation type 'Y'
 }
 
 fn main() {}

@@ -1,11 +1,11 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {}
 
-struct S {
-  impl A {
-    // CHECK: [[# @LINE + 1]]:8: error: failed to find member function 'foo' in 'A'
-    fn foo() {}
-  }
+struct S {}
+
+extension S : A {
+  // CHECK: [[# @LINE + 1]]:6: error: failed to find member function 'foo' in 'A'
+  fn foo() {}
 }
 
 fn main() {}

@@ -3,11 +3,11 @@ trait A {
   fn foo();
 }
 
-struct S {
-  // CHECK: [[# @LINE + 1]]:8: error: type argument count mismatch, expected 0, but received 1
-  impl A<number> {
-    fn foo() {}
-  }
+struct S {}
+
+// CHECK: [[# @LINE + 1]]:15: error: type argument count mismatch, expected 0, but received 1
+extension S : A<number> {
+  fn foo() {}
 }
 
 fn main() {}

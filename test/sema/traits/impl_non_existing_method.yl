@@ -3,11 +3,11 @@ trait A {
   fn foo();
 }
 
-struct S {
-  impl A {
-    // CHECK: [[# @LINE + 1]]:8: error: failed to find member function 'bar' in 'A'
-    fn bar() {}
-  }
+struct S {}
+
+extension S : A {
+  // CHECK: [[# @LINE + 1]]:6: error: failed to find member function 'bar' in 'A'
+  fn bar() {}
 }
 
 fn main() {}

@@ -3,13 +3,13 @@ trait A {}
 
 trait B<T> {}
 
-struct S {
-  impl A;
-}
+struct S {}
 
-struct S2 {
-  impl B<S>;
-}
+struct S2 {}
+
+extension S : A {}
+
+extension S2 : B<S> {}
 
 fn foo<T : A, U : B<T>>() {
   let u: U;

@@ -1,28 +1,27 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T, U> {}
 
-struct S<T, U> {
-    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A<T, number>' conflicts with more specific implementation 'A<number, U>'
-    impl A<T, number>;
+struct S<T, U> {}
 
-    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'A<number, U>' conflicts with more specific implementation 'A<T, number>'
-    impl A<number, U>;
-}
+extension<T, U> S<T, U> : A<T, number> {}
+
+// CHECK: [[# @LINE + 1 ]]:27: error: implementing trait 'A<number, U>' conflicts with implementation 'A<T, number>'
+extension<T, U> S<T, U> : A<number, U> {}
 
 trait B<T> {}
 
-struct S2<T> {
-    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'B<T>' conflicts with more specific implementation 'B<number>'
-    impl B<T>;
+struct S2<T> {}
 
-    impl B<number>;
-}
+extension<T> S2<T> : B<T> {}
 
-struct S3<T> {
-    impl B<number>;
-    
-    // CHECK: [[# @LINE + 1 ]]:10: error: implementing trait 'B<T>' conflicts with more specific implementation 'B<number>'
-    impl B<T>;
-}
+// CHECK: [[# @LINE + 1 ]]:22: error: implementing trait 'B<number>' conflicts with implementation 'B<T>'
+extension<T> S2<T> : B<number> {}
+
+struct S3<T> {}
+
+extension<T> S3<T> : B<number> {}
+
+// CHECK: [[# @LINE + 1 ]]:22: error: implementing trait 'B<T>' conflicts with implementation 'B<number>'
+extension<T> S3<T> : B<T> {}
 
 fn main() {}
