@@ -112,6 +112,7 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
   }
 
+  // FIXME: this cannot tokenize 123.foo() properly
   // [0-9]+ (. [0-9]+)?
   if (isNum(currentChar)) {
     std::string value{currentChar};
