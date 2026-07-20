@@ -1,0 +1,18 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:11: error: expected type specifier
+extension {}
+
+// CHECK: [[# @LINE + 1 ]]:13: error: expected ':'
+extension S {}
+
+// CHECK: [[# @LINE + 1 ]]:15: error: expected identifier
+extension S : {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: expected 'fn' or '}'
+extension S : A {;
+
+// CHECK: [[# @LINE + 1 ]]:16: error: expected '{'
+extension S : A;
+
+extension S : B
+// CHECK: [[# @LINE + 1 ]]:1: error: expected '{'

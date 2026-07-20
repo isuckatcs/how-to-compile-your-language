@@ -1,0 +1,39 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct S {}
+
+extension S : A {
+  fn foo() {}
+  fn bar() {}
+  fn baz() {}
+}
+// CHECK: TypeExtension:
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:   TraitInstance: A
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     Block
+
+extension S : B {}
+// CHECK: TypeExtension:
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:   TraitInstance: B
+
+extension<T> S : C<T> {
+  fn foo() {}
+  fn bar() {}
+  fn baz() {}
+}
+// CHECK: TypeExtension:
+// CHECK-NEXT:   TypeParamDecl: T
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:   TraitInstance: C
+// CHECK-NEXT:     UserDefinedType: T
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:     Block

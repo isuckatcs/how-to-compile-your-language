@@ -435,19 +435,6 @@ struct FunctionDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct ImplDecl : public Decl {
-  std::unique_ptr<TraitInstance> trait;
-  std::vector<std::unique_ptr<FunctionDecl>> functions;
-
-  ImplDecl(std::unique_ptr<TraitInstance> owningTrait,
-           std::vector<std::unique_ptr<FunctionDecl>> traitFunctions)
-      : Decl(owningTrait->location, owningTrait->identifier),
-        trait(std::move(owningTrait)),
-        functions(std::move(traitFunctions)) {}
-
-  void dump(size_t level = 0) const override;
-};
-
 struct FieldDecl : public Decl {
   std::unique_ptr<Type> type;
 
@@ -546,8 +533,27 @@ struct LambdaExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
+struct TypeExtension {
+  std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
+  std::unique_ptr<Type> type;
+  std::unique_ptr<TraitInstance> trait;
+  std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
+
+  TypeExtension(std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
+                std::unique_ptr<Type> type,
+                std::unique_ptr<TraitInstance> trait,
+                std::vector<std::unique_ptr<ast::FunctionDecl>> functions)
+      : typeParams(std::move(typeParams)),
+        type(std::move(type)),
+        trait(std::move(trait)),
+        functions(std::move(functions)) {}
+
+  void dump(size_t level = 0) const;
+};
+
 struct Context {
   std::vector<std::unique_ptr<ast::Decl>> decls;
+  std::vector<std::unique_ptr<ast::TypeExtension>> extensions;
 
   std::vector<const TraitDecl *> traits;
   std::vector<const StructDecl *> structs;
@@ -566,6 +572,10 @@ struct Context {
   void addFunctionDecl(std::unique_ptr<FunctionDecl> function) {
     functions.emplace_back(function.get());
     decls.emplace_back(std::move(function));
+  }
+
+  void addTypeExtension(std::unique_ptr<TypeExtension> typeExtension) {
+    extensions.emplace_back(std::move(typeExtension));
   }
 };
 } // namespace ast

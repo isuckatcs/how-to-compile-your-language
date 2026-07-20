@@ -168,16 +168,11 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
 }
 
 // <structDecl>
-//  ::= 'struct' <identifier> <typeParamList>? '{' <memberList>? '}'
-//
-// <memberList>
-//  ::= (<fieldList> | <implDecl> | <functionDecl>)*
+//  ::= 'struct' <identifier> <typeParamList>? '{' (<fieldList> |
+//      <functionDecl>)* '}'
 //
 // <fieldList>
 //  ::= <fieldDecl> (',' <fieldDecl>)* ','?
-//
-// <memberFunctionList>
-//  ::= <functionDecl>*
 std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
   eatNextToken(); // eat struct
 
@@ -206,8 +201,6 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
         eatNextToken(); // eat ','
     } else if (nextToken.kind == TokenKind::KwFn)
       decl = parseFunctionDecl();
-    else if (nextToken.kind == TokenKind::KwImpl)
-      decl = parseImplDecl();
     else
       break;
 
@@ -277,46 +270,44 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
       std::move(memberFunctions), std::move(*traitList));
 }
 
-// <implDecl>
-//  ::= <implIdentifier> (';' | ('{' <functionDecl>* '}'))
-//
-// <implIdentifier>
-//  ::= 'impl' <userDefinedDeclInstance>
-std::unique_ptr<ast::ImplDecl> Parser::parseImplDecl() {
-  expectOrReturn(TokenKind::KwImpl,
-                 err::expected(nextToken.location).with("'impl'"));
-  eatNextToken(); // eat 'impl'
+// <typeExtension>
+//  ::= 'extension' <typeParamList> <type> ':' <traitInstance> '{'
+//      <functionDecl>* '}'
+std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
+  expectOrReturn(TokenKind::KwExtension,
+                 err::expected(nextToken.location).with("'extension'"));
+  eatNextToken(); // eat 'extension'
 
-  varOrReturn(owningTrait, parseTraitInstance());
+  varOrReturn(typeParamList, parseTypeParamList());
 
-  std::vector<std::unique_ptr<ast::FunctionDecl>> functionImpls;
-  bool hasBody = nextToken.kind == TokenKind::Lbrace;
+  varOrReturn(type, parseType());
 
-  if (!hasBody && nextToken.kind != TokenKind::Semi)
-    return err::expected(nextToken.location)
-        .with("';' or '{'")
-        .report(reporter);
+  expectOrReturn(TokenKind::Colon,
+                 err::expected(nextToken.location).with("':'"));
+  eatNextToken(); // eat ':'
 
-  eatNextToken(); // eat ';' or '{'
+  varOrReturn(trait, parseTraitInstance());
 
-  if (hasBody) {
-    while (true) {
-      if (nextToken.kind == TokenKind::Rbrace)
-        break;
+  expectOrReturn(TokenKind::Lbrace,
+                 err::expected(nextToken.location).with("'{'"));
+  eatNextToken(); // eat '{'
 
-      if (auto fn = parseFunctionDecl())
-        functionImpls.emplace_back(std::move(fn));
-      else
-        synchronize();
-    }
+  std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
 
-    expectOrReturn(TokenKind::Rbrace,
-                   err::expected(nextToken.location).with("'}'"));
-    eatNextToken(); // eat '}'
+  while (nextToken.kind == TokenKind::KwFn) {
+    if (auto fnDecl = parseFunctionDecl())
+      functions.emplace_back(std::move(fnDecl));
+    else
+      synchronize();
   }
 
-  return std::make_unique<ast::ImplDecl>(std::move(owningTrait),
-                                         std::move(functionImpls));
+  expectOrReturn(TokenKind::Rbrace,
+                 err::expected2(nextToken.location).with("'fn'").with("'}'"));
+  eatNextToken(); // eat '}'
+
+  return std::make_unique<ast::TypeExtension>(std::move(*typeParamList),
+                                              std::move(type), std::move(trait),
+                                              std::move(functions));
 }
 
 // <functionDecl>
@@ -1191,11 +1182,17 @@ std::pair<ast::Context, bool> Parser::parseSourceFile() {
         ctx.addTraitDecl(std::move(trait));
         continue;
       }
+    } else if (nextToken.kind == TokenKind::KwExtension) {
+      if (auto extension = parseTypeExtension()) {
+        ctx.addTypeExtension(std::move(extension));
+        continue;
+      }
     } else {
       err::expectedTopLevel(nextToken.location).report(reporter);
     }
 
-    synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait});
+    synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait,
+                   TokenKind::KwExtension});
     continue;
   }
 

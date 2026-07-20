@@ -115,6 +115,8 @@ int main(int argc, const char **argv) {
   if (options.astDump) {
     for (auto &&decl : ast.decls)
       decl->dump();
+    for (auto &&extension : ast.extensions)
+      extension->dump();
     return 0;
   }
 

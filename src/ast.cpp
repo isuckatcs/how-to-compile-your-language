@@ -6,6 +6,7 @@
 
 namespace yl {
 namespace ast {
+// FIXME: unify AST printing, some nodes end with ':' others don't.
 void BuiltinType::dump(size_t level) const {
   std::cerr << indent(level) << "BuiltinType: ";
   if (kind == Kind::Unit)
@@ -252,14 +253,6 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
-void ImplDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplDecl\n";
-
-  trait->dump(level + 1);
-  for (auto &&function : functions)
-    function->dump(level + 1);
-}
-
 void DeclStmt::dump(size_t level) const {
   std::cerr << indent(level) << "DeclStmt:\n";
   varDecl->dump(level + 1);
@@ -285,6 +278,19 @@ void LambdaExpr::dump(size_t level) const {
     param->dump(level + 1);
 
   body->dump(level + 1);
+}
+
+void TypeExtension::dump(size_t level) const {
+  std::cerr << indent(level) << "TypeExtension:\n";
+  for (auto &&typeParam : typeParams)
+    typeParam->dump(level + 1);
+
+  type->dump(level + 1);
+
+  trait->dump(level + 1);
+
+  for (auto &&fn : functions)
+    fn->dump(level + 1);
 }
 } // namespace ast
 } // namespace yl

@@ -1,13 +1,15 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
-struct S {
-  // CHECK: [[# @LINE + 1 ]]:10: error: expected type
-  impl A<>;
-}
 
 fn foo() {
   // CHECK: [[# @LINE + 1 ]]:6: error: expected type
   f@<>();
 }
 
-  // CHECK: [[# @LINE + 1 ]]:14: error: expected type
+// CHECK: [[# @LINE + 1 ]]:13: error: expected type
+extension S<> : A<> {}
+
+// CHECK: [[# @LINE + 1 ]]:17: error: expected type
+extension S : A<> {}
+
+// CHECK: [[# @LINE + 1 ]]:14: error: expected type
 fn main(): S<> {}
