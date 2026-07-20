@@ -2,15 +2,15 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 
-// CHECK: @vtable.S.A = internal constant [1 x ptr] [ptr @_YT1A3fooGS1SE]
+// CHECK: @vtable.S.A = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
 
 trait A {
   fn foo(self: borrowed Self) {}
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   let s: *any A = gc(S {});

@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n123\n789\n'
 
-// CHECK: @"vtable.S.A<number, number, number>" = internal constant [2 x ptr] [ptr @_YT1BGnE3barGS1SE, ptr @_YT1AGnnnE3fooGS1SE]
+// CHECK: @"vtable.S.A<number, number, number>" = internal constant [2 x ptr] [ptr @_YT1BGS1SnE3bar, ptr @_YT1AGS1SnnnE3foo]
 
 trait A<T, U, V> : B<T> & B<U> & B<V> {
   fn foo(self: borrowed Self, t: T) {
@@ -14,13 +14,13 @@ trait B<T> {
   fn bar(self: borrowed Self, t: T);
 }
 
-struct S {
-  impl A<number, number, number>;
+struct S {}
 
-  impl B<number> {
-    fn bar(self: borrowed Self, n: number) {
-      println(n);
-    }
+extension S : A<number, number, number> {}
+
+extension S : B<number> {
+  fn bar(self: borrowed Self, n: number) {
+    println(n);
   }
 }
 

@@ -6,11 +6,11 @@ trait Foo {
 
 struct S {
   x: number
+}
 
-  impl Foo {
-    fn foo(self: borrowed Self, u: unit) {
-      println(self.x);
-    }
+extension S : Foo {
+  fn foo(self: borrowed Self, u: unit) {
+    println(self.x);
   }
 }
 

@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n123\n456\n'
 
-// CHECK: @"vtable.S.A<number>" = internal constant [2 x ptr] [ptr @_YT1BGnE3barGS1SE, ptr @_YT1AGnE3fooGS1SE]
+// CHECK: @"vtable.S.A<number>" = internal constant [2 x ptr] [ptr @_YT1BGS1SnE3bar, ptr @_YT1AGS1SnE3foo]
 
 trait A<T> : B<T> {
   fn foo(self: borrowed Self, t: T) {
@@ -16,19 +16,20 @@ trait B<T> {
   }
 }
 
-struct S {
-  impl A<number>;
-  impl B<number>;
-}
+struct S {}
+
+extension S : A<number> {}
+
+extension S : B<number> {}
 
 fn main() {
   let s = gc(S {});
 
   s.foo(0);
-  // CHECK: call void @_YT1AGnE3fooGS1SE(ptr %1, double 0.000000e+00, ptr null)
+  // CHECK: call void @_YT1AGS1SnE3foo(ptr %1, double 0.000000e+00, ptr null)
 
   s.bar(0);
-  // CHECK: call void @_YT1BGnE3barGS1SE(ptr %2, double 0.000000e+00, ptr null)
+  // CHECK: call void @_YT1BGS1SnE3bar(ptr %2, double 0.000000e+00, ptr null)
 
   mut p: *any A<number> = s;
 

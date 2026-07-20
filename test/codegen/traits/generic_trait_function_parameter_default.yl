@@ -5,7 +5,7 @@ trait A<T> {
   fn foo(self: borrowed Self, x: T) {
     println(123);
   }
-  // CHECK: define void @_YT1AGnE3fooGS1SE(ptr %self, double %x, ptr %closure) {
+  // CHECK: define void @_YT1AGS1SnE3foo(ptr %self, double %x, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
   // CHECK-NEXT:   ret void
@@ -14,9 +14,9 @@ trait A<T> {
 
 struct S {
   x: number
-
-  impl A<number>;
 }
+
+extension S : A<number> {}
 
 fn main() {
   let s = S{ x: 2 };

@@ -5,11 +5,11 @@ trait A<T> {
   fn foo(self: borrowed Self);
 }
 
-struct S<T> {
-  impl A<T> {
-    fn foo(self: borrowed Self) {
-      println(123);
-    }
+struct S<T> {}
+
+extension<T> S<T> : A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
   }
 }
 
@@ -20,6 +20,6 @@ fn main() {
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %s = alloca {}, align 8
-// CHECK-NEXT:   call void @_YT1AGnE3fooGS1SGnEE(ptr %s, ptr null)
+// CHECK-NEXT:   call void @_YT1AGS1SGnEnE3foo(ptr %s, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

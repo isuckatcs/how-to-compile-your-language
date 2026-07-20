@@ -5,9 +5,9 @@ trait A {
   fn a(self: borrowed Self) { println(123); }
 }
 
-struct Empty {
-  impl A;
-}
+struct Empty {}
+
+extension Empty : A {}
 
 struct S {
   x: number,

@@ -17,20 +17,23 @@ trait C : B1 & B2 {
   fn c(self: borrowed Self) { println(3); }
 }
 
-struct S {
-  impl A;
-  impl B1;
-  impl B2;
-  impl C;
-}
+struct S {}
+
+extension S : A {}
+
+extension S : B1 {}
+
+extension S : B2 {}
+
+extension S : C {}
 
 fn main() {
   let s: *any C = gc(S {});
   s.c();
 }
 
-// CHECK: @vtable.S.C = internal constant [5 x ptr] [ptr @_YT1A1aGS1SE, ptr @_YT2B11bGS1SE, ptr @_YT1A1aGS1SE, ptr @_YT2B21bGS1SE, ptr @_YT1C1cGS1SE]
-// CHECK: define void @_YT1A1aGS1SE(ptr %self, ptr %closure)
-// CHECK: define void @_YT2B11bGS1SE(ptr %self, ptr %closure)
-// CHECK: define void @_YT2B21bGS1SE(ptr %self, ptr %closure)
-// CHECK: define void @_YT1C1cGS1SE(ptr %self, ptr %closure)
+// CHECK: @vtable.S.C = internal constant [5 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT1AGS1SE1a, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
+// CHECK: define void @_YT1AGS1SE1a(ptr %self, ptr %closure)
+// CHECK: define void @_YT2B1GS1SE1b(ptr %self, ptr %closure)
+// CHECK: define void @_YT2B2GS1SE1b(ptr %self, ptr %closure)
+// CHECK: define void @_YT1CGS1SE1c(ptr %self, ptr %closure)

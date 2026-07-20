@@ -468,7 +468,11 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   const auto *valueType =
       promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
 
-  auto *vtable = getVtable(implType->getTrait(), valueType);
+  // FIXME: constness cast away
+  auto *vtable =
+      getVtable(typeMgr->withSelfType((res::AnyTraitType *)implType->getTrait(),
+                                      (res::Type *)valueType),
+                valueType);
 
   auto *traitObjTy = generateType(promo.getType());
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
@@ -562,42 +566,64 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (!fnDecl)
     return declarations[dre.decl];
 
-  EnterInstantiationRAII instantiation(this, &dre);
+  EnterInstantiationRAII instantiation(this, dre.sub);
 
-  if (auto *trait = dre.owningTrait) {
-    res::StructType *structTy =
-        instCtx[dre.decl->typeParams[0]]->getAs<res::StructType>();
+  // FIXME: use the attached sub to figure out the type args
+  auto typeArgs = dre.typeArgs;
 
-    EnterInstantiationRAII structInst(this, structTy);
+  // FIXME: here the instCtx should be composed with dre.sub and applied later
+  res::Substitution sub;
+  for (auto &&[from, to] : instCtx)
+    sub[from->getType()] = to;
 
-    for (auto &&impl : structTy->getDecl()->implBlocks) {
-      // FIXME: get rid of this... in template structs the impl blocks must be
-      // instantiated
-      if (!isImplOf(impl, trait))
-        continue;
+  // Note: this case is for generic receivers only e.g.: T::foo().
+  if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->parent)) {
+    auto *traitType = typeMgr->instantiate(trait->getType(), dre.sub)
+                          ->getAs<res::TraitType>();
+    auto *selfType = traitType->getTypeArgs()[0];
 
-      if (auto *fn = impl->lookupDecl<res::FunctionDecl>(fnDecl->identifier))
-        fnDecl = fn;
+    if (selfType->getAs<res::TypeParamType>()) {
+      auto extensions = typeMgr->getExtensions(
+          typeMgr->instantiate(selfType, sub),
+          typeMgr->instantiate(traitType, sub)->getAs<res::TraitType>());
 
-      break;
-    };
+      assert(extensions.size() == 1 && "failed to find extension");
+
+      if (auto r = extensions[0].first->lookupDecl(fnDecl->identifier);
+          !r.empty())
+        fnDecl = r.front()->getAs<res::FunctionDecl>();
+
+      // FIXME: remove this once monomorphization is refactored
+      EnterInstantiationRAII extension(this, extensions[0].second);
+      return generateFunctionDecl(*fnDecl,
+                                  dre.getType()->getAs<res::FunctionType>(),
+                                  traitType, typeArgs);
+    }
   }
 
-  assert(fnDecl->body && "non-default trait function not implemented");
+  assert(fnDecl->body && "function without a body?");
 
-  res::Type *parentTy = dre.owningTrait;
-  if (!parentTy)
-    parentTy = dre.owningType;
+  // FIXME: the receiver type of the struct is needed
+  res::Type *parentType = nullptr;
+  if (auto *sd = dynamic_cast<res::StructDecl *>(dre.decl->parent)) {
+    parentType = sd->getType();
+  } else if (auto *e = dynamic_cast<res::TypeExtension *>(dre.decl->parent)) {
+    parentType = e->trait->getType();
+  } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->parent)) {
+    parentType = t->getType();
+  }
 
-  return generateFunctionDecl(*fnDecl,
-                              dre.getType()->getAs<res::FunctionType>(),
-                              parentTy, dre.typeArgs);
+  // dre.getReceiverType();
+
+  // FIXME: generate the mangled name from the substitution
+  return generateFunctionDecl(
+      *fnDecl, dre.getType()->getAs<res::FunctionType>(), parentType, typeArgs);
 }
 
-bool Codegen::isImplOf(const res::ImplBlock *impl,
+bool Codegen::isImplOf(const res::TypeExtension *impl,
                        const res::TraitType *trait) {
   const res::TraitType *implTy =
-      impl->traitInstance->getType()->getAs<res::TraitType>();
+      impl->trait->getType()->getAs<res::TraitType>();
 
   const auto &traitTyArgs = trait->getTypeArgs();
   const auto &implTyArgs = implTy->getTypeArgs();
@@ -1344,12 +1370,6 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
   trait = typeMgr->instantiate(const_cast<res::TraitType *>(trait), sub)
               ->getAs<res::TraitType>();
 
-  auto *structType = type->getAs<res::StructType>();
-
-  // only structs can implement traits for now
-  if (!structType)
-    return nullptr;
-
   // FIXME: mangle these types
   std::string id = "vtable." + type->getName() + "." + trait->getName();
   if (auto *vtable = module.getGlobalVariable(id, true))
@@ -1359,23 +1379,22 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
   for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
     const res::FunctionDecl *vFunction = layoutFn;
 
-    for (auto &&impl : structType->getDecl()->implBlocks) {
-      EnterInstantiationRAII structInst(this, structType);
+    // FIXME: const_cast
+    auto extensions =
+        typeMgr->getExtensions(const_cast<res::Type *>(type),
+                               const_cast<res::TraitType *>(layoutTrait));
 
-      if (!isImplOf(impl, layoutTrait))
-        continue;
+    assert(extensions.size() == 1 && "failed to find extension");
 
-      if (auto *fn = impl->lookupDecl<res::FunctionDecl>(layoutFn->identifier))
-        vFunction = fn;
-      break;
-    };
+    if (auto r = extensions[0].first->lookupDecl(layoutFn->identifier);
+        !r.empty())
+      vFunction = r.front()->getAs<res::FunctionDecl>();
 
     EnterInstantiationRAII traitInst(this, layoutTrait);
 
-    // FIXME: const_cast
     vFunctions.push_back(generateFunctionDecl(
         *vFunction, vFunction->getType()->getAs<res::FunctionType>(),
-        layoutTrait, {const_cast<res::StructType *>(structType)}));
+        layoutTrait, {}));
   }
 
   if (vFunctions.empty())
@@ -1397,7 +1416,23 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   const auto *dre = dynamic_cast<const res::DeclRefExpr *>(call->callee);
   auto *fn = dre->decl->getAs<res::FunctionDecl>();
-  auto *implType = dre->owningType->getAs<res::AnyType>();
+
+  // FIXME: remove this once every parent is a decl, and not a declcontext
+  auto *parentTraitType = typeMgr->instantiate(
+      ((res::TraitDecl *)dre->decl->parent)->getType(), dre->sub);
+
+  // FIXME: remove this once every parent is a decl, and not a declcontext
+  res::Type *selfType = nullptr;
+  for (auto &&[from, to] : dre->sub) {
+    if (auto *t = from->getAs<res::TypeParamType>();
+        t && t->decl->isImplicitSelf) {
+      selfType = to;
+    }
+  }
+
+  assert(selfType->getAs<res::AnyType>() && "self type is not a trait object?");
+
+  auto *implType = selfType->getAs<res::AnyType>();
 
   // FIXME: rework instantiation
   res::Substitution sub;
@@ -1405,16 +1440,23 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
     sub[param->getType()] = ty;
 
   const auto &vtableLayout = typeMgr->getVtableLayout(
-      typeMgr->instantiate(implType->getTrait(), sub)->getAs<res::TraitType>());
+      typeMgr->withSelfType(implType->getTrait(), implType));
 
   unsigned idx = 0;
   for (auto &&[trait, vtableEntry] : vtableLayout) {
-    if (typeMgr->eq(trait, typeMgr->instantiate(dre->owningTrait, sub)) &&
+    // if (typeMgr->eq(trait, typeMgr->instantiate(parentTraitType, sub)) &&
+
+    // FIXME: cannot EQ due to the Self type being _ ... should be probed?
+    // FIXME: are both instantitations needed?
+    if (typeMgr->instantiate((res::TraitType *)trait, sub)->getName() ==
+            typeMgr->instantiate(parentTraitType, sub)->getName() &&
         vtableEntry == fn)
       break;
 
     ++idx;
   }
+
+  assert(idx < vtableLayout.size() && "failed to find function in vtable");
 
   llvm::Value *vtablePtr = builder.CreateStructGEP(
       generateType(call->arguments[0]->getType()), receiver, 1, "vtablePtr");

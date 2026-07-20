@@ -7,20 +7,20 @@ trait A {
   }
 }
 
-struct S {
-  impl A;
-}
+struct S {}
 
-struct S2 {
-  impl A {
-    fn foo(self: borrowed Self) {
-      println(456);
-    }
+extension S : A {}
+
+struct S2 {}
+
+extension S2 : A {
+  fn foo(self: borrowed Self) {
+    println(456);
   }
 }
 
-// CHECK: @vtable.S.A = internal constant [1 x ptr] [ptr @_YT1A3fooGS1SE]
-// CHECK: @vtable.S2.A = internal constant [1 x ptr] [ptr @_YT1A3fooGS2S2E]
+// CHECK: @vtable.S.A = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
+// CHECK: @vtable.S2.A = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
 
 fn main() {
   mut p: *any A = gc(S {});
@@ -29,13 +29,13 @@ fn main() {
   p = gc(S2 {});
   p.foo();
 }
-// CHECK: define void @_YT1A3fooGS1SE(ptr %self, ptr %closure) {
+// CHECK: define void @_YT1AGS1SE3foo(ptr %self, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3fooGS2S2E(ptr %self, ptr %closure) {
+// CHECK: define void @_YT1AGS2S2E3foo(ptr %self, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void

@@ -2,8 +2,8 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '369\n789\n246\n456\n'
 
-// CHECK: @vtable.S.A = internal constant [2 x ptr] [ptr @_YT1B3barGS1SE, ptr @_YT1A3fooGS1SE]
-// CHECK: @vtable.S2.A = internal constant [2 x ptr] [ptr @_YT1B3barGS2S2E, ptr @_YT1A3fooGS2S2E]
+// CHECK: @vtable.S.A = internal constant [2 x ptr] [ptr @_YT1BGS1SE3bar, ptr @_YT1AGS1SE3foo]
+// CHECK: @vtable.S2.A = internal constant [2 x ptr] [ptr @_YT1BGS2S2E3bar, ptr @_YT1AGS2S2E3foo]
 
 trait A : B {
   fn foo(self: borrowed Self, x: number) {}
@@ -17,27 +17,27 @@ trait B {
 
 struct S {
   n: number
-
-  impl A {
-    fn foo(self: borrowed Self, x: number) {
-      println(self.n * x);
-    }
-  }
-
-  impl B;
 }
 
-struct S2 {
-  impl A {
-    fn foo(self: borrowed Self, x: number) {
-      println(2 * x);
-    }
+extension S : A {
+  fn foo(self: borrowed Self, x: number) {
+    println(self.n * x);
   }
+}
 
-  impl B {
-    fn bar(self: borrowed Self) {
-      println(456);
-    }
+extension S : B {}
+
+struct S2 {}
+
+extension S2 : A {
+  fn foo(self: borrowed Self, x: number) {
+    println(2 * x);
+  }
+}
+
+extension S2 : B {
+  fn bar(self: borrowed Self) {
+    println(456);
   }
 }
 

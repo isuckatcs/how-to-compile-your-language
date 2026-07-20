@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n123\n456\n'
 
-// CHECK: @"vtable.S<number>.A<S<number>>" = internal constant [1 x ptr] [ptr @_YT1AGS1SGnEE3fooGS1SGnEE]
+// CHECK: @"vtable.S<number>.A<S<number>>" = internal constant [1 x ptr] [ptr @_YT1AGS1SGnES1SGnEE3foo]
 
 trait A<T> {
   fn foo(self: borrowed Self, t: T);
@@ -10,22 +10,23 @@ trait A<T> {
 
 struct S<T> {
   x: number
+}
 
-  impl A<S<T>> {
-    fn foo(self: borrowed Self, t: S<T>) {
-      if self.x == t.x {
-        println(123);
-      }
-
-      println(t.x);
+extension<T> S<T> : A<S<T>> {
+  fn foo(self: borrowed Self, t: S<T>) {
+    if self.x == t.x {
+      println(123);
     }
+
+    println(t.x);
   }
 }
+
 
 fn main() {
   let s = S@<number>{ x: 456 };
   s.foo(s);
-  // CHECK: call void @_YT1AGS1SGnEE3fooGS1SGnEE(ptr %s, ptr byval({ double }) %struct.arg.tmp, ptr null)
+  // CHECK: call void @_YT1AGS1SGnES1SGnEE3foo(ptr %s, ptr byval({ double }) %struct.arg.tmp, ptr null)
 
   foo(s);
 }

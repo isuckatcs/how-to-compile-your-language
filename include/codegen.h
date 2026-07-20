@@ -59,18 +59,19 @@ class Codegen {
         impl(st->getDecl()->typeParams, st->getTypeArgs());
     }
 
-    EnterInstantiationRAII(Codegen *codegen, const res::DeclRefExpr *dre)
+    // FIXME: remove/rework this utility
+    EnterInstantiationRAII(Codegen *codegen, const res::Substitution &sub)
         : codegen(codegen),
           instCtxSnapshot(codegen->instCtx) {
-      if (dre->owningTrait)
-        impl(dre->owningTrait->getDecl()->typeParams,
-             dre->owningTrait->getTypeArgs());
+      std::vector<res::TypeParamDecl *> typeParams;
+      std::vector<res::Type *> typeArgs;
 
-      if (dre->owningType)
-        if (auto *st = dre->owningType->getAs<res::StructType>())
-          impl(st->getDecl()->typeParams, st->getTypeArgs());
+      for (auto &&[from, to] : sub) {
+        typeParams.emplace_back(from->getAs<res::TypeParamType>()->decl);
+        typeArgs.emplace_back(to);
+      }
 
-      impl(dre->decl->typeParams, dre->typeArgs);
+      impl(typeParams, typeArgs);
     }
 
     ~EnterInstantiationRAII() { codegen->instCtx = instCtxSnapshot; }
@@ -134,7 +135,7 @@ class Codegen {
                   std::map<const res::FieldDecl *, llvm::Value *> &fieldInits);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
-  bool isImplOf(const res::ImplBlock *impl, const res::TraitType *trait);
+  bool isImplOf(const res::TypeExtension *impl, const res::TraitType *trait);
 
   void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,

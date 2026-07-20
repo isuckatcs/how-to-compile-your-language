@@ -11,17 +11,17 @@ trait A : B {
 
 struct S {
   x: number
+}
 
-  impl A {
-    fn getX(self: borrowed Self): number {
-      return self.x;
-    }
+extension S : A {
+  fn getX(self: borrowed Self): number {
+    return self.x;
   }
+}
 
-  impl B {
-    fn foo(self: borrowed mut Self) {
-      self.x = self.x * 2;
-    }
+extension S : B {
+  fn foo(self: borrowed mut Self) {
+    self.x = self.x * 2;
   }
 }
 
@@ -34,9 +34,9 @@ fn bar<T : A>(mut t : T) {
 }
 // CHECK: define void @_Y3barGS1SE(ptr byval({ double }) %t, ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t, ptr null)
-// CHECK-NEXT:   call void @_YT1B3fooGS1SE(ptr %t, ptr null)
-// CHECK-NEXT:   %0 = call double @_YT1A4getXGS1SE(ptr %t, ptr null)
+// CHECK-NEXT:   call void @_YT1BGS1SE3foo(ptr %t, ptr null)
+// CHECK-NEXT:   call void @_YT1BGS1SE3foo(ptr %t, ptr null)
+// CHECK-NEXT:   %0 = call double @_YT1AGS1SE4getX(ptr %t, ptr null)
 // CHECK-NEXT:   call void @println(double %0, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

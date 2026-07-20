@@ -7,9 +7,9 @@ trait A {
   }
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   let s = gc(S{});
@@ -18,5 +18,5 @@ fn main() {
 
   s.foo();
   // CHECK-NEXT: %1 = load ptr, ptr %s, align 8
-  // CHECK-NEXT: call void @_YT1A3fooGS1SE(ptr %1, ptr null)
+  // CHECK-NEXT: call void @_YT1AGS1SE3foo(ptr %1, ptr null)
 }

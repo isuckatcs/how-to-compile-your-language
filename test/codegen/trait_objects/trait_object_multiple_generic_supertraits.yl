@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n101112\n123\n456\n789\n101112\n'
 
-// CHECK: @"vtable.S.A<unit, number, () -> unit>" = internal constant [4 x ptr] [ptr @_YT1BGuE3barGS1SE, ptr @_YT1BGnE3barGS1SE, ptr @_YT1BGFRuE3barGS1SE, ptr @_YT1AGunFRuE3fooGS1SE]
+// CHECK: @"vtable.S.A<unit, number, () -> unit>" = internal constant [4 x ptr] [ptr @_YT1BGS1SuE3bar, ptr @_YT1BGS1SnE3bar, ptr @_YT1BGS1SFRuE3bar, ptr @_YT1AGS1SunFRuE3foo]
 
 trait A<T, U, V> : B<T> & B<U> & B<V> {
   fn foo(self: borrowed Self, t: T) {
@@ -14,25 +14,25 @@ trait B<T> {
   fn bar(self: borrowed Self, t: T);
 }
 
-struct S {
-  impl A<unit, number, () -> unit>;
+struct S {}
 
-  impl B<unit> {
-    fn bar(self: borrowed Self, u: unit) {
-      println(456);
-    }
+extension S : A<unit, number, () -> unit> {}
+
+extension S : B<unit> {
+  fn bar(self: borrowed Self, u: unit) {
+    println(456);
   }
+}
 
-  impl B<number> {
-    fn bar(self: borrowed Self, n: number) {
-      println(789);
-    }
+extension S : B<number> {
+  fn bar(self: borrowed Self, n: number) {
+    println(789);
   }
+}
 
-  impl B<() -> unit> {
-    fn bar(self: borrowed Self, f: () -> unit) {
-      println(101112);
-    }
+extension S : B<() -> unit> {
+  fn bar(self: borrowed Self, f: () -> unit) {
+    println(101112);
   }
 }
 
@@ -40,16 +40,16 @@ fn main() {
   let s = gc(S {});
 
   s.foo(unit);
-  // CHECK: call void @_YT1AGunFRuE3fooGS1SE(ptr %1, ptr null)
+  // CHECK: call void @_YT1AGS1SunFRuE3foo(ptr %1, ptr null)
 
   @<S : B<unit>>::bar(s, unit);
-  // CHECK: call void @_YT1BGuE3barGS1SE(ptr %2, ptr null)
+  // CHECK: call void @_YT1BGS1SuE3bar(ptr %2, ptr null)
 
   @<S : B<number>>::bar(s, 0);
-  // CHECK: call void @_YT1BGnE3barGS1SE(ptr %3, double 0.000000e+00, ptr null)
+  // CHECK: call void @_YT1BGS1SnE3bar(ptr %3, double 0.000000e+00, ptr null)
   
   @<S : B<() -> unit>>::bar(s, main);
-  // CHECK: call void @_YT1BGFRuE3barGS1SE(ptr %4, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+  // CHECK: call void @_YT1BGS1SFRuE3bar(ptr %4, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 
   mut p: *any A<unit, number, () -> unit> = s;
 

@@ -7,9 +7,9 @@ trait A {
   }
 }
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 fn main() {
   let s: *any A = gc(S {});

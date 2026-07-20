@@ -18,11 +18,11 @@ struct R2 {
 
 struct R3 {
   r4: *R4
+}
 
-  impl Allocable {
-    fn alloc(): *Self {
-      return gc(Self{ r4: R4::alloc() });
-    }
+extension R3 : Allocable {
+  fn alloc(): *Self {
+    return gc(Self{ r4: R4::alloc() });
   }
 }
 
@@ -30,11 +30,11 @@ struct R4 {
   x: *R5,
   y: *R5,
   z: *number,
+}
 
-  impl Allocable {
-    fn alloc(): *Self {
-      return gc(Self{ x: R5::alloc(), y: R5::alloc(), z: gc(0) });
-    }
+extension R4 : Allocable {
+  fn alloc(): *Self {
+    return gc(Self{ x: R5::alloc(), y: R5::alloc(), z: gc(0) });
   }
 }
 
@@ -42,11 +42,11 @@ struct R5 {
   x: *number,
   y: number,
   z: *number,
+}
 
-  impl Allocable {
-    fn alloc(): *Self {
-      return gc(Self{ x: gc(0), y: 0, z: gc(0) });
-    }
+extension R5 : Allocable {
+  fn alloc(): *Self {
+    return gc(Self{ x: gc(0), y: 0, z: gc(0) });
   }
 }
 

@@ -9,11 +9,11 @@ struct S {
   fn foo<T>() {
     println(123);
   }
+}
 
-  impl A {
-    fn foo() {
-      println(456);
-    }
+extension S : A {
+  fn foo() {
+    println(456);
   }
 }
 
@@ -24,7 +24,7 @@ fn main() {
 // CHECK: define void @__builtin_main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_YS1S3fooGS1SE(ptr null)
-// CHECK-NEXT:   call void @_YT1A3fooGS1SE(ptr null)
+// CHECK-NEXT:   call void @_YT1AGS1SE3foo(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
@@ -34,7 +34,7 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1A3fooGS1SE(ptr %closure) {
+// CHECK: define void @_YT1AGS1SE3foo(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void

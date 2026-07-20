@@ -3,9 +3,9 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
 trait A {}
 
-struct S {
-  impl A;
-}
+struct S {}
+
+extension S : A {}
 
 // CHECK: @fat.ptr.offsets = internal constant { i32, i32, [1 x i32] } { i32 16, i32 1, [1 x i32] zeroinitializer }
 

@@ -14,8 +14,6 @@ trait A {
 }
 
 struct S {
-  impl A;
-
   fn bar() {
     println(456);
   }
@@ -26,6 +24,8 @@ struct S {
     }();
   }
 }
+
+extension S : A {}
 
 fn main() {
   @<S : A>::foo();
@@ -39,6 +39,6 @@ fn main() {
 
 // CHECK: define void @_YS8lambda_121__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @_YT1A3barGS1SE(ptr null)
+// CHECK-NEXT:   call void @_YT1AGS1SE3bar(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
