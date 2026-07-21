@@ -106,6 +106,7 @@ class Lexer {
   int column = 0;
 
   char peekNextChar() const { return source->buffer[idx]; }
+  char peekSecondChar() const { return source->buffer[idx + 1]; }
   char eatNextChar() {
     assert(idx <= source->buffer.size() &&
            "indexing past the end of the source buffer");

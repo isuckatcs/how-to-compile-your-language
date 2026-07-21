@@ -112,7 +112,6 @@ Token Lexer::getNextToken() {
     return Token{tokenStartLocation, TokenKind::Identifier, std::move(value)};
   }
 
-  // FIXME: this cannot tokenize 123.foo() properly
   // [0-9]+ (. [0-9]+)?
   if (isNum(currentChar)) {
     std::string value{currentChar};
@@ -120,13 +119,10 @@ Token Lexer::getNextToken() {
     while (isNum(peekNextChar()))
       value += eatNextChar();
 
-    if (peekNextChar() != '.')
+    if (peekNextChar() != '.' || !isNum(peekSecondChar()))
       return Token{tokenStartLocation, TokenKind::Number, value};
 
     value += eatNextChar();
-
-    if (!isNum(peekNextChar()))
-      return Token{tokenStartLocation, TokenKind::Unk};
 
     while (isNum(peekNextChar()))
       value += eatNextChar();

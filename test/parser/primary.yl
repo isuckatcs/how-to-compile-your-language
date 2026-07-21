@@ -4,7 +4,7 @@ fn main(): unit {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
     .0;
 
-    // CHECK: [[# @LINE + 1 ]]:5: error: expected expression
+    // CHECK: [[# @LINE + 1 ]]:7: error: expected identifier or 'Self'
     0.;
 
     // CHECK: [[# @LINE + 1 ]]:6: error: expected expression
