@@ -1,0 +1,17 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '456\n'
+trait A {
+  fn foo(self: borrowed Self) {}
+}
+
+extension *number : A {
+  fn foo(self: borrowed Self) {
+    println(456);
+  }
+}
+
+fn main() {
+  gc(0).foo();
+  // CHECK: call void @_YT1AGpnE3foo(ptr %materialize.tmp, ptr null)
+}

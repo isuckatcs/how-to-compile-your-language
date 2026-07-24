@@ -702,18 +702,20 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   WithModifiersRAII mods(this, isCallee ? AddressTaken : 0);
   varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
 
-  auto *parentType = base->getType();
-  auto *ptrType = parentType->getAs<res::PointerType>();
-  if (ptrType)
-    parentType = ptrType->getPointeeType();
+  auto *baseType = base->getType();
+  auto *ptrType = baseType->getAs<res::PointerType>();
 
   const ast::DeclRefExpr *dre = memberExpr.member.get();
-  auto candidates = lookupAssociatedDecls(dre->identifier, parentType);
+  auto *lookupType = ptrType ? ptrType->getPointeeType() : baseType;
+
+  auto candidates = lookupAssociatedDecls(dre->identifier, lookupType);
+  if (ptrType && candidates.empty())
+    candidates = lookupAssociatedDecls(dre->identifier, ptrType);
 
   if (candidates.empty())
     return err::lookupInTypeFailed(dre->location)
         .with(dre->identifier)
-        .with(parentType->getName())
+        .with(baseType->getName())
         .report(reporter);
 
   if (candidates.size() > 1)

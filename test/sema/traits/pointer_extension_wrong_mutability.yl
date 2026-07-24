@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: borrowed Self) {}
+}
+
+extension *number : A {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:12: error: failed to find member 'foo' in '*mut number'
+  gcMut(0).foo();
+}

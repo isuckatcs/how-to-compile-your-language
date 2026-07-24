@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: borrowed Self) {}
+}
+
+extension number : A {}
+
+extension *number : A {}
+
+fn main() {
+  gc(123).foo();
+  // CHECK: DeclRefExpr @({{.*}}) foo {(borrowed number) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed number}
+  // CHECK-NEXT:     MaterializeTemporaryExpr {*number}
+  // CHECK-NEXT:       GCExpr {*number}
+  // CHECK-NEXT:         NumberLiteral '123' {number}
+  // CHECK-NEXT:         | value: 123
+}
