@@ -1,0 +1,253 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n'
+trait A {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+
+  fn bar(self: borrowed Self) {}
+
+  fn baz(self: borrowed Self);
+}
+
+extension number : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(self);
+  }
+}
+
+fn materializeTemporaryNumber() {
+  // CHECK:   %materialize.tmp = alloca double, align 8
+  // CHECK-NEXT:   %materialize.tmp1 = alloca double, align 8
+  // CHECK-NEXT:   %materialize.tmp2 = alloca double, align 8
+
+  123.foo();
+  // CHECK-NEXT:   store double 1.230000e+02, ptr %materialize.tmp, align 8
+  // CHECK-NEXT:   call void @_YT1AGnE3foo(ptr %materialize.tmp, ptr null)
+
+  ((((((((456)))))))).bar();
+  // CHECK-NEXT:   store double 4.560000e+02, ptr %materialize.tmp1, align 8
+  // CHECK-NEXT:   call void @_YT1AGnE3bar(ptr %materialize.tmp1, ptr null)
+
+  789.baz();
+  // CHECK-NEXT:   store double 7.890000e+02, ptr %materialize.tmp2, align 8
+  // CHECK-NEXT:   call void @_YT1AGnE3baz(ptr %materialize.tmp2, ptr null)
+}
+
+extension unit : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(789);
+  }
+}
+
+fn materializeTemporaryUnit() {
+  // CHECK: %materialize.tmp = alloca [0 x i8], align 1
+  // CHECK-NEXT: %materialize.tmp1 = alloca [0 x i8], align 1
+  // CHECK-NEXT: %materialize.tmp2 = alloca [0 x i8], align 1
+
+  unit.foo();
+  // CHECK-NEXT: call void @_YT1AGuE3foo(ptr %materialize.tmp, ptr null)
+
+  unit.bar();
+  // CHECK-NEXT: call void @_YT1AGuE3bar(ptr %materialize.tmp1, ptr null)
+
+  (((((unit))))).baz();
+  // CHECK-NEXT: call void @_YT1AGuE3baz(ptr %materialize.tmp2, ptr null)
+}
+
+struct Empty {}
+
+extension Empty : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(789);
+  }
+}
+
+fn materializeTemporaryEmptyStruct() {
+  // CHECK: %materialize.tmp = alloca {}, align 8
+  // CHECK-NEXT: %materialize.tmp1 = alloca {}, align 8
+  // CHECK-NEXT: %materialize.tmp2 = alloca {}, align 8
+
+  (((((((Empty{}))))))).foo();
+  // CHECK-NEXT: call void @_YT1AGS5EmptyE3foo(ptr %materialize.tmp, ptr null)
+
+  Empty{}.bar();
+  // CHECK-NEXT: call void @_YT1AGS5EmptyE3bar(ptr %materialize.tmp1, ptr null)
+
+  Empty{}.baz();
+  // CHECK-NEXT: call void @_YT1AGS5EmptyE3baz(ptr %materialize.tmp2, ptr null)
+}
+
+struct Empty2 {
+  x: unit,
+  y: unit,
+}
+
+extension Empty2 : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(789);
+  }
+}
+
+fn materializeTemporaryEmptyStruct2() {
+  // CHECK: %materialize.tmp = alloca {}, align 8
+  // CHECK-NEXT: %materialize.tmp1 = alloca {}, align 8
+  // CHECK-NEXT: %materialize.tmp2 = alloca {}, align 8
+
+  ((((((Empty2 { x: unit, y: unit })))))).foo();
+  // CHECK-NEXT: call void @_YT1AGS6Empty2E3foo(ptr %materialize.tmp, ptr null)
+
+  Empty2 { x: unit, y: unit }.bar();
+  // CHECK-NEXT: call void @_YT1AGS6Empty2E3bar(ptr %materialize.tmp1, ptr null)
+
+  Empty2 { x: unit, y: unit }.baz();
+  // CHECK-NEXT: call void @_YT1AGS6Empty2E3baz(ptr %materialize.tmp2, ptr null)
+}
+
+struct S {
+  x: number
+}
+
+extension S : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(self.x);
+  }
+}
+
+fn materializeTemporaryStruct() {
+  S { x: 123 }.foo();
+  // CHECK: call void @_YT1AGS1SE3foo(ptr %S.tmp, ptr null)
+
+  S { x: 456 }.bar();
+  // CHECK: call void @_YT1AGS1SE3bar(ptr %S.tmp1, ptr null)
+
+  ((((S { x: 789 })))).baz();
+  // CHECK: call void @_YT1AGS1SE3baz(ptr %S.tmp2, ptr null)
+}
+
+extension () -> unit : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(789);
+  }
+}
+
+fn materializeTemporaryFn() {
+  // CHECK: %materialize.tmp = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %materialize.tmp1 = alloca { ptr, ptr }, align 8
+  // CHECK-NEXT: %materialize.tmp2 = alloca { ptr, ptr }, align 8
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %materialize.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp, ptr @function.offsets)
+ 
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %materialize.tmp1, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp1, ptr @function.offsets)
+
+  // CHECK-NEXT: store { ptr, ptr } zeroinitializer, ptr %materialize.tmp2, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp2, ptr @function.offsets)
+
+  (((((((materializeTemporaryFn))))))).foo();
+  // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp, i32 0, i32 0
+  // CHECK-NEXT: store ptr @materializeTemporaryFn, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp, i32 0, i32 1
+  // CHECK-NEXT: store ptr null, ptr %1, align 8
+  // CHECK-NEXT: call void @_YT1AGFRuE3foo(ptr %materialize.tmp, ptr null)
+
+  materializeTemporaryFn.bar();
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp1, i32 0, i32 0
+  // CHECK-NEXT: store ptr @materializeTemporaryFn, ptr %2, align 8
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp1, i32 0, i32 1
+  // CHECK-NEXT: store ptr null, ptr %3, align 8
+  // CHECK-NEXT: call void @_YT1AGFRuE3bar(ptr %materialize.tmp1, ptr null)
+
+  materializeTemporaryFn.baz();
+  // CHECK-NEXT: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp2, i32 0, i32 0
+  // CHECK-NEXT: store ptr @materializeTemporaryFn, ptr %4, align 8
+  // CHECK-NEXT: %5 = getelementptr inbounds nuw { ptr, ptr }, ptr %materialize.tmp2, i32 0, i32 1
+  // CHECK-NEXT: store ptr null, ptr %5, align 8
+  // CHECK-NEXT: call void @_YT1AGFRuE3baz(ptr %materialize.tmp2, ptr null)
+}
+
+fn materializeTemporaryLambda() {
+  ((((((->(){})))))).foo();
+  // CHECK: call void @_YT1AGFRuE3foo(ptr %lambda.tmp, ptr null)
+
+  let x = 0;
+  ->(){ println(x); }.bar();
+  // CHECK: call void @_YT1AGFRuE3bar(ptr %lambda.tmp1, ptr null)
+
+  ->(){}.baz();
+  // CHECK: call void @_YT1AGFRuE3baz(ptr %lambda.tmp2, ptr null)
+}
+
+extension *number : A {
+  fn bar(self: borrowed Self) {
+    println(456);
+  }
+
+  fn baz(self: borrowed Self) {
+    println(*self);
+  }
+}
+
+fn materializeTemporaryPtr() {
+  // CHECK: %materialize.tmp = alloca ptr, align 8
+  // CHECK-NEXT: %materialize.tmp1 = alloca ptr, align 8
+  // CHECK-NEXT: %materialize.tmp2 = alloca ptr, align 8
+
+  // CHECK-NEXT: store ptr null, ptr %materialize.tmp, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp, ptr null)
+
+  // CHECK-NEXT: store ptr null, ptr %materialize.tmp1, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp1, ptr null)
+
+  // CHECK-NEXT: store ptr null, ptr %materialize.tmp2, align 8
+  // CHECK-NEXT: call void @llvm.gcroot(ptr %materialize.tmp2, ptr null)
+
+  gc(123).foo();
+  // CHECK: %1 = load ptr, ptr %materialize.tmp, align 8
+  // CHECK-NEXT: call void @_YT1AGnE3foo(ptr %1, ptr null)
+
+  ((((((((gc(456))))))))).bar();
+  // CHECK: %3 = load ptr, ptr %materialize.tmp1, align 8
+  // CHECK-NEXT: call void @_YT1AGnE3bar(ptr %3, ptr null)
+
+  gc(789).baz();
+  // CHECK: %5 = load ptr, ptr %materialize.tmp2, align 8
+  // CHECK-NEXT: call void @_YT1AGnE3baz(ptr %5, ptr null)
+}
+
+fn main() {
+  materializeTemporaryNumber();
+  materializeTemporaryUnit();
+  materializeTemporaryEmptyStruct();
+  materializeTemporaryEmptyStruct2();
+  materializeTemporaryStruct();
+  materializeTemporaryFn();
+  materializeTemporaryLambda();
+  materializeTemporaryPtr();
+}

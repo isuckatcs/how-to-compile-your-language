@@ -414,11 +414,27 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
 llvm::Value *
 Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   llvm::Value *tmp = generateExpr(*mte.expr);
+  const res::Type *mteType = mte.getType();
 
-  if (mte.expr->getType()->getAs<res::StructType>())
+  assert(!mteType->getAs<res::AnyType>() && "materializing tmp trait object");
+
+  if (tmp && mteType->getAs<res::StructType>())
     return tmp;
 
-  llvm_unreachable("not yet supported");
+  const res::Expr *expr = mte.expr;
+  while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(expr))
+    expr = grouping->expr;
+
+  if (dynamic_cast<const res::LambdaExpr *>(expr))
+    return tmp;
+
+  llvm::Type *tmpTy = generateType(mteType);
+  auto *alloca = allocateStackVariable("materialize.tmp", tmpTy);
+
+  markIfGCRoot(alloca, mteType);
+  storeValue(tmp, alloca, tmpTy);
+
+  return alloca;
 }
 
 llvm::Value *
