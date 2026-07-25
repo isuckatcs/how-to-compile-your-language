@@ -294,8 +294,6 @@ struct FunctionDecl : public ValueDecl {
 
   void setBody(Block *body);
 
-  bool hasSelfParam();
-
   void dump(size_t level = 0) const override;
 };
 
