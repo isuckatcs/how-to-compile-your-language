@@ -384,7 +384,7 @@ void Context::dump() const {
   for (auto &&extension : typeExtensions)
     extension->dump(0);
 
-  for (auto &&fn : functions)
+  for (auto &&fn : getFunctions())
     fn->dump(0);
 }
 } // namespace res

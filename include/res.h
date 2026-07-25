@@ -278,8 +278,6 @@ struct StructDecl : public TypeDecl, public DeclContext {
 
 struct FunctionDecl : public ValueDecl {
   std::vector<ParamDecl *> params;
-  // FIXME: remove this field
-  Decl *parent = nullptr;
   FunctionDecl *implements = nullptr;
   Block *body = nullptr;
   bool isComplete = false;
@@ -288,12 +286,10 @@ struct FunctionDecl : public ValueDecl {
                std::string identifier,
                std::vector<TypeParamDecl *> typeParams = {},
                std::vector<ParamDecl *> params = {},
-               Decl *parent = nullptr,
                FunctionDecl *implements = nullptr)
       : ValueDecl(
             location, std::move(identifier), false, std::move(typeParams)),
         params(std::move(params)),
-        parent(parent),
         implements(implements) {}
 
   void setBody(Block *body);
@@ -591,9 +587,8 @@ public:
       if (!raw->isLambda)
         structs.emplace_back(raw);
     } else if constexpr (std::is_base_of_v<FunctionDecl, T>)
-      if (!static_cast<FunctionDecl *>(raw)->parent &&
-          !static_cast<FunctionDecl *>(raw)->implements)
-        functions.emplace_back(raw);
+      // FIXME: rething how these nodes are stored
+      functions.emplace_back(raw);
 
     return raw;
   }
@@ -601,8 +596,14 @@ public:
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }
 
-  const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
-  std::vector<FunctionDecl *> &getFunctions() { return functions; }
+  std::vector<FunctionDecl *> getFunctions() const {
+    std::vector<FunctionDecl *> out;
+    for (auto &&function : functions)
+      if (!function->parent && !function->implements)
+        out.emplace_back(function);
+
+    return out;
+  }
 
   const std::vector<TypeExtension *> &getTypeExtensions() const {
     return extensions;

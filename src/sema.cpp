@@ -849,7 +849,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
   auto *fn = ctx.create<res::FunctionDecl>(loc, lambdaFunctionId,
                                            std::vector<res::TypeParamDecl *>{},
-                                           std::move(resolvedParams), closure);
+                                           std::move(resolvedParams));
   fn->setType(typeMgr.getFunctionType(paramTypes, returnTy));
   closure->insertDecl(fn);
 
@@ -1558,9 +1558,9 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   if (error)
     return nullptr;
 
-  auto *fn = ctx.create<res::FunctionDecl>(
-      decl.location, decl.identifier, typeParams, std::move(resolvedParams),
-      parent, implements);
+  auto *fn =
+      ctx.create<res::FunctionDecl>(decl.location, decl.identifier, typeParams,
+                                    std::move(resolvedParams), implements);
   fn->setType(typeMgr.getFunctionType(std::move(paramTypes), retTy));
   return fn;
 }
