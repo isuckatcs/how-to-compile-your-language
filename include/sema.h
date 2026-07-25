@@ -22,20 +22,39 @@ class Sema {
   res::TypeManager typeMgr;
   res::Context ctx;
 
-  class EnterScopeRAII {
-    Sema *sema;
-    res::DeclContext scope;
+  class Scope {
+    Scope *parent;
+    res::DeclContext *ctx;
+    std::vector<res::Decl *> decls;
 
   public:
-    explicit EnterScopeRAII(Sema *sema)
-        : sema(sema),
-          scope(sema->lexicalScope) {
-      sema->lexicalScope = &scope;
-    }
-    ~EnterScopeRAII() { sema->lexicalScope = scope.parent; }
+    Scope(Scope *parent, res::DeclContext *ctx)
+        : parent(parent),
+          ctx(ctx) {}
+
+    void addDecl(res::Decl *decl) { decls.emplace_back(decl); }
+    std::vector<res::Decl *> lookupSymbol(const std::string &id,
+                                          bool recursive = true) const;
+
+    Scope *getParent() const { return parent; }
+    res::DeclContext *getCurrentDeclContext() const;
   };
 
-  res::DeclContext *lexicalScope = nullptr;
+  class EnterNewScopeRAII {
+    Sema *sema;
+    Scope scope;
+
+  public:
+    explicit EnterNewScopeRAII(Sema *sema, res::DeclContext *ctx = nullptr)
+        : sema(sema),
+          scope(sema->currentScope, ctx) {
+      sema->currentScope = &scope;
+    }
+
+    ~EnterNewScopeRAII() { sema->currentScope = scope.getParent(); }
+  };
+
+  Scope *currentScope = nullptr;
 
   // FIXME: remove this?
   res::Type *selfType = nullptr;
@@ -61,6 +80,7 @@ class Sema {
 
   unsigned char modifiers = 0;
 
+  // FIXME: this is unused
   struct PendingLambdaDescriptor {
     res::LambdaExpr *lambda;
     const ast::LambdaExpr *astLambda;
@@ -70,7 +90,7 @@ class Sema {
   struct FunctionInfo {
     res::FunctionDecl *function = nullptr;
     res::LambdaExpr *lambda = nullptr;
-    res::DeclContext *lambdaParamScope = nullptr;
+    Scope *lambdaParamScope = nullptr;
     std::vector<res::DeclRefExpr *> declReferences = {};
     std::vector<const ast::Expr *> pendingCaptureInits = {};
   };
@@ -204,7 +224,7 @@ class Sema {
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                             res::TypeExtension *extension);
 
-  bool insertDeclToScope(res::Decl *decl, res::DeclContext *scope);
+  bool insertDeclToCurrentScope(res::Decl *decl);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
   res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 

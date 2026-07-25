@@ -10,15 +10,52 @@
 #include "utils.h"
 
 namespace yl {
-bool Sema::insertDeclToScope(res::Decl *decl, res::DeclContext *scope) {
+res::DeclContext *Sema::Scope::getCurrentDeclContext() const {
+  if (ctx)
+    return ctx;
+
+  if (parent)
+    return parent->getCurrentDeclContext();
+
+  return nullptr;
+}
+
+std::vector<res::Decl *> Sema::Scope::lookupSymbol(const std::string &id,
+                                                   bool recursive) const {
+  std::vector<res::Decl *> results;
+
+  for (auto &&decl : decls)
+    if (decl->identifier == id)
+      results.emplace_back(decl);
+
+  if (!recursive || !parent)
+    return results;
+
+  for (auto &&res : parent->lookupSymbol(id))
+    results.emplace_back(res);
+
+  return results;
+}
+
+bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   if (!decl)
     return false;
 
-  if (!scope->insertDecl(decl)) {
+  const auto &results = currentScope->lookupSymbol(decl->identifier, false);
+  if (results.empty()) {
+    currentScope->addDecl(decl);
+    return true;
+  }
+
+  bool resultIsValue = results[0]->getAs<res::ValueDecl>() != nullptr;
+  bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
+
+  if (results.size() > 1 || resultIsValue == declIsValue) {
     err::redeclaration(decl->location).with(decl->identifier).report(reporter);
     return false;
   }
 
+  currentScope->addDecl(decl);
   return true;
 }
 
@@ -70,7 +107,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
     res::TypeDecl *decl = nullptr;
 
-    for (auto &&d : lexicalScope->lookupDecl(udt->identifier)) {
+    for (auto &&d : currentScope->lookupSymbol(udt->identifier)) {
       decl = d->getAs<res::TypeDecl>();
 
       if (decl)
@@ -328,7 +365,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       continue;
     }
 
-    auto candidates = lexicalScope->lookupDecl(fragment->identifier);
+    auto candidates = currentScope->lookupSymbol(fragment->identifier);
     if (candidates.empty())
       return err::missingSymbol(fragment->location)
           .with(fragment->identifier)
@@ -790,7 +827,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   std::vector<res::Type *> paramTypes = {};
   std::vector<res::ParamDecl *> resolvedParams = {};
 
-  EnterScopeRAII paramScope(this);
+  EnterNewScopeRAII paramScope(this);
   {
     WithModifiersRAII lambdaParamList(this, MissingTypeAnnotationsAllowed);
     int i = 0;
@@ -811,7 +848,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
       paramTypes.emplace_back(resolvedParam->getType());
       resolvedParams.emplace_back(resolvedParam);
 
-      error |= !insertDeclToScope(resolvedParam, lexicalScope);
+      error |= !insertDeclToCurrentScope(resolvedParam);
 
       if (param->identifier == selfParamId) {
         err::selfParamNotAllowed(param->location).report(reporter);
@@ -858,7 +895,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
   std::vector<const ast::Expr *> pendingCaptureInits;
   {
-    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, lexicalScope});
+    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, currentScope});
 
     if (res::Block *block = resolveBlock(ctx, *lambdaExpr.body)) {
       fn->setBody(block);
@@ -1024,7 +1061,7 @@ res::DeclStmt *Sema::resolveDeclStmt(res::Context &ctx,
                                      const ast::DeclStmt &declStmt) {
   varOrReturn(varDecl, resolveVarDecl(ctx, *declStmt.varDecl));
 
-  if (!insertDeclToScope(varDecl, lexicalScope))
+  if (!insertDeclToCurrentScope(varDecl))
     return nullptr;
 
   return ctx.create<res::DeclStmt>(declStmt.location, varDecl);
@@ -1163,11 +1200,11 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl = nullptr;
-      if (auto r = lexicalScope->lookupDecl(decl->identifier); !r.empty())
+      if (auto r = currentScope->lookupSymbol(decl->identifier); !r.empty())
         insideDecl = r.front();
 
       res::Decl *outsideDecl = nullptr;
-      if (auto r = functionInfo->lambdaParamScope->parent->lookupDecl(
+      if (auto r = functionInfo->lambdaParamScope->getParent()->lookupSymbol(
               decl->identifier);
           !r.empty())
         outsideDecl = r.front();
@@ -1233,7 +1270,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   bool error = false;
   int reportUnreachableCount = 0;
 
-  EnterScopeRAII blockScope(this);
+  EnterNewScopeRAII blockScope(this);
   for (auto &&stmt : block.statements) {
     auto *resolvedStmt = resolveStmt(ctx, *stmt);
 
@@ -1259,7 +1296,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
 res::TypeExtension *
 Sema::resolveTypeExtension(res::Context &ctx,
                            const ast::TypeExtension &extension) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, extension.typeParams);
   if (!resolveGenericParamsInCurrentScope(ctx, typeParams,
@@ -1454,13 +1491,13 @@ bool Sema::resolveGenericParamsInCurrentScope(
   for (size_t i = 0; i < resParams.size(); ++i) {
     if (resParams[i]->isImplicitSelf) {
       assert(i == 0 && "implicit self can only be the first parameter");
-      insertDeclToScope(resParams[0], lexicalScope);
+      insertDeclToCurrentScope(resParams[0]);
       offset = 1;
       continue;
     }
 
     res::TypeParamDecl *resParam = resParams[i];
-    error |= !insertDeclToScope(resParam, lexicalScope);
+    error |= !insertDeclToCurrentScope(resParam);
 
     const auto &restrictions = astParams[i - offset]->restrictions;
     auto traits =
@@ -1517,13 +1554,14 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
                                              const ast::FunctionDecl &decl,
                                              res::Decl *parent,
                                              res::FunctionDecl *implements) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
   bool error =
       !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
   for (auto &&tp : typeParams) {
-    for (auto &&decl : lexicalScope->parent->lookupDecl(tp->identifier)) {
+    for (auto &&decl :
+         currentScope->getParent()->lookupSymbol(tp->identifier)) {
       if (decl->getAs<res::TypeParamDecl>()) {
         err::typeParamShadowed(tp->location)
             .with(tp->identifier)
@@ -1538,7 +1576,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
-  EnterScopeRAII paramScope(this);
+  EnterNewScopeRAII paramScope(this);
   for (auto &&param : decl.params) {
     auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
 
@@ -1546,7 +1584,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     resolvedParams.emplace_back(resolvedParam);
 
     error |= err;
-    error |= !insertDeclToScope(resolvedParam, lexicalScope);
+    error |= !insertDeclToCurrentScope(resolvedParam);
     error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
   }
 
@@ -1574,13 +1612,13 @@ Sema::resolveFunctionBody(res::Context &ctx,
 
   WithFunctionInfoRAII currentFnInfo(this, {function, nullptr, nullptr, {}});
 
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
   for (auto &&typeParam : function->typeParams)
-    insertDeclToScope(typeParam, lexicalScope);
+    insertDeclToCurrentScope(typeParam);
 
-  EnterScopeRAII paramScope(this);
+  EnterNewScopeRAII paramScope(this);
   for (auto &&param : function->params)
-    insertDeclToScope(param, lexicalScope);
+    insertDeclToCurrentScope(param);
 
   auto *body = resolveBlock(ctx, *functionDecl.body);
   if (!body) {
@@ -1638,7 +1676,7 @@ res::TraitInstance *Sema::resolveTraitInstance(res::Context &ctx,
 
   res::TraitDecl *traitDecl = nullptr;
 
-  for (auto &&decl : lexicalScope->lookupDecl(identifier))
+  for (auto &&decl : currentScope->lookupSymbol(identifier))
     if (auto *td = decl->getAs<res::TraitDecl>()) {
       traitDecl = td;
       break;
@@ -1710,7 +1748,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
 bool Sema::resolveTraitBody(res::Context &ctx,
                             res::TraitDecl &traitDecl,
                             const ast::TraitDecl &astDecl) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
@@ -1726,9 +1764,14 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 
   // FIXME: is this correct?
   selfType = traitDecl.typeParams[0]->getType();
-  for (auto &&fn : astDecl.traitFunctions)
-    error |= !insertDeclToScope(resolveFunctionDecl(ctx, *fn, &traitDecl),
-                                &traitDecl);
+  for (auto &&fn : astDecl.traitFunctions) {
+    auto *resolvedFn = resolveFunctionDecl(ctx, *fn, &traitDecl);
+    error |= !insertDeclToCurrentScope(resolvedFn);
+
+    // FIXME: this should be removed soon
+    if (resolvedFn)
+      traitDecl.insertDecl(resolvedFn);
+  }
 
   return !error;
 }
@@ -1736,9 +1779,9 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
                                       res::TraitDecl &traitDecl,
                                       const ast::TraitDecl &astDecl) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
   for (auto &&typeParamDecl : traitDecl.typeParams)
-    insertDeclToScope(typeParamDecl, lexicalScope);
+    insertDeclToCurrentScope(typeParamDecl);
 
   bool error = false;
   int idx = 0;
@@ -1769,7 +1812,7 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
 bool Sema::resolveStructBody(res::Context &ctx,
                              res::StructDecl &structDecl,
                              const ast::StructDecl &astDecl) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
   bool error = !resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
                                                    astDecl.typeParameters);
 
@@ -1788,7 +1831,9 @@ bool Sema::resolveStructBody(res::Context &ctx,
           ctx.create<res::FieldDecl>(field->location, field->identifier);
       fieldDecl->setType(fieldTy);
 
-      error |= !insertDeclToScope(fieldDecl, &structDecl);
+      error |= !insertDeclToCurrentScope(fieldDecl);
+      // FIXME: this should be removed soon
+      structDecl.insertDecl(fieldDecl);
       continue;
     }
 
@@ -1799,7 +1844,9 @@ bool Sema::resolveStructBody(res::Context &ctx,
         continue;
       }
 
-      error |= !insertDeclToScope(memberFn, &structDecl);
+      error |= !insertDeclToCurrentScope(memberFn);
+      // FIXME: this should be removed soon
+      structDecl.insertDecl(memberFn);
     }
   }
 
@@ -1810,9 +1857,9 @@ bool Sema::resolveStructBody(res::Context &ctx,
 bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
                                        res::StructDecl &decl,
                                        const ast::StructDecl &astDecl) {
-  EnterScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this);
   for (auto &&typeParamDecl : decl.typeParams)
-    insertDeclToScope(typeParamDecl, lexicalScope);
+    insertDeclToCurrentScope(typeParamDecl);
 
   selfType = decl.getType();
   bool error = false;
@@ -1833,7 +1880,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
 }
 
 std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
-  EnterScopeRAII globalScope(this);
+  EnterNewScopeRAII globalScope(this);
   bool error = false;
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
@@ -1849,7 +1896,7 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
     if (!rd)
       continue;
 
-    error |= !insertDeclToScope(rd, lexicalScope);
+    error |= !insertDeclToCurrentScope(rd);
     resDecls.emplace_back(rd, decl.get());
   }
 
@@ -1866,12 +1913,12 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   for (auto &&extension : ast->extensions)
     error |= !resolveTypeExtension(ctx, *extension);
 
-  insertDeclToScope(createBuiltinGCCollect(ctx), lexicalScope);
-  insertDeclToScope(createBuiltinPrintln(ctx), lexicalScope);
+  insertDeclToCurrentScope(createBuiltinGCCollect(ctx));
+  insertDeclToCurrentScope(createBuiltinPrintln(ctx));
 
   for (auto &&fn : ast->functions) {
     auto *rf = resolveFunctionDecl(ctx, *fn);
-    error |= !insertDeclToScope(rf, lexicalScope);
+    error |= !insertDeclToCurrentScope(rf);
     error |= hasBuiltinFunctionCollisions(rf);
     resDecls.emplace_back(rf, fn);
   }
