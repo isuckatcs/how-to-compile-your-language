@@ -37,19 +37,6 @@ class Sema {
 
   res::DeclContext *lexicalScope = nullptr;
 
-  class WithSelfTypeRAII {
-    Sema *sema;
-    res::Type *oldSelfType;
-
-  public:
-    WithSelfTypeRAII(Sema *sema, res::Type *selfTy)
-        : sema(sema),
-          oldSelfType(sema->selfType) {
-      sema->selfType = selfTy;
-    }
-    ~WithSelfTypeRAII() { sema->selfType = oldSelfType; }
-  };
-
   // FIXME: remove this?
   res::Type *selfType = nullptr;
 
