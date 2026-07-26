@@ -31,26 +31,6 @@ GenericDeclContext::GenericDeclContext(
     tp->setDeclContext(this);
 }
 
-bool GenericDeclContext::insertDecl(res::Decl *decl) {
-  bool isValueDecl = decl->getAs<res::ValueDecl>();
-
-  for (auto &&currentDecl : decls)
-    if (currentDecl->identifier == decl->identifier &&
-        isValueDecl == !!currentDecl->getAs<res::ValueDecl>())
-      return false;
-
-  decls.emplace_back(decl);
-
-  // FIXME: unify these cases, and move this logic somewhere else
-  if (dynamic_cast<Decl *>(this)) {
-    decl->setDeclContext(this);
-  } else if (dynamic_cast<TypeExtension *>(this)) {
-    decl->setDeclContext(this);
-  }
-
-  return true;
-}
-
 std::vector<res::Decl *>
 GenericDeclContext::lookupDecl(const std::string id) const {
   std::vector<res::Decl *> result;

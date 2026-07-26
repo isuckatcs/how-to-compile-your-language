@@ -101,7 +101,7 @@ struct GenericDeclContext {
 
   virtual ~GenericDeclContext() = default;
 
-  bool insertDecl(res::Decl *decl);
+  void insertDecl(res::Decl *decl) { decls.emplace_back(decl); }
   std::vector<res::Decl *> lookupDecl(const std::string id) const;
 
   // FIXME: remove this

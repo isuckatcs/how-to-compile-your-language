@@ -1343,10 +1343,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
     }
 
-    // FIXME: is adding the trait as a parent correct? Probably not, but it is
-    // needed by codegen...
-    // should __Self be part of the extension as well?
-    auto *implFn = resolveFunctionDecl(ctx, *fn, nullptr, traitFn);
+    auto *implFn = resolveFunctionDecl(ctx, *fn, typeExtension, traitFn);
     if (!implFn)
       continue;
 
@@ -1405,11 +1402,14 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
     }
 
-    if (!typeExtension->insertDecl(implFn))
+    if (!scope->lookupSymbol(implFn->identifier, false).empty())
       err::alreadyImplementedFn(implFn->location)
           .with(implFn->identifier)
           .with(traitType->getName())
           .report(reporter);
+
+    insertDeclToCurrentScope(implFn);
+    typeExtension->insertDecl(implFn);
   }
   selfType = nullptr;
 
