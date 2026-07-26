@@ -13,6 +13,7 @@
 <traitList>
     ::= ':' <traitInstance> ('&' <traitInstance>)*
 
+// FIXME: replace this with user defined type
 <traitInstance>
     ::= <identifier> <typeList>?
 
@@ -179,7 +180,7 @@
     ::= '*' 'mut'? <type>
 
 <anyType>
-    ::= 'any' <traitInstance>
+    ::= 'any' <userDefinedType>
 
 <identifier>
     ::= ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
