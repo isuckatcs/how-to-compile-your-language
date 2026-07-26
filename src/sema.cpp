@@ -181,6 +181,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
       if (!traitSelfType)
         return typeMgr.getAnyTraitType(*td, std::move(resolvedTypeArgs));
 
+      resolvedTypeArgs.emplace(resolvedTypeArgs.begin(), traitSelfType);
       return typeMgr.getTraitType(*td, std::move(resolvedTypeArgs));
     }
 
@@ -329,17 +330,16 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
   res::TraitType *parentTrait = nullptr;
 
   if (auto *traitSpec = pathExpr.traitSpecifier.get()) {
-    parentType = resolveType(ctx, *traitSpec->type, true);
-    if (auto *traitInst = resolveTraitInstance(
-            ctx, traitSpec->traitInstance.get(), parentType))
-      parentTrait = traitInst->getType()->getAs<res::TraitType>();
+    varOrReturn(specType, resolveType(ctx, *traitSpec->type, true));
+    varOrReturn(traitType,
+                resolveType(ctx, *traitSpec->trait, false, true, specType));
 
-    if (!parentType || !parentTrait)
-      return nullptr;
+    parentType = specType;
+    parentTrait = traitType->getAs<res::TraitType>();
 
     if (!typeMgr.hasConstraint(parentType, parentTrait) &&
         typeMgr.getExtensions(parentType, parentTrait).empty())
-      return err::traitNotImplemented(traitSpec->traitInstance->location)
+      return err::traitNotImplemented(traitSpec->trait->location)
           .with(parentType->getName())
           .with(parentTrait->getName())
           .report(reporter);
