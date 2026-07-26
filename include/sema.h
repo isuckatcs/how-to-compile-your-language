@@ -81,13 +81,6 @@ class Sema {
 
   unsigned char modifiers = 0;
 
-  // FIXME: this is unused
-  struct PendingLambdaDescriptor {
-    res::LambdaExpr *lambda;
-    const ast::LambdaExpr *astLambda;
-    res::GenericDeclContext snapshot;
-  };
-
   struct FunctionInfo {
     res::FunctionDecl *function = nullptr;
     res::LambdaExpr *lambda = nullptr;
