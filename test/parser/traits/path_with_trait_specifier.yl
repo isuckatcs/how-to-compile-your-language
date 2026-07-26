@@ -4,7 +4,7 @@ fn main() {
   // CHECK: PathExpr:
   // CHECK-NEXT:   TraitSpecifier:
   // CHECK-NEXT:     BuiltinType: number
-  // CHECK-NEXT:     TraitInstance: Foo
+  // CHECK-NEXT:     UserDefinedType: Foo
   // CHECK-NEXT:   DeclRefExpr: x
 
   @<S<unit> : A<number>>::foo();
@@ -13,7 +13,7 @@ fn main() {
   // CHECK-NEXT:     TraitSpecifier:
   // CHECK-NEXT:       UserDefinedType: S
   // CHECK-NEXT:         BuiltinType: unit
-  // CHECK-NEXT:       TraitInstance: A
+  // CHECK-NEXT:       UserDefinedType: A
   // CHECK-NEXT:           BuiltinType: number
   // CHECK-NEXT:     DeclRefExpr: foo
 
@@ -21,7 +21,7 @@ fn main() {
   // CHECK: PathExpr:
   // CHECK-NEXT:   TraitSpecifier:
   // CHECK-NEXT:     UserDefinedType: S
-  // CHECK-NEXT:     TraitInstance: A
+  // CHECK-NEXT:     UserDefinedType: A
   // CHECK-NEXT:   DeclRefExpr: foo
   // CHECK-NEXT:   DeclRefExpr: bar
 }

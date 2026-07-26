@@ -849,7 +849,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
 }
 
 // <traitSpecifier>
-//  ::= '@' '<' <type> ':' <traitInstance> '>'
+//  ::= '@' '<' <type> ':' <userDefinedType> '>'
 std::unique_ptr<ast::TraitSpecifier> Parser::parseTraitSpecifier() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '@'
@@ -863,7 +863,7 @@ std::unique_ptr<ast::TraitSpecifier> Parser::parseTraitSpecifier() {
                  err::expected(nextToken.location).with("':'"));
   eatNextToken(); // eat ':'
 
-  varOrReturn(trait, parseTraitInstance());
+  varOrReturn(trait, parseUserDefinedType());
 
   expectOrReturn(TokenKind::Gt, err::expected(nextToken.location).with("'>'"));
   eatNextToken(); // eat '>'

@@ -259,14 +259,14 @@ struct DeclRefExpr : public Expr {
 
 struct TraitSpecifier : public Expr {
   std::unique_ptr<Type> type;
-  std::unique_ptr<TraitInstance> traitInstance;
+  std::unique_ptr<UserDefinedType> trait;
 
   TraitSpecifier(SourceLocation location,
                  std::unique_ptr<Type> type,
-                 std::unique_ptr<TraitInstance> trait)
+                 std::unique_ptr<UserDefinedType> trait)
       : Expr(location),
         type(std::move(type)),
-        traitInstance(std::move(trait)) {}
+        trait(std::move(trait)) {}
 
   void dump(size_t level = 0) const override;
 };

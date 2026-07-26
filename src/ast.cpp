@@ -113,7 +113,7 @@ void TraitSpecifier::dump(size_t level) const {
   std::cerr << indent(level) << "TraitSpecifier:\n";
 
   type->dump(level + 1);
-  traitInstance->dump(level + 1);
+  trait->dump(level + 1);
 }
 
 void PathExpr::dump(size_t level) const {
