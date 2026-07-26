@@ -140,7 +140,7 @@
     ::= (<traitSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
 
 <traitSpecifier>
-    ::= '@' '<' <type> ':' <traitInstance> '>'
+    ::= '@' '<' <type> ':' <userDefinedType> '>'
 
 <declRefExpr>
     ::= (<identifier> | 'Self') <typeArgumentList>?
