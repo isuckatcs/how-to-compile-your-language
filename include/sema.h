@@ -33,8 +33,8 @@ class Sema {
           ctx(ctx) {}
 
     void addDecl(res::Decl *decl) { decls.emplace_back(decl); }
-    std::vector<res::Decl *> lookupSymbol(const std::string &id,
-                                          bool recursive = true) const;
+    std::vector<res::NamedDecl *> lookupSymbol(const std::string &id,
+                                               bool recursive = true) const;
 
     Scope *getParent() const { return parent; }
     res::GenericDeclContext *getDeclContext() const;
@@ -122,11 +122,13 @@ class Sema {
                                     const ast::PathExpr &pathExpr);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,
-                                      res::Decl *decl,
+                                      res::NamedDecl *decl,
                                       res::Substitution sub = {});
 
-  std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
-      std::string identifier, res::Type *type, res::TraitType *trait = nullptr);
+  std::vector<std::pair<res::NamedDecl *, res::Substitution>>
+  lookupAssociatedDecls(std::string identifier,
+                        res::Type *type,
+                        res::TraitType *trait = nullptr);
 
   std::pair<res::Expr *, std::vector<res::Expr *>>
   resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
@@ -159,7 +161,7 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  res::TypeExtension *resolveTypeExtension(res::Context &ctx,
+  res::ExtensionDecl *resolveTypeExtension(res::Context &ctx,
                                            const ast::TypeExtension &extension);
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *
@@ -216,7 +218,7 @@ class Sema {
       res::Type *receiver);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                            res::TypeExtension *extension);
+                                            res::ExtensionDecl *extension);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);

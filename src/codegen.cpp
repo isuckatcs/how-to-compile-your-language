@@ -627,7 +627,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (auto *sd = dynamic_cast<res::StructDecl *>(dre.decl->declContext)) {
     parentType = sd->getType();
   } else if (auto *e =
-                 dynamic_cast<res::TypeExtension *>(dre.decl->declContext)) {
+                 dynamic_cast<res::ExtensionDecl *>(dre.decl->declContext)) {
     parentType = e->trait->getType();
   } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     parentType = t->getType();
@@ -640,7 +640,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
       *fnDecl, dre.getType()->getAs<res::FunctionType>(), parentType, typeArgs);
 }
 
-bool Codegen::isImplOf(const res::TypeExtension *impl,
+bool Codegen::isImplOf(const res::ExtensionDecl *impl,
                        const res::TraitType *trait) {
   const res::TraitType *implTy =
       impl->trait->getType()->getAs<res::TraitType>();

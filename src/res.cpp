@@ -31,15 +31,15 @@ GenericDeclContext::GenericDeclContext(
     tp->setDeclContext(this);
 }
 
-std::vector<res::Decl *>
+std::vector<res::NamedDecl *>
 GenericDeclContext::lookupDecl(const std::string id) const {
-  std::vector<res::Decl *> result;
+  std::vector<res::NamedDecl *> result;
 
   const GenericDeclContext *ctx = this;
   while (ctx) {
     for (auto &&decl : ctx->decls)
-      if (decl->identifier == id)
-        result.emplace_back(decl);
+      if (auto *nd = decl->getAs<res::NamedDecl>(); nd && nd->identifier == id)
+        result.emplace_back(nd);
 
     ctx = ctx->parent;
   }
@@ -107,7 +107,7 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
-void TypeExtension::dump(size_t level) const {
+void ExtensionDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeExtension " << type->getName() << " : "
             << trait->getType()->getName() << '\n';
 
@@ -343,7 +343,7 @@ void Context::dump() const {
   for (auto &&s : structs)
     s->dump(0);
 
-  for (auto &&extension : typeExtensions)
+  for (auto &&extension : extensions)
     extension->dump(0);
 
   for (auto &&fn : getFunctions())

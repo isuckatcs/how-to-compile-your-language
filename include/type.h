@@ -14,7 +14,7 @@ class FunctionDecl;
 class StructDecl;
 class TraitDecl;
 class TypedNode;
-class TypeExtension;
+class ExtensionDecl;
 class TraitInstance;
 
 struct Type {
@@ -247,7 +247,7 @@ class TypeManager {
   std::vector<std::unique_ptr<Type>> types;
   // FIXME: this should only contain the trait prerequisites
   std::vector<std::pair<Type *, TraitType *>> constraints;
-  std::vector<TypeExtension *> extensions;
+  std::vector<ExtensionDecl *> extensions;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
   using VtableEntryTy =
@@ -267,8 +267,8 @@ public:
 
   void createObligation(UninferredType *type, TraitType *trait);
 
-  void addExtension(TypeExtension *typeExtension);
-  std::vector<std::pair<TypeExtension *, Substitution>>
+  void addExtension(ExtensionDecl *typeExtension);
+  std::vector<std::pair<ExtensionDecl *, Substitution>>
   getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
 
   Substitution extractSubstitutionFrom(const Type *ty);

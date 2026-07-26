@@ -20,13 +20,13 @@ res::GenericDeclContext *Sema::Scope::getDeclContext() const {
   return nullptr;
 }
 
-std::vector<res::Decl *> Sema::Scope::lookupSymbol(const std::string &id,
-                                                   bool recursive) const {
-  std::vector<res::Decl *> results;
+std::vector<res::NamedDecl *> Sema::Scope::lookupSymbol(const std::string &id,
+                                                        bool recursive) const {
+  std::vector<res::NamedDecl *> results;
 
   for (auto &&decl : decls)
-    if (decl->identifier == id)
-      results.emplace_back(decl);
+    if (auto *nd = decl->getAs<res::NamedDecl>(); nd && nd->identifier == id)
+      results.emplace_back(nd);
 
   if (!recursive || !parent)
     return results;
@@ -41,18 +41,20 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   if (!decl)
     return false;
 
-  const auto &results = scope->lookupSymbol(decl->identifier, false);
-  if (results.empty()) {
-    scope->addDecl(decl);
-    return true;
-  }
+  if (auto *nd = decl->getAs<res::NamedDecl>()) {
+    const auto &results = scope->lookupSymbol(nd->identifier, false);
+    if (results.empty()) {
+      scope->addDecl(decl);
+      return true;
+    }
 
-  bool resultIsValue = results[0]->getAs<res::ValueDecl>() != nullptr;
-  bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
+    bool resultIsValue = results[0]->getAs<res::ValueDecl>() != nullptr;
+    bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
 
-  if (results.size() > 1 || resultIsValue == declIsValue) {
-    err::redeclaration(decl->location).with(decl->identifier).report(reporter);
-    return false;
+    if (results.size() > 1 || resultIsValue == declIsValue) {
+      err::redeclaration(decl->location).with(nd->identifier).report(reporter);
+      return false;
+    }
   }
 
   scope->addDecl(decl);
@@ -126,7 +128,11 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return typeMgr.getTypeParamType(*typeParamDecl);
 
     auto *sd = decl->getAs<res::StructDecl>();
-    assert(sd && "unexpected user defined type");
+    // FIXME: report a different error if this is a trait
+    if (!sd)
+      return err::failedToResolveType(udt->location)
+          .with(udt->identifier)
+          .report(reporter);
 
     varOrReturn(res, checkTypeParameterCount(udt->location,
                                              udt->typeArguments.size(),
@@ -308,7 +314,9 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       parentTrait = nullptr;
 
       for (auto &&result : results) {
-        if (result->decl->getAs<res::TypeDecl>()) {
+        // FIXME: report dedicated error for traits
+        if (result->decl->getAs<res::TypeDecl>() &&
+            !result->decl->getAs<res::TraitDecl>()) {
           parentType = result->getType();
           break;
         }
@@ -351,7 +359,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       if (!selfType)
         return err::selfTyNotAllowed(fragment->location).report(reporter);
 
-      res::Decl *decl = nullptr;
+      res::NamedDecl *decl = nullptr;
       res::Substitution sub;
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>())
@@ -436,7 +444,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
 
 res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
                                           const ast::DeclRefExpr *dre,
-                                          res::Decl *decl,
+                                          res::NamedDecl *decl,
                                           res::Substitution sub) {
   auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
@@ -493,11 +501,11 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   return functionInfo->declReferences.emplace_back(resDre);
 }
 
-std::vector<std::pair<res::Decl *, res::Substitution>>
+std::vector<std::pair<res::NamedDecl *, res::Substitution>>
 Sema::lookupAssociatedDecls(std::string identifier,
                             res::Type *type,
                             res::TraitType *trait) {
-  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
+  std::vector<std::pair<res::NamedDecl *, res::Substitution>> candidates;
 
   if (!trait) {
     if (auto *t = type->getAs<res::TraitType>())
@@ -1176,7 +1184,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
   if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
     varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
 
-    const res::Decl *decl = resPath->decl;
+    const res::NamedDecl *decl = resPath->decl;
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
     // FIXME: check these
@@ -1291,7 +1299,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-res::TypeExtension *
+res::ExtensionDecl *
 Sema::resolveTypeExtension(res::Context &ctx,
                            const ast::TypeExtension &extension) {
   EnterNewScopeRAII typeParamScope(this);
@@ -1325,8 +1333,9 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
   }
 
-  auto *typeExtension = ctx.create<res::TypeExtension>(std::move(typeParams),
-                                                       type, traitInstance);
+  auto *typeExtension = ctx.create<res::ExtensionDecl>(
+      extension.type->location, scope->getDeclContext(), std::move(typeParams),
+      type, traitInstance);
   typeMgr.addExtension(typeExtension);
 
   selfType = type;
@@ -1531,7 +1540,7 @@ std::vector<res::TraitInstance *> Sema::resolveTraitInstanceList(
 }
 
 bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                                res::TypeExtension *extension) {
+                                                res::ExtensionDecl *extension) {
   bool error = false;
 
   for (auto &&fn : extension->trait->decl->getAll<res::FunctionDecl>()) {
@@ -2263,7 +2272,7 @@ bool Sema::checkReturnOnAllPaths(const CFG &cfg) {
 bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
-  using Lattice = std::map<const res::Decl *, State>;
+  using Lattice = std::map<const res::NamedDecl *, State>;
 
   auto joinStates = [](State s1, State s2) {
     if (s1 == s2)

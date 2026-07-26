@@ -135,7 +135,7 @@ class Codegen {
                   std::map<const res::FieldDecl *, llvm::Value *> &fieldInits);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
-  bool isImplOf(const res::TypeExtension *impl, const res::TraitType *trait);
+  bool isImplOf(const res::ExtensionDecl *impl, const res::TraitType *trait);
 
   void generateConditionalOperator(const res::Expr &op,
                                    llvm::BasicBlock *trueBlock,

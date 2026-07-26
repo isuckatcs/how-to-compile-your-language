@@ -62,15 +62,11 @@ struct GenericDeclContext;
 
 struct Decl : public TypedNode {
   SourceLocation location;
-  std::string identifier;
   GenericDeclContext *declContext;
   bool needsStorage = false;
 
-  Decl(SourceLocation location,
-       std::string identifier,
-       GenericDeclContext *declContext)
+  Decl(SourceLocation location, GenericDeclContext *declContext)
       : location(location),
-        identifier(std::move(identifier)),
         declContext(declContext) {}
   virtual ~Decl() = default;
 
@@ -89,6 +85,16 @@ struct Decl : public TypedNode {
   virtual void dump(size_t level = 0) const = 0;
 };
 
+struct NamedDecl : public Decl {
+  std::string identifier;
+
+  NamedDecl(SourceLocation location,
+            std::string identifier,
+            GenericDeclContext *declContext)
+      : Decl(location, declContext),
+        identifier(std::move(identifier)) {}
+};
+
 struct TypeParamDecl;
 
 struct GenericDeclContext {
@@ -102,7 +108,7 @@ struct GenericDeclContext {
   virtual ~GenericDeclContext() = default;
 
   void insertDecl(res::Decl *decl) { decls.emplace_back(decl); }
-  std::vector<res::Decl *> lookupDecl(const std::string id) const;
+  std::vector<res::NamedDecl *> lookupDecl(const std::string id) const;
 
   // FIXME: remove this
   template <typename T> std::vector<T *> getAll() const {
@@ -114,21 +120,21 @@ struct GenericDeclContext {
   }
 };
 
-struct TypeDecl : public Decl {
+struct TypeDecl : public NamedDecl {
   TypeDecl(SourceLocation location,
            std::string identifier,
            GenericDeclContext *declContext)
-      : Decl(location, std::move(identifier), declContext) {}
+      : NamedDecl(location, std::move(identifier), declContext) {}
 };
 
-struct ValueDecl : public Decl {
+struct ValueDecl : public NamedDecl {
   bool isMutable;
 
   ValueDecl(SourceLocation location,
             std::string identifier,
             GenericDeclContext *declContext,
             bool isMutable)
-      : Decl(location, std::move(identifier), declContext),
+      : NamedDecl(location, std::move(identifier), declContext),
         isMutable(isMutable) {}
 };
 
@@ -183,14 +189,14 @@ struct ParamDecl : public ValueDecl {
 };
 
 struct TraitInstance;
-struct TraitDecl : public Decl, public GenericDeclContext {
+struct TraitDecl : public TypeDecl, public GenericDeclContext {
   std::vector<TraitInstance *> traits;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
             GenericDeclContext *declContext,
             std::vector<TypeParamDecl *> typeParams)
-      : Decl(location, std::move(identifier), declContext),
+      : TypeDecl(location, std::move(identifier), declContext),
         GenericDeclContext(declContext, std::move(typeParams)) {}
 
   void dump(size_t level = 0) const override;
@@ -215,14 +221,17 @@ struct TraitInstance : public TypedNode {
   void dump(size_t level = 0) const;
 };
 
-struct TypeExtension : public GenericDeclContext {
+struct ExtensionDecl : public Decl, public GenericDeclContext {
   Type *type;
   TraitInstance *trait;
 
-  TypeExtension(std::vector<TypeParamDecl *> typeParams,
+  ExtensionDecl(SourceLocation location,
+                GenericDeclContext *declContext,
+                std::vector<TypeParamDecl *> typeParams,
                 Type *type,
                 TraitInstance *trait)
-      : GenericDeclContext(nullptr, std::move(typeParams)),
+      : Decl(location, declContext),
+        GenericDeclContext(declContext, std::move(typeParams)),
         type(type),
         trait(trait) {}
 
@@ -343,11 +352,11 @@ struct CallExpr : public Expr {
 };
 
 struct DeclRefExpr : public Expr {
-  Decl *decl;
+  NamedDecl *decl;
   Substitution sub;
 
   DeclRefExpr(SourceLocation location,
-              Decl *decl,
+              NamedDecl *decl,
               Expr::Kind kind,
               Substitution sub)
       : Expr(location, kind),
@@ -549,13 +558,12 @@ class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
-  std::vector<std::unique_ptr<TypeExtension>> typeExtensions;
   std::vector<std::unique_ptr<TraitInstance>> traitInstances;
 
   std::vector<TraitDecl *> traits;
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
-  std::vector<TypeExtension *> extensions;
+  std::vector<ExtensionDecl *> extensions;
 
 public:
   // FIXME: rethink this whole method
@@ -569,8 +577,6 @@ public:
       decls.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<Block, T>)
       blocks.emplace_back(std::move(ptr));
-    else if constexpr (std::is_base_of_v<TypeExtension, T>)
-      typeExtensions.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<TraitInstance, T>)
       traitInstances.emplace_back(std::move(ptr));
     else
@@ -579,7 +585,7 @@ public:
 
     if constexpr (std::is_base_of_v<TraitDecl, T>)
       traits.emplace_back(raw);
-    else if constexpr (std::is_base_of_v<TypeExtension, T>)
+    else if constexpr (std::is_base_of_v<ExtensionDecl, T>)
       extensions.emplace_back(raw);
     else if constexpr (std::is_base_of_v<StructDecl, T>) {
       if (!raw->isLambda)
@@ -604,10 +610,10 @@ public:
     return out;
   }
 
-  const std::vector<TypeExtension *> &getTypeExtensions() const {
+  const std::vector<ExtensionDecl *> &getTypeExtensions() const {
     return extensions;
   }
-  std::vector<TypeExtension *> &getTypeExtensions() { return extensions; }
+  std::vector<ExtensionDecl *> &getTypeExtensions() { return extensions; }
 
   std::vector<TraitInstance *> getTraitInstances() {
     std::vector<TraitInstance *> out;

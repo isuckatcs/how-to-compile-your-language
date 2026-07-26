@@ -320,13 +320,13 @@ void TypeManager::addConstraint(Type *type, TraitType *trait) {
   constraints.emplace_back(type, trait);
 }
 
-void TypeManager::addExtension(TypeExtension *typeExtension) {
+void TypeManager::addExtension(ExtensionDecl *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
 
-std::vector<std::pair<TypeExtension *, Substitution>>
+std::vector<std::pair<ExtensionDecl *, Substitution>>
 TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
-  std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
+  std::vector<std::pair<ExtensionDecl *, Substitution>> foundExtensions;
   for (auto &&extension : extensions) {
     Substitution extSub;
     for (auto &&typeParam : extension->typeParams)
