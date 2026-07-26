@@ -325,7 +325,7 @@ void TypeManager::addExtension(TypeExtension *typeExtension) {
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-TypeManager::getExtensions(Type *type, TraitType *trait) {
+TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
   std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
   for (auto &&extension : extensions) {
     Substitution extSub;
@@ -333,11 +333,9 @@ TypeManager::getExtensions(Type *type, TraitType *trait) {
       extSub[typeParam->getType()] = getNewUninferredType();
 
     Type *probedType = instantiate(extension->type, extSub);
-    // FIXME: here both types should only be probed in case there are multiple
-    // extensions that might apply e.g.: A<_> -> A<number>; A<_> -> A<unit>
 
     // FIXME: propagate errors for more decriptive messages?
-    if (!unify(type, probedType, true).empty())
+    if (!unify(type, probedType, probeOnly).empty())
       continue;
 
     if (!trait) {
@@ -346,7 +344,7 @@ TypeManager::getExtensions(Type *type, TraitType *trait) {
     }
 
     Type *probedTrait = instantiate(extension->trait->getType(), extSub);
-    if (!unify(trait, probedTrait, true).empty())
+    if (!unify(trait, probedTrait, probeOnly).empty())
       continue;
 
     foundExtensions.emplace_back(extension, extSub);
@@ -455,7 +453,7 @@ TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
         continue;
 
       // FIXME: consider returning candidates
-      auto extensions = getExtensions(type->getRootType(), requiredTrait);
+      auto extensions = getExtensions(type->getRootType(), requiredTrait, true);
 
       if (extensions.empty())
         errors.emplace_back("cannot satisfy requirement '" + type->getName() +

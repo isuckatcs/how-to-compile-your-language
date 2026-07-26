@@ -269,7 +269,7 @@ public:
 
   void addExtension(TypeExtension *typeExtension);
   std::vector<std::pair<TypeExtension *, Substitution>>
-  getExtensions(Type *type, TraitType *trait = nullptr);
+  getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
 
   Substitution extractSubstitutionFrom(const Type *ty);
 
