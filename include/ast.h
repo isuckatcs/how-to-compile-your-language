@@ -121,17 +121,14 @@ struct Block {
   void dump(size_t level = 0) const;
 };
 
-struct TraitInstance {
+struct TraitConformance {
   SourceLocation location;
-  std::string identifier;
-  std::vector<std::unique_ptr<Type>> typeArguments;
+  std::vector<std::unique_ptr<UserDefinedType>> traits;
 
-  TraitInstance(SourceLocation location,
-                std::string identifier,
-                std::vector<std::unique_ptr<Type>> typeArguments)
+  TraitConformance(SourceLocation location,
+                   std::vector<std::unique_ptr<UserDefinedType>> traits)
       : location(std::move(location)),
-        identifier(std::move(identifier)),
-        typeArguments(std::move(typeArguments)) {}
+        traits(std::move(traits)) {}
 
   void dump(size_t level = 0) const;
 };
@@ -355,13 +352,13 @@ struct UnaryOperator : public Expr {
 };
 
 struct TypeParamDecl : public Decl {
-  std::vector<std::unique_ptr<TraitInstance>> restrictions;
+  std::unique_ptr<TraitConformance> traitConformance;
 
   TypeParamDecl(SourceLocation location,
                 std::string identifier,
-                std::vector<std::unique_ptr<TraitInstance>> restrictions)
+                std::unique_ptr<TraitConformance> traitConformance)
       : Decl(location, std::move(identifier)),
-        restrictions(std::move(restrictions)) {}
+        traitConformance(std::move(traitConformance)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -462,19 +459,19 @@ struct StructDecl : public Decl {
 };
 
 struct TraitDecl : public Decl {
+  std::unique_ptr<TraitConformance> traitConformance;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
-  std::vector<std::unique_ptr<TraitInstance>> requirements;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
+            std::unique_ptr<TraitConformance> traitConformance,
             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-            std::vector<std::unique_ptr<FunctionDecl>> traitFunctions,
-            std::vector<std::unique_ptr<TraitInstance>> requirements)
+            std::vector<std::unique_ptr<FunctionDecl>> traitFunctions)
       : Decl(std::move(location), std::move(identifier)),
         typeParameters(std::move(typeParameters)),
         traitFunctions(std::move(traitFunctions)),
-        requirements(std::move(requirements)) {}
+        traitConformance(std::move(traitConformance)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -535,16 +532,16 @@ struct LambdaExpr : public Expr {
 struct TypeExtension {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
   std::unique_ptr<Type> type;
-  std::unique_ptr<TraitInstance> trait;
+  std::unique_ptr<TraitConformance> traitConformance;
   std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
 
   TypeExtension(std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
                 std::unique_ptr<Type> type,
-                std::unique_ptr<TraitInstance> trait,
+                std::unique_ptr<TraitConformance> traitConformance,
                 std::vector<std::unique_ptr<ast::FunctionDecl>> functions)
       : typeParams(std::move(typeParams)),
         type(std::move(type)),
-        trait(std::move(trait)),
+        traitConformance(std::move(traitConformance)),
         functions(std::move(functions)) {}
 
   void dump(size_t level = 0) const;

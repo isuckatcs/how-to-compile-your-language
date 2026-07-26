@@ -29,13 +29,16 @@ trait C<T : A> {
 }
 // CHECK: TraitDecl: C
 // CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:     TraitInstance: A
+// CHECK-NEXT:     TraitConformance
+// CHECK-NEXT:       UserDefinedType: A
 // CHECK-NEXT:   FunctionDecl: foo
 // CHECK-NEXT:     TypeParamDecl: T
-// CHECK-NEXT:       TraitInstance: A
+// CHECK-NEXT:       TraitConformance
+// CHECK-NEXT:         UserDefinedType: A
 // CHECK-NEXT:   FunctionDecl: bar
 // CHECK-NEXT:     TypeParamDecl: T
-// CHECK-NEXT:       TraitInstance: A
+// CHECK-NEXT:       TraitConformance
+// CHECK-NEXT:         UserDefinedType: A
 // CHECK-NEXT:     Block
 
 fn main(): unit {}

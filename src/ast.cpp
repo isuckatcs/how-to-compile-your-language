@@ -170,18 +170,18 @@ void UnaryOperator::dump(size_t level) const {
   operand->dump(level + 1);
 }
 
-void TraitInstance::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitInstance: " << identifier << '\n';
+void TraitConformance::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitConformance\n";
 
-  for (auto &&type : typeArguments)
-    type->dump(level + 1);
+  for (auto &&trait : traits)
+    trait->dump(level + 1);
 }
 
 void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
 
-  for (auto &&restriction : restrictions)
-    restriction->dump(level + 1);
+  if (traitConformance)
+    traitConformance->dump(level + 1);
 }
 
 void BorrowedModifier::dump(size_t level) const {
@@ -208,8 +208,8 @@ void StructDecl::dump(size_t level) const {
 void TraitDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TraitDecl: " << identifier << '\n';
 
-  for (auto &&requirement : requirements)
-    requirement->dump(level + 1);
+  if (traitConformance)
+    traitConformance->dump(level + 1);
 
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
@@ -287,7 +287,7 @@ void TypeExtension::dump(size_t level) const {
 
   type->dump(level + 1);
 
-  trait->dump(level + 1);
+  traitConformance->dump(level + 1);
 
   for (auto &&fn : functions)
     fn->dump(level + 1);

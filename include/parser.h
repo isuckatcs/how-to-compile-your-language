@@ -90,18 +90,15 @@ class Parser {
   std::unique_ptr<ast::TypeArgumentList> parseTypeArgumentList();
 
   std::unique_ptr<ast::Type> parseType();
-
-  template <typename T> std::unique_ptr<T> parseIdentifierWithTypelist();
   std::unique_ptr<ast::UserDefinedType> parseUserDefinedType();
-  std::unique_ptr<ast::TraitInstance> parseTraitInstance();
+
+  std::unique_ptr<ast::TraitConformance> parseTraitConformance();
 
   // helper methods
   template <typename T>
   std::unique_ptr<std::vector<std::unique_ptr<T>>>
   parseListWithTrailingComma(std::function<std::unique_ptr<T>(Parser &)> parser,
                              TokenKind closingToken);
-  std::unique_ptr<std::vector<std::unique_ptr<ast::TraitInstance>>>
-  parseTraitList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::TypeParamDecl>>>
   parseTypeParamList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::Type>>> parseTypeList();

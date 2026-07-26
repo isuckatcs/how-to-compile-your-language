@@ -149,7 +149,7 @@ Parser::parseTypeList() {
 }
 
 // <typeParamDecl>
-//  ::= <identifier>
+//  ::= <identifier> <traitConformanceDecl>?
 std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
   expectOrReturn(
       TokenKind::Identifier,
@@ -161,10 +161,15 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  varOrReturn(traits, parseTraitList());
+  std::unique_ptr<ast::TraitConformance> conformance;
+  if (nextToken.kind == TokenKind::Colon) {
+    conformance = parseTraitConformance();
+    if (!conformance)
+      return nullptr;
+  }
 
   return std::make_unique<ast::TypeParamDecl>(location, std::move(identifier),
-                                              std::move(*traits));
+                                              std::move(conformance));
 }
 
 // <structDecl>
@@ -224,7 +229,7 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
 }
 
 // <traitDecl>
-//     ::= 'trait' <identifier> <typeParamList>? <traitList>? '{'
+//     ::= 'trait' <identifier> <typeParamList>? <traitConformanceDecl>? '{'
 //     <traitFunctionDecl>* '}'
 
 // <traitFunctionDecl>
@@ -241,12 +246,17 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
   eatNextToken(); // eat identifier
 
   varOrReturn(typeParamList, parseTypeParamList());
-  varOrReturn(traitList, parseTraitList());
 
-  expectOrReturn(TokenKind::Lbrace,
-                 err::expected2(nextToken.location)
-                     .with(traitList->empty() ? "':'" : "'&'")
-                     .with("'{'"));
+  std::unique_ptr<ast::TraitConformance> conformance;
+  if (nextToken.kind == TokenKind::Colon) {
+    conformance = parseTraitConformance();
+    if (!conformance)
+      return nullptr;
+  }
+
+  expectOrReturn(TokenKind::Lbrace, err::expected2(nextToken.location)
+                                        .with(conformance ? "'&'" : "':'")
+                                        .with("'{'"));
   eatNextToken(); // eat '{'
 
   std::vector<std::unique_ptr<ast::FunctionDecl>> memberFunctions;
@@ -266,8 +276,8 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
   eatNextToken(); // eat '}'
 
   return std::make_unique<ast::TraitDecl>(
-      location, identifier, std::move(*typeParamList),
-      std::move(memberFunctions), std::move(*traitList));
+      location, identifier, std::move(conformance), std::move(*typeParamList),
+      std::move(memberFunctions));
 }
 
 // <typeExtension>
@@ -284,9 +294,7 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
 
   expectOrReturn(TokenKind::Colon,
                  err::expected(nextToken.location).with("':'"));
-  eatNextToken(); // eat ':'
-
-  varOrReturn(trait, parseTraitInstance());
+  varOrReturn(conformance, parseTraitConformance());
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expected(nextToken.location).with("'{'"));
@@ -305,9 +313,9 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
                  err::expected2(nextToken.location).with("'fn'").with("'}'"));
   eatNextToken(); // eat '}'
 
-  return std::make_unique<ast::TypeExtension>(std::move(*typeParamList),
-                                              std::move(type), std::move(trait),
-                                              std::move(functions));
+  return std::make_unique<ast::TypeExtension>(
+      std::move(*typeParamList), std::move(type), std::move(conformance),
+      std::move(functions));
 }
 
 // <functionDecl>
@@ -1005,30 +1013,28 @@ std::unique_ptr<ast::TypeArgumentList> Parser::parseTypeArgumentList() {
   return std::make_unique<ast::TypeArgumentList>(location, std::move(*args));
 }
 
-// <traitList>
-//  ::= ':' <userDefinedDeclInstance> ('&' <userDefinedDeclInstance>)*
-std::unique_ptr<std::vector<std::unique_ptr<ast::TraitInstance>>>
-Parser::parseTraitList() {
-  std::vector<std::unique_ptr<ast::TraitInstance>> traits;
+// <traitConformanceDecl>
+//  ::= ':' <userDefinedType> ('&' <userDefinedType>)*
+std::unique_ptr<ast::TraitConformance> Parser::parseTraitConformance() {
+  SourceLocation location = nextToken.location;
+  eatNextToken(); // eat ':'
 
-  if (nextToken.kind == TokenKind::Colon) {
-    eatNextToken(); // eat ':'
+  std::vector<std::unique_ptr<ast::UserDefinedType>> traits;
 
-    while (true) {
-      expectOrReturn(TokenKind::Identifier,
-                     err::expected(nextToken.location).with("identifier"));
-      varOrReturn(trait, parseTraitInstance());
-      traits.emplace_back(std::move(trait));
+  while (true) {
+    expectOrReturn(TokenKind::Identifier,
+                   err::expected(nextToken.location).with("identifier"));
 
-      if (nextToken.kind != TokenKind::Amp)
-        break;
+    varOrReturn(trait, parseUserDefinedType());
+    traits.emplace_back(std::move(trait));
 
-      eatNextToken(); // eat '&'
-    }
+    if (nextToken.kind != TokenKind::Amp)
+      break;
+
+    eatNextToken(); // eat '&'
   }
 
-  return std::make_unique<std::vector<std::unique_ptr<ast::TraitInstance>>>(
-      std::move(traits));
+  return std::make_unique<ast::TraitConformance>(location, std::move(traits));
 }
 
 template <typename T>
@@ -1134,7 +1140,7 @@ std::unique_ptr<ast::Type> Parser::parseType() {
       .report(reporter);
 };
 
-template <typename T> std::unique_ptr<T> Parser::parseIdentifierWithTypelist() {
+std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
   SourceLocation location = nextToken.location;
 
   expectOrReturn(TokenKind::Identifier,
@@ -1150,15 +1156,8 @@ template <typename T> std::unique_ptr<T> Parser::parseIdentifierWithTypelist() {
     types = std::move(*typeArguments);
   }
 
-  return std::make_unique<T>(location, std::move(identifier), std::move(types));
-}
-
-std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
-  return parseIdentifierWithTypelist<ast::UserDefinedType>();
-}
-
-std::unique_ptr<ast::TraitInstance> Parser::parseTraitInstance() {
-  return parseIdentifierWithTypelist<ast::TraitInstance>();
+  return std::make_unique<ast::UserDefinedType>(location, std::move(identifier),
+                                                std::move(types));
 }
 
 // <sourceFile>
