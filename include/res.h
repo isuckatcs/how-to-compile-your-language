@@ -345,18 +345,14 @@ struct CallExpr : public Expr {
 struct DeclRefExpr : public Expr {
   Decl *decl;
   Substitution sub;
-  // FIXME: remove this field
-  std::vector<Type *> typeArgs;
 
   DeclRefExpr(SourceLocation location,
               Decl *decl,
               Expr::Kind kind,
-              Substitution sub,
-              std::vector<Type *> typeArgs = {})
+              Substitution sub)
       : Expr(location, kind),
         decl(decl),
-        sub(sub),
-        typeArgs(std::move(typeArgs)) {}
+        sub(sub) {}
 
   Type *getReceiverType() const;
   std::string getFullPath() const;

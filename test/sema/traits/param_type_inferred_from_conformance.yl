@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<X> {
+  fn foo(x: X) {}
+}
+
+struct S<Y> {}
+
+extension<Z> S<Z> : A<Z> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:33: error: cannot unify 'unit' with 'number'
+  @<S<number> : A<number>>::foo(unit);
+}

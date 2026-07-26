@@ -584,8 +584,11 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   EnterInstantiationRAII instantiation(this, dre.sub);
 
-  // FIXME: use the attached sub to figure out the type args
-  auto typeArgs = dre.typeArgs;
+  // FIXME: remove this once mangling is refactored and uses sub only
+  std::vector<res::Type *> typeArgs;
+  if (auto *gdc = dre.decl->getAs<res::GenericDeclContext>())
+    for (auto &&tp : gdc->typeParams)
+      typeArgs.emplace_back(dre.sub.at(tp->getType()));
 
   // FIXME: here the instCtx should be composed with dre.sub and applied later
   res::Substitution sub;

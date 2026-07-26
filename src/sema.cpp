@@ -438,9 +438,6 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
                                           const ast::DeclRefExpr *dre,
                                           res::Decl *decl,
                                           res::Substitution sub) {
-  res::Type *declTy = decl->getType();
-  declTy = typeMgr.instantiate(declTy, sub);
-
   auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
   if (!valueDecl || decl->getAs<res::FunctionDecl>())
@@ -448,55 +445,47 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   else if (valueDecl->isMutable)
     kind = res::Expr::Kind::MutLvalue;
 
-  std::vector<res::Type *> typeArgs;
-  std::vector<res::TypeParamDecl *> typeParams;
+  auto *gdc = decl->getAs<res::GenericDeclContext>();
+  if (gdc) {
+    for (auto &&typeParam : gdc->typeParams) {
+      auto *tpType = typeParam->getType();
+      auto *subType = typeMgr.getNewUninferredType();
 
-  // FIXME: check how much of this is needed here
-  if (auto *gdc = decl->getAs<res::GenericDeclContext>())
-    typeParams = gdc->typeParams;
+      sub[tpType] = subType;
 
-  for (auto &&typeParam : typeParams) {
-    res::Type *typeParamTy = typeParam->getType();
-    res::Type *subTy = typeMgr.getNewUninferredType();
-
-    sub[typeParamTy] = typeArgs.emplace_back(subTy);
-
-    if (auto *u = subTy->getAs<res::UninferredType>())
-      for (auto &&trait : typeMgr.getConstraints(typeParamTy))
-        typeMgr.createObligation(
-            u, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
+      for (auto &&trait : typeMgr.getConstraints(tpType)) {
+        auto *instTrait =
+            typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
+        typeMgr.createObligation(subType, instTrait);
+      }
+    }
   }
 
-  if (const auto *typeArgList = dre->typeArgumentList.get()) {
-    if (typeParams.empty())
+  if (auto *typeArgList = dre->typeArgumentList.get()) {
+    if (!gdc || gdc->typeParams.empty())
       return err::notGeneric(typeArgList->location)
           .with(decl->identifier)
           .report(reporter);
 
-    bool hasImplicitSelf = typeParams.front()->isImplicitSelf;
-    varOrReturn(res, checkTypeParameterCount(
-                         typeArgList->location, typeArgList->args.size(),
-                         typeParams.size() - hasImplicitSelf));
+    const auto &args = typeArgList->args;
+    varOrReturn(res, checkTypeParameterCount(typeArgList->location, args.size(),
+                                             gdc->typeParams.size()));
 
-    int idx = hasImplicitSelf ? 1 : 0;
-    for (auto &&astArg : typeArgList->args) {
-      varOrReturn(typeArgTy, resolveType(ctx, *astArg));
+    for (int i = 0; i < args.size(); ++i) {
+      varOrReturn(arg, resolveType(ctx, *args[i]));
+      auto *expectedType = sub[gdc->typeParams[i]->getType()];
 
-      if (const auto &errors = typeMgr.unify(typeArgTy, typeArgs[idx]);
-          !errors.empty()) {
-        for (auto &&error : errors)
-          err::inferenceError(astArg->location).with(error).report(reporter);
+      if (const auto &errs = typeMgr.unify(expectedType, arg); !errs.empty()) {
+        for (auto &&err : errs)
+          err::inferenceError(args[i]->location).with(err).report(reporter);
 
         return nullptr;
       }
-
-      ++idx;
     }
   }
 
-  auto *resDre =
-      ctx.create<res::DeclRefExpr>(dre->location, decl, kind, sub, typeArgs);
-  resDre->setType(typeMgr.instantiate(declTy, sub));
+  auto *resDre = ctx.create<res::DeclRefExpr>(dre->location, decl, kind, sub);
+  resDre->setType(typeMgr.instantiate(decl->getType(), sub));
 
   if (modifiers & AddressTaken)
     resDre->decl->setStorageNeeded();
@@ -2211,8 +2200,8 @@ bool Sema::runPostFunctionBodyChecks() {
 bool Sema::checkDeclRefTypes() {
   bool error = false;
   for (auto &&dre : functionInfo->declReferences)
-    for (auto &&typeArg : dre->typeArgs) {
-      if (!typeArg->getRootType()->getAs<res::UninferredType>())
+    for (auto &&[from, to] : dre->sub) {
+      if (!to->getRootType()->getAs<res::UninferredType>())
         continue;
 
       err::annotationsNeeded(dre->location)
