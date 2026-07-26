@@ -10,12 +10,12 @@
 #include "utils.h"
 
 namespace yl {
-res::DeclContext *Sema::Scope::getCurrentDeclContext() const {
+res::GenericDeclContext *Sema::Scope::getDeclContext() const {
   if (ctx)
     return ctx;
 
   if (parent)
-    return parent->getCurrentDeclContext();
+    return parent->getDeclContext();
 
   return nullptr;
 }
@@ -41,9 +41,9 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   if (!decl)
     return false;
 
-  const auto &results = currentScope->lookupSymbol(decl->identifier, false);
+  const auto &results = scope->lookupSymbol(decl->identifier, false);
   if (results.empty()) {
-    currentScope->addDecl(decl);
+    scope->addDecl(decl);
     return true;
   }
 
@@ -55,29 +55,32 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
     return false;
   }
 
-  currentScope->addDecl(decl);
+  scope->addDecl(decl);
   return true;
 }
 
 res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
-
   auto *numTy = typeMgr.getBuiltinNumberType();
-  auto *param = ctx.create<res::ParamDecl>(loc, "n", false);
-  param->setType(numTy);
 
-  auto *fn = ctx.create<res::FunctionDecl>(
-      loc, "println", std::vector<res::TypeParamDecl *>{}, std::vector{param});
+  auto *fn =
+      ctx.create<res::FunctionDecl>(loc, "println", scope->getDeclContext(),
+                                    std::vector<res::TypeParamDecl *>{});
   fn->setType(typeMgr.getFunctionType({numTy}, typeMgr.getBuiltinUnitType()));
-  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
+  auto *param = ctx.create<res::ParamDecl>(loc, "n", fn, false);
+  param->setType(numTy);
+  fn->setParams({param});
+
+  fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
   return fn;
 };
 
 res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
 
-  auto *fn = ctx.create<res::FunctionDecl>(loc, "gcCollect");
+  auto *fn =
+      ctx.create<res::FunctionDecl>(loc, "gcCollect", scope->getDeclContext());
   fn->setType(typeMgr.getFunctionType({}, typeMgr.getBuiltinUnitType()));
   fn->setBody(ctx.create<res::Block>(loc, std::vector<res::Stmt *>()));
 
@@ -107,7 +110,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
     res::TypeDecl *decl = nullptr;
 
-    for (auto &&d : currentScope->lookupSymbol(udt->identifier)) {
+    for (auto &&d : scope->lookupSymbol(udt->identifier)) {
       decl = d->getAs<res::TypeDecl>();
 
       if (decl)
@@ -365,7 +368,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       continue;
     }
 
-    auto candidates = currentScope->lookupSymbol(fragment->identifier);
+    auto candidates = scope->lookupSymbol(fragment->identifier);
     if (candidates.empty())
       return err::missingSymbol(fragment->location)
           .with(fragment->identifier)
@@ -445,8 +448,12 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   else if (valueDecl->isMutable)
     kind = res::Expr::Kind::MutLvalue;
 
-  std::vector<res::TypeParamDecl *> typeParams = decl->typeParams;
   std::vector<res::Type *> typeArgs;
+  std::vector<res::TypeParamDecl *> typeParams;
+
+  // FIXME: check how much of this is needed here
+  if (auto *gdc = decl->getAs<res::GenericDeclContext>())
+    typeParams = gdc->typeParams;
 
   for (auto &&typeParam : typeParams) {
     res::Type *typeParamTy = typeParam->getType();
@@ -461,7 +468,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   }
 
   if (const auto *typeArgList = dre->typeArgumentList.get()) {
-    if (!decl->isGeneric())
+    if (typeParams.empty())
       return err::notGeneric(typeArgList->location)
           .with(decl->identifier)
           .report(reporter);
@@ -819,8 +826,9 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   std::stringstream structId;
   structId << "(closure@<source>:" << loc.line << ':' << loc.col << ')';
 
-  auto *closure = ctx.create<res::StructDecl>(
-      loc, structId.str(), std::vector<res::TypeParamDecl *>{}, true);
+  auto *closure =
+      ctx.create<res::StructDecl>(loc, structId.str(), scope->getDeclContext(),
+                                  std::vector<res::TypeParamDecl *>{}, true);
   closure->setType(typeMgr.getStructType(*closure, {}));
 
   bool error = false;
@@ -878,24 +886,25 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
     }
   }
 
-  auto *p = ctx.create<res::ParamDecl>(loc, "closure", false);
-  p->setType(typeMgr.getPointerType(closure->getType(), false));
+  auto *paramType = typeMgr.getPointerType(closure->getType(), false);
+  paramTypes.emplace_back(paramType);
 
-  paramTypes.emplace_back(p->getType());
-  resolvedParams.emplace_back(p);
-
-  auto *fn = ctx.create<res::FunctionDecl>(loc, lambdaFunctionId,
-                                           std::vector<res::TypeParamDecl *>{},
-                                           std::move(resolvedParams));
+  auto *fn = ctx.create<res::FunctionDecl>(loc, lambdaFunctionId, closure,
+                                           std::vector<res::TypeParamDecl *>{});
   fn->setType(typeMgr.getFunctionType(paramTypes, returnTy));
   closure->insertDecl(fn);
+
+  auto *p = ctx.create<res::ParamDecl>(loc, "closure", fn, false);
+  p->setType(paramType);
+  resolvedParams.emplace_back(p);
+  fn->setParams(std::move(resolvedParams));
 
   auto *resLambdaExpr = ctx.create<res::LambdaExpr>(loc, closure, fn);
   resLambdaExpr->setType(lambdaTy);
 
   std::vector<const ast::Expr *> pendingCaptureInits;
   {
-    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, currentScope});
+    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, scope});
 
     if (res::Block *block = resolveBlock(ctx, *lambdaExpr.body)) {
       fn->setBody(block);
@@ -908,7 +917,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
       error |= !runPostFunctionBodyChecks();
     }
 
-    error |= !fn->isComplete;
+    error |= !fn->body;
     pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
   }
 
@@ -1182,11 +1191,11 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
     // FIXME: check these
-    if (resPath->decl->parent && !isFunctionDecl)
+    if (resPath->decl->declContext && !isFunctionDecl)
       return err::memberFnLookupFailed(resPath->location)
           .with(decl->identifier)
           // FIXME: remove this once every parent is a decl
-          .with(((res::StructDecl *)resPath->decl->parent)->identifier)
+          .with(((res::StructDecl *)resPath->decl->declContext)->identifier)
           .report(reporter);
 
     // FIXME: remove this limitation
@@ -1200,7 +1209,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl = nullptr;
-      if (auto r = currentScope->lookupSymbol(decl->identifier); !r.empty())
+      if (auto r = scope->lookupSymbol(decl->identifier); !r.empty())
         insideDecl = r.front();
 
       res::Decl *outsideDecl = nullptr;
@@ -1222,8 +1231,8 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
           field = r.front()->getAs<res::FieldDecl>();
 
         if (!field) {
-          field =
-              ctx.create<res::FieldDecl>(lambda->location, decl->identifier);
+          field = ctx.create<res::FieldDecl>(lambda->location, decl->identifier,
+                                             lambda->closure);
           field->setType(resPath->getType());
           lambda->closure->insertDecl(field);
           functionInfo->pendingCaptureInits.emplace_back(&expr);
@@ -1451,6 +1460,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   }
 
   auto *vd = ctx.create<res::VarDecl>(varDecl.location, varDecl.identifier,
+                                      scope->getDeclContext(),
                                       varDecl.isMutable, initializer);
   vd->setType(declTy);
   return vd;
@@ -1552,7 +1562,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
 
 res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
                                              const ast::FunctionDecl &decl,
-                                             res::Decl *parent,
+                                             res::GenericDeclContext *parent,
                                              res::FunctionDecl *implements) {
   EnterNewScopeRAII typeParamScope(this);
 
@@ -1560,8 +1570,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   bool error =
       !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
   for (auto &&tp : typeParams) {
-    for (auto &&decl :
-         currentScope->getParent()->lookupSymbol(tp->identifier)) {
+    for (auto &&decl : scope->getParent()->lookupSymbol(tp->identifier)) {
       if (decl->getAs<res::TypeParamDecl>()) {
         err::typeParamShadowed(tp->location)
             .with(tp->identifier)
@@ -1596,10 +1605,10 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   if (error)
     return nullptr;
 
-  auto *fn =
-      ctx.create<res::FunctionDecl>(decl.location, decl.identifier, typeParams,
-                                    std::move(resolvedParams), implements);
+  auto *fn = ctx.create<res::FunctionDecl>(decl.location, decl.identifier,
+                                           parent, typeParams, implements);
   fn->setType(typeMgr.getFunctionType(std::move(paramTypes), retTy));
+  fn->setParams(std::move(resolvedParams));
   return fn;
 }
 
@@ -1661,7 +1670,7 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   }
 
   auto *p = ctx.create<res::ParamDecl>(
-      param->location, param->identifier,
+      param->location, param->identifier, scope->getDeclContext(),
       param->isMutable || referenceType && referenceType->isMutable());
   p->setType(paramTy);
   return std::make_pair(p, error);
@@ -1676,7 +1685,7 @@ res::TraitInstance *Sema::resolveTraitInstance(res::Context &ctx,
 
   res::TraitDecl *traitDecl = nullptr;
 
-  for (auto &&decl : currentScope->lookupSymbol(identifier))
+  for (auto &&decl : scope->lookupSymbol(identifier))
     if (auto *td = decl->getAs<res::TraitDecl>()) {
       traitDecl = td;
       break;
@@ -1732,7 +1741,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
   typeParams.emplace(typeParams.begin(), self);
 
   auto *trait = ctx.create<res::TraitDecl>(decl.location, decl.identifier,
-                                           std::move(typeParams));
+                                           nullptr, std::move(typeParams));
 
   std::vector<res::Type *> typeParamTys;
   for (auto &&typeParam : trait->typeParams)
@@ -1798,7 +1807,7 @@ bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
 res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
                                          const ast::StructDecl &decl) {
   auto *structDecl = ctx.create<res::StructDecl>(
-      decl.location, decl.identifier,
+      decl.location, decl.identifier, scope->getDeclContext(),
       resolveTypeParamsWithoutBounds(ctx, decl.typeParameters));
 
   std::vector<res::Type *> typeParamTys;
@@ -1827,8 +1836,8 @@ bool Sema::resolveStructBody(res::Context &ctx,
         continue;
       }
 
-      auto *fieldDecl =
-          ctx.create<res::FieldDecl>(field->location, field->identifier);
+      auto *fieldDecl = ctx.create<res::FieldDecl>(
+          field->location, field->identifier, &structDecl);
       fieldDecl->setType(fieldTy);
 
       error |= !insertDeclToCurrentScope(fieldDecl);

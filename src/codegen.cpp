@@ -94,7 +94,7 @@ struct Mangling {
     std::stringstream mangledName;
 
     const auto &identifier = fn->identifier;
-    if (fn->isGeneric() || parent) {
+    if (!fn->typeParams.empty() || parent) {
       mangledName << '_' << 'Y';
       if (parent)
         mangledName << mangleType(parent, substitution);
@@ -593,7 +593,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
     sub[from->getType()] = to;
 
   // Note: this case is for generic receivers only e.g.: T::foo().
-  if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->parent)) {
+  if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     auto *traitType = typeMgr->instantiate(trait->getType(), dre.sub)
                           ->getAs<res::TraitType>();
     auto *selfType = traitType->getTypeArgs()[0];
@@ -621,11 +621,12 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   // FIXME: the receiver type of the struct is needed
   res::Type *parentType = nullptr;
-  if (auto *sd = dynamic_cast<res::StructDecl *>(dre.decl->parent)) {
+  if (auto *sd = dynamic_cast<res::StructDecl *>(dre.decl->declContext)) {
     parentType = sd->getType();
-  } else if (auto *e = dynamic_cast<res::TypeExtension *>(dre.decl->parent)) {
+  } else if (auto *e =
+                 dynamic_cast<res::TypeExtension *>(dre.decl->declContext)) {
     parentType = e->trait->getType();
-  } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->parent)) {
+  } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     parentType = t->getType();
   }
 
@@ -1435,7 +1436,7 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   // FIXME: remove this once every parent is a decl, and not a declcontext
   auto *parentTraitType = typeMgr->instantiate(
-      ((res::TraitDecl *)dre->decl->parent)->getType(), dre->sub);
+      ((res::TraitDecl *)dre->decl->declContext)->getType(), dre->sub);
 
   // FIXME: remove this once every parent is a decl, and not a declcontext
   res::Type *selfType = nullptr;
@@ -1486,14 +1487,14 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
 llvm::Module *Codegen::generateIR() {
   for (auto &&st : resCtx->getStructs())
-    if (!st->isGeneric())
+    if (st->typeParams.empty())
       for (auto &&fn : st->getAll<res::FunctionDecl>())
-        if (!fn->isGeneric())
+        if (fn->typeParams.empty())
           generateFunctionDecl(*fn, fn->getType()->getAs<res::FunctionType>(),
                                st->getType(), {});
 
   for (auto &&fn : resCtx->getFunctions())
-    if (!fn->isGeneric())
+    if (fn->typeParams.empty())
       generateFunctionDecl(*fn, fn->getType()->getAs<res::FunctionType>(), {},
                            {});
 

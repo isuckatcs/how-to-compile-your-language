@@ -58,25 +58,20 @@ struct Expr : public TypedNode, public Stmt {
   virtual ~Expr() = default;
 };
 
-struct TypeParamDecl;
-
-struct DeclContext;
+struct GenericDeclContext;
 
 struct Decl : public TypedNode {
   SourceLocation location;
-
-  // FIXME: for local scopes this becomes dangling
-  DeclContext *parent = nullptr;
   std::string identifier;
-  std::vector<TypeParamDecl *> typeParams;
+  GenericDeclContext *declContext;
   bool needsStorage = false;
 
   Decl(SourceLocation location,
        std::string identifier,
-       std::vector<TypeParamDecl *> typeParams = {})
+       GenericDeclContext *declContext)
       : location(location),
         identifier(std::move(identifier)),
-        typeParams(std::move(typeParams)) {}
+        declContext(declContext) {}
   virtual ~Decl() = default;
 
   template <typename T> T *getAs() {
@@ -84,24 +79,27 @@ struct Decl : public TypedNode {
   }
 
   template <typename T> const T *getAs() const {
-    static_assert(std::is_base_of_v<Decl, T>, "expected decl");
     return dynamic_cast<const T *>(this);
   }
 
   void setStorageNeeded() { needsStorage = true; }
-  bool isGeneric() const { return !typeParams.empty(); }
-  void setParent(DeclContext *parent) { this->parent = parent; }
+  void setDeclContext(GenericDeclContext *declContext) {
+    this->declContext = declContext;
+  }
   virtual void dump(size_t level = 0) const = 0;
 };
 
-// FIXME: symbol tables should be separated from declaration
-struct DeclContext {
-  DeclContext *parent;
-  std::vector<res::Decl *> decls;
+struct TypeParamDecl;
 
-  DeclContext(DeclContext *parent)
-      : parent(parent) {}
-  virtual ~DeclContext() = default;
+struct GenericDeclContext {
+  GenericDeclContext *parent;
+  std::vector<res::Decl *> decls;
+  std::vector<res::TypeParamDecl *> typeParams;
+
+  GenericDeclContext(GenericDeclContext *parent,
+                     std::vector<res::TypeParamDecl *> typeParams);
+
+  virtual ~GenericDeclContext() = default;
 
   bool insertDecl(res::Decl *decl);
   std::vector<res::Decl *> lookupDecl(const std::string id) const;
@@ -119,8 +117,8 @@ struct DeclContext {
 struct TypeDecl : public Decl {
   TypeDecl(SourceLocation location,
            std::string identifier,
-           std::vector<TypeParamDecl *> typeParams = {})
-      : Decl(location, std::move(identifier), std::move(typeParams)) {}
+           GenericDeclContext *declContext)
+      : Decl(location, std::move(identifier), declContext) {}
 };
 
 struct ValueDecl : public Decl {
@@ -128,9 +126,9 @@ struct ValueDecl : public Decl {
 
   ValueDecl(SourceLocation location,
             std::string identifier,
-            bool isMutable,
-            std::vector<TypeParamDecl *> typeParams = {})
-      : Decl(location, std::move(identifier), std::move(typeParams)),
+            GenericDeclContext *declContext,
+            bool isMutable)
+      : Decl(location, std::move(identifier), declContext),
         isMutable(isMutable) {}
 };
 
@@ -175,21 +173,25 @@ struct WhileStmt : public Stmt {
 };
 
 struct ParamDecl : public ValueDecl {
-  ParamDecl(SourceLocation location, std::string identifier, bool isMutable)
-      : ValueDecl(location, std::move(identifier), isMutable) {}
+  ParamDecl(SourceLocation location,
+            std::string identifier,
+            GenericDeclContext *declContext,
+            bool isMutable)
+      : ValueDecl(location, std::move(identifier), declContext, isMutable) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct TraitInstance;
-struct TraitDecl : public Decl, public DeclContext {
+struct TraitDecl : public Decl, public GenericDeclContext {
   std::vector<TraitInstance *> traits;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
+            GenericDeclContext *declContext,
             std::vector<TypeParamDecl *> typeParams)
-      : Decl(location, std::move(identifier), std::move(typeParams)),
-        DeclContext(nullptr) {}
+      : Decl(location, std::move(identifier), declContext),
+        GenericDeclContext(declContext, std::move(typeParams)) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -213,16 +215,14 @@ struct TraitInstance : public TypedNode {
   void dump(size_t level = 0) const;
 };
 
-struct TypeExtension : public DeclContext {
-  std::vector<TypeParamDecl *> typeParams;
+struct TypeExtension : public GenericDeclContext {
   Type *type;
   TraitInstance *trait;
 
   TypeExtension(std::vector<TypeParamDecl *> typeParams,
                 Type *type,
                 TraitInstance *trait)
-      : DeclContext(nullptr),
-        typeParams(std::move(typeParams)),
+      : GenericDeclContext(nullptr, std::move(typeParams)),
         type(type),
         trait(trait) {}
 
@@ -236,15 +236,17 @@ struct TypeParamDecl : public TypeDecl {
   TypeParamDecl(SourceLocation location,
                 std::string identifier,
                 bool isImplicitSelf = false)
-      : TypeDecl(location, std::move(identifier)),
+      : TypeDecl(location, std::move(identifier), nullptr),
         isImplicitSelf(isImplicitSelf) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct FieldDecl : public ValueDecl {
-  FieldDecl(SourceLocation location, std::string identifier)
-      : ValueDecl(location, std::move(identifier), false) {}
+  FieldDecl(SourceLocation location,
+            std::string identifier,
+            GenericDeclContext *declContext)
+      : ValueDecl(location, std::move(identifier), declContext, false) {}
 
   void dump(size_t level = 0) const override;
 };
@@ -254,45 +256,48 @@ struct VarDecl : public ValueDecl {
 
   VarDecl(SourceLocation location,
           std::string identifier,
+          GenericDeclContext *declContext,
           bool isMutable,
           Expr *initializer = nullptr)
-      : ValueDecl(location, std::move(identifier), isMutable),
+      : ValueDecl(location, std::move(identifier), declContext, isMutable),
         initializer(initializer) {}
 
   void dump(size_t level = 0) const override;
 };
 
-struct StructDecl : public TypeDecl, public DeclContext {
+struct StructDecl : public TypeDecl, public GenericDeclContext {
   bool isLambda;
 
   StructDecl(SourceLocation location,
              std::string identifier,
-             std::vector<TypeParamDecl *> typeParams = {},
+             GenericDeclContext *declContext,
+             std::vector<TypeParamDecl *> typeParams,
              bool isLambda = false)
-      : TypeDecl(location, std::move(identifier), std::move(typeParams)),
-        DeclContext(nullptr),
+      : TypeDecl(location, std::move(identifier), declContext),
+        GenericDeclContext(declContext, std::move(typeParams)),
         isLambda(isLambda) {}
 
   void dump(size_t level = 0) const override;
 };
 
-struct FunctionDecl : public ValueDecl {
+struct FunctionDecl : public ValueDecl, public GenericDeclContext {
   std::vector<ParamDecl *> params;
-  FunctionDecl *implements = nullptr;
   Block *body = nullptr;
-  bool isComplete = false;
+  FunctionDecl *implements = nullptr;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
+               GenericDeclContext *declContext,
                std::vector<TypeParamDecl *> typeParams = {},
-               std::vector<ParamDecl *> params = {},
                FunctionDecl *implements = nullptr)
-      : ValueDecl(
-            location, std::move(identifier), false, std::move(typeParams)),
-        params(std::move(params)),
+      : ValueDecl(location, std::move(identifier), declContext, false),
+        GenericDeclContext(declContext, std::move(typeParams)),
         implements(implements) {}
 
-  void setBody(Block *body);
+  void setBody(Block *body) { this->body = body; }
+  void setParams(std::vector<ParamDecl *> params) {
+    this->params = std::move(params);
+  };
 
   void dump(size_t level = 0) const override;
 };
@@ -586,7 +591,8 @@ public:
         structs.emplace_back(raw);
     } else if constexpr (std::is_base_of_v<FunctionDecl, T>)
       // FIXME: rething how these nodes are stored
-      functions.emplace_back(raw);
+      if (!raw->parent)
+        functions.emplace_back(raw);
 
     return raw;
   }

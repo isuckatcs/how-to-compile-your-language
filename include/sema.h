@@ -24,11 +24,11 @@ class Sema {
 
   class Scope {
     Scope *parent;
-    res::DeclContext *ctx;
+    res::GenericDeclContext *ctx;
     std::vector<res::Decl *> decls;
 
   public:
-    Scope(Scope *parent, res::DeclContext *ctx)
+    Scope(Scope *parent, res::GenericDeclContext *ctx)
         : parent(parent),
           ctx(ctx) {}
 
@@ -37,7 +37,7 @@ class Sema {
                                           bool recursive = true) const;
 
     Scope *getParent() const { return parent; }
-    res::DeclContext *getCurrentDeclContext() const;
+    res::GenericDeclContext *getDeclContext() const;
   };
 
   class EnterNewScopeRAII {
@@ -45,16 +45,17 @@ class Sema {
     Scope scope;
 
   public:
-    explicit EnterNewScopeRAII(Sema *sema, res::DeclContext *ctx = nullptr)
+    explicit EnterNewScopeRAII(Sema *sema,
+                               res::GenericDeclContext *ctx = nullptr)
         : sema(sema),
-          scope(sema->currentScope, ctx) {
-      sema->currentScope = &scope;
+          scope(sema->scope, ctx) {
+      sema->scope = &scope;
     }
 
-    ~EnterNewScopeRAII() { sema->currentScope = scope.getParent(); }
+    ~EnterNewScopeRAII() { sema->scope = scope.getParent(); }
   };
 
-  Scope *currentScope = nullptr;
+  Scope *scope = nullptr;
 
   // FIXME: remove this?
   res::Type *selfType = nullptr;
@@ -84,7 +85,7 @@ class Sema {
   struct PendingLambdaDescriptor {
     res::LambdaExpr *lambda;
     const ast::LambdaExpr *astLambda;
-    res::DeclContext snapshot;
+    res::GenericDeclContext snapshot;
   };
 
   struct FunctionInfo {
@@ -171,7 +172,7 @@ class Sema {
   res::FunctionDecl *
   resolveFunctionDecl(res::Context &ctx,
                       const ast::FunctionDecl &decl,
-                      res::Decl *parent = nullptr,
+                      res::GenericDeclContext *parent = nullptr,
                       res::FunctionDecl *implements = nullptr);
   res::FunctionDecl *resolveFunctionBody(res::Context &ctx,
                                          const ast::FunctionDecl &functionDecl,

@@ -23,7 +23,15 @@ std::string ConstVal::asString() const {
       *this);
 }
 
-bool DeclContext::insertDecl(res::Decl *decl) {
+GenericDeclContext::GenericDeclContext(
+    GenericDeclContext *parent, std::vector<res::TypeParamDecl *> typeParams)
+    : parent(parent),
+      typeParams(std::move(typeParams)) {
+  for (auto &&tp : typeParams)
+    tp->setDeclContext(this);
+}
+
+bool GenericDeclContext::insertDecl(res::Decl *decl) {
   bool isValueDecl = decl->getAs<res::ValueDecl>();
 
   for (auto &&currentDecl : decls)
@@ -35,18 +43,19 @@ bool DeclContext::insertDecl(res::Decl *decl) {
 
   // FIXME: unify these cases, and move this logic somewhere else
   if (dynamic_cast<Decl *>(this)) {
-    decl->setParent(this);
+    decl->setDeclContext(this);
   } else if (dynamic_cast<TypeExtension *>(this)) {
-    decl->setParent(this);
+    decl->setDeclContext(this);
   }
 
   return true;
 }
 
-std::vector<res::Decl *> DeclContext::lookupDecl(const std::string id) const {
+std::vector<res::Decl *>
+GenericDeclContext::lookupDecl(const std::string id) const {
   std::vector<res::Decl *> result;
 
-  const DeclContext *ctx = this;
+  const GenericDeclContext *ctx = this;
   while (ctx) {
     for (auto &&decl : ctx->decls)
       if (decl->identifier == id)
@@ -99,18 +108,10 @@ void VarDecl::dump(size_t level) const {
     initializer->dump(level + 1);
 }
 
-void FunctionDecl::setBody(Block *body) {
-  assert(!isComplete && "setting body on an already complete function");
-  assert(body && "function body cannot be null");
-
-  this->body = body;
-  isComplete = true;
-}
-
 void FunctionDecl::dump(size_t level) const {
   std::cerr << indent(level) << "FunctionDecl @(" << this << ") " << identifier
-            << (!isComplete ? " [incomplete]" : "") << " {"
-            << getType()->getName() << '}' << '\n';
+            << (!body ? " [incomplete]" : "") << " {" << getType()->getName()
+            << '}' << '\n';
 
   if (implements)
     std::cerr << indent(level) << "| implements '" << implements->identifier
