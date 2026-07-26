@@ -310,7 +310,7 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-AnyType *TypeManager::getImplType(AnyTraitType *trait) {
+AnyType *TypeManager::getAnyType(AnyTraitType *trait) {
   auto *implTy = new AnyType(trait);
   types.emplace_back(std::unique_ptr<AnyType>(implTy));
   return implTy;
@@ -509,7 +509,7 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
   else if (auto *trait = t->getAs<AnyTraitType>())
     t = getAnyTraitType(*trait->decl, trait->args);
   else if (auto *i = t->getAs<res::AnyType>())
-    t = getImplType(i->getTrait());
+    t = getAnyType(i->getTrait());
 
   for (auto &arg : t->args)
     arg = instantiate(arg, substitution);

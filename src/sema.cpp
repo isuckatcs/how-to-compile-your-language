@@ -89,9 +89,21 @@ res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
   return fn;
 }
 
+res::TypeDecl *Sema::resolveTypeSymbol(const ast::UserDefinedType *udt) {
+  for (auto &&d : scope->lookupSymbol(udt->identifier))
+    if (auto *td = d->getAs<res::TypeDecl>())
+      return td;
+
+  return err::failedToResolveType(udt->location)
+      .with(udt->identifier)
+      .report(reporter);
+}
+
 res::Type *Sema::resolveType(res::Context &ctx,
                              const ast::Type &parsedType,
-                             bool allowRawTraitObject) {
+                             bool allowTraitObject,
+                             bool expectTrait,
+                             res::Type *traitSelfType) {
   if (const auto *builtin =
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
@@ -110,41 +122,70 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *udt =
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
-    res::TypeDecl *decl = nullptr;
-
-    for (auto &&d : scope->lookupSymbol(udt->identifier)) {
-      decl = d->getAs<res::TypeDecl>();
-
-      if (decl)
-        break;
-    }
-
-    if (!decl)
-      return err::failedToResolveType(udt->location)
-          .with(udt->identifier)
-          .report(reporter);
+    varOrReturn(decl, resolveTypeSymbol(udt));
 
     if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
       return typeMgr.getTypeParamType(*typeParamDecl);
 
-    auto *sd = decl->getAs<res::StructDecl>();
-    // FIXME: report a different error if this is a trait
-    if (!sd)
+    auto *gdc = dynamic_cast<res::GenericDeclContext *>(decl);
+    assert(gdc && "expected generic decl context");
+
+    bool isTraitDecl = decl->getAs<res::TraitDecl>();
+    int offset = isTraitDecl ? 1 : 0;
+    const auto &typeParams = gdc->typeParams;
+
+    // FIXME: report a different error
+    if (isTraitDecl && !expectTrait)
+      return err::failedToResolveType(udt->location)
+          .with(udt->identifier)
+          .report(reporter);
+
+    // FIXME: report a different error
+    if (!isTraitDecl && expectTrait)
       return err::failedToResolveType(udt->location)
           .with(udt->identifier)
           .report(reporter);
 
     varOrReturn(res, checkTypeParameterCount(udt->location,
                                              udt->typeArguments.size(),
-                                             sd->typeParams.size()));
+                                             typeParams.size() - offset));
 
     std::vector<res::Type *> resolvedTypeArgs;
     for (auto &&astArg : udt->typeArguments) {
       varOrReturn(resolvedType, resolveType(ctx, *astArg));
-      resolvedTypeArgs.emplace_back(resolvedType);
+
+      // FIXME: should find a better way to check constraints
+      auto *expectedType = typeMgr.getNewUninferredType();
+      for (auto &&constraint : typeMgr.getConstraints(
+               typeParams[resolvedTypeArgs.size() + offset]->getType()))
+        typeMgr.createObligation(expectedType, constraint);
+
+      bool error = false;
+      if (auto errs = typeMgr.unify(expectedType, resolvedType);
+          !errs.empty()) {
+        for (auto &&err : errs)
+          err::inferenceError(astArg->location).with(err).report(reporter);
+
+        error = true;
+      }
+
+      if (!error)
+        resolvedTypeArgs.emplace_back(resolvedType);
     }
 
-    return typeMgr.getStructType(*sd, std::move(resolvedTypeArgs));
+    if (resolvedTypeArgs.size() != udt->typeArguments.size())
+      return nullptr;
+
+    if (isTraitDecl) {
+      auto *td = decl->getAs<res::TraitDecl>();
+      if (!traitSelfType)
+        return typeMgr.getAnyTraitType(*td, std::move(resolvedTypeArgs));
+
+      return typeMgr.getTraitType(*td, std::move(resolvedTypeArgs));
+    }
+
+    return typeMgr.getStructType(*decl->getAs<res::StructDecl>(),
+                                 std::move(resolvedTypeArgs));
   }
 
   if (const auto *function =
@@ -161,29 +202,27 @@ res::Type *Sema::resolveType(res::Context &ctx,
     return typeMgr.getFunctionType(std::move(args), retTy);
   }
 
-  if (const auto *impl = dynamic_cast<const ast::AnyType *>(&parsedType)) {
-    if (!allowRawTraitObject)
-      return err::traitObjectNotPointee(impl->location).report(reporter);
+  if (const auto *any = dynamic_cast<const ast::AnyType *>(&parsedType)) {
+    if (!allowTraitObject)
+      return err::traitObjectNotPointee(any->location).report(reporter);
 
-    varOrReturn(trait, resolveTraitInstance(ctx, impl->trait.get(), nullptr));
-    auto *traitType = trait->getType()->getAs<res::AnyTraitType>();
+    varOrReturn(type, resolveType(ctx, *any->type, false, true));
+    auto *traitType = type->getAs<res::AnyTraitType>();
 
+    SourceLocation loc = any->type->location;
     std::set<std::string> visited;
     if (!checkVtableCompatibility(
-            trait->location,
+            loc,
             typeMgr.withSelfType(traitType, typeMgr.getNewUninferredType()),
             visited))
-      return err::traitNotTraitObjectCompatible(trait->location)
+      return err::traitNotTraitObjectCompatible(loc)
           .with(traitType->getName())
           .report(reporter);
 
-    if (functionInfo && !checkTraitInstance(trait))
-      return nullptr;
+    auto *anyType = typeMgr.getAnyType(traitType);
+    typeMgr.addConstraint(anyType, typeMgr.withSelfType(traitType, anyType));
 
-    auto *implType = typeMgr.getImplType(traitType);
-    typeMgr.addConstraint(implType, typeMgr.withSelfType(traitType, implType));
-
-    return implType;
+    return anyType;
   }
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {

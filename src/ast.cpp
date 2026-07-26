@@ -43,7 +43,7 @@ void PointerType::dump(size_t level) const {
 void AnyType::dump(size_t level) const {
   std::cerr << indent(level) << "AnyType\n";
 
-  trait->dump(level + 1);
+  type->dump(level + 1);
 }
 
 void Block::dump(size_t level) const {

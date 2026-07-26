@@ -194,6 +194,7 @@ public:
   friend class TypeManager;
 };
 
+// FIXME: is this needed when there is any type?
 class AnyTraitType : public Type {
   TraitDecl *decl;
 
@@ -284,7 +285,7 @@ public:
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   BorrowedType *getBorrowedType(Type *borrowedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
-  AnyType *getImplType(AnyTraitType *trait);
+  AnyType *getAnyType(AnyTraitType *trait);
 
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);

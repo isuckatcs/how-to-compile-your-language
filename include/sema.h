@@ -106,9 +106,12 @@ class Sema {
 
   FunctionInfo *functionInfo;
 
+  res::TypeDecl *resolveTypeSymbol(const ast::UserDefinedType *udt);
   res::Type *resolveType(res::Context &ctx,
                          const ast::Type &parsedType,
-                         bool allowRawTraitObject = false);
+                         bool allowTraitObject = false,
+                         bool expectTrait = false,
+                         res::Type *traitSelfType = nullptr);
 
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
                                            const ast::UnaryOperator &unary);

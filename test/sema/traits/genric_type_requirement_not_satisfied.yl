@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+}
+
+struct S<T : A> {}
+
+// CHECK: [[# @LINE + 1]]:13: error: cannot satisfy requirement 'number : A'
+fn foo(s: S<number>) {}
+
+fn main() {}
