@@ -3,13 +3,13 @@
 fn foo(): any A {}
 // CHECK: FunctionDecl: foo
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     TraitInstance: A
+// CHECK-NEXT:     UserDefinedType: A
 // CHECK-NEXT:   Block
 
 fn bar(): any A<x, y> {}
 // CHECK-NEXT: FunctionDecl: bar
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     TraitInstance: A
+// CHECK-NEXT:     UserDefinedType: A
 // CHECK-NEXT:       UserDefinedType: x
 // CHECK-NEXT:       UserDefinedType: y
 // CHECK-NEXT:   Block
@@ -17,7 +17,7 @@ fn bar(): any A<x, y> {}
 fn baz(): any A<x, y, z> {}
 // CHECK-NEXT: FunctionDecl: baz
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     TraitInstance: A
+// CHECK-NEXT:     UserDefinedType: A
 // CHECK-NEXT:       UserDefinedType: x
 // CHECK-NEXT:       UserDefinedType: y
 // CHECK-NEXT:       UserDefinedType: z

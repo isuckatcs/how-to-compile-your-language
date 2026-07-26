@@ -73,13 +73,12 @@ struct PointerType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitInstance;
 struct AnyType : public Type {
-  std::unique_ptr<TraitInstance> trait;
+  std::unique_ptr<UserDefinedType> type;
 
-  AnyType(SourceLocation location, std::unique_ptr<TraitInstance> trait)
+  AnyType(SourceLocation location, std::unique_ptr<UserDefinedType> type)
       : Type(location),
-        trait(std::move(trait)) {}
+        type(std::move(type)) {}
 
   void dump(size_t level = 0) const override;
 };

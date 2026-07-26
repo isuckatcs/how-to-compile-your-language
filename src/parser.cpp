@@ -1073,7 +1073,7 @@ Parser::parseListWithTrailingComma(
 //  ::= '*' 'mut'? <type>
 //
 // <anyType>
-//  ::= 'any' <traitInstance> ('&' <traitInstance>)*
+//  ::= 'any' <userDefinedType>
 std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
   TokenKind kind = nextToken.kind;
@@ -1125,8 +1125,8 @@ std::unique_ptr<ast::Type> Parser::parseType() {
     SourceLocation location = nextToken.location;
     eatNextToken(); // eat 'any'
 
-    varOrReturn(trait, parseTraitInstance());
-    return std::make_unique<ast::AnyType>(location, std::move(trait));
+    varOrReturn(type, parseUserDefinedType());
+    return std::make_unique<ast::AnyType>(location, std::move(type));
   }
 
   return err::expected(nextToken.location)
