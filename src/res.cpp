@@ -186,28 +186,9 @@ Type *DeclRefExpr::getReceiverType() const {
   return nullptr;
 }
 
-std::string DeclRefExpr::getFullPath() const {
-  std::stringstream ss;
-
-  // FIXME: should print these?
-  // if (auto *receiverType = getReceiverType()) {
-  //   // if (owningTrait)
-  //   //   ss << '@' << '<';
-
-  //   ss << receiverType->getName();
-
-  //   // if (owningTrait)
-  //   //   ss << ' ' << ':' << ' ' << owningTrait->getName() << '>';
-  //   ss << ':' << ':';
-  // }
-
-  ss << decl->identifier;
-  return ss.str();
-}
-
 void DeclRefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
-            << getFullPath() << " {" << getType()->getName() << '}' << '\n';
+            << decl->identifier << " {" << getType()->getName() << '}' << '\n';
 }
 
 bool CallExpr::isVirtual() const {

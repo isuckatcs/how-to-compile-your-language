@@ -44,9 +44,9 @@ void CFG::dump() const {
         std::cerr << "while " << stmtToRef[whileStmt->condition];
       } else if (auto *assignment =
                      dynamic_cast<const res::Assignment *>(*it)) {
-        if (auto *path =
+        if (auto *dre =
                 dynamic_cast<const res::DeclRefExpr *>(assignment->assignee))
-          std::cerr << path->getFullPath();
+          std::cerr << dre->decl->identifier;
         else
           std::cerr << stmtToRef[assignment->assignee];
 
@@ -103,7 +103,7 @@ void CFG::dump() const {
         std::cerr << '}';
       } else if (const auto *dre =
                      dynamic_cast<const res::DeclRefExpr *>(*it)) {
-        std::cerr << dre->getFullPath();
+        std::cerr << dre->decl->identifier;
       } else if (const auto *memberExpr =
                      dynamic_cast<const res::MemberExpr *>(*it)) {
         std::cerr << stmtToRef[memberExpr->base] << '.'

@@ -355,7 +355,6 @@ struct DeclRefExpr : public Expr {
         sub(sub) {}
 
   Type *getReceiverType() const;
-  std::string getFullPath() const;
 
   void dump(size_t level = 0) const override;
 };
