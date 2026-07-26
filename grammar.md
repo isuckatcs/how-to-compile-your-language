@@ -5,17 +5,13 @@
     ::= (<traitDecl> | <structDecl> | <functionDecl> | <typeExtension>)* EOF
 
 <traitDecl>
-    ::= 'trait' <identifier> <typeParamList>? <traitList>? '{' <traitFunctionDecl>* '}'
+    ::= 'trait' <identifier> <typeParamList>? <traitConformance>? '{' <traitFunctionDecl>* '}'
 
 <traitFunctionDecl>
     ::= 'fn' <functionSignature> (';' | <block>)
 
-<traitList>
-    ::= ':' <traitInstance> ('&' <traitInstance>)*
-
-// FIXME: replace this with user defined type
-<traitInstance>
-    ::= <identifier> <typeList>?
+<traitConformance>
+    ::= ':' <userDefinedType> ('&' <userDefinedType>)*
 
 <structDecl>
     ::= 'struct' <identifier> <typeParamList>? '{' (<fieldList> | <functionDecl>)* '}'
@@ -24,7 +20,7 @@
     ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
 
 <typeParamDecl>
-    ::= <identifier> <traitList>?
+    ::= <identifier> <traitConformance>?
 
 <fieldList>
     ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
@@ -33,7 +29,7 @@
     ::= <identifier> <typeAnnotation>
 
 <typeExtension> 
-    ::= 'extension' <typeParamList> <type> ':' <traitInstance> '{' <functionDecl>* '}'
+    ::= 'extension' <typeParamList> <type> <traitConformance> '{' <functionDecl>* '}'
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
