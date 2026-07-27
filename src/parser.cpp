@@ -292,8 +292,8 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
 
   varOrReturn(type, parseType());
 
-  expectOrReturn(TokenKind::Colon,
-                 err::expected(nextToken.location).with("':'"));
+  SourceLocation loc = nextToken.location;
+  expectOrReturn(TokenKind::Colon, err::expected(loc).with("':'"));
   varOrReturn(conformance, parseTraitConformance());
 
   expectOrReturn(TokenKind::Lbrace,
@@ -314,7 +314,7 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
   eatNextToken(); // eat '}'
 
   return std::make_unique<ast::TypeExtension>(
-      std::move(*typeParamList), std::move(type), std::move(conformance),
+      loc, std::move(*typeParamList), std::move(type), std::move(conformance),
       std::move(functions));
 }
 

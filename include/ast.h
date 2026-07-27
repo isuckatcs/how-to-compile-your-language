@@ -530,16 +530,19 @@ struct LambdaExpr : public Expr {
 };
 
 struct TypeExtension {
+  SourceLocation location;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
   std::unique_ptr<Type> type;
   std::unique_ptr<TraitConformance> traitConformance;
   std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
 
-  TypeExtension(std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
+  TypeExtension(SourceLocation location,
+                std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
                 std::unique_ptr<Type> type,
                 std::unique_ptr<TraitConformance> traitConformance,
                 std::vector<std::unique_ptr<ast::FunctionDecl>> functions)
-      : typeParams(std::move(typeParams)),
+      : location(location),
+        typeParams(std::move(typeParams)),
         type(std::move(type)),
         traitConformance(std::move(traitConformance)),
         functions(std::move(functions)) {}
