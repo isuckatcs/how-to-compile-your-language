@@ -294,7 +294,9 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
 
   SourceLocation loc = nextToken.location;
   expectOrReturn(TokenKind::Colon, err::expected(loc).with("':'"));
-  varOrReturn(conformance, parseTraitConformance());
+  eatNextToken(); // eat ':'
+
+  varOrReturn(trait, parseUserDefinedType());
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expected(nextToken.location).with("'{'"));
@@ -313,9 +315,9 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
                  err::expected2(nextToken.location).with("'fn'").with("'}'"));
   eatNextToken(); // eat '}'
 
-  return std::make_unique<ast::TypeExtension>(
-      loc, std::move(*typeParamList), std::move(type), std::move(conformance),
-      std::move(functions));
+  return std::make_unique<ast::TypeExtension>(loc, std::move(*typeParamList),
+                                              std::move(type), std::move(trait),
+                                              std::move(functions));
 }
 
 // <functionDecl>

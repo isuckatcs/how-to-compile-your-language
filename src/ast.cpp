@@ -287,7 +287,7 @@ void TypeExtension::dump(size_t level) const {
 
   type->dump(level + 1);
 
-  traitConformance->dump(level + 1);
+  trait->dump(level + 1);
 
   for (auto &&fn : functions)
     fn->dump(level + 1);

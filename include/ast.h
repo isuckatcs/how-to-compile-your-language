@@ -533,18 +533,18 @@ struct TypeExtension {
   SourceLocation location;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
   std::unique_ptr<Type> type;
-  std::unique_ptr<TraitConformance> traitConformance;
+  std::unique_ptr<UserDefinedType> trait;
   std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
 
   TypeExtension(SourceLocation location,
                 std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
                 std::unique_ptr<Type> type,
-                std::unique_ptr<TraitConformance> traitConformance,
+                std::unique_ptr<UserDefinedType> trait,
                 std::vector<std::unique_ptr<ast::FunctionDecl>> functions)
       : location(location),
         typeParams(std::move(typeParams)),
         type(std::move(type)),
-        traitConformance(std::move(traitConformance)),
+        trait(std::move(trait)),
         functions(std::move(functions)) {}
 
   void dump(size_t level = 0) const;

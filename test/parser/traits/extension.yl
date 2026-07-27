@@ -8,8 +8,7 @@ extension S : A {
 }
 // CHECK: TypeExtension:
 // CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   TraitConformance
-// CHECK-NEXT:     UserDefinedType: A
+// CHECK-NEXT:   UserDefinedType: A
 // CHECK-NEXT:   FunctionDecl: foo
 // CHECK-NEXT:     Block
 // CHECK-NEXT:   FunctionDecl: bar
@@ -20,8 +19,7 @@ extension S : A {
 extension S : B {}
 // CHECK: TypeExtension:
 // CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   TraitConformance
-// CHECK-NEXT:     UserDefinedType: B
+// CHECK-NEXT:   UserDefinedType: B
 
 extension<T> S : C<T> {
   fn foo() {}
@@ -31,9 +29,8 @@ extension<T> S : C<T> {
 // CHECK: TypeExtension:
 // CHECK-NEXT:   TypeParamDecl: T
 // CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   TraitConformance
-// CHECK-NEXT:     UserDefinedType: C
-// CHECK-NEXT:       UserDefinedType: T
+// CHECK-NEXT:   UserDefinedType: C
+// CHECK-NEXT:     UserDefinedType: T
 // CHECK-NEXT:   FunctionDecl: foo
 // CHECK-NEXT:     Block
 // CHECK-NEXT:   FunctionDecl: bar

@@ -1340,16 +1340,9 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
 
   varOrReturn(type, resolveType(ctx, *extension.type));
+  varOrReturn(trait, resolveType(ctx, *extension.trait, false, true, type));
 
-  varOrReturn(conformance,
-              resolveTraitConformance(ctx, *extension.traitConformance, type));
-
-  // FIXME: error out in this case, multiple traits cannot be extended at once
-  // due to function name collision
-  assert(conformance->traits.size() == 1 &&
-         "currently only 1 trait extensions are supported");
-
-  auto *traitType = conformance->traits[0];
+  auto *traitType = trait->getAs<res::TraitType>();
 
   res::Substitution probeSub;
   for (auto &&typeParam : typeParams)
