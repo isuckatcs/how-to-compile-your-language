@@ -15,7 +15,6 @@ class StructDecl;
 class TraitDecl;
 class TypedNode;
 class ExtensionDecl;
-class TraitInstance;
 
 struct Type {
   template <typename T> T *getAs() {

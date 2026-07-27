@@ -106,6 +106,10 @@ class Sema {
 
   FunctionInfo *functionInfo;
 
+  bool shouldDelayUserDefinedTypeChecking = true;
+  std::unordered_map<const ast::UserDefinedType *, res::Type *>
+      delayedTypeChecks;
+
   res::TypeDecl *resolveTypeSymbol(const ast::UserDefinedType *udt);
   res::Type *resolveType(res::Context &ctx,
                          const ast::Type &parsedType,
@@ -178,9 +182,6 @@ class Sema {
   std::pair<res::ParamDecl *, bool>
   resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param);
 
-  res::TraitInstance *resolveTraitInstance(res::Context &ctx,
-                                           const ast::TraitInstance *trait,
-                                           res::Type *receiver);
   res::TraitDecl *resolveTraitDecl(res::Context &ctx,
                                    const ast::TraitDecl &decl);
   bool resolveTraitBody(res::Context &ctx,
@@ -215,10 +216,10 @@ class Sema {
       const std::vector<res::TypeParamDecl *> &resParams,
       const std::vector<std::unique_ptr<ast::TypeParamDecl>> &astParams);
 
-  std::vector<res::TraitInstance *> resolveTraitInstanceList(
-      res::Context &ctx,
-      const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances,
-      res::Type *receiver);
+  res::TraitConformance *
+  resolveTraitConformance(res::Context &ctx,
+                          const ast::TraitConformance &conformance,
+                          res::Type *type);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                             res::ExtensionDecl *extension);
@@ -230,8 +231,9 @@ class Sema {
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
   bool checkSelfParameter(res::ParamDecl *param, size_t idx);
   bool hasSelfContainingStructs(res::Context &ctx);
-  bool checkTraitInstances(res::Context &ctx);
-  bool checkTraitInstance(res::TraitInstance *traitInstance);
+  bool checkDelayedUserDefinedTypes(res::Context &ctx);
+  res::Type *validatedUserDefinedType(const ast::UserDefinedType *astDecl,
+                                      res::Type *type);
   bool checkVtableCompatibility(SourceLocation loc,
                                 res::TraitType *trait,
                                 std::set<std::string> &visited);

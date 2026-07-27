@@ -188,9 +188,10 @@ struct ParamDecl : public ValueDecl {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitInstance;
+struct TraitConformance;
+
 struct TraitDecl : public TypeDecl, public GenericDeclContext {
-  std::vector<TraitInstance *> traits;
+  TraitConformance *conformance = nullptr;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
@@ -202,34 +203,30 @@ struct TraitDecl : public TypeDecl, public GenericDeclContext {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitInstance : public TypedNode {
+struct TraitConformance {
   SourceLocation location;
-  TraitDecl *decl;
+  res::Type *type;
+  std::vector<res::TraitType *> traits;
 
-  std::vector<res::Type *> typeArgs;
-  std::vector<yl::SourceLocation> typeLocations;
-
-  TraitInstance(yl::SourceLocation location,
-                TraitDecl *decl,
-                std::vector<res::Type *> typeArgs,
-                std::vector<yl::SourceLocation> typeLocations)
+  TraitConformance(SourceLocation location,
+                   res::Type *type,
+                   std::vector<res::TraitType *> traits)
       : location(location),
-        decl(decl),
-        typeArgs(std::move(typeArgs)),
-        typeLocations(std::move(typeLocations)) {}
+        type(type),
+        traits(std::move(traits)) {}
 
   void dump(size_t level = 0) const;
 };
 
 struct ExtensionDecl : public Decl, public GenericDeclContext {
   Type *type;
-  TraitInstance *trait;
+  TraitType *trait;
 
   ExtensionDecl(SourceLocation location,
                 GenericDeclContext *declContext,
                 std::vector<TypeParamDecl *> typeParams,
                 Type *type,
-                TraitInstance *trait)
+                TraitType *trait)
       : Decl(location, declContext),
         GenericDeclContext(declContext, std::move(typeParams)),
         type(type),
@@ -239,7 +236,7 @@ struct ExtensionDecl : public Decl, public GenericDeclContext {
 };
 
 struct TypeParamDecl : public TypeDecl {
-  std::vector<TraitInstance *> traits;
+  TraitConformance *conformance;
   bool isImplicitSelf;
 
   TypeParamDecl(SourceLocation location,
@@ -558,7 +555,7 @@ class Context {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
-  std::vector<std::unique_ptr<TraitInstance>> traitInstances;
+  std::vector<std::unique_ptr<TraitConformance>> conformances;
 
   std::vector<TraitDecl *> traits;
   std::vector<StructDecl *> structs;
@@ -577,8 +574,8 @@ public:
       decls.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<Block, T>)
       blocks.emplace_back(std::move(ptr));
-    else if constexpr (std::is_base_of_v<TraitInstance, T>)
-      traitInstances.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<TraitConformance, T>)
+      conformances.emplace_back(std::move(ptr));
     else
       llvm_unreachable(
           "can only create statements, declarations, blocks and traits");
@@ -614,15 +611,6 @@ public:
     return extensions;
   }
   std::vector<ExtensionDecl *> &getTypeExtensions() { return extensions; }
-
-  std::vector<TraitInstance *> getTraitInstances() {
-    std::vector<TraitInstance *> out;
-
-    for (auto &&traitInstance : traitInstances)
-      out.emplace_back(traitInstance.get());
-
-    return out;
-  }
 
   void dump() const;
 };

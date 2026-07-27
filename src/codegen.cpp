@@ -628,7 +628,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
     parentType = sd->getType();
   } else if (auto *e =
                  dynamic_cast<res::ExtensionDecl *>(dre.decl->declContext)) {
-    parentType = e->trait->getType();
+    parentType = e->trait;
   } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     parentType = t->getType();
   }
@@ -642,8 +642,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
 bool Codegen::isImplOf(const res::ExtensionDecl *impl,
                        const res::TraitType *trait) {
-  const res::TraitType *implTy =
-      impl->trait->getType()->getAs<res::TraitType>();
+  const res::TraitType *implTy = impl->trait;
 
   const auto &traitTyArgs = trait->getTypeArgs();
   const auto &implTyArgs = implTy->getTypeArgs();

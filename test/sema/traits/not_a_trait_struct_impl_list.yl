@@ -1,4 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct NotATrait {}
+
 struct S {}
 
 // CHECK: [[# @LINE + 1 ]]:15: error: 'NotATrait' is not a trait

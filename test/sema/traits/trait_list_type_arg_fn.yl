@@ -10,7 +10,7 @@ extension B : Base {}
 fn foo<T : A<B>>() {}
 // CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
-// CHECK-NEXT:     TraitInstance @({{.*}}) A {A<B>}
+// CHECK-NEXT:     TraitConformance T : A<B>
 // CHECK-NEXT:   Block
 
 fn main() {}

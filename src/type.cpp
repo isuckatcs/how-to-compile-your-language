@@ -209,7 +209,11 @@ void Substitution::dump() const {
     std::cerr << from->getName() << " -> " << to->getName() << '\n';
 }
 
-// FIXME: what if the substitution is stored in the type?
+// FIXME: what if the substitution is stored in the type? E.g.:
+// struct S<T> {
+//   fn foo<U : Foo<T>>() {}
+// }
+// This method can only extract U -> ..., but not T -> ...
 Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
   if (!ty)
     return {};
@@ -343,7 +347,7 @@ TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
       continue;
     }
 
-    Type *probedTrait = instantiate(extension->trait->getType(), extSub);
+    Type *probedTrait = instantiate(extension->trait, extSub);
     if (!unify(trait, probedTrait, probeOnly).empty())
       continue;
 
@@ -461,13 +465,13 @@ TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
       else if (extensions.size() == 1) {
         auto [extension, sub] = extensions[0];
         unify(type, instantiate(extension->type, sub));
-        unify(requiredTrait, instantiate(extension->trait->getType(), sub));
+        unify(requiredTrait, instantiate(extension->trait, sub));
       } else
         for (auto &&extension : extensions)
-          errors.emplace_back(
-              "'" + extension.first->trait->getType()->getName() +
-              "' ambigously satisfies requirement '" + type->getName() + " : " +
-              requiredTrait->getName() + "'");
+          errors.emplace_back("'" + extension.first->trait->getName() +
+                              "' ambigously satisfies requirement '" +
+                              type->getName() + " : " +
+                              requiredTrait->getName() + "'");
     }
   }
 
@@ -531,21 +535,22 @@ TypeManager::getVtableLayout(const res::TraitType *trait) {
 
   Substitution sub = extractSubstitutionFrom(trait);
 
-  for (auto &&superTrait : trait->getDecl()->traits) {
-    auto *superType =
-        instantiate(superTrait->getType(), sub)->getAs<res::TraitType>();
+  if (auto *conformance = trait->getDecl()->conformance) {
+    for (auto &&superTrait : conformance->traits) {
+      auto *superType = instantiate(superTrait, sub)->getAs<res::TraitType>();
 
-    // FIXME: find a more efficient filtering
-    bool alreadyInserted = false;
+      // FIXME: find a more efficient filtering
+      bool alreadyInserted = false;
 
-    for (auto &&[trait, _] : layout)
-      alreadyInserted |= eq(trait, superType);
+      for (auto &&[trait, _] : layout)
+        alreadyInserted |= eq(trait, superType);
 
-    if (alreadyInserted)
-      continue;
+      if (alreadyInserted)
+        continue;
 
-    const auto &superLayout = getVtableLayout(superType);
-    layout.insert(layout.end(), superLayout.begin(), superLayout.end());
+      const auto &superLayout = getVtableLayout(superType);
+      layout.insert(layout.end(), superLayout.begin(), superLayout.end());
+    }
   }
 
   for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())

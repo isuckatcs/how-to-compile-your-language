@@ -140,9 +140,8 @@ res::Type *Sema::resolveType(res::Context &ctx,
           .with(udt->identifier)
           .report(reporter);
 
-    // FIXME: report a different error
     if (!isTraitDecl && expectTrait)
-      return err::failedToResolveType(udt->location)
+      return err::notATrait(udt->location)
           .with(udt->identifier)
           .report(reporter);
 
@@ -151,27 +150,9 @@ res::Type *Sema::resolveType(res::Context &ctx,
                                              typeParams.size() - offset));
 
     std::vector<res::Type *> resolvedTypeArgs;
-    for (auto &&astArg : udt->typeArguments) {
-      varOrReturn(resolvedType, resolveType(ctx, *astArg));
-
-      // FIXME: should find a better way to check constraints
-      auto *expectedType = typeMgr.getNewUninferredType();
-      for (auto &&constraint : typeMgr.getConstraints(
-               typeParams[resolvedTypeArgs.size() + offset]->getType()))
-        typeMgr.createObligation(expectedType, constraint);
-
-      bool error = false;
-      if (auto errs = typeMgr.unify(expectedType, resolvedType);
-          !errs.empty()) {
-        for (auto &&err : errs)
-          err::inferenceError(astArg->location).with(err).report(reporter);
-
-        error = true;
-      }
-
-      if (!error)
+    for (auto &&astArg : udt->typeArguments)
+      if (auto *resolvedType = resolveType(ctx, *astArg))
         resolvedTypeArgs.emplace_back(resolvedType);
-    }
 
     if (resolvedTypeArgs.size() != udt->typeArguments.size())
       return nullptr;
@@ -179,14 +160,17 @@ res::Type *Sema::resolveType(res::Context &ctx,
     if (isTraitDecl) {
       auto *td = decl->getAs<res::TraitDecl>();
       if (!traitSelfType)
-        return typeMgr.getAnyTraitType(*td, std::move(resolvedTypeArgs));
+        return validatedUserDefinedType(
+            udt, typeMgr.getAnyTraitType(*td, std::move(resolvedTypeArgs)));
 
       resolvedTypeArgs.emplace(resolvedTypeArgs.begin(), traitSelfType);
-      return typeMgr.getTraitType(*td, std::move(resolvedTypeArgs));
+      return validatedUserDefinedType(
+          udt, typeMgr.getTraitType(*td, std::move(resolvedTypeArgs)));
     }
 
-    return typeMgr.getStructType(*decl->getAs<res::StructDecl>(),
-                                 std::move(resolvedTypeArgs));
+    return validatedUserDefinedType(
+        udt, typeMgr.getStructType(*decl->getAs<res::StructDecl>(),
+                                   std::move(resolvedTypeArgs)));
   }
 
   if (const auto *function =
@@ -582,11 +566,11 @@ Sema::lookupAssociatedDecls(std::string identifier,
       continue;
     }
 
-    for (auto &&decl : extension->trait->decl->lookupDecl(identifier))
+    for (auto &&decl : extension->trait->getDecl()->lookupDecl(identifier))
       candidates.emplace_back(
           // FIXME: add an API for substitution composition?
           decl, typeMgr.extractSubstitutionFrom(
-                    typeMgr.instantiate(extension->trait->getType(), sub)));
+                    typeMgr.instantiate(extension->trait, sub)));
   }
 
   return candidates;
@@ -1350,10 +1334,15 @@ Sema::resolveTypeExtension(res::Context &ctx,
 
   varOrReturn(type, resolveType(ctx, *extension.type));
 
-  varOrReturn(traitInstance,
-              resolveTraitInstance(ctx, extension.trait.get(), type));
+  varOrReturn(conformance,
+              resolveTraitConformance(ctx, *extension.traitConformance, type));
 
-  auto *traitType = traitInstance->getType()->getAs<res::TraitType>();
+  // FIXME: error out in this case, multiple traits cannot be extended at once
+  // due to function name collision
+  assert(conformance->traits.size() == 1 &&
+         "currently only 1 trait extensions are supported");
+
+  auto *traitType = conformance->traits[0];
 
   res::Substitution probeSub;
   for (auto &&typeParam : typeParams)
@@ -1363,10 +1352,10 @@ Sema::resolveTypeExtension(res::Context &ctx,
       typeMgr.instantiate(type, probeSub),
       typeMgr.instantiate(traitType, probeSub)->getAs<res::TraitType>());
   if (!conflictingExtensions.empty()) {
-    for (auto &&[extension, sub] : conflictingExtensions)
-      err::conflictingTrait(traitInstance->location)
+    for (auto &&[extensionDecl, sub] : conflictingExtensions)
+      err::conflictingTrait(extension.traitConformance->traits[0]->location)
           .with(traitType->getName())
-          .with(extension->trait->getType()->getName())
+          .with(extensionDecl->trait->getName())
           .report(reporter);
 
     return nullptr;
@@ -1374,7 +1363,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
 
   auto *typeExtension = ctx.create<res::ExtensionDecl>(
       extension.type->location, scope->getDeclContext(), std::move(typeParams),
-      type, traitInstance);
+      type, traitType);
   typeMgr.addExtension(typeExtension);
 
   selfType = type;
@@ -1546,50 +1535,35 @@ bool Sema::resolveGenericParamsInCurrentScope(
     res::TypeParamDecl *resParam = resParams[i];
     error |= !insertDeclToCurrentScope(resParam);
 
-    const auto &restrictions = astParams[i - offset]->restrictions;
-    auto traits =
-        resolveTraitInstanceList(ctx, restrictions, resParam->getType());
-    error |= traits.size() != restrictions.size();
+    if (auto *astConformance = astParams[i - offset]->traitConformance.get()) {
+      auto *conformance =
+          resolveTraitConformance(ctx, *astConformance, resParam->getType());
+      if (!conformance)
+        return false;
 
-    for (auto &&trait : traits) {
-      resParam->traits.emplace_back(trait);
-      typeMgr.addConstraint(resParam->getType(),
-                            trait->getType()->getAs<res::TraitType>());
+      // FIXME: either store these on the node, or in the type manager, but not
+      // at both places
+      resParam->conformance = conformance;
+      for (auto &&trait : conformance->traits)
+        typeMgr.addConstraint(resParam->getType(), trait);
     }
   }
 
   return !error;
 }
 
-std::vector<res::TraitInstance *> Sema::resolveTraitInstanceList(
-    res::Context &ctx,
-    const std::vector<std::unique_ptr<ast::TraitInstance>> &traitInstances,
-    res::Type *receiver) {
-  std::vector<res::TraitInstance *> resolvedTraits;
-
-  for (auto &&trait : traitInstances) {
-    auto *resTrait = resolveTraitInstance(ctx, trait.get(), receiver);
-    if (!resTrait)
-      continue;
-
-    resolvedTraits.emplace_back(resTrait);
-  }
-
-  return resolvedTraits;
-}
-
 bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                                 res::ExtensionDecl *extension) {
   bool error = false;
 
-  for (auto &&fn : extension->trait->decl->getAll<res::FunctionDecl>()) {
+  for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {
     if (fn->body || !extension->lookupDecl(fn->identifier).empty())
       continue;
 
     err::missingTraitFn(fn->location)
         .with(extension->type->getName())
         .with(fn->identifier)
-        .with(extension->trait->getType()->getName())
+        .with(extension->trait->getName())
         .report(reporter);
     error = true;
   }
@@ -1713,57 +1687,19 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   return std::make_pair(p, error);
 }
 
-res::TraitInstance *Sema::resolveTraitInstance(res::Context &ctx,
-                                               const ast::TraitInstance *trait,
-                                               res::Type *receiver) {
-  SourceLocation location = trait->location;
-  std::string identifier = trait->identifier;
-  const auto &typeArguments = trait->typeArguments;
+res::TraitConformance *
+Sema::resolveTraitConformance(res::Context &ctx,
+                              const ast::TraitConformance &conformance,
+                              res::Type *type) {
+  std::vector<res::TraitType *> traits;
 
-  res::TraitDecl *traitDecl = nullptr;
+  for (auto &&trait : conformance.traits) {
+    varOrReturn(resTrait, resolveType(ctx, *trait, false, true, type));
+    traits.emplace_back(resTrait->getAs<res::TraitType>());
+  }
 
-  for (auto &&decl : scope->lookupSymbol(identifier))
-    if (auto *td = decl->getAs<res::TraitDecl>()) {
-      traitDecl = td;
-      break;
-    }
-
-  if (!traitDecl)
-    return err::notATrait(location).with(identifier).report(reporter);
-
-  std::vector<res::Type *> resTypeArgs;
-  if (receiver)
-    resTypeArgs.emplace_back(receiver);
-
-  if (!checkTypeParameterCount(location, typeArguments.size(),
-                               traitDecl->typeParams.size() - 1))
-    return nullptr;
-
-  // FIXME: clean this up once arbitrary types can be referenced and their
-  // locations are known... until then place a location for the implicit
-  // receiver
-  std::vector<SourceLocation> resTypeArgsLocs;
-  if (receiver)
-    resTypeArgsLocs.emplace_back(trait->location);
-
-  for (auto &&typeArg : typeArguments)
-    if (auto *resTypeArg = resolveType(ctx, *typeArg.get())) {
-      resTypeArgs.emplace_back(resTypeArg);
-      resTypeArgsLocs.emplace_back(typeArg->location);
-    }
-
-  if (typeArguments.size() != resTypeArgs.size() - (receiver ? 1 : 0))
-    return nullptr;
-
-  auto *t = ctx.create<res::TraitInstance>(location, traitDecl, resTypeArgs,
-                                           std::move(resTypeArgsLocs));
-
-  if (receiver)
-    t->setType(typeMgr.getTraitType(*traitDecl, std::move(resTypeArgs)));
-  else
-    t->setType(typeMgr.getAnyTraitType(*traitDecl, std::move(resTypeArgs)));
-
-  return t;
+  return ctx.create<res::TraitConformance>(conformance.location, type,
+                                           std::move(traits));
 }
 
 res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
@@ -1798,14 +1734,16 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
-  auto traits = resolveTraitInstanceList(ctx, astDecl.requirements,
-                                         traitDecl.typeParams[0]->getType());
-  error |= astDecl.requirements.size() != traits.size();
+  if (astDecl.traitConformance) {
+    auto *conformance = resolveTraitConformance(
+        ctx, *astDecl.traitConformance, traitDecl.typeParams[0]->getType());
+    error |= !conformance;
 
-  for (auto &&trait : traits) {
-    traitDecl.traits.emplace_back(trait);
-    typeMgr.addConstraint(traitDecl.getType(),
-                          trait->getType()->getAs<res::TraitType>());
+    if (conformance) {
+      traitDecl.conformance = conformance;
+      for (auto &&trait : conformance->traits)
+        typeMgr.addConstraint(traitDecl.getType(), trait);
+    }
   }
 
   // FIXME: is this correct?
@@ -1862,7 +1800,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
   bool error = !resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
                                                    astDecl.typeParameters);
 
-  std::vector<res::TraitInstance *> traitInstances;
+  std::vector<res::TraitConformance *> traitInstances;
 
   selfType = structDecl.getType();
   for (auto &&decl : astDecl.decls) {
@@ -1970,7 +1908,7 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   }
 
   error |= hasSelfContainingStructs(ctx);
-  error |= !checkTraitInstances(ctx);
+  error |= !checkDelayedUserDefinedTypes(ctx);
   if (error)
     return {nullptr, nullptr};
 
@@ -1987,12 +1925,13 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
     auto *astExtension = astExtensions[i].get();
     auto *resExtension = resExtensions[i];
 
-    auto *traitTy = resExtension->trait->getType()->getAs<res::TraitType>();
+    auto *traitTy = resExtension->trait;
 
     // FIXME: extract this, it can also be checked in checkTraitInstances
     for (auto &&requirement : typeMgr.getConstraints(traitTy))
       if (typeMgr.getExtensions(resExtension->type, requirement).empty()) {
-        err::missingRequirement(resExtension->trait->location)
+        err::missingRequirement(
+            astExtension->traitConformance->traits[0]->location)
             .with(traitTy->getName())
             .with(requirement->getName())
             .report(reporter);
@@ -2124,46 +2063,59 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   return !selfContaining.empty();
 }
 
-bool Sema::checkTraitInstances(res::Context &ctx) {
-  bool error = false;
+bool Sema::checkDelayedUserDefinedTypes(res::Context &ctx) {
+  shouldDelayUserDefinedTypeChecking = false;
 
-  for (auto &&traitInstance : ctx.getTraitInstances())
-    error |= !checkTraitInstance(traitInstance);
+  bool error = false;
+  for (auto &&[ast, res] : delayedTypeChecks)
+    error |= !validatedUserDefinedType(ast, res);
 
   return !error;
 }
 
-bool Sema::checkTraitInstance(res::TraitInstance *traitInstance) {
-  auto sub = typeMgr.extractSubstitutionFrom(traitInstance->getType());
-
-  for (size_t i = 0; i < traitInstance->typeArgs.size(); ++i) {
-    auto *subTy = typeMgr.getNewUninferredType();
-
-    // FIXME: we shouldn't need these hacks
-    int typeParamOffset =
-        traitInstance->getType()->getAs<res::AnyTraitType>() ? 1 : 0;
-    auto *typeParamDecl = traitInstance->decl->typeParams[i + typeParamOffset];
-
-    // FIXME: with Self being on the trait, this can be checked here
-    if (typeParamDecl->isImplicitSelf)
-      continue;
-
-    for (auto &&trait : typeMgr.getConstraints(typeParamDecl->getType()))
-      typeMgr.createObligation(
-          subTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
-
-    if (const auto &msg = typeMgr.unify(traitInstance->typeArgs[i], subTy);
-        !msg.empty()) {
-      for (auto &&error : msg)
-        err::inferenceError(traitInstance->typeLocations[i])
-            .with(error)
-            .report(reporter);
-
-      return false;
-    }
+res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
+                                          res::Type *type) {
+  if (shouldDelayUserDefinedTypeChecking) {
+    delayedTypeChecks[astDecl] = type;
+    return type;
   }
 
-  return true;
+  res::GenericDeclContext *gdc = nullptr;
+  auto sub = typeMgr.extractSubstitutionFrom(type);
+
+  if (auto *st = type->getAs<res::StructType>())
+    gdc = st->getDecl();
+  else if (auto *t = type->getAs<res::TraitType>())
+    gdc = t->getDecl();
+  else if (auto *a = type->getAs<res::AnyTraitType>())
+    gdc = a->getDecl();
+
+  assert(gdc && "unexpected type param type");
+
+  auto astIt = astDecl->typeArguments.begin();
+  for (auto &&typeParam : gdc->typeParams) {
+    // AnyTraitType doesn't have a Self mapping, so nothing to check here.
+    if (typeParam->isImplicitSelf)
+      continue;
+
+    auto *probeType = typeMgr.getNewUninferredType();
+    for (auto &&trait : typeMgr.getConstraints(typeParam->getType()))
+      typeMgr.createObligation(
+          probeType, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
+
+    if (auto errs = typeMgr.unify(
+            typeMgr.instantiate(typeParam->getType(), sub), probeType);
+        !errs.empty()) {
+      for (auto &&err : errs)
+        err::inferenceError(astIt->get()->location).with(err).report(reporter);
+
+      return nullptr;
+    }
+
+    ++astIt;
+  }
+
+  return type;
 }
 
 bool Sema::checkVtableCompatibility(SourceLocation loc,

@@ -109,7 +109,7 @@ void FunctionDecl::dump(size_t level) const {
 
 void ExtensionDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeExtension " << type->getName() << " : "
-            << trait->getType()->getName() << '\n';
+            << trait->getName() << '\n';
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
@@ -129,17 +129,25 @@ void StructDecl::dump(size_t level) const {
     decl->dump(level + 1);
 }
 
-void TraitInstance::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitInstance @(" << decl
-            << ") " + decl->identifier << " {" << getType()->getName() << "}\n";
+void TraitConformance::dump(size_t level) const {
+  std::cerr << indent(level) << "TraitConformance " << type->getName() << " : ";
+
+  for (auto &&trait : traits) {
+    std::cerr << trait->getName();
+
+    if (trait != traits.back())
+      std::cerr << " & ";
+  }
+
+  std::cerr << '\n';
 }
 
 void TraitDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TraitDecl @(" << this << ") " << identifier
             << '\n';
 
-  for (auto &&trait : traits)
-    trait->dump(level + 1);
+  if (conformance)
+    conformance->dump(level + 1);
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
@@ -152,8 +160,8 @@ void TypeParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TypeParamDecl @(" << this << ") " << identifier
             << " {" << getType()->getName() << "}\n";
 
-  for (auto &&trait : traits)
-    trait->dump(level + 1);
+  if (conformance)
+    conformance->dump(level + 1);
 }
 
 void NumberLiteral::dump(size_t level) const {
