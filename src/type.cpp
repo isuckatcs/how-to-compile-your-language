@@ -69,6 +69,10 @@ bool TypeParamType::isSameKind(const Type *other) const {
   return p && p->decl == decl;
 };
 
+TraitConformance *TypeParamType::getConformance() const {
+  return decl->conformance;
+}
+
 FunctionType::FunctionType(std::vector<Type *> args)
     : Type("fn", std::move(args)) {}
 
@@ -166,6 +170,10 @@ std::string TraitType::getName() const {
   return ss.str();
 }
 
+TraitConformance *TraitType::getConformance() const {
+  return decl->conformance;
+};
+
 AnyTraitType::AnyTraitType(TraitDecl &decl, std::vector<Type *> args)
     : Type(decl.identifier, std::move(args)),
       decl(&decl) {}
@@ -192,6 +200,10 @@ std::string AnyTraitType::getName() const {
 
   return ss.str();
 }
+
+TraitConformance *AnyTraitType::getConformance() const {
+  return decl->conformance;
+};
 
 AnyType::AnyType(res::AnyTraitType *trait)
     : Type("any", {trait}) {}
@@ -320,10 +332,6 @@ AnyType *TypeManager::getAnyType(AnyTraitType *trait) {
   return implTy;
 }
 
-void TypeManager::addConstraint(Type *type, TraitType *trait) {
-  constraints.emplace_back(type, trait);
-}
-
 void TypeManager::addExtension(ExtensionDecl *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
@@ -357,40 +365,28 @@ TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
   return foundExtensions;
 }
 
-std::vector<TraitType *> TypeManager::getConstraints(const res::Type *type) {
+std::vector<TraitType *> TypeManager::getDirectConformance(res::Type *type) {
   type = type->getRootType();
-  Substitution sub = extractSubstitutionFrom(type);
+
+  if (auto *a = type->getAs<res::AnyType>())
+    return {withSelfType(a->getTrait(), a)};
+
+  res::TraitConformance *conformance = type->getConformance();
+  if (!conformance)
+    return {};
 
   std::vector<TraitType *> traits;
+  Substitution sub = extractSubstitutionFrom(type);
 
-  // FIXME: this needs to traverse the extensions
-  for (auto &&[constrainedType, trait] : constraints)
-    if (eq(type, instantiate(constrainedType, sub))) {
-      traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
+  for (auto &&trait : conformance->traits)
+    traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
 
-      for (auto &&traitConstraint : getConstraints(traits.back()))
-        traits.emplace_back(traitConstraint);
-    }
-
-  // FIXME: clean this up
-  std::vector<TraitType *> filtered;
-  for (auto &&t : traits) {
-    bool found = false;
-    for (auto &&f : filtered)
-      found |= eq(t, f);
-
-    if (found)
-      continue;
-
-    filtered.emplace_back(t);
-  }
-
-  return filtered;
+  return traits;
 }
 
-bool TypeManager::hasConstraint(Type *type, TraitType *trait) {
-  for (auto &&constraint : getConstraints(type))
-    if (unify(trait, constraint).empty())
+bool TypeManager::conformsTo(Type *type, TraitType *trait) {
+  for (auto &&constraint : getDirectConformance(type))
+    if (unify(trait, constraint, true).empty() || conformsTo(constraint, trait))
       return true;
 
   return false;
@@ -453,7 +449,7 @@ TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
 
   for (auto &&type : inferredTypes) {
     for (auto &&requiredTrait : obligations[type]) {
-      if (hasConstraint(type, requiredTrait))
+      if (conformsTo(type, requiredTrait))
         continue;
 
       // FIXME: consider returning candidates

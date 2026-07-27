@@ -15,6 +15,7 @@ class StructDecl;
 class TraitDecl;
 class TypedNode;
 class ExtensionDecl;
+class TraitConformance;
 
 struct Type {
   template <typename T> T *getAs() {
@@ -35,6 +36,8 @@ struct Type {
   virtual std::string getName() const { return name; };
 
   virtual bool isSameKind(const Type *other) const = 0;
+
+  virtual TraitConformance *getConformance() const { return nullptr; }
 
   virtual ~Type() = default;
 
@@ -99,6 +102,8 @@ class TypeParamType : public Type {
 
 public:
   TypeParamDecl *decl;
+
+  TraitConformance *getConformance() const override;
 
   friend class TypeManager;
 };
@@ -190,6 +195,8 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
   std::string getName() const override;
 
+  TraitConformance *getConformance() const override;
+
   friend class TypeManager;
 };
 
@@ -208,6 +215,8 @@ public:
   std::vector<Type *> getTypeArgs() const { return args; }
   std::string getName() const override;
 
+  TraitConformance *getConformance() const override;
+
   friend class TypeManager;
 };
 
@@ -217,10 +226,7 @@ class AnyType : public Type {
   bool isSameKind(const Type *other) const override;
 
 public:
-  res::AnyTraitType *getTrait() {
-    return args[0]->getRootType()->getAs<res::AnyTraitType>();
-  }
-  const res::AnyTraitType *getTrait() const {
+  res::AnyTraitType *getTrait() const {
     return args[0]->getRootType()->getAs<res::AnyTraitType>();
   }
 
@@ -236,8 +242,6 @@ class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
 class TypeManager {
   size_t uninferredTypeId = 0;
   std::vector<std::unique_ptr<Type>> types;
-  // FIXME: this should only contain the trait prerequisites
-  std::vector<std::pair<Type *, TraitType *>> constraints;
   std::vector<ExtensionDecl *> extensions;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
@@ -252,10 +256,6 @@ class TypeManager {
   checkObligations(std::vector<UninferredType *> &inferredTypes);
 
 public:
-  void addConstraint(Type *type, TraitType *trait);
-  std::vector<TraitType *> getConstraints(const Type *type);
-  bool hasConstraint(Type *type, TraitType *trait);
-
   void createObligation(UninferredType *type, TraitType *trait);
 
   void addExtension(ExtensionDecl *typeExtension);
@@ -282,6 +282,8 @@ public:
   Type *instantiate(Type *t, const Substitution &substitution);
 
   // FIXME: these should live in the types
+  std::vector<TraitType *> getDirectConformance(Type *type);
+  bool conformsTo(Type *type, TraitType *trait);
   TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
   VtableLayoutTy getVtableLayout(const res::TraitType *trait);
 };

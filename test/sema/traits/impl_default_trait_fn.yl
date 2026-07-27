@@ -4,6 +4,7 @@ trait A {
 }
 // CHECK: TraitDecl @({{.*}}) A
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) Self {Self}
+// CHECK-NEXT:     TraitConformance Self : A
 // CHECK-NEXT:   FunctionDecl @({{.*}}) foo {() -> unit}
 // CHECK-NEXT:     Block
 

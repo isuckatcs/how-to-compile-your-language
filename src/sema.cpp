@@ -204,10 +204,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
           .with(traitType->getName())
           .report(reporter);
 
-    auto *anyType = typeMgr.getAnyType(traitType);
-    typeMgr.addConstraint(anyType, typeMgr.withSelfType(traitType, anyType));
-
-    return anyType;
+    return typeMgr.getAnyType(traitType);
   }
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
@@ -321,7 +318,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
     parentType = specType;
     parentTrait = traitType->getAs<res::TraitType>();
 
-    if (!typeMgr.hasConstraint(parentType, parentTrait) &&
+    if (!typeMgr.conformsTo(parentType, parentTrait) &&
         typeMgr.getExtensions(parentType, parentTrait).empty())
       return err::traitNotImplemented(traitSpec->trait->location)
           .with(parentType->getName())
@@ -484,7 +481,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
 
       sub[tpType] = subType;
 
-      for (auto &&trait : typeMgr.getConstraints(tpType)) {
+      for (auto &&trait : typeMgr.getDirectConformance(tpType)) {
         auto *instTrait =
             typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
         typeMgr.createObligation(subType, instTrait);
@@ -541,17 +538,27 @@ Sema::lookupAssociatedDecls(std::string identifier,
 
     if (!candidates.empty())
       return candidates;
-  }
 
-  for (auto &&constraint : typeMgr.getConstraints(type)) {
-    // FIXME: cannot EQ due to the Self type being _ ... should be probed?
-    // if (trait && !typeMgr.eq(trait, constraint))
-    if (trait && trait->getName() != constraint->getName())
-      continue;
+    auto constraints = typeMgr.getDirectConformance(type);
+    std::deque<res::TraitType *> traits(constraints.begin(), constraints.end());
+    std::set<res::NamedDecl *> seen;
 
-    for (auto &&decl : constraint->getDecl()->lookupDecl(identifier))
-      candidates.emplace_back(decl,
-                              typeMgr.extractSubstitutionFrom(constraint));
+    while (!traits.empty()) {
+      res::TraitType *trait = traits.front();
+      traits.pop_front();
+
+      for (auto &&decl : trait->getDecl()->lookupDecl(identifier))
+        if (seen.emplace(decl).second)
+          candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
+
+      for (auto &&parent : typeMgr.getDirectConformance(trait))
+        traits.emplace_back(parent);
+    }
+  } else if (typeMgr.conformsTo(type, trait)) {
+    for (auto &&decl : trait->getDecl()->lookupDecl(identifier))
+      candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
+
+    return candidates;
   }
 
   auto extensions = typeMgr.getExtensions(type, trait);
@@ -1403,7 +1410,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       sub[implParamTy] = traitParamTy;
       reverseSub[implParamTy] = checkTy;
 
-      for (auto &&trait : typeMgr.getConstraints(implParamTy))
+      for (auto &&trait : typeMgr.getDirectConformance(implParamTy))
         typeMgr.createObligation(
             checkTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 
@@ -1536,16 +1543,11 @@ bool Sema::resolveGenericParamsInCurrentScope(
     error |= !insertDeclToCurrentScope(resParam);
 
     if (auto *astConformance = astParams[i - offset]->traitConformance.get()) {
-      auto *conformance =
+      resParam->conformance =
           resolveTraitConformance(ctx, *astConformance, resParam->getType());
-      if (!conformance)
-        return false;
 
-      // FIXME: either store these on the node, or in the type manager, but not
-      // at both places
-      resParam->conformance = conformance;
-      for (auto &&trait : conformance->traits)
-        typeMgr.addConstraint(resParam->getType(), trait);
+      if (!resParam->conformance)
+        return false;
     }
   }
 
@@ -1723,7 +1725,9 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
   auto *traitType = typeMgr.getTraitType(*trait, typeParamTys);
   trait->setType(traitType);
 
-  typeMgr.addConstraint(selfType, traitType);
+  self->conformance = ctx.create<res::TraitConformance>(
+      decl.location, selfType, std::vector<res::TraitType *>{traitType});
+
   return trait;
 }
 
@@ -1735,15 +1739,9 @@ bool Sema::resolveTraitBody(res::Context &ctx,
                                                    astDecl.typeParameters);
 
   if (astDecl.traitConformance) {
-    auto *conformance = resolveTraitConformance(
+    traitDecl.conformance = resolveTraitConformance(
         ctx, *astDecl.traitConformance, traitDecl.typeParams[0]->getType());
-    error |= !conformance;
-
-    if (conformance) {
-      traitDecl.conformance = conformance;
-      for (auto &&trait : conformance->traits)
-        typeMgr.addConstraint(traitDecl.getType(), trait);
-    }
+    error |= !traitDecl.conformance;
   }
 
   // FIXME: is this correct?
@@ -1928,7 +1926,7 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
     auto *traitTy = resExtension->trait;
 
     // FIXME: extract this, it can also be checked in checkTraitInstances
-    for (auto &&requirement : typeMgr.getConstraints(traitTy))
+    for (auto &&requirement : typeMgr.getDirectConformance(traitTy))
       if (typeMgr.getExtensions(resExtension->type, requirement).empty()) {
         err::missingRequirement(
             astExtension->traitConformance->traits[0]->location)
@@ -2099,7 +2097,7 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
       continue;
 
     auto *probeType = typeMgr.getNewUninferredType();
-    for (auto &&trait : typeMgr.getConstraints(typeParam->getType()))
+    for (auto &&trait : typeMgr.getDirectConformance(typeParam->getType()))
       typeMgr.createObligation(
           probeType, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
 
@@ -2172,7 +2170,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     }
   }
 
-  for (auto &&parentTrait : typeMgr.getConstraints(trait))
+  for (auto &&parentTrait : typeMgr.getDirectConformance(trait))
     if (!checkVtableCompatibility(loc, parentTrait, visited)) {
       err::superTraitNotTraitObjectCompatible(loc)
           .with(parentTrait->getName())
