@@ -229,15 +229,6 @@ public:
   friend class TypeManager;
 };
 
-// struct ExtensionInfo {
-//   std::vector<TypeParamType *> typeParams;
-//   Type *type;
-//   TraitType *trait;
-//   TypeExtension *extensionNode;
-
-//   void dump() const;
-// };
-
 class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
   void dump() const;
 };
