@@ -5,7 +5,7 @@ struct S<T, U> {}
 
 extension<T, U> S<T, U> : A<T, number> {}
 
-// CHECK: [[# @LINE + 1 ]]:27: error: implementing trait 'A<number, U>' conflicts with implementation 'A<T, number>'
+// CHECK: [[# @LINE + 1 ]]:25: error: extension 'S<T, U> : A<number, U>' conflicts with extension 'S<T, U> : A<T, number>'
 extension<T, U> S<T, U> : A<number, U> {}
 
 trait B<T> {}
@@ -14,14 +14,14 @@ struct S2<T> {}
 
 extension<T> S2<T> : B<T> {}
 
-// CHECK: [[# @LINE + 1 ]]:22: error: implementing trait 'B<number>' conflicts with implementation 'B<T>'
+// CHECK: [[# @LINE + 1 ]]:20: error: extension 'S2<T> : B<number>' conflicts with extension 'S2<T> : B<T>'
 extension<T> S2<T> : B<number> {}
 
 struct S3<T> {}
 
 extension<T> S3<T> : B<number> {}
 
-// CHECK: [[# @LINE + 1 ]]:22: error: implementing trait 'B<T>' conflicts with implementation 'B<number>'
+// CHECK: [[# @LINE + 1 ]]:20: error: extension 'S3<T> : B<T>' conflicts with extension 'S3<T> : B<number>'
 extension<T> S3<T> : B<T> {}
 
 fn main() {}

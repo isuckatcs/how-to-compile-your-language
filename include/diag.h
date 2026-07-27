@@ -158,12 +158,9 @@ diag(Error, traitNotImplemented, "'{}' doesn't implement trait '{}'");
 diag(Error, stricterParamTy, "cannot replace parameter of type '{}' with stricter implementation type '{}'");
 diag(Error, fnSignatureMismatch, "trait function declaration has '{}' signature, but the given implementation is '{}'");
 diag(Error, notATrait, "'{}' is not a trait");
-diag(Error, alreadyImplementedFn, "function '{}' is already implemented for trait '{}'");
 diag(Error, missingTraitFn, "struct '{}' must implement function '{}' from trait '{}'");
-// FIXME: extension 'A : B' conflicts with extension 'C : D'
-diag(Error, conflictingTrait, "implementing trait '{}' conflicts with implementation '{}'");
-// FIXME: extension 'A : B' requires extension 'C : D'
-diag(Error, missingRequirement, "implementing trait '{}' requires implementing trait '{}'");
+diag(Error, conflictingExtension, "extension '{} : {}' conflicts with extension '{} : {}'");
+diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
 
 // structs
 diag(Error, selfContainingStruct, "struct '{}' contains itself");

@@ -8,10 +8,10 @@ struct S {}
 extension S : A {
   fn foo() {}
 
-  // CHECK: [[# @LINE + 1]]:6: error: function 'foo' is already implemented for trait 'A'
+  // CHECK: [[# @LINE + 1]]:6: error: redeclaration of 'foo'
   fn foo() {}
 
-  // CHECK: [[# @LINE + 1]]:6: error: function 'foo' is already implemented for trait 'A'
+  // CHECK: [[# @LINE + 1]]:6: error: redeclaration of 'foo'
   fn foo() {}
 }
 

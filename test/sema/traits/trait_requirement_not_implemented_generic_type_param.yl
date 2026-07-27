@@ -5,7 +5,7 @@ trait A<T> : B<T> {}
 
 struct S<X> {}
 
-// CHECK: [[# @LINE + 1 ]]:21: error: implementing trait 'A<X>' requires implementing trait 'B<X>'
+// CHECK: [[# @LINE + 1 ]]:19: error: extension 'S<X> : A<X>' requires extension 'S<X> : B<X>'
 extension<X> S<X> : A<X> {}
 
 fn main() {}

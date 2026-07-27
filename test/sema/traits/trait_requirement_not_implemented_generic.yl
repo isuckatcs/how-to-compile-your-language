@@ -6,8 +6,8 @@ trait A : B<number> & B<unit> {}
 struct S {}
 
 extension S : A {
-  // CHECK: [[# @LINE - 1 ]]:15: error: implementing trait 'A' requires implementing trait 'B<number>'
-  // CHECK: [[# @LINE - 2 ]]:15: error: implementing trait 'A' requires implementing trait 'B<unit>'
+  // CHECK: [[# @LINE - 1 ]]:13: error: extension 'S : A' requires extension 'S : B<number>'
+  // CHECK: [[# @LINE - 2 ]]:13: error: extension 'S : A' requires extension 'S : B<unit>'
 }
 
 fn main() {}

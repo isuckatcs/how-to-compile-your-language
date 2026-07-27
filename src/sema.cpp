@@ -1360,8 +1360,10 @@ Sema::resolveTypeExtension(res::Context &ctx,
       typeMgr.instantiate(traitType, probeSub)->getAs<res::TraitType>());
   if (!conflictingExtensions.empty()) {
     for (auto &&[extensionDecl, sub] : conflictingExtensions)
-      err::conflictingTrait(extension.traitConformance->traits[0]->location)
+      err::conflictingExtension(extension.location)
+          .with(type->getName())
           .with(traitType->getName())
+          .with(extensionDecl->type->getName())
           .with(extensionDecl->trait->getName())
           .report(reporter);
 
@@ -1369,8 +1371,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
   }
 
   auto *typeExtension = ctx.create<res::ExtensionDecl>(
-      extension.type->location, scope->getDeclContext(), std::move(typeParams),
-      type, traitType);
+      extension.location, scope->getDeclContext(), std::move(typeParams), type,
+      traitType);
   typeMgr.addExtension(typeExtension);
 
   selfType = type;
@@ -1446,14 +1448,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
     }
 
-    if (!scope->lookupSymbol(implFn->identifier, false).empty())
-      err::alreadyImplementedFn(implFn->location)
-          .with(implFn->identifier)
-          .with(traitType->getName())
-          .report(reporter);
-
-    insertDeclToCurrentScope(implFn);
-    typeExtension->insertDecl(implFn);
+    if (insertDeclToCurrentScope(implFn))
+      typeExtension->insertDecl(implFn);
   }
   selfType = nullptr;
 
@@ -1926,15 +1922,18 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
     auto *traitTy = resExtension->trait;
 
     // FIXME: extract this, it can also be checked in checkTraitInstances
-    for (auto &&requirement : typeMgr.getDirectConformance(traitTy))
-      if (typeMgr.getExtensions(resExtension->type, requirement).empty()) {
-        err::missingRequirement(
-            astExtension->traitConformance->traits[0]->location)
+    for (auto &&requirement : typeMgr.getDirectConformance(traitTy)) {
+      res::Type *type = resExtension->type;
+      if (typeMgr.getExtensions(type, requirement).empty()) {
+        err::missingRequirement(resExtension->location)
+            .with(type->getName())
             .with(traitTy->getName())
+            .with(type->getName())
             .with(requirement->getName())
             .report(reporter);
         error |= true;
       }
+    }
 
     selfType = resExtension->type;
     for (int j = 0; j < astExtension->functions.size(); ++j)
