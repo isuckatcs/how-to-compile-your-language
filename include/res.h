@@ -108,13 +108,12 @@ struct GenericDeclContext {
   virtual ~GenericDeclContext() = default;
 
   void insertDecl(res::Decl *decl) { decls.emplace_back(decl); }
-  std::vector<res::NamedDecl *> lookupDecl(const std::string id) const;
+  std::vector<res::NamedDecl *> lookupDirect(const std::string id) const;
 
-  // FIXME: remove this
   template <typename T> std::vector<T *> getAll() const {
     std::vector<T *> out;
     for (auto &&decl : decls)
-      if (auto *d = dynamic_cast<T *>(decl))
+      if (auto *d = decl->getAs<T>())
         out.emplace_back(d);
     return out;
   }

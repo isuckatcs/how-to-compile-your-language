@@ -529,11 +529,11 @@ Sema::lookupAssociatedDecls(std::string identifier,
 
   if (!trait) {
     if (auto *t = type->getAs<res::TraitType>())
-      for (auto &&decl : t->getDecl()->lookupDecl(identifier))
+      for (auto &&decl : t->getDecl()->lookupDirect(identifier))
         candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
 
     if (auto *s = type->getAs<res::StructType>())
-      for (auto &&decl : s->getDecl()->lookupDecl(identifier))
+      for (auto &&decl : s->getDecl()->lookupDirect(identifier))
         candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
 
     if (!candidates.empty())
@@ -547,7 +547,7 @@ Sema::lookupAssociatedDecls(std::string identifier,
       res::TraitType *trait = traits.front();
       traits.pop_front();
 
-      for (auto &&decl : trait->getDecl()->lookupDecl(identifier))
+      for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
         if (seen.emplace(decl).second)
           candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
 
@@ -555,7 +555,7 @@ Sema::lookupAssociatedDecls(std::string identifier,
         traits.emplace_back(parent);
     }
   } else if (typeMgr.conformsTo(type, trait)) {
-    for (auto &&decl : trait->getDecl()->lookupDecl(identifier))
+    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
 
     return candidates;
@@ -567,13 +567,13 @@ Sema::lookupAssociatedDecls(std::string identifier,
   // LookupResult, which will allow to set a flag to not ambiguity...
   for (auto &&[extension, sub] : extensions) {
     // FIXME: should every extension decl be prioritized over every trait decl?
-    if (auto r = extension->lookupDecl(identifier); !r.empty()) {
+    if (auto r = extension->lookupDirect(identifier); !r.empty()) {
       for (auto &&decl : r)
         candidates.emplace_back(decl, sub);
       continue;
     }
 
-    for (auto &&decl : extension->trait->getDecl()->lookupDecl(identifier))
+    for (auto &&decl : extension->trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(
           // FIXME: add an API for substitution composition?
           decl, typeMgr.extractSubstitutionFrom(
@@ -1254,7 +1254,8 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
         auto *lambda = functionInfo->lambda;
 
         res::FieldDecl *field = nullptr;
-        if (auto r = lambda->closure->lookupDecl(decl->identifier); !r.empty())
+        if (auto r = lambda->closure->lookupDirect(decl->identifier);
+            !r.empty())
           field = r.front()->getAs<res::FieldDecl>();
 
         if (!field) {
@@ -1376,7 +1377,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
   selfType = type;
   for (auto &&fn : extension.functions) {
     res::FunctionDecl *traitFn = nullptr;
-    if (auto r = traitType->getDecl()->lookupDecl(fn->identifier); !r.empty())
+    if (auto r = traitType->getDecl()->lookupDirect(fn->identifier); !r.empty())
       traitFn = r.front()->getAs<res::FunctionDecl>();
 
     if (!traitFn) {
@@ -1559,7 +1560,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
   bool error = false;
 
   for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {
-    if (fn->body || !extension->lookupDecl(fn->identifier).empty())
+    if (fn->body || !extension->lookupDirect(fn->identifier).empty())
       continue;
 
     err::missingTraitFn(fn->location)
@@ -1849,7 +1850,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   for (auto &&memberDecl : astDecl.decls) {
     if (const auto *memberFn =
             dynamic_cast<const ast::FunctionDecl *>(memberDecl.get())) {
-      for (auto &&d : decl.lookupDecl(memberFn->identifier))
+      for (auto &&d : decl.lookupDirect(memberFn->identifier))
         if (auto *fd = d->getAs<res::FunctionDecl>())
           error |= !resolveFunctionBody(ctx, *memberFn, fd);
 

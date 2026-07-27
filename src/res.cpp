@@ -32,17 +32,12 @@ GenericDeclContext::GenericDeclContext(
 }
 
 std::vector<res::NamedDecl *>
-GenericDeclContext::lookupDecl(const std::string id) const {
+GenericDeclContext::lookupDirect(const std::string id) const {
   std::vector<res::NamedDecl *> result;
 
-  const GenericDeclContext *ctx = this;
-  while (ctx) {
-    for (auto &&decl : ctx->decls)
-      if (auto *nd = decl->getAs<res::NamedDecl>(); nd && nd->identifier == id)
-        result.emplace_back(nd);
-
-    ctx = ctx->parent;
-  }
+  for (auto &&nd : getAll<res::NamedDecl>())
+    if (nd->identifier == id)
+      result.emplace_back(nd);
 
   return result;
 }

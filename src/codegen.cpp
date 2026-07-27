@@ -608,7 +608,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
       assert(extensions.size() == 1 && "failed to find extension");
 
-      if (auto r = extensions[0].first->lookupDecl(fnDecl->identifier);
+      if (auto r = extensions[0].first->lookupDirect(fnDecl->identifier);
           !r.empty())
         fnDecl = r.front()->getAs<res::FunctionDecl>();
 
@@ -1405,7 +1405,7 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
 
     assert(extensions.size() == 1 && "failed to find extension");
 
-    if (auto r = extensions[0].first->lookupDecl(layoutFn->identifier);
+    if (auto r = extensions[0].first->lookupDirect(layoutFn->identifier);
         !r.empty())
       vFunction = r.front()->getAs<res::FunctionDecl>();
 
