@@ -29,7 +29,7 @@
     ::= <identifier> <typeAnnotation>
 
 <typeExtension> 
-    ::= 'extension' <typeParamList> <type> <traitConformance> '{' <functionDecl>* '}'
+    ::= 'extension' <typeParamList> <type> <userDefinedType> '{' <functionDecl>* '}'
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
