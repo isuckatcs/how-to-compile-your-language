@@ -96,8 +96,8 @@ diag(Error, missingSymbol, "symbol '{}' not found");
 diag(Error, lookupInTypeFailed, "failed to find member '{}' in '{}'");
 diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'");
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
-// FIXME: expected type, found value
-diag(Error, cannotAccessMember, "cannot access member of '{}'");
+diag(Error, memberAccessInRawTrait, "cannot look up member in trait without a specific extension");
+diag(Error, memberAccessInValue, "cannot look up member in value");
 diag(Error, ambigousMemberFn, "ambigous member function reference");
 diag(Error, traitObjectMethodNotCalled, "expected to call member function on trait object");
 

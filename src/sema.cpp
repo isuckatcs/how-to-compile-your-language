@@ -333,20 +333,19 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       parentType = nullptr;
       parentTrait = nullptr;
 
-      for (auto &&result : results) {
-        // FIXME: report dedicated error for traits
-        if (result->decl->getAs<res::TypeDecl>() &&
-            !result->decl->getAs<res::TraitDecl>()) {
+      for (auto &&result : results)
+        if (result->decl->getAs<res::TypeDecl>()) {
           parentType = result->getType();
           break;
         }
-      }
 
       // FIXME: report ambigous associated items?
 
       if (!parentType)
-        return err::cannotAccessMember(results[0]->location)
-            .with(results[0]->decl->identifier)
+        return err::memberAccessInValue(results[0]->location).report(reporter);
+
+      if (parentType->getAs<res::TraitType>())
+        return err::memberAccessInRawTrait(results[0]->location)
             .report(reporter);
 
       results.clear();
