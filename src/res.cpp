@@ -27,7 +27,7 @@ GenericDeclContext::GenericDeclContext(
     GenericDeclContext *parent, std::vector<res::TypeParamDecl *> typeParams)
     : parent(parent),
       typeParams(std::move(typeParams)) {
-  for (auto &&tp : typeParams)
+  for (auto &&tp : this->typeParams)
     tp->setDeclContext(this);
 }
 
