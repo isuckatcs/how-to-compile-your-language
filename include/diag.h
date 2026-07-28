@@ -116,6 +116,7 @@ diag(Error, binopOperandUnknown, "type of {} to binary operator is unknown");
 diag(Error, binopIncompatibleOperands, "incompatible operands to binary operator ('{}' and '{}')");
 diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
+diag(Error, rawTrait, "expected a specific extension or a trait object of '{}'");
 diag(Error, expectedInstance, "expected an instance of '{}'");
 diag(Error, notStructInstance, "expected struct declaration to instantiate");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");

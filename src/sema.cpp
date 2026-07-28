@@ -152,9 +152,8 @@ res::Type *Sema::resolveType(res::Context &ctx,
     int offset = isTraitDecl ? 1 : 0;
     const auto &typeParams = gdc->typeParams;
 
-    // FIXME: report a different error
     if (isTraitDecl && !expectTrait)
-      return err::failedToResolveType(udt->location)
+      return err::rawTrait(udt->location)
           .with(udt->identifier)
           .report(reporter);
 
