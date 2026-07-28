@@ -38,6 +38,7 @@ class Sema {
 
     Scope *getParent() const { return parent; }
     res::GenericDeclContext *getDeclContext() const;
+    res::Type *getSelfType() const;
   };
 
   class EnterNewScopeRAII {
@@ -56,9 +57,6 @@ class Sema {
   };
 
   Scope *scope = nullptr;
-
-  // FIXME: remove this?
-  res::Type *selfType = nullptr;
 
   enum Modifiers : unsigned char {
     IsCallee = 1 << 0,

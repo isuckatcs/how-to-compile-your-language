@@ -20,6 +20,24 @@ res::GenericDeclContext *Sema::Scope::getDeclContext() const {
   return nullptr;
 }
 
+res::Type *Sema::Scope::getSelfType() const {
+  auto *declContext = getDeclContext();
+  while (declContext) {
+    if (auto *s = dynamic_cast<res::StructDecl *>(declContext))
+      return s->getType();
+
+    if (auto *t = dynamic_cast<res::TraitDecl *>(declContext))
+      return t->typeParams[0]->getType();
+
+    if (auto *e = dynamic_cast<res::ExtensionDecl *>(declContext))
+      return e->type;
+
+    declContext = declContext->parent;
+  }
+
+  return nullptr;
+}
+
 std::vector<res::NamedDecl *> Sema::Scope::lookupSymbol(const std::string &id,
                                                         bool recursive) const {
   std::vector<res::NamedDecl *> results;
@@ -114,9 +132,9 @@ res::Type *Sema::resolveType(res::Context &ctx,
     case ast::BuiltinType::Kind::Bool:
       return typeMgr.getBuiltinBoolType();
     case ast::BuiltinType::Kind::Self:
-      if (!selfType)
-        return err::selfTyNotAllowed(parsedType.location).report(reporter);
-      return selfType;
+      if (auto *selfType = scope->getSelfType())
+        return selfType;
+      return err::selfTyNotAllowed(parsedType.location).report(reporter);
     }
   }
 
@@ -375,6 +393,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
     }
 
     if (fragment->identifier == selfTypeId) {
+      auto *selfType = scope->getSelfType();
       if (!selfType)
         return err::selfTyNotAllowed(fragment->location).report(reporter);
 
@@ -1217,7 +1236,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
     // FIXME: check these
-    if (resPath->decl->declContext && !isFunctionDecl)
+    if (decl->getAs<res::FieldDecl>())
       return err::memberFnLookupFailed(resPath->location)
           .with(decl->identifier)
           // FIXME: remove this once every parent is a decl
@@ -1368,7 +1387,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       traitType);
   typeMgr.addExtension(typeExtension);
 
-  selfType = type;
+  EnterNewScopeRAII extensionScope(this, typeExtension);
   for (auto &&fn : extension.functions) {
     res::FunctionDecl *traitFn = nullptr;
     if (auto r = traitType->getDecl()->lookupDirect(fn->identifier); !r.empty())
@@ -1444,7 +1463,6 @@ Sema::resolveTypeExtension(res::Context &ctx,
     if (insertDeclToCurrentScope(implFn))
       typeExtension->insertDecl(implFn);
   }
-  selfType = nullptr;
 
   if (typeExtension->decls.size() != extension.functions.size())
     return nullptr;
@@ -1471,12 +1489,11 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     }
   }
 
-  selfType = extension->type;
+  EnterNewScopeRAII extensionScope(this, extension);
   for (int i = 0; i < astExtension.functions.size(); ++i)
     error |=
         !resolveFunctionBody(ctx, *astExtension.functions[i],
                              extension->decls[i]->getAs<res::FunctionDecl>());
-  selfType = nullptr;
 
   error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
   return !error;
@@ -1612,7 +1629,6 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     }
   }
 
-  res::Type *currentSelfType = selfType;
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
@@ -1632,7 +1648,6 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
       decl.type ? resolveType(ctx, *decl.type) : typeMgr.getBuiltinUnitType();
   error |= !retTy;
 
-  selfType = currentSelfType;
   if (error)
     return nullptr;
 
@@ -1652,7 +1667,7 @@ Sema::resolveFunctionBody(res::Context &ctx,
 
   WithFunctionInfoRAII currentFnInfo(this, {function, nullptr, nullptr, {}});
 
-  EnterNewScopeRAII typeParamScope(this);
+  EnterNewScopeRAII typeParamScope(this, function);
   for (auto &&typeParam : function->typeParams)
     insertDeclToCurrentScope(typeParam);
 
@@ -1752,7 +1767,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
 bool Sema::resolveTraitBody(res::Context &ctx,
                             res::TraitDecl &traitDecl,
                             const ast::TraitDecl &astDecl) {
-  EnterNewScopeRAII typeParamScope(this);
+  EnterNewScopeRAII traitParamScope(this, &traitDecl);
   bool error = !resolveGenericParamsInCurrentScope(ctx, traitDecl.typeParams,
                                                    astDecl.typeParameters);
 
@@ -1762,8 +1777,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
     error |= !traitDecl.conformance;
   }
 
-  // FIXME: is this correct?
-  selfType = traitDecl.typeParams[0]->getType();
+  EnterNewScopeRAII traitBodyScope(this);
   for (auto &&fn : astDecl.traitFunctions) {
     auto *resolvedFn = resolveFunctionDecl(ctx, *fn, &traitDecl);
     error |= !insertDeclToCurrentScope(resolvedFn);
@@ -1781,16 +1795,16 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
                                       res::TraitDecl &traitDecl,
                                       const ast::TraitDecl &astDecl) {
-  EnterNewScopeRAII typeParamScope(this);
+  EnterNewScopeRAII traitParamScope(this, &traitDecl);
   for (auto &&typeParamDecl : traitDecl.typeParams)
     insertDeclToCurrentScope(typeParamDecl);
+
+  EnterNewScopeRAII traitBodyScope(this);
 
   bool error = false;
   int idx = 0;
   for (auto &&fn : traitDecl.getAll<res::FunctionDecl>()) {
-    selfType = traitDecl.typeParams[0]->getType();
     error |= !resolveFunctionBody(ctx, *astDecl.traitFunctions[idx], fn);
-    selfType = nullptr;
     ++idx;
   }
 
@@ -1814,13 +1828,11 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
 bool Sema::resolveStructBody(res::Context &ctx,
                              res::StructDecl &structDecl,
                              const ast::StructDecl &astDecl) {
-  EnterNewScopeRAII typeParamScope(this);
+  EnterNewScopeRAII structParamScope(this, &structDecl);
   bool error = !resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
                                                    astDecl.typeParameters);
 
-  std::vector<res::TraitConformance *> traitInstances;
-
-  selfType = structDecl.getType();
+  EnterNewScopeRAII structBodyScope(this);
   for (auto &&decl : astDecl.decls) {
     if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
       res::Type *fieldTy = resolveType(ctx, *field->type);
@@ -1852,18 +1864,17 @@ bool Sema::resolveStructBody(res::Context &ctx,
     }
   }
 
-  selfType = nullptr;
   return !error;
 }
 
 bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
                                        res::StructDecl &decl,
                                        const ast::StructDecl &astDecl) {
-  EnterNewScopeRAII typeParamScope(this);
+  EnterNewScopeRAII structParamScope(this, &decl);
   for (auto &&typeParamDecl : decl.typeParams)
     insertDeclToCurrentScope(typeParamDecl);
 
-  selfType = decl.getType();
+  EnterNewScopeRAII structBodyScope(this);
   bool error = false;
 
   for (auto &&memberDecl : astDecl.decls) {
@@ -1877,7 +1888,6 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
     }
   }
 
-  selfType = nullptr;
   return !error;
 }
 
@@ -1992,6 +2002,7 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
   if (param->identifier != selfParamId)
     return true;
 
+  res::Type *selfType = scope->getSelfType();
   if (!selfType) {
     err::selfParamNotAllowed(param->location).report(reporter);
     return false;
