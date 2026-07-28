@@ -1771,13 +1771,13 @@ bool Sema::resolveTraitBody(res::Context &ctx,
   EnterNewScopeRAII traitBodyScope(this);
   for (auto &&fn : astDecl.traitFunctions) {
     auto *resolvedFn = resolveFunctionDecl(ctx, *fn, &traitDecl);
-    error |= !insertDeclToCurrentScope(resolvedFn);
-
-    // FIXME: this should be removed soon
-    if (resolvedFn) {
-      resolvedFn->setMustImplement(!fn->body);
-      traitDecl.insertDecl(resolvedFn);
+    if (!insertDeclToCurrentScope(resolvedFn)) {
+      error = true;
+      continue;
     }
+
+    resolvedFn->setMustImplement(!fn->body);
+    traitDecl.insertDecl(resolvedFn);
   }
 
   return !error;
@@ -1825,34 +1825,25 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
   EnterNewScopeRAII structBodyScope(this);
   for (auto &&decl : astDecl.decls) {
+    res::NamedDecl *memberDecl = nullptr;
+
     if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
-      res::Type *fieldTy = resolveType(ctx, *field->type);
-      if (!fieldTy) {
-        error = true;
-        continue;
+      if (res::Type *fieldTy = resolveType(ctx, *field->type)) {
+        memberDecl = ctx.create<res::FieldDecl>(field->location,
+                                                field->identifier, &structDecl);
+        memberDecl->setType(fieldTy);
       }
+    }
 
-      auto *fieldDecl = ctx.create<res::FieldDecl>(
-          field->location, field->identifier, &structDecl);
-      fieldDecl->setType(fieldTy);
+    if (auto *memberFunction = dynamic_cast<ast::FunctionDecl *>(decl.get()))
+      memberDecl = resolveFunctionDecl(ctx, *memberFunction, &structDecl);
 
-      error |= !insertDeclToCurrentScope(fieldDecl);
-      // FIXME: this should be removed soon
-      structDecl.insertDecl(fieldDecl);
+    if (!insertDeclToCurrentScope(memberDecl)) {
+      error = true;
       continue;
     }
 
-    if (auto *memberFunction = dynamic_cast<ast::FunctionDecl *>(decl.get())) {
-      auto *memberFn = resolveFunctionDecl(ctx, *memberFunction, &structDecl);
-      if (!memberFn) {
-        error = true;
-        continue;
-      }
-
-      error |= !insertDeclToCurrentScope(memberFn);
-      // FIXME: this should be removed soon
-      structDecl.insertDecl(memberFn);
-    }
+    structDecl.insertDecl(memberDecl);
   }
 
   return !error;
