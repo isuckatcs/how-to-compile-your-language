@@ -638,23 +638,6 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
       *fnDecl, dre.getType()->getAs<res::FunctionType>(), parentType, typeArgs);
 }
 
-bool Codegen::isImplOf(const res::ExtensionDecl *impl,
-                       const res::TraitType *trait) {
-  const res::TraitType *implTy = impl->trait;
-
-  const auto &traitTyArgs = trait->getTypeArgs();
-  const auto &implTyArgs = implTy->getTypeArgs();
-
-  if (trait->getDecl() != implTy->getDecl())
-    return false;
-
-  for (int i = 0; i < traitTyArgs.size(); ++i)
-    if (generateType(traitTyArgs[i]) != generateType(implTyArgs[i]))
-      return false;
-
-  return true;
-}
-
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   bool isVirtualCall = call.isVirtual();
 
