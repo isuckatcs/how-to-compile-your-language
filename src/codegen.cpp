@@ -1062,7 +1062,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
       return;
 
     markIfGCRoot(alloca, type);
-    temporaryRoots[alloca] = true;
+    temporaryRoots.emplace_back(alloca, true);
     return;
   }
 
@@ -1072,16 +1072,17 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   for (auto &&[root, isUsed] : temporaryRoots)
     if (!isUsed && root->getAllocatedType() == valTy) {
       alloca = root;
+      isUsed = true;
       break;
     }
 
   if (!alloca) {
     alloca = allocateStackVariable("tmp.root", valTy);
     markIfGCRoot(alloca, type);
+    temporaryRoots.emplace_back(alloca, true);
   }
 
   storeValue(val, alloca, valTy);
-  temporaryRoots[alloca] = true;
 }
 
 void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {

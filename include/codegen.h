@@ -92,7 +92,7 @@ class Codegen {
   InstCtxTy instCtx;
 
   std::set<llvm::AllocaInst *> permanentRoots;
-  std::map<llvm::AllocaInst *, bool> temporaryRoots;
+  std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;

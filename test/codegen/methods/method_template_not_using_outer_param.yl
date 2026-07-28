@@ -47,8 +47,8 @@ fn main() {
 // CHECK-NEXT:   %5 = load ptr, ptr %4, align 8
 // CHECK-NEXT:   %6 = call double %3(double %y, ptr %5)
 
-// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
 // CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.arg.tmp, align 8
+// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %struct.ret.tmp, align 8
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
