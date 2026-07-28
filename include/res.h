@@ -235,7 +235,7 @@ struct ExtensionDecl : public Decl, public GenericDeclContext {
 };
 
 struct TypeParamDecl : public TypeDecl {
-  TraitConformance *conformance;
+  TraitConformance *conformance = nullptr;
   bool isImplicitSelf;
 
   TypeParamDecl(SourceLocation location,
@@ -288,17 +288,16 @@ struct StructDecl : public TypeDecl, public GenericDeclContext {
 struct FunctionDecl : public ValueDecl, public GenericDeclContext {
   std::vector<ParamDecl *> params;
   Block *body = nullptr;
-  FunctionDecl *implements = nullptr;
+  bool mustImplement = false;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
                GenericDeclContext *declContext,
-               std::vector<TypeParamDecl *> typeParams = {},
-               FunctionDecl *implements = nullptr)
+               std::vector<TypeParamDecl *> typeParams = {})
       : ValueDecl(location, std::move(identifier), declContext, false),
-        GenericDeclContext(declContext, std::move(typeParams)),
-        implements(implements) {}
+        GenericDeclContext(declContext, std::move(typeParams)) {}
 
+  void setMustImplement(bool b) { mustImplement = b; }
   void setBody(Block *body) { this->body = body; }
   void setParams(std::vector<ParamDecl *> params) {
     this->params = std::move(params);
@@ -600,7 +599,7 @@ public:
   std::vector<FunctionDecl *> getFunctions() const {
     std::vector<FunctionDecl *> out;
     for (auto &&function : functions)
-      if (!function->parent && !function->implements)
+      if (!function->parent)
         out.emplace_back(function);
 
     return out;

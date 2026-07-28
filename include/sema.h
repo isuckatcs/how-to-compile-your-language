@@ -170,12 +170,15 @@ class Sema {
 
   res::ExtensionDecl *resolveTypeExtension(res::Context &ctx,
                                            const ast::TypeExtension &extension);
+  bool resolveExtensionBody(res::Context &ctx,
+                            res::ExtensionDecl *extension,
+                            const ast::TypeExtension &astExtension);
+
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
   res::FunctionDecl *
   resolveFunctionDecl(res::Context &ctx,
                       const ast::FunctionDecl &decl,
-                      res::GenericDeclContext *parent = nullptr,
-                      res::FunctionDecl *implements = nullptr);
+                      res::GenericDeclContext *parent = nullptr);
   res::FunctionDecl *resolveFunctionBody(res::Context &ctx,
                                          const ast::FunctionDecl &functionDecl,
                                          res::FunctionDecl *function);

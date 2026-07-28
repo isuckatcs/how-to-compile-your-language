@@ -9,7 +9,6 @@ struct S {}
 extension S : A {
   fn foo() {}
   // CHECK: FunctionDecl @({{.*}}) foo {() -> unit}
-  // CHECK-NEXT: | implements 'foo' @({{.*}})
   // CHECK-NEXT:   Block
 }
 

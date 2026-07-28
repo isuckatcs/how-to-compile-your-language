@@ -14,7 +14,6 @@ extension S : A<number> {
     println(self.x * x);
   }
   // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, number) -> unit}
-  // CHECK-NEXT: | implements 'foo' @({{.*}})
   // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
   // CHECK-NEXT:   Block
@@ -32,7 +31,6 @@ extension S : A<unit> {
     println(self.x);
   }
   // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, unit) -> unit}
-  // CHECK-NEXT: | implements 'foo' @({{.*}})
   // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {unit}
   // CHECK-NEXT:   Block

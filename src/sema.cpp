@@ -1382,7 +1382,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
     }
 
-    auto *implFn = resolveFunctionDecl(ctx, *fn, typeExtension, traitFn);
+    auto *implFn = resolveFunctionDecl(ctx, *fn, typeExtension);
     if (!implFn)
       continue;
 
@@ -1450,6 +1450,36 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
 
   return typeExtension;
+}
+
+bool Sema::resolveExtensionBody(res::Context &ctx,
+                                res::ExtensionDecl *extension,
+                                const ast::TypeExtension &astExtension) {
+  bool error = false;
+  auto *trait = extension->trait;
+
+  for (auto &&requirement : typeMgr.getDirectConformance(trait)) {
+    res::Type *type = extension->type;
+    if (typeMgr.getExtensions(type, requirement).empty()) {
+      err::missingRequirement(extension->location)
+          .with(type->getName())
+          .with(trait->getName())
+          .with(type->getName())
+          .with(requirement->getName())
+          .report(reporter);
+      error = true;
+    }
+  }
+
+  selfType = extension->type;
+  for (int i = 0; i < astExtension.functions.size(); ++i)
+    error |=
+        !resolveFunctionBody(ctx, *astExtension.functions[i],
+                             extension->decls[i]->getAs<res::FunctionDecl>());
+  selfType = nullptr;
+
+  error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
+  return !error;
 }
 
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
@@ -1548,7 +1578,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
   bool error = false;
 
   for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {
-    if (fn->body || !extension->lookupDirect(fn->identifier).empty())
+    if (!fn->mustImplement || !extension->lookupDirect(fn->identifier).empty())
       continue;
 
     err::missingTraitFn(fn->location)
@@ -1564,8 +1594,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
 
 res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
                                              const ast::FunctionDecl &decl,
-                                             res::GenericDeclContext *parent,
-                                             res::FunctionDecl *implements) {
+                                             res::GenericDeclContext *parent) {
   EnterNewScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
@@ -1608,7 +1637,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     return nullptr;
 
   auto *fn = ctx.create<res::FunctionDecl>(decl.location, decl.identifier,
-                                           parent, typeParams, implements);
+                                           parent, typeParams);
   fn->setType(typeMgr.getFunctionType(std::move(paramTypes), retTy));
   fn->setParams(std::move(resolvedParams));
   return fn;
@@ -1740,8 +1769,10 @@ bool Sema::resolveTraitBody(res::Context &ctx,
     error |= !insertDeclToCurrentScope(resolvedFn);
 
     // FIXME: this should be removed soon
-    if (resolvedFn)
+    if (resolvedFn) {
+      resolvedFn->setMustImplement(!fn->body);
       traitDecl.insertDecl(resolvedFn);
+    }
   }
 
   return !error;
@@ -1880,9 +1911,11 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
       error |= !resolveTraitBody(ctx, *resTD,
                                  *static_cast<const ast::TraitDecl *>(astDecl));
   }
+  error |= hasSelfContainingStructs(ctx);
 
   for (auto &&extension : ast->extensions)
     error |= !resolveTypeExtension(ctx, *extension);
+  error |= !checkDelayedUserDefinedTypes(ctx);
 
   insertDeclToCurrentScope(createBuiltinGCCollect(ctx));
   insertDeclToCurrentScope(createBuiltinPrintln(ctx));
@@ -1894,58 +1927,23 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
     resDecls.emplace_back(rf, fn);
   }
 
-  error |= hasSelfContainingStructs(ctx);
-  error |= !checkDelayedUserDefinedTypes(ctx);
   if (error)
     return {nullptr, nullptr};
 
-  for (auto &&[resDecl, astDecl] : resDecls)
-    if (auto *rt = resDecl->getAs<res::TraitDecl>())
-      error |= !resolveTraitFunctionBodies(
-          ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
-
-  // FIXME: extract into a separate function
   const auto &astExtensions = ast->extensions;
   auto resExtensions = ctx.getTypeExtensions();
 
-  for (int i = 0; i < astExtensions.size(); ++i) {
-    auto *astExtension = astExtensions[i].get();
-    auto *resExtension = resExtensions[i];
-
-    auto *traitTy = resExtension->trait;
-
-    // FIXME: extract this, it can also be checked in checkTraitInstances
-    for (auto &&requirement : typeMgr.getDirectConformance(traitTy)) {
-      res::Type *type = resExtension->type;
-      if (typeMgr.getExtensions(type, requirement).empty()) {
-        err::missingRequirement(resExtension->location)
-            .with(type->getName())
-            .with(traitTy->getName())
-            .with(type->getName())
-            .with(requirement->getName())
-            .report(reporter);
-        error |= true;
-      }
-    }
-
-    selfType = resExtension->type;
-    for (int j = 0; j < astExtension->functions.size(); ++j)
-      error |= !resolveFunctionBody(
-          ctx, *astExtension->functions[j],
-          resExtension->decls[j]->getAs<res::FunctionDecl>());
-    selfType = nullptr;
-
-    error |= !implementsAllNecessaryTraitFunctions(ctx, resExtension);
-  }
+  for (int i = 0; i < astExtensions.size(); ++i)
+    error |= !resolveExtensionBody(ctx, resExtensions[i], *astExtensions[i]);
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *rs = resDecl->getAs<res::StructDecl>())
       error |= !resolveMemberFunctionBodies(
           ctx, *rs, *static_cast<const ast::StructDecl *>(astDecl));
 
-    // if (auto *rt = resDecl->getAs<res::TraitDecl>())
-    //   error |= !resolveTraitFunctionBodies(
-    //       ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
+    if (auto *rt = resDecl->getAs<res::TraitDecl>())
+      error |= !resolveTraitFunctionBodies(
+          ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
 
     if (auto *resFN = resDecl->getAs<res::FunctionDecl>())
       error |= !resolveFunctionBody(

@@ -88,10 +88,6 @@ void FunctionDecl::dump(size_t level) const {
             << (!body ? " [incomplete]" : "") << " {" << getType()->getName()
             << '}' << '\n';
 
-  if (implements)
-    std::cerr << indent(level) << "| implements '" << implements->identifier
-              << "' @(" << implements << ")\n";
-
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
 
