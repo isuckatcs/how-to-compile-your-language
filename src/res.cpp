@@ -194,7 +194,7 @@ bool CallExpr::isVirtual() const {
   // FIXME: revisit
   const auto *dre = dynamic_cast<const res::DeclRefExpr *>(callee);
   return dre && dre->getReceiverType() &&
-         dre->getReceiverType()->getAs<res::AnyType>();
+         dre->getReceiverType()->getAs<res::AnyTraitType>();
 }
 
 void CallExpr::dump(size_t level) const {

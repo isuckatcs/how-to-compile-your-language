@@ -185,7 +185,7 @@ bool AnyTraitType::isSameKind(const Type *other) const {
 
 std::string AnyTraitType::getName() const {
   std::stringstream ss;
-  ss << decl->identifier;
+  ss << "any " << decl->identifier;
 
   if (!args.empty()) {
     ss << '<';
@@ -204,17 +204,6 @@ std::string AnyTraitType::getName() const {
 TraitConformance *AnyTraitType::getConformance() const {
   return decl->conformance;
 };
-
-AnyType::AnyType(res::AnyTraitType *trait)
-    : Type("any", {trait}) {}
-
-bool AnyType::isSameKind(const Type *other) const {
-  return other->getAs<AnyType>();
-};
-
-std::string AnyType::getName() const {
-  return name + ' ' + getTrait()->getName();
-}
 
 void Substitution::dump() const {
   for (auto &&[from, to] : *this)
@@ -326,12 +315,6 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-AnyType *TypeManager::getAnyType(AnyTraitType *trait) {
-  auto *implTy = new AnyType(trait);
-  types.emplace_back(std::unique_ptr<AnyType>(implTy));
-  return implTy;
-}
-
 void TypeManager::addExtension(ExtensionDecl *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
@@ -368,8 +351,8 @@ TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
 std::vector<TraitType *> TypeManager::getDirectConformance(res::Type *type) {
   type = type->getRootType();
 
-  if (auto *a = type->getAs<res::AnyType>())
-    return {withSelfType(a->getTrait(), a)};
+  if (auto *a = type->getAs<res::AnyTraitType>())
+    return {withSelfType(a, a)};
 
   res::TraitConformance *conformance = type->getConformance();
   if (!conformance)
@@ -508,8 +491,6 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getTraitType(*trait->decl, trait->args);
   else if (auto *trait = t->getAs<AnyTraitType>())
     t = getAnyTraitType(*trait->decl, trait->args);
-  else if (auto *i = t->getAs<res::AnyType>())
-    t = getAnyType(i->getTrait());
 
   for (auto &arg : t->args)
     arg = instantiate(arg, substitution);

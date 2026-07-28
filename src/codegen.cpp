@@ -135,7 +135,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return generateStructType(s);
 
   if (const auto *p = type->getAs<res::PointerType>()) {
-    if (p->getPointeeType()->getAs<res::AnyType>())
+    if (p->getPointeeType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 
@@ -147,7 +147,7 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
   if (const auto *b = type->getAs<res::BorrowedType>()) {
-    if (b->getBorrowedType()->getAs<res::AnyType>())
+    if (b->getBorrowedType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 
@@ -416,7 +416,8 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   llvm::Value *tmp = generateExpr(*mte.expr);
   const res::Type *mteType = mte.getType();
 
-  assert(!mteType->getAs<res::AnyType>() && "materializing tmp trait object");
+  assert(!mteType->getAs<res::AnyTraitType>() &&
+         "materializing tmp trait object");
 
   if (tmp && mteType->getAs<res::StructType>())
     return tmp;
@@ -477,18 +478,15 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   if (promo.expr->isLvalue())
     obj = builder.CreateLoad(builder.getPtrTy(), obj);
 
-  const auto *implType = promo.getType()
-                             ->getAs<res::PointerType>()
-                             ->getPointeeType()
-                             ->getAs<res::AnyType>();
-  const auto *valueType =
+  auto *implType = promo.getType()
+                       ->getAs<res::PointerType>()
+                       ->getPointeeType()
+                       ->getAs<res::AnyTraitType>();
+  auto *valueType =
       promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
 
-  // FIXME: constness cast away
   auto *vtable =
-      getVtable(typeMgr->withSelfType((res::AnyTraitType *)implType->getTrait(),
-                                      (res::Type *)valueType),
-                valueType);
+      getVtable(typeMgr->withSelfType(implType, valueType), valueType);
 
   auto *traitObjTy = generateType(promo.getType());
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
@@ -972,7 +970,7 @@ llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (const auto *p = type->getAs<res::PointerType>()) {
-    if (p->getPointeeType()->getAs<res::AnyType>()) {
+    if (p->getPointeeType()->getAs<res::AnyTraitType>()) {
       llvm::Type *ty = generateType(p);
       auto offset = module.getDataLayout()
                         .getStructLayout(llvm::cast<llvm::StructType>(ty))
@@ -1029,7 +1027,7 @@ llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
   std::string globalPrefix = "";
 
   auto *ptr = type->getAs<res::PointerType>();
-  if (ptr && ptr->getPointeeType()->getAs<res::AnyType>())
+  if (ptr && ptr->getPointeeType()->getAs<res::AnyTraitType>())
     globalPrefix = "fat.ptr";
   else if (type->getAs<res::FunctionType>())
     globalPrefix = "function";
@@ -1127,7 +1125,7 @@ void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
 
   auto *ptr = type->getAs<res::PointerType>();
   llvm::Value *metadata =
-      ptr && !ptr->getPointeeType()->getAs<res::AnyType>()
+      ptr && !ptr->getPointeeType()->getAs<res::AnyTraitType>()
           ? llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
           : getTypeMetadata(type);
   tmpBuilder.CreateCall(gcroot, {alloca, metadata});
@@ -1449,17 +1447,18 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
     }
   }
 
-  assert(selfType->getAs<res::AnyType>() && "self type is not a trait object?");
+  assert(selfType->getAs<res::AnyTraitType>() &&
+         "self type is not a trait object?");
 
-  auto *implType = selfType->getAs<res::AnyType>();
+  auto *implType = selfType->getAs<res::AnyTraitType>();
 
   // FIXME: rework instantiation
   res::Substitution sub;
   for (auto &&[param, ty] : instCtx)
     sub[param->getType()] = ty;
 
-  const auto &vtableLayout = typeMgr->getVtableLayout(
-      typeMgr->withSelfType(implType->getTrait(), implType));
+  const auto &vtableLayout =
+      typeMgr->getVtableLayout(typeMgr->withSelfType(implType, implType));
 
   unsigned idx = 0;
   for (auto &&[trait, vtableEntry] : vtableLayout) {

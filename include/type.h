@@ -200,7 +200,6 @@ public:
   friend class TypeManager;
 };
 
-// FIXME: is this needed when there is any type?
 class AnyTraitType : public Type {
   TraitDecl *decl;
 
@@ -216,21 +215,6 @@ public:
   std::string getName() const override;
 
   TraitConformance *getConformance() const override;
-
-  friend class TypeManager;
-};
-
-class AnyType : public Type {
-  AnyType(res::AnyTraitType *trait);
-
-  bool isSameKind(const Type *other) const override;
-
-public:
-  res::AnyTraitType *getTrait() const {
-    return args[0]->getRootType()->getAs<res::AnyTraitType>();
-  }
-
-  std::string getName() const override;
 
   friend class TypeManager;
 };
@@ -275,7 +259,6 @@ public:
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
   BorrowedType *getBorrowedType(Type *borrowedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
-  AnyType *getAnyType(AnyTraitType *trait);
 
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);

@@ -210,19 +210,19 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return err::traitObjectNotPointee(any->location).report(reporter);
 
     varOrReturn(type, resolveType(ctx, *any->type, false, true));
-    auto *traitType = type->getAs<res::AnyTraitType>();
+    auto *anyTraitType = type->getAs<res::AnyTraitType>();
 
     SourceLocation loc = any->type->location;
     std::set<std::string> visited;
     if (!checkVtableCompatibility(
             loc,
-            typeMgr.withSelfType(traitType, typeMgr.getNewUninferredType()),
+            typeMgr.withSelfType(anyTraitType, typeMgr.getNewUninferredType()),
             visited))
       return err::traitNotTraitObjectCompatible(loc)
-          .with(traitType->getName())
+          .with(anyTraitType->getDecl()->identifier)
           .report(reporter);
 
-    return typeMgr.getAnyType(traitType);
+    return anyTraitType;
   }
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
@@ -259,7 +259,7 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
         ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
     rhsTy = ptr->getPointeeType();
 
-    if (rhsTy->getAs<res::AnyType>())
+    if (rhsTy->getAs<res::AnyTraitType>())
       return err::traitObjectPtrDereference(rhs->location).report(reporter);
   }
 
@@ -546,10 +546,6 @@ Sema::lookupAssociatedDecls(std::string identifier,
   std::vector<std::pair<res::NamedDecl *, res::Substitution>> candidates;
 
   if (!trait) {
-    if (auto *t = type->getAs<res::TraitType>())
-      for (auto &&decl : t->getDecl()->lookupDirect(identifier))
-        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
-
     if (auto *s = type->getAs<res::StructType>())
       for (auto &&decl : s->getDecl()->lookupDirect(identifier))
         candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
@@ -630,9 +626,6 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
     mte->setType(selfArg->getType());
     selfArg = mte;
   }
-
-  auto *refType =
-      typeMgr.getBorrowedType(selfArg->getType(), selfArg->isMutable());
 
   auto *targetType =
       resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
@@ -984,7 +977,7 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   if (!targetPtrType)
     return expr;
 
-  auto *implType = targetPtrType->getPointeeType()->getAs<res::AnyType>();
+  auto *implType = targetPtrType->getPointeeType()->getAs<res::AnyTraitType>();
   if (!implType)
     return expr;
 
@@ -993,14 +986,13 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
     return expr;
 
   auto *pointeeType = exprPtrType->getPointeeType();
-  if (pointeeType->getAs<res::AnyType>() ||
+  if (pointeeType->getAs<res::AnyTraitType>() ||
       targetPtrType->isMutable() != exprPtrType->isMutable())
     return expr;
 
   auto *tmpType = typeMgr.getNewUninferredType();
   typeMgr.createObligation(
-      tmpType, typeMgr.withSelfType(implType->getTrait(),
-                                    typeMgr.getNewUninferredType()));
+      tmpType, typeMgr.withSelfType(implType, typeMgr.getNewUninferredType()));
 
   const auto &errors = typeMgr.unify(tmpType, pointeeType);
   if (errors.empty()) {
@@ -1245,8 +1237,8 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
     // FIXME: remove this limitation
     if (resPath->getReceiverType() &&
-        resPath->getReceiverType()->getAs<res::AnyType>() && isFunctionDecl &&
-        !(modifiers & IsCallee))
+        resPath->getReceiverType()->getAs<res::AnyTraitType>() &&
+        isFunctionDecl && !(modifiers & IsCallee))
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 
