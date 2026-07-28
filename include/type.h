@@ -269,6 +269,9 @@ public:
   bool conformsTo(Type *type, TraitType *trait);
   TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
   VtableLayoutTy getVtableLayout(const res::TraitType *trait);
+
+  // Return snd(fst(...))
+  Substitution compose(Substitution fst, Substitution snd);
 };
 } // namespace res
 } // namespace yl

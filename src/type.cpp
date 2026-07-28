@@ -535,5 +535,15 @@ TypeManager::getVtableLayout(const res::TraitType *trait) {
 
   return layout;
 }
+
+Substitution TypeManager::compose(Substitution fst, Substitution snd) {
+  Substitution res;
+
+  for (auto &&[from, to] : fst)
+    res[from] = instantiate(to, snd);
+
+  return res;
+}
+
 } // namespace res
 } // namespace yl

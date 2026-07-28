@@ -13,72 +13,21 @@
 
 namespace yl {
 class Codegen {
-  struct InstCtxTy : std::map<const res::TypeParamDecl *, res::Type *> {
-    const res::Type *getInstantiatedType(const res::Type *type) {
-      if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
-        auto it = find(typeParamTy->decl);
-        return it == end() ? nullptr : it->second;
-      }
-
-      return type;
-    }
-  };
-
-  class EnterInstantiationRAII {
+  class EnterMonoCtxRAII {
     Codegen *codegen;
-    InstCtxTy instCtxSnapshot;
-
-    void impl(std::vector<res::TypeParamDecl *> typeParams,
-              std::vector<res::Type *> typeArgs) {
-      for (size_t i = 0; i < typeParams.size(); ++i) {
-        res::Type *type = typeArgs[i];
-        if (const auto *typeParamTy = type->getAs<res::TypeParamType>()) {
-          type = instCtxSnapshot[typeParamTy->decl];
-
-          if (type == nullptr) {
-            int x = 0;
-          }
-        }
-
-        codegen->instCtx[typeParams[i]] = type;
-      }
-    }
+    const res::Substitution *prevMonoCtx;
 
   public:
-    EnterInstantiationRAII(Codegen *codegen, const res::TraitType *t)
+    EnterMonoCtxRAII(Codegen *codegen, const res::Substitution *sub)
         : codegen(codegen),
-          instCtxSnapshot(codegen->instCtx) {
-      if (t)
-        impl(t->getDecl()->typeParams, t->getTypeArgs());
+          prevMonoCtx(codegen->monoCtx) {
+      codegen->monoCtx = sub;
     }
-
-    EnterInstantiationRAII(Codegen *codegen, const res::StructType *st)
-        : codegen(codegen),
-          instCtxSnapshot(codegen->instCtx) {
-      if (st)
-        impl(st->getDecl()->typeParams, st->getTypeArgs());
-    }
-
-    // FIXME: remove/rework this utility
-    EnterInstantiationRAII(Codegen *codegen, const res::Substitution &sub)
-        : codegen(codegen),
-          instCtxSnapshot(codegen->instCtx) {
-      std::vector<res::TypeParamDecl *> typeParams;
-      std::vector<res::Type *> typeArgs;
-
-      for (auto &&[from, to] : sub) {
-        typeParams.emplace_back(from->getAs<res::TypeParamType>()->decl);
-        typeArgs.emplace_back(to);
-      }
-
-      impl(typeParams, typeArgs);
-    }
-
-    ~EnterInstantiationRAII() { codegen->instCtx = instCtxSnapshot; }
+    ~EnterMonoCtxRAII() { codegen->monoCtx = prevMonoCtx; }
   };
 
   struct PendingFunctionDescriptor {
-    InstCtxTy instCtxCapture;
+    res::Substitution monoCtx;
     std::string mangledName;
     const res::FunctionDecl *decl;
   };
@@ -89,7 +38,7 @@ class Codegen {
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
-  InstCtxTy instCtx;
+  const res::Substitution *monoCtx = nullptr;
 
   std::set<llvm::AllocaInst *> permanentRoots;
   std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;
@@ -104,6 +53,8 @@ class Codegen {
   llvm::IRBuilder<> builder;
   llvm::Module module;
   const llvm::DataLayout *dl;
+
+  res::Type *getMonoType(const res::Type *type) const;
 
   llvm::Type *generateType(const res::Type *type);
   llvm::FunctionType *generateFunctionType(const res::FunctionType *type);
@@ -154,9 +105,7 @@ class Codegen {
 
   void generateBlock(const res::Block &block);
   llvm::Function *generateFunctionDecl(const res::FunctionDecl &decl,
-                                       const res::FunctionType *type,
-                                       const res::Type *path,
-                                       std::vector<res::Type *> typeArgs);
+                                       const res::Type *path);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
   llvm::Type *generateStructType(const res::StructType *structTy);
