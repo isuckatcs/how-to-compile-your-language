@@ -1392,7 +1392,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
     }
 
-    auto *implFn = resolveFunctionDecl(ctx, *fn, typeExtension);
+    auto *implFn = resolveFunctionDecl(ctx, *fn);
     if (!implFn)
       continue;
 
@@ -1601,8 +1601,7 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
 }
 
 res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
-                                             const ast::FunctionDecl &decl,
-                                             res::GenericDeclContext *parent) {
+                                             const ast::FunctionDecl &decl) {
   EnterNewScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
@@ -1643,7 +1642,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     return nullptr;
 
   auto *fn = ctx.create<res::FunctionDecl>(decl.location, decl.identifier,
-                                           parent, typeParams);
+                                           scope->getDeclContext(), typeParams);
   fn->setType(typeMgr.getFunctionType(std::move(paramTypes), retTy));
   fn->setParams(std::move(resolvedParams));
   return fn;
@@ -1770,7 +1769,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
 
   EnterNewScopeRAII traitBodyScope(this);
   for (auto &&fn : astDecl.traitFunctions) {
-    auto *resolvedFn = resolveFunctionDecl(ctx, *fn, &traitDecl);
+    auto *resolvedFn = resolveFunctionDecl(ctx, *fn);
     if (!insertDeclToCurrentScope(resolvedFn)) {
       error = true;
       continue;
@@ -1836,7 +1835,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
     }
 
     if (auto *memberFunction = dynamic_cast<ast::FunctionDecl *>(decl.get()))
-      memberDecl = resolveFunctionDecl(ctx, *memberFunction, &structDecl);
+      memberDecl = resolveFunctionDecl(ctx, *memberFunction);
 
     if (!insertDeclToCurrentScope(memberDecl)) {
       error = true;
