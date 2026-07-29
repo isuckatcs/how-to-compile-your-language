@@ -64,16 +64,16 @@ struct Mangling {
     llvm_unreachable("unexpected type in mangling");
   }
 
-  static std::string mangleFunction(const res::FunctionDecl *fn,
-                                    const res::Type *parent,
-                                    const res::Substitution *sub) {
+  static std::string mangleFunctionDecl(const res::FunctionDecl *fn,
+                                        const res::Type *parentMonoType,
+                                        const res::Substitution *sub) {
     std::stringstream mangledName;
 
     const auto &identifier = fn->identifier;
-    if (!fn->typeParams.empty() || parent) {
+    if (!fn->typeParams.empty() || parentMonoType) {
       mangledName << '_' << 'Y';
-      if (parent)
-        mangledName << mangleMonoType(parent);
+      if (parentMonoType)
+        mangledName << mangleMonoType(parentMonoType);
       mangledName << identifier.size();
     }
 
@@ -380,7 +380,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
 
-  llvm::Value *function = generateFunctionDecl(*lambdaExpr.method, closureType);
+  llvm::Value *function = generateFunctionDecl(*lambdaExpr.method);
 
   bool needsClosure = dl->getTypeAllocSize(generateType(closureType)) != 0;
   llvm::Value *closure = needsClosure
@@ -592,32 +592,12 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
     const auto &[extension, extensionSub] = extensions[0];
 
     if (auto r = extension->lookupDirect(fnDecl->identifier); !r.empty()) {
-      fnDecl = r.front()->getAs<res::FunctionDecl>();
       EnterMonoCtxRAII extensionCtx(this, &extensionSub);
-      return generateFunctionDecl(*fnDecl, traitType);
+      return generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>());
     }
-
-    return generateFunctionDecl(*fnDecl, traitType);
   }
 
-  assert(fnDecl->body && "function without a body?");
-
-  // FIXME: the receiver type of the struct is needed for mangling only,
-  // consider figuring it out there
-  res::Type *parentType = nullptr;
-  if (auto *sd = dynamic_cast<res::StructDecl *>(dre.decl->declContext)) {
-    parentType = sd->getType();
-  } else if (auto *e =
-                 dynamic_cast<res::ExtensionDecl *>(dre.decl->declContext)) {
-    parentType = e->trait;
-  } else if (auto *t = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
-    parentType = t->getType();
-  }
-
-  if (parentType)
-    parentType = getMonoType(parentType);
-
-  return generateFunctionDecl(*fnDecl, parentType);
+  return generateFunctionDecl(*fnDecl);
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
@@ -1311,9 +1291,20 @@ void Codegen::generateMainWrapper() {
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
-llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn,
-                                              const res::Type *parent) {
-  std::string name = Mangling::mangleFunction(&fn, parent, monoCtx);
+llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
+  assert(fn.body && "generating function with no body");
+
+  res::Type *declCtxType = nullptr;
+  const res::GenericDeclContext *declCtx = fn.declContext;
+
+  if (auto *sd = dynamic_cast<const res::StructDecl *>(declCtx))
+    declCtxType = getMonoType(sd->getType());
+  else if (auto *e = dynamic_cast<const res::ExtensionDecl *>(declCtx))
+    declCtxType = getMonoType(e->trait);
+  else if (auto *t = dynamic_cast<const res::TraitDecl *>(declCtx))
+    declCtxType = getMonoType(t->getType());
+
+  std::string name = Mangling::mangleFunctionDecl(&fn, declCtxType, monoCtx);
   if (auto *function = module.getFunction(name))
     return function;
 
@@ -1345,9 +1336,8 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
 
 llvm::Value *Codegen::getVtable(const res::TraitType *trait,
                                 const res::Type *type) {
-  type = typeMgr->instantiate(const_cast<res::Type *>(type), *monoCtx);
-  trait = typeMgr->instantiate(const_cast<res::TraitType *>(trait), *monoCtx)
-              ->getAs<res::TraitType>();
+  type = getMonoType(type);
+  trait = getMonoType(trait)->getAs<res::TraitType>();
 
   // FIXME: mangle these types
   std::string id = "vtable." + type->getName() + "." + trait->getName();
@@ -1356,23 +1346,23 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
 
   std::vector<llvm::Constant *> vFunctions;
   for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
-    const res::FunctionDecl *vFunction = layoutFn;
-
     // FIXME: const_cast
     auto extensions =
         typeMgr->getExtensions(const_cast<res::Type *>(type),
                                const_cast<res::TraitType *>(layoutTrait));
-
     assert(extensions.size() == 1 && "failed to find extension");
+    const auto &[extension, extensionSub] = extensions[0];
 
-    if (auto r = extensions[0].first->lookupDirect(layoutFn->identifier);
-        !r.empty())
-      vFunction = r.front()->getAs<res::FunctionDecl>();
+    if (auto r = extension->lookupDirect(layoutFn->identifier); !r.empty()) {
+      EnterMonoCtxRAII extensionCtx(this, &extensionSub);
+      vFunctions.emplace_back(
+          generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>()));
+      continue;
+    }
 
     auto sub = typeMgr->extractSubstitutionFrom(layoutTrait);
-    EnterMonoCtxRAII monoCtx(this, &sub);
-
-    vFunctions.push_back(generateFunctionDecl(*vFunction, layoutTrait));
+    EnterMonoCtxRAII traitCtx(this, &sub);
+    vFunctions.emplace_back(generateFunctionDecl(*layoutFn));
   }
 
   if (vFunctions.empty())
@@ -1451,11 +1441,11 @@ llvm::Module *Codegen::generateIR() {
     if (st->typeParams.empty())
       for (auto &&fn : st->getAll<res::FunctionDecl>())
         if (fn->typeParams.empty())
-          generateFunctionDecl(*fn, st->getType());
+          generateFunctionDecl(*fn);
 
   for (auto &&fn : resCtx->getFunctions())
     if (fn->typeParams.empty())
-      generateFunctionDecl(*fn, nullptr);
+      generateFunctionDecl(*fn);
 
   while (!pendingFunctions.empty()) {
     generateFunctionBody(pendingFunctions.front());
