@@ -1381,39 +1381,21 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
                                              llvm::Value *receiver) {
   assert(call->isVirtual() && "vtable lookup for non-virtual call");
 
-  const auto *dre = dynamic_cast<const res::DeclRefExpr *>(call->callee);
-  auto *fn = dre->decl->getAs<res::FunctionDecl>();
+  const auto *dre = static_cast<const res::DeclRefExpr *>(call->callee);
+  auto *declCtx = static_cast<res::TraitDecl *>(dre->decl->declContext);
 
-  // FIXME: remove this once every parent is a decl, and not a declcontext
-  auto *parentTraitType = typeMgr->instantiate(
-      ((res::TraitDecl *)dre->decl->declContext)->getType(), dre->sub);
+  auto *declTrait = typeMgr->instantiate(declCtx->getType(), dre->sub)
+                        ->getAs<res::TraitType>();
+  auto *anyType = declTrait->getTypeArgs()[0]->getAs<res::AnyTraitType>();
 
-  // FIXME: remove this once every parent is a decl, and not a declcontext
-  res::Type *selfType = nullptr;
-  for (auto &&[from, to] : dre->sub) {
-    if (auto *t = from->getAs<res::TypeParamType>();
-        t && t->decl->isImplicitSelf) {
-      selfType = to;
-    }
-  }
+  assert(anyType && "self is not a trait object");
 
-  assert(selfType->getAs<res::AnyTraitType>() &&
-         "self type is not a trait object?");
-
-  auto *implType = selfType->getAs<res::AnyTraitType>();
-
-  const auto &vtableLayout =
-      typeMgr->getVtableLayout(typeMgr->withSelfType(implType, implType));
+  auto *concreteTraitType = typeMgr->withSelfType(anyType, anyType);
+  const auto &vtableLayout = typeMgr->getVtableLayout(concreteTraitType);
 
   unsigned idx = 0;
-  for (auto &&[trait, vtableEntry] : vtableLayout) {
-    // if (typeMgr->eq(trait, typeMgr->instantiate(parentTraitType, sub)) &&
-
-    // FIXME: cannot EQ due to the Self type being _ ... should be probed?
-    // FIXME: are both instantitations needed?
-    if (typeMgr->instantiate((res::TraitType *)trait, monoCtx)->getName() ==
-            typeMgr->instantiate(parentTraitType, monoCtx)->getName() &&
-        vtableEntry == fn)
+  for (auto &&[layoutTrait, layoutFn] : vtableLayout) {
+    if (typeMgr->eq(layoutTrait, declTrait) && layoutFn == dre->decl)
       break;
 
     ++idx;
@@ -1421,14 +1403,14 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   assert(idx < vtableLayout.size() && "failed to find function in vtable");
 
-  llvm::Value *vtablePtr = builder.CreateStructGEP(
-      generateType(call->arguments[0]->getType()), receiver, 1, "vtablePtr");
-  llvm::Value *vtable =
-      builder.CreateLoad(builder.getPtrTy(), vtablePtr, "vtable");
+  auto *receiverTy = generateType(getMonoType(call->arguments[0]->getType()));
+  auto *ptrTy = builder.getPtrTy();
 
-  llvm::Value *fnPtr = builder.CreateGEP(builder.getPtrTy(), vtable,
-                                         builder.getInt32(idx), "vFnPtr");
-  return builder.CreateLoad(builder.getPtrTy(), fnPtr, "vFn");
+  auto *vPtr = builder.CreateStructGEP(receiverTy, receiver, 1, "vtablePtr");
+  auto *vt = builder.CreateLoad(ptrTy, vPtr, "vtable");
+
+  auto *fnPtr = builder.CreateGEP(ptrTy, vt, builder.getInt32(idx), "vFnPtr");
+  return builder.CreateLoad(ptrTy, fnPtr, "vFn");
 }
 
 llvm::Module *Codegen::generateIR() {
