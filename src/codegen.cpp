@@ -66,7 +66,7 @@ struct Mangling {
 
   static std::string mangleFunctionDecl(const res::FunctionDecl *fn,
                                         const res::Type *parentMonoType,
-                                        const res::Substitution *sub) {
+                                        const res::Substitution &sub) {
     std::stringstream mangledName;
 
     const auto &identifier = fn->identifier;
@@ -79,7 +79,7 @@ struct Mangling {
 
     std::vector<res::Type *> typeArgs;
     for (auto &&tp : fn->typeParams)
-      typeArgs.emplace_back(sub->at(tp->getType()));
+      typeArgs.emplace_back(sub.at(tp->getType()));
 
     mangledName << identifier << mangleGenericArgs(typeArgs);
     return mangledName.str();
@@ -117,7 +117,7 @@ Codegen::Codegen(const res::Context &resolvedCtx,
 
 res::Type *Codegen::getMonoType(const res::Type *type) const {
   // FIXME: const_cast
-  return typeMgr->instantiate(const_cast<res::Type *>(type), *monoCtx);
+  return typeMgr->instantiate(const_cast<res::Type *>(type), monoCtx);
 }
 
 llvm::Type *Codegen::generateType(const res::Type *type) {
@@ -329,8 +329,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
   unsigned index = 0;
 
-  auto sub = typeMgr->extractSubstitutionFrom(structTy);
-  EnterMonoCtxRAII structCtx(this, &sub);
+  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(structTy));
 
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
     if (field == memberExpr.member->decl)
@@ -499,10 +498,10 @@ llvm::Value *Codegen::constructStruct(
   llvm::Type *structTy = generateType(structType);
   unsigned gepIdx = 0;
 
-  auto sub = typeMgr->extractSubstitutionFrom(structType);
   // FIXME: at this point we already know the field values and their types as
   // well, there should be no need to monomorphize
-  EnterMonoCtxRAII structCtx(this, &sub);
+  EnterMonoCtxRAII structCtx(this,
+                             typeMgr->extractSubstitutionFrom(structType));
 
   for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(fieldDecl->getType());
@@ -579,8 +578,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (!fnDecl)
     return declarations[dre.decl];
 
-  auto sub = typeMgr->compose(dre.sub, *monoCtx);
-  EnterMonoCtxRAII declCtx(this, &sub);
+  EnterMonoCtxRAII declCtx(this, typeMgr->compose(dre.sub, monoCtx));
 
   // Note: this case is for generic receivers only e.g.: T::foo().
   if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
@@ -592,7 +590,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
     const auto &[extension, extensionSub] = extensions[0];
 
     if (auto r = extension->lookupDirect(fnDecl->identifier); !r.empty()) {
-      EnterMonoCtxRAII extensionCtx(this, &extensionSub);
+      EnterMonoCtxRAII extensionCtx(this, extensionSub);
       return generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>());
     }
   }
@@ -938,8 +936,8 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (!structType)
     return {};
 
-  auto sub = typeMgr->extractSubstitutionFrom(structType);
-  EnterMonoCtxRAII structCtx(this, &sub);
+  EnterMonoCtxRAII structCtx(this,
+                             typeMgr->extractSubstitutionFrom(structType));
 
   const auto &dataLayout = module.getDataLayout();
   const auto *structLayout = dataLayout.getStructLayout(
@@ -1173,7 +1171,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   temporaryRoots.clear();
 
   auto [monoCtx, mangledName, functionDecl] = fn;
-  EnterMonoCtxRAII instantiationCtx(this, &monoCtx);
+  EnterMonoCtxRAII instantiationCtx(this, monoCtx);
 
   llvm::Function *function = module.getFunction(mangledName);
   llvm::FunctionType *functionTy = function->getFunctionType();
@@ -1314,13 +1312,12 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
                                           name, module);
   function->setAttributes(constructAttrList(type));
 
-  pendingFunctions.push({*monoCtx, name, &fn});
+  pendingFunctions.push({monoCtx, name, &fn});
   return function;
 }
 
 llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
-  auto sub = typeMgr->extractSubstitutionFrom(structTy);
-  EnterMonoCtxRAII structCtx(this, &sub);
+  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(structTy));
 
   std::vector<llvm::Type *> fieldTypes;
   for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
@@ -1353,14 +1350,14 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
     const auto &[extension, extensionSub] = extensions[0];
 
     if (auto r = extension->lookupDirect(layoutFn->identifier); !r.empty()) {
-      EnterMonoCtxRAII extensionCtx(this, &extensionSub);
+      EnterMonoCtxRAII extensionCtx(this, extensionSub);
       vFunctions.emplace_back(
           generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>()));
       continue;
     }
 
-    auto sub = typeMgr->extractSubstitutionFrom(layoutTrait);
-    EnterMonoCtxRAII traitCtx(this, &sub);
+    EnterMonoCtxRAII traitCtx(this,
+                              typeMgr->extractSubstitutionFrom(layoutTrait));
     vFunctions.emplace_back(generateFunctionDecl(*layoutFn));
   }
 
@@ -1411,8 +1408,8 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
     // FIXME: cannot EQ due to the Self type being _ ... should be probed?
     // FIXME: are both instantitations needed?
-    if (typeMgr->instantiate((res::TraitType *)trait, *monoCtx)->getName() ==
-            typeMgr->instantiate(parentTraitType, *monoCtx)->getName() &&
+    if (typeMgr->instantiate((res::TraitType *)trait, monoCtx)->getName() ==
+            typeMgr->instantiate(parentTraitType, monoCtx)->getName() &&
         vtableEntry == fn)
       break;
 
@@ -1432,10 +1429,6 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 }
 
 llvm::Module *Codegen::generateIR() {
-  // FIXME: consider storing substitutions by value
-  res::Substitution sub{};
-  EnterMonoCtxRAII topLevelCtx(this, &sub);
-
   for (auto &&st : resCtx->getStructs())
     if (st->typeParams.empty())
       for (auto &&fn : st->getAll<res::FunctionDecl>())

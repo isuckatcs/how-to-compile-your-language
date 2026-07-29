@@ -15,15 +15,15 @@ namespace yl {
 class Codegen {
   class EnterMonoCtxRAII {
     Codegen *codegen;
-    const res::Substitution *prevMonoCtx;
+    res::Substitution prevMonoCtx;
 
   public:
-    EnterMonoCtxRAII(Codegen *codegen, const res::Substitution *sub)
+    EnterMonoCtxRAII(Codegen *codegen, res::Substitution sub)
         : codegen(codegen),
-          prevMonoCtx(codegen->monoCtx) {
-      codegen->monoCtx = sub;
+          prevMonoCtx(std::move(codegen->monoCtx)) {
+      codegen->monoCtx = std::move(sub);
     }
-    ~EnterMonoCtxRAII() { codegen->monoCtx = prevMonoCtx; }
+    ~EnterMonoCtxRAII() { codegen->monoCtx = std::move(prevMonoCtx); }
   };
 
   struct PendingFunctionDescriptor {
@@ -38,7 +38,7 @@ class Codegen {
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   std::queue<PendingFunctionDescriptor> pendingFunctions;
-  const res::Substitution *monoCtx = nullptr;
+  res::Substitution monoCtx;
 
   std::set<llvm::AllocaInst *> permanentRoots;
   std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;
