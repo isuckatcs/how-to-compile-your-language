@@ -581,16 +581,7 @@ Sema::lookupAssociatedDecls(std::string identifier,
 
   auto extensions = typeMgr.getExtensions(type, trait);
 
-  // FIXME: ambiguity can only be decided here... introduce a struct
-  // LookupResult, which will allow to set a flag to not ambiguity...
   for (auto &&[extension, sub] : extensions) {
-    // FIXME: should every extension decl be prioritized over every trait decl?
-    if (auto r = extension->lookupDirect(identifier); !r.empty()) {
-      for (auto &&decl : r)
-        candidates.emplace_back(decl, sub);
-      continue;
-    }
-
     for (auto &&decl : extension->trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(
           // FIXME: add an API for substitution composition?

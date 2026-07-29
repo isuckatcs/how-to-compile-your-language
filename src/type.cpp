@@ -319,6 +319,7 @@ void TypeManager::addExtension(ExtensionDecl *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
 
+// FIXME: consider returning the traits only, as they contain the type as well
 std::vector<std::pair<ExtensionDecl *, Substitution>>
 TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
   std::vector<std::pair<ExtensionDecl *, Substitution>> foundExtensions;
