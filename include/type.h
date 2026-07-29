@@ -229,10 +229,9 @@ class TypeManager {
   std::vector<ExtensionDecl *> extensions;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
-  using VtableEntryTy =
-      std::pair<const res::TraitType *, const res::FunctionDecl *>;
+  using VtableEntryTy = std::pair<TraitType *, const FunctionDecl *>;
   using VtableLayoutTy = std::vector<VtableEntryTy>;
-  std::vector<std::pair<const TraitType *, VtableLayoutTy>> vtableLayouts;
+  std::vector<std::pair<TraitType *, VtableLayoutTy>> vtableLayouts;
 
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
@@ -268,7 +267,7 @@ public:
   std::vector<TraitType *> getDirectConformance(Type *type);
   bool conformsTo(Type *type, TraitType *trait);
   TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
-  VtableLayoutTy getVtableLayout(const res::TraitType *trait);
+  VtableLayoutTy getVtableLayout(res::TraitType *trait);
 
   // Return snd(fst(...))
   Substitution compose(Substitution fst, Substitution snd);

@@ -580,19 +580,12 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   EnterMonoCtxRAII declCtx(this, typeMgr->compose(dre.sub, monoCtx));
 
-  // Note: this case is for generic receivers only e.g.: T::foo().
   if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     auto *traitType = getMonoType(trait->getType())->getAs<res::TraitType>();
     auto *selfType = traitType->getTypeArgs()[0];
 
-    auto extensions = typeMgr->getExtensions(selfType, traitType);
-    assert(extensions.size() == 1 && "failed to find extension");
-    const auto &[extension, extensionSub] = extensions[0];
-
-    if (auto r = extension->lookupDirect(fnDecl->identifier); !r.empty()) {
-      EnterMonoCtxRAII extensionCtx(this, extensionSub);
-      return generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>());
-    }
+    if (auto *f = generateExtensionFnDecl(selfType, traitType, fnDecl))
+      return f;
   }
 
   return generateFunctionDecl(*fnDecl);
@@ -1289,6 +1282,25 @@ void Codegen::generateMainWrapper() {
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
+// Lookup must be handled during codegen because some receivers are not known
+// until monomorphization (e.g.: T::foo()).
+llvm::Function *Codegen::generateExtensionFnDecl(res::Type *type,
+                                                 res::TraitType *trait,
+                                                 const res::FunctionDecl *fn) {
+  auto extensions = typeMgr->getExtensions(type, trait);
+  assert(extensions.size() == 1 && "failed to find extension");
+  const auto &[extension, extensionSub] = extensions[0];
+
+  auto r = extension->lookupDirect(fn->identifier);
+  if (r.empty())
+    return nullptr;
+
+  assert(r.size() == 1 && "ambigous function in extension");
+
+  EnterMonoCtxRAII extensionCtx(this, extensionSub);
+  return generateFunctionDecl(*r[0]->getAs<res::FunctionDecl>());
+}
+
 llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
   assert(fn.body && "generating function with no body");
 
@@ -1333,26 +1345,17 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
 
 llvm::Value *Codegen::getVtable(const res::TraitType *trait,
                                 const res::Type *type) {
-  type = getMonoType(type);
-  trait = getMonoType(trait)->getAs<res::TraitType>();
+  auto *monoType = getMonoType(type);
+  auto *monoTrait = getMonoType(trait)->getAs<res::TraitType>();
 
-  std::string id = "vtable." + Mangling::mangleMonoType(trait);
+  std::string id = "vtable." + Mangling::mangleMonoType(monoTrait);
   if (auto *vtable = module.getGlobalVariable(id, true))
     return vtable;
 
   std::vector<llvm::Constant *> vFunctions;
-  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
-    // FIXME: const_cast
-    auto extensions =
-        typeMgr->getExtensions(const_cast<res::Type *>(type),
-                               const_cast<res::TraitType *>(layoutTrait));
-    assert(extensions.size() == 1 && "failed to find extension");
-    const auto &[extension, extensionSub] = extensions[0];
-
-    if (auto r = extension->lookupDirect(layoutFn->identifier); !r.empty()) {
-      EnterMonoCtxRAII extensionCtx(this, extensionSub);
-      vFunctions.emplace_back(
-          generateFunctionDecl(*r.front()->getAs<res::FunctionDecl>()));
+  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(monoTrait)) {
+    if (auto *f = generateExtensionFnDecl(monoType, layoutTrait, layoutFn)) {
+      vFunctions.emplace_back(f);
       continue;
     }
 

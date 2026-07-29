@@ -104,6 +104,10 @@ class Codegen {
                                         bool isVirtualCall = false);
 
   void generateBlock(const res::Block &block);
+
+  llvm::Function *generateExtensionFnDecl(res::Type *type,
+                                          res::TraitType *trait,
+                                          const res::FunctionDecl *fn);
   llvm::Function *generateFunctionDecl(const res::FunctionDecl &fn);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 

@@ -507,7 +507,7 @@ TraitType *TypeManager::withSelfType(AnyTraitType *anyTraitType,
 }
 
 TypeManager::VtableLayoutTy
-TypeManager::getVtableLayout(const res::TraitType *trait) {
+TypeManager::getVtableLayout(res::TraitType *trait) {
   VtableLayoutTy layout;
 
   Substitution sub = extractSubstitutionFrom(trait);
