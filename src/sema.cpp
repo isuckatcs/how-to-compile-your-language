@@ -968,28 +968,27 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
 // FIXME: should '&' types be allowed as well?
 res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
-  auto *targetPtrType = targetType->getAs<res::PointerType>();
-  if (!targetPtrType)
+  auto *targetPtr = targetType->getAs<res::PointerType>();
+  if (!targetPtr)
     return expr;
 
-  auto *implType = targetPtrType->getPointeeType()->getAs<res::AnyTraitType>();
-  if (!implType)
+  auto *targetAny = targetPtr->getPointeeType()->getAs<res::AnyTraitType>();
+  if (!targetAny)
     return expr;
 
-  auto *exprPtrType = expr->getType()->getAs<res::PointerType>();
-  if (!exprPtrType)
+  auto *exprPtr = expr->getType()->getAs<res::PointerType>();
+  if (!exprPtr)
     return expr;
 
-  auto *pointeeType = exprPtrType->getPointeeType();
-  if (pointeeType->getAs<res::AnyTraitType>() ||
-      targetPtrType->isMutable() != exprPtrType->isMutable())
+  auto *exprPointee = exprPtr->getPointeeType();
+  if (exprPointee->getAs<res::AnyTraitType>() ||
+      targetPtr->isMutable() != exprPtr->isMutable())
     return expr;
 
   auto *tmpType = typeMgr.getNewUninferredType();
-  typeMgr.createObligation(
-      tmpType, typeMgr.withSelfType(implType, typeMgr.getNewUninferredType()));
+  typeMgr.createObligation(tmpType, typeMgr.withSelfType(targetAny, tmpType));
 
-  const auto &errors = typeMgr.unify(tmpType, pointeeType);
+  const auto &errors = typeMgr.unify(tmpType, exprPointee);
   if (errors.empty()) {
     auto *top = ctx.create<res::TraitObjectPromoExpr>(expr->location, expr);
     top->setType(targetType);

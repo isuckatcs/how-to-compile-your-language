@@ -370,7 +370,7 @@ std::vector<TraitType *> TypeManager::getDirectConformance(res::Type *type) {
 
 bool TypeManager::conformsTo(Type *type, TraitType *trait) {
   for (auto &&constraint : getDirectConformance(type))
-    if (unify(trait, constraint, true).empty() || conformsTo(constraint, trait))
+    if (eq(trait, constraint) || conformsTo(constraint, trait))
       return true;
 
   return false;
@@ -439,19 +439,24 @@ TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
       // FIXME: consider returning candidates
       auto extensions = getExtensions(type->getRootType(), requiredTrait, true);
 
-      if (extensions.empty())
+      if (extensions.empty()) {
         errors.emplace_back("cannot satisfy requirement '" + type->getName() +
                             " : " + requiredTrait->getName() + "'");
-      else if (extensions.size() == 1) {
-        auto [extension, sub] = extensions[0];
-        unify(type, instantiate(extension->type, sub));
-        unify(requiredTrait, instantiate(extension->trait, sub));
-      } else
+        continue;
+      }
+
+      if (extensions.size() > 1) {
         for (auto &&extension : extensions)
           errors.emplace_back("'" + extension.first->trait->getName() +
                               "' ambigously satisfies requirement '" +
                               type->getName() + " : " +
                               requiredTrait->getName() + "'");
+        continue;
+      }
+
+      auto [extension, sub] = extensions[0];
+      unify(requiredTrait, instantiate(extension->trait, sub));
+      break;
     }
   }
 
