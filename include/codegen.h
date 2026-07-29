@@ -105,8 +105,7 @@ class Codegen {
 
   void generateBlock(const res::Block &block);
 
-  llvm::Function *generateExtensionFnDecl(res::Type *type,
-                                          res::TraitType *trait,
+  llvm::Function *generateExtensionFnDecl(res::TraitType *trait,
                                           const res::FunctionDecl *fn);
   llvm::Function *generateFunctionDecl(const res::FunctionDecl &fn);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
@@ -127,7 +126,7 @@ class Codegen {
 
   llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
                                       llvm::Value *receiver);
-  llvm::Value *getVtable(const res::TraitType *trait, const res::Type *type);
+  llvm::Value *getVtable(const res::TraitType *trait);
 
 public:
   Codegen(const res::Context &resolvedCtx,

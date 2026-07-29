@@ -479,8 +479,7 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   auto *valueType =
       promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
 
-  auto *vtable =
-      getVtable(typeMgr->withSelfType(implType, valueType), valueType);
+  auto *vtable = getVtable(typeMgr->withSelfType(implType, valueType));
 
   auto *traitObjTy = generateType(promo.getType());
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
@@ -582,9 +581,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 
   if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     auto *traitType = getMonoType(trait->getType())->getAs<res::TraitType>();
-    auto *selfType = traitType->getTypeArgs()[0];
-
-    if (auto *f = generateExtensionFnDecl(selfType, traitType, fnDecl))
+    if (auto *f = generateExtensionFnDecl(traitType, fnDecl))
       return f;
   }
 
@@ -1284,10 +1281,9 @@ void Codegen::generateMainWrapper() {
 
 // Lookup must be handled during codegen because some receivers are not known
 // until monomorphization (e.g.: T::foo()).
-llvm::Function *Codegen::generateExtensionFnDecl(res::Type *type,
-                                                 res::TraitType *trait,
+llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
                                                  const res::FunctionDecl *fn) {
-  auto extensions = typeMgr->getExtensions(type, trait);
+  auto extensions = typeMgr->getExtensions(trait->getTypeArgs()[0], trait);
   assert(extensions.size() == 1 && "failed to find extension");
   const auto &[extension, extensionSub] = extensions[0];
 
@@ -1343,9 +1339,7 @@ llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
   return llvm::StructType::get(context, fieldTypes);
 }
 
-llvm::Value *Codegen::getVtable(const res::TraitType *trait,
-                                const res::Type *type) {
-  auto *monoType = getMonoType(type);
+llvm::Value *Codegen::getVtable(const res::TraitType *trait) {
   auto *monoTrait = getMonoType(trait)->getAs<res::TraitType>();
 
   std::string id = "vtable." + Mangling::mangleMonoType(monoTrait);
@@ -1354,7 +1348,7 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
 
   std::vector<llvm::Constant *> vFunctions;
   for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(monoTrait)) {
-    if (auto *f = generateExtensionFnDecl(monoType, layoutTrait, layoutFn)) {
+    if (auto *f = generateExtensionFnDecl(layoutTrait, layoutFn)) {
       vFunctions.emplace_back(f);
       continue;
     }
