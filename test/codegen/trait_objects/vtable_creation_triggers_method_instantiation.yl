@@ -32,7 +32,7 @@ fn main() {
   s.c();
 }
 
-// CHECK: @vtable.S.C = internal constant [5 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT1AGS1SE1a, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
+// CHECK: @vtable.T1CGS1SE = internal constant [5 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT1AGS1SE1a, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
 // CHECK: define void @_YT1AGS1SE1a(ptr %self, ptr %closure)
 // CHECK: define void @_YT2B1GS1SE1b(ptr %self, ptr %closure)
 // CHECK: define void @_YT2B2GS1SE1b(ptr %self, ptr %closure)

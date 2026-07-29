@@ -19,8 +19,8 @@ extension S2 : A {
   }
 }
 
-// CHECK: @vtable.S.A = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
-// CHECK: @vtable.S2.A = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
+// CHECK: @vtable.T1AGS1SE = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
+// CHECK: @vtable.T1AGS2S2E = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
 
 fn main() {
   mut p: *any A = gc(S {});

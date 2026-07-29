@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n123\n'
 
-// CHECK: @"vtable.S.A<number>" = internal constant [1 x ptr] [ptr @_YT1AGS1SnE3foo]
+// CHECK: @vtable.T1AGS1SnE = internal constant [1 x ptr] [ptr @_YT1AGS1SnE3foo]
 
 trait A<T> {
   fn foo(self: borrowed Self, t: T) {

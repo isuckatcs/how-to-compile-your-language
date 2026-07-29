@@ -1339,8 +1339,7 @@ llvm::Value *Codegen::getVtable(const res::TraitType *trait,
   type = getMonoType(type);
   trait = getMonoType(trait)->getAs<res::TraitType>();
 
-  // FIXME: mangle these types
-  std::string id = "vtable." + type->getName() + "." + trait->getName();
+  std::string id = "vtable." + Mangling::mangleMonoType(trait);
   if (auto *vtable = module.getGlobalVariable(id, true))
     return vtable;
 
