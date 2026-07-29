@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
@@ -554,15 +555,19 @@ Sema::lookupAssociatedDecls(std::string identifier,
 
     auto constraints = typeMgr.getDirectConformance(type);
     std::deque<res::TraitType *> traits(constraints.begin(), constraints.end());
-    std::set<res::NamedDecl *> seen;
+    std::vector<res::TraitType *> seen;
 
     while (!traits.empty()) {
       res::TraitType *trait = traits.front();
       traits.pop_front();
 
+      auto pred = [&](res::TraitType *t) { return typeMgr.eq(t, trait); };
+      if (std::find_if(seen.begin(), seen.end(), pred) != seen.end())
+        continue;
+      seen.emplace_back(trait);
+
       for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
-        if (seen.emplace(decl).second)
-          candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
+        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
 
       for (auto &&parent : typeMgr.getDirectConformance(trait))
         traits.emplace_back(parent);

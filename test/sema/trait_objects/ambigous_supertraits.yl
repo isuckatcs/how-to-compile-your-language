@@ -1,0 +1,21 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+trait B : A<unit> & A<number> {}
+
+struct S {}
+
+extension S : B {}
+extension S : A<unit> {}
+extension S : A<number> {}
+
+fn main() {
+  let s: *any B = gc(S {});
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
+  s.foo();
+}
