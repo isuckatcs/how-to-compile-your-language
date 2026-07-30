@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B<T> {
+  fn foo(self: borrowed Self) {}
+}
+
+extension<T, U : B<T>> U : B<unit> {}
+extension number : B<number> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: ambigous member function reference
+  123.foo();
+}

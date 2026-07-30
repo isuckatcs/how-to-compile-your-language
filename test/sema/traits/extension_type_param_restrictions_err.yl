@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B {}
+trait A<T : B> {}
+
+extension unit : B {}
+
+// CHECK: [[# @LINE + 1]]:17: error: cannot satisfy requirement 'number : B'
+extension<T : A<number>> number : A<unit> {}
+
+fn main() {}

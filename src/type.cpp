@@ -323,22 +323,31 @@ std::vector<std::pair<ExtensionDecl *, Substitution>>
 TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
   std::vector<std::pair<ExtensionDecl *, Substitution>> foundExtensions;
   for (auto &&extension : extensions) {
+    if (extensionStack.count(extension))
+      continue;
+
+    EnterExtensionRAII enterThisExtension(this, extension);
+
     Substitution extSub;
-    for (auto &&typeParam : extension->typeParams)
-      extSub[typeParam->getType()] = getNewUninferredType();
+    for (auto &&typeParam : extension->typeParams) {
+      auto *tpType = typeParam->getType();
+      auto *probeType = getNewUninferredType();
 
-    Type *probedType = instantiate(extension->type, extSub);
+      extSub[tpType] = probeType;
 
-    if (!unify(type, probedType, probeOnly).empty())
-      continue;
-
-    if (!trait) {
-      foundExtensions.emplace_back(extension, extSub);
-      continue;
+      for (auto &&trait : getDirectConformance(tpType))
+        createObligation(probeType,
+                         instantiate(trait, extSub)->getAs<res::TraitType>());
     }
 
-    Type *probedTrait = instantiate(extension->trait, extSub);
-    if (!unify(trait, probedTrait, probeOnly).empty())
+    if (trait) {
+      Type *probedTrait = instantiate(extension->trait, extSub);
+      if (!unify(trait, probedTrait, probeOnly).empty())
+        continue;
+    }
+
+    Type *probedType = instantiate(extension->type, extSub);
+    if (!unify(type, probedType, probeOnly).empty())
       continue;
 
     foundExtensions.emplace_back(extension, extSub);

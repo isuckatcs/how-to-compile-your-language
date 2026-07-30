@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B {
+  fn foo(self: borrowed Self) {}
+}
+
+extension<T : A<number>> T : B {}
+
+fn foo<T : B>(t: T) {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
+  123.foo();
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : B'
+  foo(123);
+}

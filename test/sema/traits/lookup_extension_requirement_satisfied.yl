@@ -1,0 +1,25 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B {
+  fn foo(self: borrowed Self) {}
+}
+
+extension number : A<number> {}
+extension<T : A<number>> T : B {}
+
+fn foo<T : B>(t: T) {}
+
+fn main() {
+  123.foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed number) -> unit}
+  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed number}
+  // CHECK-NEXT:     MaterializeTemporaryExpr {number}
+  // CHECK-NEXT:       NumberLiteral '123' {number}
+
+  foo(123);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(number) -> unit}
+  // CHECK-NEXT:   NumberLiteral '123' {number}
+}

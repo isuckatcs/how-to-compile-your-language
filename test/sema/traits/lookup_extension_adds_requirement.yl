@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+}
+trait B<T> {}
+
+extension<T : A> T : A {}
+extension<T : B<number>> T : B<number> {}
+extension<T : B<number> & B<unit>> T : B<unit> {}
+extension<T, U : B<T> & B<unit>> U : B<unit> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
+  123.foo();
+}

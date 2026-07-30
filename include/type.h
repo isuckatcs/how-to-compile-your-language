@@ -2,6 +2,7 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_TYPE_H
 
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -232,6 +233,22 @@ class TypeManager {
   using VtableEntryTy = std::pair<TraitType *, const FunctionDecl *>;
   using VtableLayoutTy = std::vector<VtableEntryTy>;
   std::vector<std::pair<TraitType *, VtableLayoutTy>> vtableLayouts;
+
+  class EnterExtensionRAII {
+    TypeManager *tm;
+    res::ExtensionDecl *e;
+
+  public:
+    EnterExtensionRAII(TypeManager *tm, res::ExtensionDecl *e)
+        : tm(tm),
+          e(e) {
+      tm->extensionStack.emplace(e);
+    }
+
+    ~EnterExtensionRAII() { tm->extensionStack.erase(e); }
+  };
+
+  std::set<res::ExtensionDecl *> extensionStack;
 
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);

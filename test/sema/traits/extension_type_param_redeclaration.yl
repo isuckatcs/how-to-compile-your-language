@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+// CHECK: [[# @LINE + 1]]:14: error: redeclaration of 'T'
+extension<T, T> number : Err {}
+
+fn main() {}

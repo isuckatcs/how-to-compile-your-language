@@ -141,16 +141,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
   if (const auto *udt =
           dynamic_cast<const ast::UserDefinedType *>(&parsedType)) {
     varOrReturn(decl, resolveTypeSymbol(udt));
-
-    if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
-      return typeMgr.getTypeParamType(*typeParamDecl);
-
-    auto *gdc = dynamic_cast<res::GenericDeclContext *>(decl);
-    assert(gdc && "expected generic decl context");
-
     bool isTraitDecl = decl->getAs<res::TraitDecl>();
-    int offset = isTraitDecl ? 1 : 0;
-    const auto &typeParams = gdc->typeParams;
 
     if (isTraitDecl && !expectTrait)
       return err::rawTrait(udt->location)
@@ -161,6 +152,15 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return err::notATrait(udt->location)
           .with(udt->identifier)
           .report(reporter);
+
+    if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
+      return typeMgr.getTypeParamType(*typeParamDecl);
+
+    auto *gdc = dynamic_cast<res::GenericDeclContext *>(decl);
+    assert(gdc && "expected generic decl context");
+
+    int offset = isTraitDecl ? 1 : 0;
+    const auto &typeParams = gdc->typeParams;
 
     varOrReturn(res, checkTypeParameterCount(udt->location,
                                              udt->typeArguments.size(),

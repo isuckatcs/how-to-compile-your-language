@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S {}
+
+// CHECK: [[# @LINE + 1]]:18: error: 'S' is not a trait
+extension<T> T : S {}
+
+// CHECK: [[# @LINE + 1]]:18: error: 'T' is not a trait
+extension<T> T : T {}
+
+fn main() {}
