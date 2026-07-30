@@ -1,0 +1,11 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+trait A {}
+
+// CHECK: [[# @LINE + 1 ]]:4: error: expected identifier
+fn 123 {}
+
+extension S : A {}
+// CHECK: TraitDecl: A
+// CHECK-NEXT: TypeExtension:
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:   UserDefinedType: A

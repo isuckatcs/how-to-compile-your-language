@@ -1,0 +1,14 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+extension S : A {
+  fn foo() {}
+  // CHECK: [[# @LINE + 1 ]]:6: error: expected identifier
+  fn 123() {}
+  fn bar() {}
+}
+// CHECK: TypeExtension:
+// CHECK-NEXT:   UserDefinedType: S
+// CHECK-NEXT:   UserDefinedType: A
+// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT:     Block
+// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:     Block
