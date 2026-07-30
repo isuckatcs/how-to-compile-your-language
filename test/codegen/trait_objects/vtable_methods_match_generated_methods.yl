@@ -39,8 +39,7 @@ fn main() {
 
   generateVtable(s);
 
-  // FIXME: investigate what A::a appears twice in the vtable
-  // CHECK: @vtable.T1CGS1SE = internal constant [5 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT1AGS1SE1a, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
+  // CHECK: @vtable.T1CGS1SE = internal constant [4 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
 
   s.a();
   // CHECK: call void @_YT1AGS1SE1a(ptr %4, ptr null)

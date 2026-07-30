@@ -265,6 +265,7 @@ public:
 
   // FIXME: these should live in the types
   std::vector<TraitType *> getDirectConformance(Type *type);
+  std::vector<TraitType *> getEveryConformance(Type *type);
   bool conformsTo(Type *type, TraitType *trait);
   TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
   VtableLayoutTy getVtableLayout(res::TraitType *trait);

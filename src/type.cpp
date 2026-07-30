@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -368,6 +369,27 @@ std::vector<TraitType *> TypeManager::getDirectConformance(res::Type *type) {
   return traits;
 }
 
+std::vector<TraitType *> TypeManager::getEveryConformance(Type *type) {
+  std::vector<TraitType *> result;
+
+  for (auto &&trait : getDirectConformance(type)) {
+    for (auto &&superTrait : getEveryConformance(trait)) {
+      auto pred = [&](res::TraitType *t) { return eq(t, superTrait); };
+      if (std::find_if(result.begin(), result.end(), pred) != result.end())
+        continue;
+
+      result.emplace_back(superTrait);
+    }
+
+    auto pred = [&](res::TraitType *t) { return eq(t, trait); };
+    if (std::find_if(result.begin(), result.end(), pred) != result.end())
+      continue;
+    result.emplace_back(trait);
+  }
+
+  return result;
+}
+
 bool TypeManager::conformsTo(Type *type, TraitType *trait) {
   for (auto &&constraint : getDirectConformance(type))
     if (eq(trait, constraint) || conformsTo(constraint, trait))
@@ -516,25 +538,9 @@ TypeManager::VtableLayoutTy
 TypeManager::getVtableLayout(res::TraitType *trait) {
   VtableLayoutTy layout;
 
-  Substitution sub = extractSubstitutionFrom(trait);
-
-  if (auto *conformance = trait->getDecl()->conformance) {
-    for (auto &&superTrait : conformance->traits) {
-      auto *superType = instantiate(superTrait, sub)->getAs<res::TraitType>();
-
-      // FIXME: find a more efficient filtering
-      bool alreadyInserted = false;
-
-      for (auto &&[trait, _] : layout)
-        alreadyInserted |= eq(trait, superType);
-
-      if (alreadyInserted)
-        continue;
-
-      const auto &superLayout = getVtableLayout(superType);
-      layout.insert(layout.end(), superLayout.begin(), superLayout.end());
-    }
-  }
+  for (auto &&trait : getEveryConformance(trait))
+    for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
+      layout.emplace_back(trait, fn);
 
   for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
     layout.emplace_back(trait, fn);
