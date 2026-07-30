@@ -1873,6 +1873,10 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
       error |= !resolveTraitBody(ctx, *resTD,
                                  *static_cast<const ast::TraitDecl *>(astDecl));
   }
+
+  for (auto &&trait : ctx.getTraits())
+    error |= isSelfContainingTrait(trait);
+
   error |= hasSelfContainingStructs(ctx);
 
   for (auto &&extension : ast->extensions)
@@ -1973,6 +1977,30 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
   }
 
   return true;
+}
+
+bool Sema::isSelfContainingTrait(res::TraitDecl *trait) {
+  std::stack<res::TraitDecl *> stack;
+
+  stack.emplace(trait);
+  while (!stack.empty()) {
+    res::TraitDecl *decl = stack.top();
+    stack.pop();
+
+    auto *conformance = decl->conformance;
+    if (!conformance)
+      continue;
+
+    for (auto &&requirement : conformance->traits)
+      if (stack.emplace(requirement->getDecl()) == trait) {
+        err::selfRequiringTrait(trait->location)
+            .with(trait->identifier)
+            .report(reporter);
+        return true;
+      }
+  }
+
+  return false;
 }
 
 bool Sema::hasSelfContainingStructs(res::Context &ctx) {

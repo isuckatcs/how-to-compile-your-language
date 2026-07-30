@@ -596,6 +596,8 @@ public:
   const std::vector<StructDecl *> &getStructs() const { return structs; }
   std::vector<StructDecl *> &getStructs() { return structs; }
 
+  std::vector<TraitDecl *> getTraits() const { return traits; }
+
   std::vector<FunctionDecl *> getFunctions() const {
     std::vector<FunctionDecl *> out;
     for (auto &&function : functions)

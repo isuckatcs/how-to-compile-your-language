@@ -162,6 +162,7 @@ diag(Error, notATrait, "'{}' is not a trait");
 diag(Error, missingTraitFn, "struct '{}' must implement function '{}' from trait '{}'");
 diag(Error, conflictingExtension, "extension '{} : {}' conflicts with extension '{} : {}'");
 diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
+diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");
 
 // structs
 diag(Error, selfContainingStruct, "struct '{}' contains itself");

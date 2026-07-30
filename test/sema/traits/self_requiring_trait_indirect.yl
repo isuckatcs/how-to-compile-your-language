@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+
+// CHECK: [[# @LINE + 1 ]]:7: error: trait 'A' requires conformance to itself
+trait A<T> : C {}
+
+// CHECK: [[# @LINE + 1 ]]:7: error: trait 'B' requires conformance to itself
+trait B : C {}
+
+// CHECK: [[# @LINE + 1 ]]:7: error: trait 'C' requires conformance to itself
+trait C : A<number> & B {}
+
+fn main() {}
