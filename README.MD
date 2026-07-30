@@ -55,6 +55,37 @@ fn main() {
 }
 ```
 
+### Rust Style Traits
+
+Rust style trait system for constraining and extending the behavior of types. For heap allocated trait objects such as `*any A<number>`, member functions are dispatched dynamically with the help of a `vtable`.
+
+```
+trait A<T> {
+  fn foo(self: borrowed Self);
+}
+
+trait B {}
+
+extension<T : B> T : A<number> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+extension number : B {}
+
+fn wrapper(a: *any A<number>) {
+  a.foo();
+}
+
+fn main() {
+  123.foo();
+
+  let n = gc(123);
+  wrapper(n);
+}
+```
+
 ### Hindley-Milner Style Type System
 
 Simple Hindley-Milner style static type system currently supporting the `number`, `unit`, `function` and user-defined `struct` types with type inference capabilities. 
