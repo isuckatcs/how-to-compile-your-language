@@ -1,0 +1,39 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+trait A<T> {
+  fn print(self: borrowed Self) {
+    println(123);
+  }
+}
+
+trait B : A<number> {}
+
+extension unit : B {}
+
+extension unit : A<number> {}
+
+extension<T> T : A<unit> {
+  fn print(self: borrowed Self) {
+    println(456);
+  }
+}
+
+fn foo<T : B>(t: T) {
+  bar(t);
+  bar@<unit, T>(t);
+}
+// CHECK: define void @_Y3fooGuE(ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @_Y3barGnuE(ptr null)
+// CHECK-NEXT:   call void @_Y3barGuuE(ptr null)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn bar<T, U: A<T>>(u: U) {
+  u.print();
+}
+
+fn main() {
+  foo(unit);
+}

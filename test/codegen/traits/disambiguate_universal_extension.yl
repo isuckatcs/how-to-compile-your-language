@@ -1,0 +1,24 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+trait B : A<number> {}
+
+extension unit : A<number> {}
+extension unit : B {}
+
+extension<T> T : A<unit> {}
+
+fn foo<T : B>(t: T) {
+  @<T : A<unit>>::foo(t);
+  // CHECK: call void @_YT1AGuuE3foo(ptr %t, ptr null)
+}
+
+fn main() {
+  foo(unit);
+}

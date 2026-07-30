@@ -335,8 +335,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
     parentType = specType;
     parentTrait = traitType->getAs<res::TraitType>();
 
-    if (!typeMgr.conformsTo(parentType, parentTrait) &&
-        typeMgr.getExtensions(parentType, parentTrait).empty())
+    if (!typeMgr.solveConformance(parentType, parentTrait).empty())
       return err::traitNotImplemented(traitSpec->trait->location)
           .with(parentType->getName())
           .with(parentTrait->getName())
@@ -555,7 +554,10 @@ Sema::lookupAssociatedDecls(std::string identifier,
     for (auto &&trait : typeMgr.getEveryConformance(type))
       for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
         candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
-  } else if (typeMgr.conformsTo(type, trait)) {
+
+    if (!candidates.empty())
+      return candidates;
+  } else if (typeMgr.solveConformance(type, trait).empty()) {
     for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
 

@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+trait B : A<number> & A<unit> {}
+
+fn foo<T : B>(t: T) {
+  bar(t);
+  // CHECK: [[# @LINE - 1 ]]:7: error: 'A<number>' ambigously satisfies requirement 'T : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:7: error: 'A<unit>' ambigously satisfies requirement 'T : A<_>'
+}
+
+fn bar<T, U: A<T>>(u: U) {}
+
+fn main() {}

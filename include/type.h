@@ -236,7 +236,7 @@ class TypeManager {
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
   std::vector<std::string>
-  checkObligations(std::vector<UninferredType *> &inferredTypes);
+  solveConformances(std::vector<UninferredType *> &inferredTypes);
 
 public:
   void createObligation(UninferredType *type, TraitType *trait);
@@ -261,12 +261,12 @@ public:
 
   bool eq(const Type *t1, const Type *t2) const;
   std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);
+  std::vector<std::string> solveConformance(Type *type, TraitType *requirement);
   Type *instantiate(Type *t, const Substitution &substitution);
 
   // FIXME: these should live in the types
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);
-  bool conformsTo(Type *type, TraitType *trait);
   TraitType *withSelfType(AnyTraitType *anyTraitType, Type *selfType);
   VtableLayoutTy getVtableLayout(res::TraitType *trait);
 

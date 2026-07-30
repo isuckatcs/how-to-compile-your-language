@@ -390,12 +390,36 @@ std::vector<TraitType *> TypeManager::getEveryConformance(Type *type) {
   return result;
 }
 
-bool TypeManager::conformsTo(Type *type, TraitType *trait) {
-  for (auto &&constraint : getDirectConformance(type))
-    if (eq(trait, constraint) || conformsTo(constraint, trait))
-      return true;
+std::vector<std::string> TypeManager::solveConformance(Type *type,
+                                                       TraitType *requirement) {
+  std::vector<TraitType *> candidates;
 
-  return false;
+  for (auto &&trait : getEveryConformance(type))
+    if (unify(trait, requirement, true).empty())
+      candidates.emplace_back(trait);
+
+  if (candidates.empty()) {
+    auto extensions = getExtensions(type->getRootType(), requirement, true);
+    for (auto &&[extension, sub] : extensions)
+      candidates.emplace_back(
+          instantiate(extension->trait, sub)->getAs<res::TraitType>());
+  }
+
+  if (candidates.empty())
+    return {"cannot satisfy requirement '" + type->getName() + " : " +
+            requirement->getName() + "'"};
+
+  if (candidates.size() > 1) {
+    std::vector<std::string> errors;
+    for (auto &&candidate : candidates)
+      errors.emplace_back(
+          "'" + candidate->getName() + "' ambigously satisfies requirement '" +
+          type->getName() + " : " + requirement->getName() + "'");
+    return errors;
+  }
+
+  unify(requirement, candidates[0]);
+  return {};
 }
 
 void TypeManager::createObligation(UninferredType *type, TraitType *trait) {
@@ -450,37 +474,13 @@ std::vector<std::string> TypeManager::unifyImpl(
 }
 
 std::vector<std::string>
-TypeManager::checkObligations(std::vector<UninferredType *> &inferredTypes) {
+TypeManager::solveConformances(std::vector<UninferredType *> &inferredTypes) {
   std::vector<std::string> errors;
 
-  for (auto &&type : inferredTypes) {
-    for (auto &&requiredTrait : obligations[type]) {
-      if (conformsTo(type, requiredTrait))
-        continue;
-
-      // FIXME: consider returning candidates
-      auto extensions = getExtensions(type->getRootType(), requiredTrait, true);
-
-      if (extensions.empty()) {
-        errors.emplace_back("cannot satisfy requirement '" + type->getName() +
-                            " : " + requiredTrait->getName() + "'");
-        continue;
-      }
-
-      if (extensions.size() > 1) {
-        for (auto &&extension : extensions)
-          errors.emplace_back("'" + extension.first->trait->getName() +
-                              "' ambigously satisfies requirement '" +
-                              type->getName() + " : " +
-                              requiredTrait->getName() + "'");
-        continue;
-      }
-
-      auto [extension, sub] = extensions[0];
-      unify(requiredTrait, instantiate(extension->trait, sub));
-      break;
-    }
-  }
+  for (auto &&type : inferredTypes)
+    for (auto &&requiredTrait : obligations[type])
+      for (auto &&error : solveConformance(type, requiredTrait))
+        errors.emplace_back(error);
 
   return errors;
 }
@@ -491,8 +491,7 @@ TypeManager::unify(Type *t1, Type *t2, bool probeOnly) {
   std::vector<std::string> errors = unifyImpl(t1, t2, inferredTypes);
 
   if (errors.empty())
-    for (auto &&err : checkObligations(inferredTypes))
-      errors.emplace_back(err);
+    errors = solveConformances(inferredTypes);
 
   if (probeOnly)
     for (auto &&ty : inferredTypes)

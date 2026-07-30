@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self) {
+    println(123);
+  }
+}
+
+trait B : A<number> {}
+
+extension<T> T : A<unit> {}
+
+fn foo<T : B>(t: T) {
+  @<T : A<unit>>::foo(t);
+  // CHECK: DeclRefExpr @({{.*}}) foo {(borrowed T) -> unit}
+}
+
+fn main() {}
