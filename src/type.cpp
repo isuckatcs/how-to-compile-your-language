@@ -237,7 +237,6 @@ Substitution TypeManager::extractSubstitutionFrom(const Type *ty) {
 
   if (auto *traitTy = ty->getAs<res::AnyTraitType>()) {
     auto declParams = traitTy->decl->typeParams;
-    // FIXME: Skip Self
     from.insert(from.end(), declParams.begin() + 1, declParams.end());
     to = traitTy->getTypeArgs();
   }
@@ -320,7 +319,6 @@ void TypeManager::addExtension(ExtensionDecl *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
 
-// FIXME: consider returning the traits only, as they contain the type as well
 std::vector<std::pair<ExtensionDecl *, Substitution>>
 TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
   std::vector<std::pair<ExtensionDecl *, Substitution>> foundExtensions;
@@ -331,7 +329,6 @@ TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
 
     Type *probedType = instantiate(extension->type, extSub);
 
-    // FIXME: propagate errors for more decriptive messages?
     if (!unify(type, probedType, probeOnly).empty())
       continue;
 

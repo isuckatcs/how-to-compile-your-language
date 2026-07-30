@@ -355,8 +355,6 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
           break;
         }
 
-      // FIXME: report ambigous associated items?
-
       if (!parentType)
         return err::memberAccessInValue(results[0]->location).report(reporter);
 
