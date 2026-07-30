@@ -957,23 +957,20 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   if (!targetPtr)
     return expr;
 
-  auto *targetAny = targetPtr->getPointeeType()->getAs<res::AnyTraitType>();
-  if (!targetAny)
-    return expr;
-
   auto *exprPtr = expr->getType()->getAs<res::PointerType>();
   if (!exprPtr)
     return expr;
 
   auto *exprPointee = exprPtr->getPointeeType();
-  if (exprPointee->getAs<res::AnyTraitType>() ||
+  auto *targetAny = targetPtr->getPointeeType()->getAs<res::AnyTraitType>();
+
+  if (exprPointee->getAs<res::AnyTraitType>() || !targetAny ||
       targetPtr->isMutable() != exprPtr->isMutable())
     return expr;
 
-  auto *tmpType = typeMgr.getNewUninferredType();
-  typeMgr.createObligation(tmpType, typeMgr.withSelfType(targetAny, tmpType));
+  auto *requiredTrait = typeMgr.withSelfType(targetAny, exprPointee);
+  auto errors = typeMgr.solveConformance(exprPointee, requiredTrait);
 
-  const auto &errors = typeMgr.unify(tmpType, exprPointee);
   if (errors.empty()) {
     auto *top = ctx.create<res::TraitObjectPromoExpr>(expr->location, expr);
     top->setType(targetType);
@@ -1384,23 +1381,19 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
 
     res::Substitution sub;
-    res::Substitution reverseSub;
-
     bool error = false;
+
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
       res::Type *traitParamTy = traitFn->typeParams[i]->getType();
       res::Type *implParamTy = implFn->typeParams[i]->getType();
 
-      auto *checkTy = typeMgr.getNewUninferredType();
       sub[implParamTy] = traitParamTy;
-      reverseSub[implParamTy] = checkTy;
+      for (auto &&trait : typeMgr.getDirectConformance(implParamTy)) {
+        trait = typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
 
-      for (auto &&trait : typeMgr.getDirectConformance(implParamTy))
-        typeMgr.createObligation(
-            checkTy, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
-
-      if (const auto &errors = typeMgr.unify(traitParamTy, checkTy);
-          !errors.empty()) {
+        auto errors = typeMgr.solveConformance(traitParamTy, trait);
+        if (errors.empty())
+          continue;
 
         for (auto &&error : errors)
           err::inferenceError(implFn->typeParams[i]->location)
@@ -2058,18 +2051,17 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
     if (typeParam->isImplicitSelf)
       continue;
 
-    auto *probeType = typeMgr.getNewUninferredType();
-    for (auto &&trait : typeMgr.getDirectConformance(typeParam->getType()))
-      typeMgr.createObligation(
-          probeType, typeMgr.instantiate(trait, sub)->getAs<res::TraitType>());
+    auto *typeParamType = typeParam->getType();
+    auto *typeArg = typeMgr.instantiate(typeParamType, sub);
 
-    if (auto errs = typeMgr.unify(
-            typeMgr.instantiate(typeParam->getType(), sub), probeType);
-        !errs.empty()) {
-      for (auto &&err : errs)
-        err::inferenceError(astIt->get()->location).with(err).report(reporter);
+    for (auto &&trait : typeMgr.getDirectConformance(typeParamType)) {
+      trait = typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
+      if (auto errs = typeMgr.solveConformance(typeArg, trait); !errs.empty()) {
+        for (auto &&error : errs)
+          err::inferenceError((*astIt)->location).with(error).report(reporter);
 
-      return nullptr;
+        return nullptr;
+      }
     }
 
     ++astIt;

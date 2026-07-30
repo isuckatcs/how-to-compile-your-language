@@ -2,14 +2,17 @@
 trait B<T> {}
 
 trait A {
-  fn foo<T, U : B<T>>();
+  fn foo<T, U : B<T>, V>();
 }
 
 struct S {}
 
 extension S : A {
-  fn foo<X, Y : B<X> & B<unit>>() {}
-  // CHECK: [[# @LINE - 1]]:13: error: cannot replace parameter of type 'U' with stricter implementation type 'Y'
+  fn foo<X, Y : B<X> & B<unit>, Z : B<number>>() {}
+  // CHECK: [[# @LINE - 1]]:13: error: cannot satisfy requirement 'U : B<unit>'
+  // CHECK: [[# @LINE - 2]]:13: error: cannot replace parameter of type 'U' with stricter implementation type 'Y'
+  // CHECK: [[# @LINE - 3]]:33: error: cannot satisfy requirement 'V : B<number>'
+  // CHECK: [[# @LINE - 4]]:33: error: cannot replace parameter of type 'V' with stricter implementation type 'Z'
 }
 
 fn main() {}
