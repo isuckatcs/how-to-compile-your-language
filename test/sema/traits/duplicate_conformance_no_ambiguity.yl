@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: borrowed Self) {}
+}
+
+trait B: A<number> & A<number> & A<number> {}
+
+fn foo<T, U : A<T>>(u: U) {}
+
+fn bar<T : B>(t: T) {
+  foo(t);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(T) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) t {T}
+}
+
+fn main() {}
