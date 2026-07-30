@@ -497,8 +497,6 @@ llvm::Value *Codegen::constructStruct(
   llvm::Type *structTy = generateType(structType);
   unsigned gepIdx = 0;
 
-  // FIXME: at this point we already know the field values and their types as
-  // well, there should be no need to monomorphize
   EnterMonoCtxRAII structCtx(this,
                              typeMgr->extractSubstitutionFrom(structType));
 
