@@ -124,13 +124,12 @@ std::string StructType::getName() const {
   return ss.str();
 }
 
-BorrowedType::BorrowedType(Type *borrowedType, bool isMutable)
-    : Type(isMutable ? "borrowed mut" : "borrowed",
-           std::vector<res::Type *>{borrowedType}),
+RefType::RefType(Type *referencedType, bool isMutable)
+    : Type(isMutable ? "&mut " : "&", std::vector<res::Type *>{referencedType}),
       isMut(isMutable){};
 
-bool BorrowedType::isSameKind(const Type *other) const {
-  const auto *b = other->getAs<BorrowedType>();
+bool RefType::isSameKind(const Type *other) const {
+  const auto *b = other->getAs<RefType>();
   return b && b->isMut == isMut;
 };
 
@@ -303,9 +302,9 @@ TypeParamType *TypeManager::getTypeParamType(TypeParamDecl &decl) {
   return typeParamTy;
 }
 
-BorrowedType *TypeManager::getBorrowedType(Type *borrowedType, bool isMutable) {
-  auto *ptrTy = new BorrowedType(borrowedType, isMutable);
-  types.emplace_back(std::unique_ptr<BorrowedType>(ptrTy));
+RefType *TypeManager::getRefType(Type *referencedType, bool isMutable) {
+  auto *ptrTy = new RefType(referencedType, isMutable);
+  types.emplace_back(std::unique_ptr<RefType>(ptrTy));
   return ptrTy;
 }
 
@@ -516,8 +515,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
   else if (auto *s = t->getAs<StructType>())
     t = getStructType(*s->getDecl(), s->getTypeArgs());
-  else if (auto *b = t->getAs<BorrowedType>())
-    t = getBorrowedType(b->getBorrowedType(), b->isMutable());
+  else if (auto *b = t->getAs<RefType>())
+    t = getRefType(b->getRefType(), b->isMutable());
   else if (auto *p = t->getAs<PointerType>())
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())

@@ -146,8 +146,8 @@ diag(Error, noReturnValue, "expected a return value");
 diag(Error, rvalueAssignment, "cannot assign to rvalue");
 diag(Error, cannotBeMutated, "'{}' cannot be mutated");
 diag(Error, pointeeCannotBeMutated, "pointee of type '{}' cannot be mutated");
-diag(Error, rvalueBorrow, "only lvalues can be borrowed");
-diag(Error, mutBorrowParameter, "a borrowed parameter cannot be 'mut'");
+diag(Error, rvalueRef, "only lvalues can be taken by reference");
+diag(Error, mutRefParameter, "a '&' parameter cannot be 'mut'");
 
 // init
 diag(Error, notInitialized, "'{}' is not initialized");
@@ -171,7 +171,7 @@ diag(Error, selfContainingStruct, "struct '{}' contains itself");
 diag(Error, selfTyNotAllowed, "'Self' is only allowed inside structs and traits");
 diag(Error, selfParamNotAllowed, "'self' parameter is only allowed in methods");
 diag(Error, selfWrongPosition, "'self' can only be the first parameter");
-diag(Error, selfWrongType, "'self' can only have 'borrowed Self' or 'borrowed mut Self' types");
+diag(Error, selfWrongType, "'self' can only have '&Self' or '&mut Self' types");
 
 // main
 diag(Error, wrongMainReturnTy, "'main' function is expected to return 'unit'");
@@ -183,7 +183,7 @@ diag(Error, mainNotFound, "'main' function not found");
 diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be used for user-defined functions");
 
 // lambdas
-diag(Error, outParamCapture, "capturing borrowed parameter '{}' in lambda is not allowed");
+diag(Error, refParamCapture, "capturing '&' parameter '{}' in lambda is not allowed");
 diag(Error, unexpectedLambda, "unexpected lambda, expected '{}'");
 // clang-format on
 }; // namespace err

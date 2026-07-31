@@ -509,20 +509,20 @@ struct LambdaExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct ImplicitPtrToBorrowDecay : public Expr {
+struct ImplicitPtrToRefDecay : public Expr {
   res::Expr *expr;
 
-  ImplicitPtrToBorrowDecay(SourceLocation location, res::Expr *expr)
+  ImplicitPtrToRefDecay(SourceLocation location, res::Expr *expr)
       : Expr(location, Expr::Kind::Rvalue),
         expr(expr) {}
 
   void dump(size_t level = 0) const override;
 };
 
-struct ImplicitBorrowExpr : public Expr {
+struct ImplicitAsRefExpr : public Expr {
   res::Expr *expr;
 
-  ImplicitBorrowExpr(SourceLocation location, res::Expr *expr)
+  ImplicitAsRefExpr(SourceLocation location, res::Expr *expr)
       : Expr(location, Expr::Kind::Rvalue),
         expr(expr) {}
 

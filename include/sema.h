@@ -204,8 +204,8 @@ class Sema {
                                size_t expected) const;
 
   res::Expr *asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr);
-  res::Expr *withPtrToBorrowDecay(res::Type *targetType, res::Expr *expr);
-  res::Expr *withImplicitBorrow(res::Type *targetType, res::Expr *expr);
+  res::Expr *withPtrToRefDecay(res::Type *targetType, res::Expr *expr);
+  res::Expr *withImplicitAsRef(res::Type *targetType, res::Expr *expr);
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,

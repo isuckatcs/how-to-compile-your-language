@@ -146,21 +146,19 @@ public:
   friend class TypeManager;
 };
 
-class BorrowedType : public Type {
+class RefType : public Type {
   bool isMut;
 
-  BorrowedType(Type *borrowedType, bool isMutable);
+  RefType(Type *referencedType, bool isMutable);
 
   bool isSameKind(const Type *other) const override;
 
 public:
-  Type *getBorrowedType() { return args[0]->getRootType(); }
-  const Type *getBorrowedType() const { return args[0]->getRootType(); }
+  Type *getRefType() { return args[0]->getRootType(); }
+  const Type *getRefType() const { return args[0]->getRootType(); }
 
   bool isMutable() const { return isMut; }
-  std::string getName() const override {
-    return name + " " + args[0]->getName();
-  }
+  std::string getName() const override { return name + args[0]->getName(); }
 
   friend class TypeManager;
 };
@@ -273,7 +271,7 @@ public:
   TraitType *getTraitType(TraitDecl &decl, std::vector<Type *> args);
   AnyTraitType *getAnyTraitType(TraitDecl &decl, std::vector<Type *> args);
   TypeParamType *getTypeParamType(TypeParamDecl &decl);
-  BorrowedType *getBorrowedType(Type *borrowedType, bool isMutable);
+  RefType *getRefType(Type *referencedType, bool isMutable);
   PointerType *getPointerType(Type *pointeeType, bool isMutable);
 
   bool eq(const Type *t1, const Type *t2) const;

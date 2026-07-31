@@ -307,15 +307,15 @@ void LambdaExpr::dump(size_t level) const {
   closure->dump(level + 1);
 }
 
-void ImplicitPtrToBorrowDecay::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplicitPtrToBorrowDecay"
+void ImplicitPtrToRefDecay::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitPtrToRefDecay"
             << " {" << getType()->getName() << '}' << '\n';
 
   expr->dump(level + 1);
 }
 
-void ImplicitBorrowExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplicitBorrowExpr"
+void ImplicitAsRefExpr::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitAsRefExpr"
             << " {" << getType()->getName() << '}' << '\n';
 
   expr->dump(level + 1);

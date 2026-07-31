@@ -607,8 +607,8 @@ Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
 
   auto *targetType =
       resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
-  selfArg = withPtrToBorrowDecay(targetType, selfArg);
-  selfArg = withImplicitBorrow(targetType, selfArg);
+  selfArg = withPtrToRefDecay(targetType, selfArg);
+  selfArg = withImplicitAsRef(targetType, selfArg);
 
   return {resMemberExpr->member, {selfArg}};
 }
@@ -650,12 +650,12 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     res::Type *expectedTy = argTypes[args.size()];
 
     WithModifiersRAII unaryAmpAllowed(
-        this, expectedTy->getAs<res::BorrowedType>() ? AddressTaken : 0);
+        this, expectedTy->getAs<res::RefType>() ? AddressTaken : 0);
 
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
-    varOrReturn(promotedArg, withImplicitBorrow(expectedTy, coercedArg));
-    promotedArg = withPtrToBorrowDecay(expectedTy, promotedArg);
+    varOrReturn(promotedArg, withImplicitAsRef(expectedTy, coercedArg));
+    promotedArg = withPtrToRefDecay(expectedTy, promotedArg);
 
     res::Type *actualTy = promotedArg->getType();
 
@@ -980,46 +980,45 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
   return nullptr;
 }
 
-res::Expr *Sema::withPtrToBorrowDecay(res::Type *targetType, res::Expr *expr) {
-  auto *targetBorrowType = targetType->getAs<res::BorrowedType>();
+res::Expr *Sema::withPtrToRefDecay(res::Type *targetType, res::Expr *expr) {
+  auto *targetRefType = targetType->getAs<res::RefType>();
   auto *currentPtrType = expr->getType()->getAs<res::PointerType>();
 
-  if (!targetBorrowType || !currentPtrType)
+  if (!targetRefType || !currentPtrType)
     return expr;
 
-  if (targetBorrowType->isMutable() && !currentPtrType->isMutable())
+  if (targetRefType->isMutable() && !currentPtrType->isMutable())
     return expr;
 
-  res::Type *borrowedType = targetBorrowType->getBorrowedType();
-  res::Type *pointerrType = currentPtrType->getPointeeType();
-  if (!typeMgr.unify(borrowedType, pointerrType).empty())
+  res::Type *refType = targetRefType->getRefType();
+  res::Type *ptrType = currentPtrType->getPointeeType();
+  if (!typeMgr.unify(refType, ptrType).empty())
     return expr;
 
-  auto *p2b = ctx.create<res::ImplicitPtrToBorrowDecay>(expr->location, expr);
-  p2b->setType(targetBorrowType);
+  auto *p2b = ctx.create<res::ImplicitPtrToRefDecay>(expr->location, expr);
+  p2b->setType(targetRefType);
   return p2b;
 }
 
-res::Expr *Sema::withImplicitBorrow(res::Type *targetType, res::Expr *expr) {
-  auto *targetRefType = targetType->getAs<res::BorrowedType>();
+res::Expr *Sema::withImplicitAsRef(res::Type *targetType, res::Expr *expr) {
+  auto *targetRefType = targetType->getAs<res::RefType>();
   if (!targetRefType)
     return expr;
 
-  if (expr->getType()->getAs<res::BorrowedType>())
+  if (expr->getType()->getAs<res::RefType>())
     return expr;
 
   if (!expr->isLvalue())
-    return err::rvalueBorrow(expr->location).report(reporter);
+    return err::rvalueRef(expr->location).report(reporter);
 
   if (targetRefType->isMutable() && !expr->isMutable())
     return expr;
 
-  if (!typeMgr.unify(targetRefType->getBorrowedType(), expr->getType()).empty())
+  if (!typeMgr.unify(targetRefType->getRefType(), expr->getType()).empty())
     return expr;
 
-  auto *be = ctx.create<res::ImplicitBorrowExpr>(expr->location, expr);
-  be->setType(
-      typeMgr.getBorrowedType(expr->getType(), targetRefType->isMutable()));
+  auto *be = ctx.create<res::ImplicitAsRefExpr>(expr->location, expr);
+  be->setType(typeMgr.getRefType(expr->getType(), targetRefType->isMutable()));
   return be;
 }
 
@@ -1216,7 +1215,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 
-    auto *outType = resPath->getType()->getAs<res::BorrowedType>();
+    auto *outType = resPath->getType()->getAs<res::RefType>();
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl = nullptr;
@@ -1231,7 +1230,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
       if (outsideDecl == insideDecl) {
         if (outType)
-          return err::outParamCapture(resPath->location)
+          return err::refParamCapture(resPath->location)
               .with(decl->identifier)
               .report(reporter);
 
@@ -1272,10 +1271,10 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       }
     }
 
-    if (outType && (!typeHint || !typeHint->getAs<res::BorrowedType>())) {
+    if (outType && (!typeHint || !typeHint->getAs<res::RefType>())) {
       auto *ide =
           ctx.create<res::ImplicitDerefExpr>(resPath->location, resPath);
-      ide->setType(outType->getBorrowedType());
+      ide->setType(outType->getRefType());
       return ide;
     }
 
@@ -1659,20 +1658,19 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   bool error = false;
 
   if (param->type) {
-    paramTy =
-        resolveType(ctx, *param->type, param->borrowedModifier != nullptr);
+    paramTy = resolveType(ctx, *param->type, param->refModifier != nullptr);
     error |= !paramTy;
   }
 
   if (!paramTy)
     paramTy = typeMgr.getNewUninferredType();
 
-  if (auto *borrowed = param->borrowedModifier.get())
-    paramTy = typeMgr.getBorrowedType(paramTy, borrowed->isMut);
+  if (auto *ref = param->refModifier.get())
+    paramTy = typeMgr.getRefType(paramTy, ref->isMut);
 
-  auto *referenceType = paramTy->getAs<res::BorrowedType>();
+  auto *referenceType = paramTy->getAs<res::RefType>();
   if (referenceType && param->isMutable) {
-    err::mutBorrowParameter(param->location).report(reporter);
+    err::mutRefParameter(param->location).report(reporter);
     error = true;
   }
 
@@ -1969,9 +1967,8 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
     return false;
   }
 
-  auto *refType = param->getType()->getAs<res::BorrowedType>();
-  if (!refType ||
-      !typeMgr.unify(refType->getBorrowedType(), selfType).empty()) {
+  auto *refType = param->getType()->getAs<res::RefType>();
+  if (!refType || !typeMgr.unify(refType->getRefType(), selfType).empty()) {
     err::selfWrongType(param->location).report(reporter);
     return false;
   }
