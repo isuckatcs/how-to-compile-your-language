@@ -2,7 +2,7 @@
 trait A<T> {}
 
 trait B {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 extension<T : A<number>> T : B {}

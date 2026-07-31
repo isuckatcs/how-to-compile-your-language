@@ -5,13 +5,13 @@
 // CHECK: @vtable.T1AGS1SnE = internal constant [2 x ptr] [ptr @_YT1BGS1SnE3bar, ptr @_YT1AGS1SnE3foo]
 
 trait A<T> : B<T> {
-  fn foo(self: borrowed Self, t: T) {
+  fn foo(self: &Self, t: T) {
     println(123);
   }
 }
 
 trait B<T> {
-  fn bar(self: borrowed Self, t: T) {
+  fn bar(self: &Self, t: T) {
     println(456);
   }
 }

@@ -6,11 +6,11 @@
 // CHECK: @vtable.T1AGS2S2E = internal constant [2 x ptr] [ptr @_YT1BGS2S2E3bar, ptr @_YT1AGS2S2E3foo]
 
 trait A : B {
-  fn foo(self: borrowed Self, x: number) {}
+  fn foo(self: &Self, x: number) {}
 }
 
 trait B {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(789);
   }
 }
@@ -20,7 +20,7 @@ struct S {
 }
 
 extension S : A {
-  fn foo(self: borrowed Self, x: number) {
+  fn foo(self: &Self, x: number) {
     println(self.n * x);
   }
 }
@@ -30,13 +30,13 @@ extension S : B {}
 struct S2 {}
 
 extension S2 : A {
-  fn foo(self: borrowed Self, x: number) {
+  fn foo(self: &Self, x: number) {
     println(2 * x);
   }
 }
 
 extension S2 : B {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 }

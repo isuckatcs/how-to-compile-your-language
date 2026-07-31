@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 trait A {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(123);
   }
 }
@@ -14,7 +14,7 @@ extension S : A {}
 struct S2 {}
 
 extension S2 : A {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(456);
   }
 }

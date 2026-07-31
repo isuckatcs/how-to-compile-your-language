@@ -5,7 +5,7 @@
 // CHECK: @vtable.T1AGS1SGnEnE = internal constant [1 x ptr] [ptr @_YT1AGS1SGnEnE3foo]
 
 trait A<T> {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(123);
   }
 }

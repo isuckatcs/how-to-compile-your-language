@@ -5,7 +5,7 @@
 // CHECK: @vtable.T1AGS1SGnES1SGnEE = internal constant [1 x ptr] [ptr @_YT1AGS1SGnES1SGnEE3foo]
 
 trait A<T> {
-  fn foo(self: borrowed Self, t: T);
+  fn foo(self: &Self, t: T);
 }
 
 struct S<T> {
@@ -13,7 +13,7 @@ struct S<T> {
 }
 
 extension<T> S<T> : A<S<T>> {
-  fn foo(self: borrowed Self, t: S<T>) {
+  fn foo(self: &Self, t: S<T>) {
     if self.x == t.x {
       println(123);
     }

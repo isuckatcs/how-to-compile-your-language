@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A<T> {
-  fn foo(self: borrowed Self, t: T) {}
+  fn foo(self: &Self, t: T) {}
 }
 
 struct S<T> {}

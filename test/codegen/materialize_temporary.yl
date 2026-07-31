@@ -2,21 +2,21 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n123\n456\n789\n'
 trait A {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(123);
   }
 
-  fn bar(self: borrowed Self) {}
+  fn bar(self: &Self) {}
 
-  fn baz(self: borrowed Self);
+  fn baz(self: &Self);
 }
 
 extension number : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(self);
   }
 }
@@ -40,11 +40,11 @@ fn materializeTemporaryNumber() {
 }
 
 extension unit : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(789);
   }
 }
@@ -67,11 +67,11 @@ fn materializeTemporaryUnit() {
 struct Empty {}
 
 extension Empty : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(789);
   }
 }
@@ -97,11 +97,11 @@ struct Empty2 {
 }
 
 extension Empty2 : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(789);
   }
 }
@@ -126,11 +126,11 @@ struct S {
 }
 
 extension S : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(self.x);
   }
 }
@@ -147,11 +147,11 @@ fn materializeTemporaryStruct() {
 }
 
 extension () -> unit : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(789);
   }
 }
@@ -205,11 +205,11 @@ fn materializeTemporaryLambda() {
 }
 
 extension *number : A {
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(456);
   }
 
-  fn baz(self: borrowed Self) {
+  fn baz(self: &Self) {
     println(*self);
   }
 }

@@ -5,13 +5,13 @@
 // CHECK: @vtable.T1AGS1SunFRuE = internal constant [4 x ptr] [ptr @_YT1BGS1SuE3bar, ptr @_YT1BGS1SnE3bar, ptr @_YT1BGS1SFRuE3bar, ptr @_YT1AGS1SunFRuE3foo]
 
 trait A<T, U, V> : B<T> & B<U> & B<V> {
-  fn foo(self: borrowed Self, t: T) {
+  fn foo(self: &Self, t: T) {
     println(123);
   }
 }
 
 trait B<T> {
-  fn bar(self: borrowed Self, t: T);
+  fn bar(self: &Self, t: T);
 }
 
 struct S {}
@@ -19,19 +19,19 @@ struct S {}
 extension S : A<unit, number, () -> unit> {}
 
 extension S : B<unit> {
-  fn bar(self: borrowed Self, u: unit) {
+  fn bar(self: &Self, u: unit) {
     println(456);
   }
 }
 
 extension S : B<number> {
-  fn bar(self: borrowed Self, n: number) {
+  fn bar(self: &Self, n: number) {
     println(789);
   }
 }
 
 extension S : B<() -> unit> {
-  fn bar(self: borrowed Self, f: () -> unit) {
+  fn bar(self: &Self, f: () -> unit) {
     println(101112);
   }
 }

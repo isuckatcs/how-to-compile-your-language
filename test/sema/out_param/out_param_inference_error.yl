@@ -1,11 +1,11 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> { x: T }
 
-fn foo<T>(x: borrowed S<T>) {}
+fn foo<T>(x: &S<T>) {}
 
 fn main() {
   mut x = 1;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with 'borrowed S<_>'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&S<_>'
   foo(x);
 }

@@ -4,7 +4,7 @@
 struct S {
   x: number
 
-  fn foo(self: borrowed Self): Self {
+  fn foo(self: &Self): Self {
     println(self.x);
     return self;
   }
@@ -20,7 +20,7 @@ struct S {
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 
-  fn bar(self: borrowed Self) {
+  fn bar(self: &Self) {
     println(self.x * 2);
   }
   // CHECK: define void @_YS1S3bar(ptr %self, ptr %closure) {

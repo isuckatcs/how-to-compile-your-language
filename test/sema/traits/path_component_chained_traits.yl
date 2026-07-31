@@ -2,17 +2,17 @@
 trait B {}
 
 trait A<T> {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 struct S {}
 
 extension S : A<number> {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 extension S : A<unit> {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 fn main() {

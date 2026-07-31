@@ -1,14 +1,14 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 extension *number : A {}
 
 fn main() {
   gc(123).foo();
-  // CHECK:   DeclRefExpr @({{.*}}) foo {(borrowed *number) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed *number}
+  // CHECK:   DeclRefExpr @({{.*}}) foo {(&*number) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&*number}
   // CHECK-NEXT:     MaterializeTemporaryExpr {*number}
   // CHECK-NEXT:       GCExpr {*number}
   // CHECK-NEXT:         NumberLiteral '123' {number}

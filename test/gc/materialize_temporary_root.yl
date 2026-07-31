@@ -1,7 +1,7 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 trait A {
-  fn foo(self: borrowed Self);
+  fn foo(self: &Self);
 }
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
 }
 
 extension number : A {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     gcCollect();
     // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
     // CHECK-NEXT: [0] sweep {heap: 32 B, threshold: 96 B}

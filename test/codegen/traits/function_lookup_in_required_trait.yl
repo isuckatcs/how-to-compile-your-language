@@ -2,11 +2,11 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '492\n'
 trait B {
-  fn foo(self: borrowed mut Self);
+  fn foo(self: &mut Self);
 }
 
 trait A : B {
-  fn getX(self: borrowed Self): number;
+  fn getX(self: &Self): number;
 }
 
 struct S {
@@ -14,13 +14,13 @@ struct S {
 }
 
 extension S : A {
-  fn getX(self: borrowed Self): number {
+  fn getX(self: &Self): number {
     return self.x;
   }
 }
 
 extension S : B {
-  fn foo(self: borrowed mut Self) {
+  fn foo(self: &mut Self) {
     self.x = self.x * 2;
   }
 }

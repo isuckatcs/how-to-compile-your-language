@@ -1,17 +1,17 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn foo(self: borrowed Self, x: number) {}
+  fn foo(self: &Self, x: number) {}
 }
 
 trait B : A {
-  fn foo(self: borrowed Self, x: number) {}
+  fn foo(self: &Self, x: number) {}
 }
 
 fn foo(x: *mut any B) {
   @<any B : A>::foo(x, 0);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed any B, number) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToBorrowDecay {borrowed any B}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any B, number) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToRefDecay {&any B}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut any B}
   // CHECK-NEXT:   NumberLiteral '0' {number}
   // CHECK-NEXT:   | value: 0

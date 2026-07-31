@@ -6,7 +6,7 @@ struct S {
   y: number,
 }
 
-fn swap<T>(x: borrowed mut T, y: borrowed mut T) {
+fn swap<T>(x: &mut T, y: &mut T) {
   let tmp = x;
   x = y;
   y = tmp;

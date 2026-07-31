@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn foo(self: borrowed Self, x: number) {}
+  fn foo(self: &Self, x: number) {}
 }
 
 fn main() {

@@ -2,9 +2,9 @@
 trait C {}
 
 trait B : C {
-  fn foo(self: borrowed Self) {}
-  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed Self) -> unit}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed Self}
+  fn foo(self: &Self) {}
+  // CHECK: FunctionDecl @({{.*}}) foo {(&Self) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&Self}
   // CHECK-NEXT:   Block
 }
 
@@ -15,14 +15,14 @@ fn foo<T : C>(t : T) {}
 fn bar<T : A>(t : T) {
   t.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed T) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&T) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 
   T::foo(t);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed T) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&T) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 }
 

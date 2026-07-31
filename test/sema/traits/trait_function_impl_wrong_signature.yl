@@ -1,13 +1,13 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A<T> {
-  fn foo(self: borrowed Self, t: T);
+  fn foo(self: &Self, t: T);
 }
 
 struct S<T> {}
 
 extension<T> S<T> : A<S<T>> {
-  // CHECK: [[# @LINE + 1 ]]:6: error: trait function declaration has '(borrowed S<T>, S<T>) -> unit' signature, but the given implementation is '(borrowed S<T>, T) -> unit'
-  fn foo(self: borrowed Self, t: T) {
+  // CHECK: [[# @LINE + 1 ]]:6: error: trait function declaration has '(&S<T>, S<T>) -> unit' signature, but the given implementation is '(&S<T>, T) -> unit'
+  fn foo(self: &Self, t: T) {
     println(123);
   }
 }

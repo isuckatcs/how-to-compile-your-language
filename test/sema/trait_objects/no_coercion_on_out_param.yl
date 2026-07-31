@@ -5,11 +5,11 @@ struct S {}
 
 extension S : A {}
 
-fn foo(x: borrowed *any A) {}
+fn foo(x: &*any A) {}
 
 fn main() {
   mut s = gc(S{});
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*S' with 'borrowed *any A'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*S' with '&*any A'
   foo(s);
 }

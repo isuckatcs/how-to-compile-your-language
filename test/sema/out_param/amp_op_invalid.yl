@@ -1,17 +1,17 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> { x: T }
 
-fn foo(x: borrowed mut number) {}
+fn foo(x: &mut number) {}
 
-fn bar(x: borrowed number) {}
+fn bar(x: &number) {}
 
 fn main() {
   let x = 1;
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with 'borrowed mut number'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '&mut number'
   foo(x);
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: only lvalues can be borrowed
+  // CHECK: [[# @LINE + 1 ]]:7: error: only lvalues can be taken by reference
   bar(1);
 
   let z = 0;

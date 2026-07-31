@@ -3,34 +3,34 @@ struct T<T> {}
 
 trait Foo {
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
-  fn val(self: borrowed Self): Self;
+  fn val(self: &Self): Self;
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
-  fn ptr(self: borrowed Self): *Self;
+  fn ptr(self: &Self): *Self;
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
-  fn ptrMut(self: borrowed Self): *mut Self;
+  fn ptrMut(self: &Self): *mut Self;
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
-  fn template(self: borrowed Self): T<Self>;
+  fn template(self: &Self): T<Self>;
 }
 
 struct S {}
 
 extension S : Foo {
-  fn val(self: borrowed Self): Self {
+  fn val(self: &Self): Self {
     return S{};
   }
 
-  fn ptr(self: borrowed Self): *Self {
+  fn ptr(self: &Self): *Self {
     return gc(S{});
   }
 
-  fn ptrMut(self: borrowed Self): *mut Self {
+  fn ptrMut(self: &Self): *mut Self {
     return gcMut(S{});
   }
 
-  fn template(self: borrowed Self): T<Self> {
+  fn template(self: &Self): T<Self> {
     return T{};
   }
 }

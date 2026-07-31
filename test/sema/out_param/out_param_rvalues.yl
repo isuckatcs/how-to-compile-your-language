@@ -1,19 +1,19 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {}
 
-fn test1(x: borrowed number) {}
+fn test1(x: &number) {}
 
-fn test2(x: borrowed S) {}
+fn test2(x: &S) {}
 
-fn test3(x: borrowed () -> unit) {}
+fn test3(x: &() -> unit) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be borrowed
+  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be taken by reference
   test1(1);
 
   // CHECK: [[# @LINE + 1 ]]:9: error: expected an instance of 'S'
   test2(S);
   
-  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be borrowed
+  // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be taken by reference
   test3(main);
 }

@@ -3,7 +3,7 @@
 // RUN: compiler %s -o %t && %t | ( ! grep ^ )
 struct S {}
 
-fn consume(x: borrowed unit, y: borrowed S) {}
+fn consume(x: &unit, y: &S) {}
 
 fn foo() {}
 

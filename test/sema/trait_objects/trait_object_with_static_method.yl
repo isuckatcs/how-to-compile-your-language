@@ -4,7 +4,7 @@ trait A {
   fn foo() {}
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'A' with a static method cannot be used as a trait object
-  fn bar(nonReceiver: borrowed Self) {}
+  fn bar(nonReceiver: &Self) {}
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'A' with a static method cannot be used as a trait object
   fn baz(x: number, y: Self) {}

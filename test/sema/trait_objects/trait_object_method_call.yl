@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn foo(self: borrowed Self, x: number) {}
+  fn foo(self: &Self, x: number) {}
 }
 
 struct S {}
@@ -14,8 +14,8 @@ fn foo(x: *mut any A) {
 // CHECK-NEXT:   ParamDecl @({{.*}}) x {*mut any A}
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     CallExpr {unit}
-// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(borrowed any A, number) -> unit}
-// CHECK-NEXT:       ImplicitPtrToBorrowDecay {borrowed any A}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {(&any A, number) -> unit}
+// CHECK-NEXT:       ImplicitPtrToRefDecay {&any A}
 // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {*mut any A}
 // CHECK-NEXT:       NumberLiteral '123' {number}
 // CHECK-NEXT:       | value: 123

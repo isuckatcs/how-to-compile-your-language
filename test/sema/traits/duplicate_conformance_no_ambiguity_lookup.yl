@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T> {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 trait B: A<number> & A<number> & A<number> {}
@@ -8,8 +8,8 @@ trait B: A<number> & A<number> & A<number> {}
 fn bar<T : B>(t: T) {
   t.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed T) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed T}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&T) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&T}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) t {T}
 }
 

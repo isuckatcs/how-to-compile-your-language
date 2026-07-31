@@ -1,10 +1,10 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {}
 
-fn foo<T>(x: borrowed T) {}
-// CHECK: FunctionDecl @({{.*}}) foo {(borrowed T) -> unit}
+fn foo<T>(x: &T) {}
+// CHECK: FunctionDecl @({{.*}}) foo {(&T) -> unit}
 // CHECK-NEXT:   TypeParamDecl @({{.*}}) T
-// CHECK-NEXT:   ParamDecl @({{.*}}) x {borrowed T}
+// CHECK-NEXT:   ParamDecl @({{.*}}) x {&T}
 // CHECK-NEXT:   Block
 
 fn main() {
@@ -13,13 +13,13 @@ fn main() {
 
   foo(n);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed number) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
 
   foo(s);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&S) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

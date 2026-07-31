@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A<T> {
-  fn foo(self: borrowed Self, x: T) {}
+  fn foo(self: &Self, x: T) {}
 }
 
 struct S {
@@ -10,11 +10,11 @@ struct S {
 }
 
 extension S : A<number> {
-  fn foo(self: borrowed Self, x: number) {
+  fn foo(self: &Self, x: number) {
     println(self.x * x);
   }
-  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, number) -> unit}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
+  // CHECK: FunctionDecl @({{.*}}) foo {(&S, number) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {number}
   // CHECK-NEXT:   Block
   // CHECK-NEXT:     CallExpr {unit}
@@ -22,23 +22,23 @@ extension S : A<number> {
   // CHECK-NEXT:       BinaryOperator '*' {number}
   // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:           ImplicitDerefExpr {S}
-  // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed S}
+  // CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&S}
   // CHECK-NEXT:         DeclRefExpr @({{.*}}) x {number}
 }
 
 extension S : A<unit> {
-  fn foo(self: borrowed Self, x: unit) {
+  fn foo(self: &Self, x: unit) {
     println(self.x);
   }
-  // CHECK: FunctionDecl @({{.*}}) foo {(borrowed S, unit) -> unit}
-  // CHECK-NEXT:   ParamDecl @({{.*}}) self {borrowed S}
+  // CHECK: FunctionDecl @({{.*}}) foo {(&S, unit) -> unit}
+  // CHECK-NEXT:   ParamDecl @({{.*}}) self {&S}
   // CHECK-NEXT:   ParamDecl @({{.*}}) x {unit}
   // CHECK-NEXT:   Block
   // CHECK-NEXT:     CallExpr {unit}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) println {(number) -> unit}
   // CHECK-NEXT:       MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:         ImplicitDerefExpr {S}
-  // CHECK-NEXT:           DeclRefExpr @({{.*}}) self {borrowed S}
+  // CHECK-NEXT:           DeclRefExpr @({{.*}}) self {&S}
 }
 
 fn main() {
@@ -46,15 +46,15 @@ fn main() {
 
   @<S : A<unit>>::foo(s, unit);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S, unit) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&S, unit) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   UnitLiteral {unit}
 
   @<S : A<number>>::foo(s, 2);
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed S, number) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&S, number) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   NumberLiteral '2' {number}
   // CHECK-NEXT:   | value: 2

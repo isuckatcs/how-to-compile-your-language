@@ -1,6 +1,6 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
-fn detachRoot<T>(root: borrowed mut T, replacement: T): T {
+fn detachRoot<T>(root: &mut T, replacement: T): T {
   let copy = root;
   root = replacement;
 

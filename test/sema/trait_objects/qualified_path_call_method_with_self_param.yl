@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait A {
-  fn val(self: borrowed Self) {}
+  fn val(self: &Self) {}
 }
 
 struct S {}
@@ -8,6 +8,6 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:22: error: only lvalues can be borrowed
+  // CHECK: [[# @LINE + 1 ]]:22: error: only lvalues can be taken by reference
   @<any A : A>::val(S{});
 }

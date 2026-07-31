@@ -61,13 +61,13 @@ Rust style trait system for constraining and extending the behavior of types. Fo
 
 ```
 trait A<T> {
-  fn foo(self: borrowed Self);
+  fn foo(self: &Self);
 }
 
 trait B {}
 
 extension<T : B> T : A<number> {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(123);
   }
 }

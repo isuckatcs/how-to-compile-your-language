@@ -5,7 +5,7 @@
 // CHECK: @vtable.T1BGS1SnE = internal constant [2 x ptr] [ptr @_YT1AGS1SuE3foo, ptr @_YT1AGS1SnE3foo]
 
 trait A<T> {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(123);
   }
 }
@@ -19,7 +19,7 @@ extension<T> S : B<T> {}
 extension S : A<unit> {}
 
 extension S : A<number> {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(456);
   }
 }

@@ -2,20 +2,20 @@
 struct T<T> {}
 
 trait Foo {
-  // CHECK: [[# @LINE + 1 ]]:33: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
-  fn value(self: borrowed Self, x: Self) {}
+  // CHECK: [[# @LINE + 1 ]]:25: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn value(self: &Self, x: Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:31: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
-  fn out(self: borrowed Self, x: borrowed Self) {}
+  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn out(self: &Self, x: &Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:31: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
-  fn ptr(self: borrowed Self, x: *Self) {}
+  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn ptr(self: &Self, x: *Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:34: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
-  fn mutPtr(self: borrowed Self, x: *mut Self) {}
+  // CHECK: [[# @LINE + 1 ]]:26: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn mutPtr(self: &Self, x: *mut Self) {}
 
-  // CHECK: [[# @LINE + 1 ]]:36: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
-  fn template(self: borrowed Self, x: T<Self>) {}
+  // CHECK: [[# @LINE + 1 ]]:28: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  fn template(self: &Self, x: T<Self>) {}
 }
 
 struct S {}

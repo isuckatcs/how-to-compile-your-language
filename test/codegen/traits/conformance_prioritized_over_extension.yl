@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 trait A<T> {
-  fn print(self: borrowed Self) {
+  fn print(self: &Self) {
     println(123);
   }
 }
@@ -14,7 +14,7 @@ extension unit : B {}
 extension unit : A<number> {}
 
 extension<T> T : A<unit> {
-  fn print(self: borrowed Self) {
+  fn print(self: &Self) {
     println(456);
   }
 }

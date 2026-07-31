@@ -2,32 +2,32 @@
 struct S {
   x:number
 
-  fn foo(self: borrowed mut Self) {
+  fn foo(self: &mut Self) {
     self.x = 1;
   }
 
-  fn bar(self: borrowed mut S) {
+  fn bar(self: &mut S) {
     self.x = 1;
   }
 }
 // CHECK: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
-// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(borrowed mut S) -> unit}
-// CHECK-NEXT:     ParamDecl @({{.*}}) self {borrowed mut S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(&mut S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&mut S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       Assignment
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:           ImplicitDerefExpr {S}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed mut S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&mut S}
 // CHECK-NEXT:         NumberLiteral '1' {number}
 // CHECK-NEXT:         | value: 1
-// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(borrowed mut S) -> unit}
-// CHECK-NEXT:     ParamDecl @({{.*}}) self {borrowed mut S}
+// CHECK-NEXT:   FunctionDecl @({{.*}}) bar {(&mut S) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&mut S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       Assignment
 // CHECK-NEXT:         MemberExpr @({{.*}}) x {number}
 // CHECK-NEXT:           ImplicitDerefExpr {S}
-// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {borrowed mut S}
+// CHECK-NEXT:             DeclRefExpr @({{.*}}) self {&mut S}
 // CHECK-NEXT:         NumberLiteral '1' {number}
 // CHECK-NEXT:         | value: 1
 
@@ -36,13 +36,13 @@ fn main() {
 
   s.foo();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(borrowed mut S) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed mut S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&mut S) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&mut S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 
   s.bar();
   // CHECK: CallExpr {unit}
-  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(borrowed mut S) -> unit}
-  // CHECK-NEXT:   ImplicitBorrowExpr {borrowed mut S}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(&mut S) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&mut S}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
 }

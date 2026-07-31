@@ -5,19 +5,19 @@ fn main() {
 }
 
 // CHECK: [[# @LINE + 1 ]]:11: error: expected type specifier
-fn foo(): borrowed number{}
+fn foo(): &number{}
 
 fn bar() {
   // CHECK: [[# @LINE + 1 ]]:10: error: expected type specifier
-  let x: borrowed mut number;
+  let x: &mut number;
   
   // CHECK: [[# @LINE + 1 ]]:10: error: expected type specifier
-  mut x: borrowed number;
+  mut x: &number;
 }
 
-fn baz(x: borrowed number) {}
+fn baz(x: &number) {}
 // CHECK: FunctionDecl: baz
 // CHECK-NEXT:   ParamDecl: x
-// CHECK-NEXT:     BorrowedModifier
+// CHECK-NEXT:     RefModifier
 // CHECK-NEXT:     BuiltinType: number
 // CHECK-NEXT:   Block

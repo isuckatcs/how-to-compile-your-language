@@ -7,7 +7,7 @@ struct S {
   }
   // CHECK: define void @_YS1S11classMethod(ptr %closure) {
 
-  fn instanceMethod(self: borrowed Self, x: number) {
+  fn instanceMethod(self: &Self, x: number) {
     println(x);
   }
   // CHECK: define void @_YS1S14instanceMethod(ptr %self, double %x, ptr %closure) {

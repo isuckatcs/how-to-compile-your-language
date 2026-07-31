@@ -2,11 +2,11 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '456\n'
 trait A {
-  fn foo(self: borrowed Self) {}
+  fn foo(self: &Self) {}
 }
 
 extension *number : A {
-  fn foo(self: borrowed Self) {
+  fn foo(self: &Self) {
     println(456);
   }
 }

@@ -2,19 +2,19 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '3\n'
 trait A {
-  fn a(self: borrowed Self) { println(0); }
+  fn a(self: &Self) { println(0); }
 }
 
 trait B1 : A {
-  fn b(self: borrowed Self) { println(1); }
+  fn b(self: &Self) { println(1); }
 }
 
 trait B2 : A {
-  fn b(self: borrowed Self) { println(2); }
+  fn b(self: &Self) { println(2); }
 }
 
 trait C : B1 & B2 {
-  fn c(self: borrowed Self) { println(3); }
+  fn c(self: &Self) { println(3); }
 }
 
 struct S {}
