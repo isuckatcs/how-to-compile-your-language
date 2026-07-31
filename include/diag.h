@@ -168,7 +168,7 @@ diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");
 diag(Error, selfContainingStruct, "struct '{}' contains itself");
 
 // self
-diag(Error, selfTyNotAllowed, "'Self' is only allowed inside structs and traits");
+diag(Error, selfTyNotAllowed, "'Self' is only allowed inside traits, structs and extensions");
 diag(Error, selfParamNotAllowed, "'self' parameter is only allowed in methods");
 diag(Error, selfWrongPosition, "'self' can only be the first parameter");
 diag(Error, selfWrongType, "'self' can only have '&Self' or '&mut Self' types");
