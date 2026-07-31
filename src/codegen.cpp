@@ -120,25 +120,23 @@ res::Type *Codegen::getMonoType(const res::Type *type) const {
   return typeMgr->instantiate(const_cast<res::Type *>(type), monoCtx);
 }
 
-llvm::Type *Codegen::generateType(const res::Type *type) {
-  // FIXME: force the callers to handle monoforphization
-  type = getMonoType(type->getRootType());
+llvm::Type *Codegen::generateType(const res::Type *monoType) {
+  assert(!monoType->getAs<res::TypeParamType>() &&
+         "expected monomorphized type");
 
-  assert(!type->getAs<res::TypeParamType>() && "expected monomorphized type");
-
-  if (type->getAs<res::BuiltinNumberType>())
+  if (monoType->getAs<res::BuiltinNumberType>())
     return builder.getDoubleTy();
 
-  if (type->getAs<res::BuiltinUnitType>())
+  if (monoType->getAs<res::BuiltinUnitType>())
     return llvm::ArrayType::get(builder.getInt8Ty(), 0);
 
-  if (type->getAs<res::BuiltinBoolType>())
+  if (monoType->getAs<res::BuiltinBoolType>())
     return builder.getInt1Ty();
 
-  if (const auto *s = type->getAs<res::StructType>())
+  if (const auto *s = monoType->getAs<res::StructType>())
     return generateStructType(s);
 
-  if (const auto *p = type->getAs<res::PointerType>()) {
+  if (const auto *p = monoType->getAs<res::PointerType>()) {
     if (p->getPointeeType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
@@ -146,11 +144,11 @@ llvm::Type *Codegen::generateType(const res::Type *type) {
     return builder.getPtrTy();
   }
 
-  if (type->getAs<res::FunctionType>())
+  if (monoType->getAs<res::FunctionType>())
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *b = type->getAs<res::BorrowedType>()) {
+  if (const auto *b = monoType->getAs<res::BorrowedType>()) {
     if (b->getBorrowedType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
@@ -278,13 +276,15 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
 
 llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   const res::VarDecl *decl = stmt.varDecl;
-  llvm::Type *declTy = generateType(decl->getType());
+  const res::Type *declMonoType = getMonoType(decl->getType());
 
   const res::Expr *initExpr = decl->initializer;
   llvm::Value *initVal =
       initExpr ? generateExprAndLoadValue(*initExpr) : nullptr;
 
   bool isConst = !decl->isMutable && initExpr && initExpr->hasConstantValue();
+  llvm::Type *declTy = generateType(declMonoType);
+
   if (!decl->needsStorage && (isConst || dl->getTypeAllocSize(declTy) == 0)) {
     declarations[decl] = nullptr;
     return nullptr;
@@ -294,7 +294,7 @@ llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   if (initExpr)
     storeValue(initVal, var, declTy);
 
-  markIfGCRoot(var, decl->getType());
+  markIfGCRoot(var, declMonoType);
 
   declarations[decl] = var;
   return nullptr;
@@ -304,14 +304,14 @@ llvm::Value *Codegen::generateAssignment(const res::Assignment &stmt) {
   llvm::Value *val = generateExprAndLoadValue(*stmt.expr);
   createTmpGCRootIfNeeded(val, stmt.expr);
 
-  return storeValue(val, generateExpr(*stmt.assignee),
-                    generateType(stmt.assignee->getType()));
+  llvm::Type *assigneeTy = generateType(getMonoType(stmt.assignee->getType()));
+  return storeValue(val, generateExpr(*stmt.assignee), assigneeTy);
 }
 
 llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
   if (stmt.expr)
     storeValue(generateExprAndLoadValue(*stmt.expr), retVal,
-               generateType(stmt.expr->getType()));
+               generateType(getMonoType(stmt.expr->getType())));
 
   assert(retBB && "function with return stmt doesn't have a return block");
   breakIntoBB(retBB);
@@ -321,25 +321,24 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
 llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
 
-  auto *structTy = memberExpr.base->getType()->getAs<res::StructType>();
-  llvm::Type *baseTy = generateType(structTy);
-
-  if (dl->getTypeAllocSize(generateType(memberExpr.getType())) == 0)
+  auto *resTy = generateType(getMonoType(memberExpr.getType()));
+  if (dl->getTypeAllocSize(resTy) == 0)
     return nullptr;
 
+  auto *baseType =
+      getMonoType(memberExpr.base->getType())->getAs<res::StructType>();
+  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(baseType));
+
   unsigned index = 0;
-
-  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(structTy));
-
-  for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
+  for (auto &&field : baseType->getDecl()->getAll<res::FieldDecl>()) {
     if (field == memberExpr.member->decl)
       break;
 
-    if (dl->getTypeAllocSize(generateType(field->getType())) != 0)
+    if (dl->getTypeAllocSize(generateType(getMonoType(field->getType()))) != 0)
       ++index;
   }
 
-  return builder.CreateStructGEP(baseTy, base, index);
+  return builder.CreateStructGEP(generateType(baseType), base, index);
 }
 
 llvm::Value *
@@ -351,15 +350,15 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
     inits[initStmt->field] = tmpVal;
   }
 
-  const auto *type = sie.getType()->getAs<res::StructType>();
-  llvm::Type *ty = generateType(type);
-  if (dl->getTypeAllocSize(ty) == 0)
+  const auto *structType = getMonoType(sie.getType())->getAs<res::StructType>();
+  llvm::Type *structTy = generateType(structType);
+  if (dl->getTypeAllocSize(structTy) == 0)
     return nullptr;
 
   std::string id = sie.structPath->decl->identifier + ".tmp";
-  llvm::Value *storage = allocateStackVariable(id, ty);
+  llvm::Value *storage = allocateStackVariable(id, structTy);
 
-  return constructStruct(storage, type, inits);
+  return constructStruct(storage, structType, inits);
 }
 
 llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
@@ -472,16 +471,16 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   if (promo.expr->isLvalue())
     obj = builder.CreateLoad(builder.getPtrTy(), obj);
 
-  auto *implType = promo.getType()
-                       ->getAs<res::PointerType>()
+  auto *promoType = getMonoType(promo.getType());
+  auto *implType = promoType->getAs<res::PointerType>()
                        ->getPointeeType()
                        ->getAs<res::AnyTraitType>();
-  auto *valueType =
-      promo.expr->getType()->getAs<res::PointerType>()->getPointeeType();
+  auto *valueType = getMonoType(promo.expr->getType())
+                        ->getAs<res::PointerType>()
+                        ->getPointeeType();
 
   auto *vtable = getVtable(typeMgr->withSelfType(implType, valueType));
-
-  auto *traitObjTy = generateType(promo.getType());
+  auto *traitObjTy = generateType(promoType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
   builder.CreateStore(obj, builder.CreateStructGEP(traitObjTy, traitObj, 0));
@@ -501,7 +500,7 @@ llvm::Value *Codegen::constructStruct(
                              typeMgr->extractSubstitutionFrom(structType));
 
   for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
-    llvm::Type *fieldTy = generateType(fieldDecl->getType());
+    llvm::Type *fieldTy = generateType(getMonoType(fieldDecl->getType()));
     if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
 
@@ -587,16 +586,18 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
+  const auto *functionType =
+      getMonoType(call.callee->getType())->getAs<res::FunctionType>();
+
+  llvm::Value *callee = nullptr;
   bool isVirtualCall = call.isVirtual();
 
-  const auto *fnTy = call.callee->getType()->getAs<res::FunctionType>();
-  llvm::Value *callee = nullptr;
   if (!isVirtualCall) {
     callee = generateExprAndLoadValue(*call.callee);
     createTmpGCRootIfNeeded(callee, call.callee);
   }
 
-  llvm::Type *retTy = generateType(call.getType());
+  llvm::Type *retTy = generateType(functionType->getReturnType());
   llvm::Value *retVal = nullptr;
   std::vector<llvm::Value *> args;
 
@@ -611,7 +612,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   for (auto &&arg : call.arguments) {
     llvm::Value *argVal = generateExprAndLoadValue(*arg);
-    llvm::Type *argTy = generateType(arg->getType());
+    llvm::Type *argTy = generateType(getMonoType(arg->getType()));
 
     if (dl->getTypeAllocSize(argTy) == 0)
       continue;
@@ -641,7 +642,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   if (llvm::isa<llvm::Function>(callee) || isVirtualCall) {
     args.emplace_back(llvm::Constant::getNullValue(builder.getPtrTy()));
   } else {
-    llvm::Type *fnVarTy = generateType(fnTy);
+    llvm::Type *fnVarTy = generateType(functionType);
     llvm::Value *fn = builder.CreateLoad(
         builder.getPtrTy(), builder.CreateStructGEP(fnVarTy, callee, 0));
     args.emplace_back(builder.CreateLoad(
@@ -650,8 +651,8 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
   }
 
   llvm::CallInst *callInst =
-      builder.CreateCall(generateFunctionType(fnTy), callee, args);
-  callInst->setAttributes(constructAttrList(fnTy, isVirtualCall));
+      builder.CreateCall(generateFunctionType(functionType), callee, args);
+  callInst->setAttributes(constructAttrList(functionType, isVirtualCall));
 
   return isReturningStruct ? retVal : callInst;
 }
@@ -819,7 +820,7 @@ llvm::Value *Codegen::generateExprAndLoadValue(const res::Expr &expr) {
   if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
     afterIgnoredDeref = unop->op == TokenKind::Asterisk;
 
-  llvm::Type *type = generateType(expr.getType());
+  llvm::Type *type = generateType(getMonoType(expr.getType()));
   if (!expr.isLvalue() || expr.hasConstantValue() || type->isStructTy() ||
       dl->getTypeAllocSize(type) == 0 ||
       (llvm::isa<llvm::Argument>(val) && !outParamRef && !afterIgnoredDeref))
@@ -928,18 +929,18 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
                              typeMgr->extractSubstitutionFrom(structType));
 
   const auto &dataLayout = module.getDataLayout();
-  const auto *structLayout = dataLayout.getStructLayout(
-      llvm::cast<llvm::StructType>(generateType(structType)));
+  const auto *structLayout =
+      dataLayout.getStructLayout(generateStructType(structType));
 
   std::vector<size_t> offsets;
 
   int fieldIdx = 0;
   for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
-    if (dl->getTypeAllocSize(generateType(field->getType())) == 0)
+    const auto *fieldType = getMonoType(field->getType());
+    if (dl->getTypeAllocSize(generateType(fieldType)) == 0)
       continue;
 
     llvm::TypeSize fieldOffset = structLayout->getElementOffset(fieldIdx);
-    const auto *fieldType = getMonoType(field->getType());
 
     if (fieldType->getAs<res::PointerType>())
       offsets.push_back(fieldOffset);
@@ -955,8 +956,6 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 }
 
 llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
-  type = getMonoType(type);
-
   std::string globalPrefix = "";
 
   auto *ptr = type->getAs<res::PointerType>();
@@ -1193,7 +1192,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    const res::Type *paramDeclTy = paramDecl->getType();
+    const res::Type *paramDeclTy = getMonoType(paramDecl->getType());
     llvm::Type *argTy = generateType(paramDeclTy);
     if (dl->getTypeAllocSize(argTy) == 0) {
       declarations[paramDecl] =
@@ -1322,30 +1321,30 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
   return function;
 }
 
-llvm::Type *Codegen::generateStructType(const res::StructType *structTy) {
-  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(structTy));
+llvm::StructType *
+Codegen::generateStructType(const res::StructType *structType) {
+  EnterMonoCtxRAII structCtx(this,
+                             typeMgr->extractSubstitutionFrom(structType));
 
-  std::vector<llvm::Type *> fieldTypes;
-  for (auto &&field : structTy->getDecl()->getAll<res::FieldDecl>()) {
-    llvm::Type *fieldTy = generateType(field->getType());
+  std::vector<llvm::Type *> fieldTys;
+  for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
+    llvm::Type *fieldTy = generateType(getMonoType(field->getType()));
     if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
 
-    fieldTypes.emplace_back(fieldTy);
+    fieldTys.emplace_back(fieldTy);
   }
 
-  return llvm::StructType::get(context, fieldTypes);
+  return llvm::StructType::get(context, fieldTys);
 }
 
-llvm::Value *Codegen::getVtable(const res::TraitType *trait) {
-  auto *monoTrait = getMonoType(trait)->getAs<res::TraitType>();
-
-  std::string id = "vtable." + Mangling::mangleMonoType(monoTrait);
+llvm::Value *Codegen::getVtable(res::TraitType *trait) {
+  std::string id = "vtable." + Mangling::mangleMonoType(trait);
   if (auto *vtable = module.getGlobalVariable(id, true))
     return vtable;
 
   std::vector<llvm::Constant *> vFunctions;
-  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(monoTrait)) {
+  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
     if (auto *f = generateExtensionFnDecl(layoutTrait, layoutFn)) {
       vFunctions.emplace_back(f);
       continue;

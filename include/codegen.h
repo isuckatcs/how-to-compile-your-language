@@ -56,7 +56,7 @@ class Codegen {
 
   res::Type *getMonoType(const res::Type *type) const;
 
-  llvm::Type *generateType(const res::Type *type);
+  llvm::Type *generateType(const res::Type *monoType);
   llvm::FunctionType *generateFunctionType(const res::FunctionType *type);
 
   llvm::Value *generateStmt(const res::Stmt &stmt);
@@ -110,7 +110,7 @@ class Codegen {
   llvm::Function *generateFunctionDecl(const res::FunctionDecl &fn);
   void generateFunctionBody(const PendingFunctionDescriptor &fn);
 
-  llvm::Type *generateStructType(const res::StructType *structTy);
+  llvm::StructType *generateStructType(const res::StructType *structType);
 
   void generateBuiltinGCCollectBody(const res::FunctionDecl &gcCollect);
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
@@ -126,7 +126,7 @@ class Codegen {
 
   llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
                                       llvm::Value *receiver);
-  llvm::Value *getVtable(const res::TraitType *trait);
+  llvm::Value *getVtable(res::TraitType *trait);
 
 public:
   Codegen(const res::Context &resolvedCtx,

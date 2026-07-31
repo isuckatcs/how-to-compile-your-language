@@ -99,9 +99,11 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4swapGFRuE(ptr %x, ptr %y, ptr %closure) {
+// CHECK: define void @_Y4swapGFRuE(ptr %x, ptr %y, ptr %closure) gc "shadow-stack" {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %tmp = alloca { ptr, ptr }, align 8
+// CHECK-NEXT:   store { ptr, ptr } zeroinitializer, ptr %tmp, align 8
+// CHECK-NEXT:   call void @llvm.gcroot(ptr %tmp, ptr @function.offsets)
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %tmp, ptr align 8 %x, i64 16, i1 false)
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %x, ptr align 8 %y, i64 16, i1 false)
 // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %y, ptr align 8 %tmp, i64 16, i1 false)
