@@ -396,10 +396,10 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
 }
 
 // <paramDecl>
-//  ::= 'mut'? <identifier> ':' <borrowedModifier>? <type>
+//  ::= 'mut'? <identifier> ':' <refModifier>? <type>
 //
-// <borrowedModifier>
-//  ::= 'borrowed' 'mut'?
+// <refModifier>
+//  ::= '&' 'mut'?
 std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   bool isMut = nextToken.kind == TokenKind::KwMut;
   if (isMut)
@@ -414,22 +414,21 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  std::unique_ptr<ast::BorrowedModifier> borrowedModifier;
+  std::unique_ptr<ast::RefModifier> refModifier;
   std::unique_ptr<ast::Type> type;
 
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat :
 
-    if (nextToken.kind == TokenKind::KwBorrowed) {
-      SourceLocation borrowedLoc = nextToken.location;
-      eatNextToken(); // eat 'borrowed'
+    if (nextToken.kind == TokenKind::Amp) {
+      SourceLocation ampLoc = nextToken.location;
+      eatNextToken(); // eat '&'
 
       bool isMut = nextToken.kind == TokenKind::KwMut;
       if (isMut)
         eatNextToken(); // eat 'mut'
 
-      borrowedModifier =
-          std::make_unique<ast::BorrowedModifier>(borrowedLoc, isMut);
+      refModifier = std::make_unique<ast::RefModifier>(ampLoc, isMut);
     }
 
     type = parseType();
@@ -441,7 +440,7 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
     return err::expected(nextToken.location).with("':'").report(reporter);
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
-                                          std::move(borrowedModifier),
+                                          std::move(refModifier),
                                           std::move(type), isMut);
 }
 

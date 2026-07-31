@@ -184,9 +184,8 @@ void TypeParamDecl::dump(size_t level) const {
     traitConformance->dump(level + 1);
 }
 
-void BorrowedModifier::dump(size_t level) const {
-  std::cerr << indent(level) << "BorrowedModifier" << (isMut ? " mut" : "")
-            << '\n';
+void RefModifier::dump(size_t level) const {
+  std::cerr << indent(level) << "RefModifier" << (isMut ? " mut" : "") << '\n';
 }
 
 void FieldDecl::dump(size_t level) const {
@@ -221,8 +220,8 @@ void TraitDecl::dump(size_t level) const {
 void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl: " << identifier << '\n';
 
-  if (borrowedModifier)
-    borrowedModifier->dump(level + 1);
+  if (refModifier)
+    refModifier->dump(level + 1);
 
   if (type)
     type->dump(level + 1);

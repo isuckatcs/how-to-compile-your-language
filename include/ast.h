@@ -363,11 +363,11 @@ struct TypeParamDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct BorrowedModifier {
+struct RefModifier {
   SourceLocation location;
   bool isMut;
 
-  BorrowedModifier(SourceLocation location, bool isMut)
+  RefModifier(SourceLocation location, bool isMut)
       : location(location),
         isMut(isMut) {}
 
@@ -375,17 +375,17 @@ struct BorrowedModifier {
 };
 
 struct ParamDecl : public Decl {
-  std::unique_ptr<BorrowedModifier> borrowedModifier;
+  std::unique_ptr<RefModifier> refModifier;
   std::unique_ptr<Type> type;
   bool isMutable;
 
   ParamDecl(SourceLocation location,
             std::string identifier,
-            std::unique_ptr<BorrowedModifier> borrowedModifier,
+            std::unique_ptr<RefModifier> refModifier,
             std::unique_ptr<Type> type,
             bool isMutable)
       : Decl(location, std::move(identifier)),
-        borrowedModifier(std::move(borrowedModifier)),
+        refModifier(std::move(refModifier)),
         type(std::move(type)),
         isMutable(isMutable) {}
 
