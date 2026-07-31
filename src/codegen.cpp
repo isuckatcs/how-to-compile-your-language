@@ -1404,13 +1404,13 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 }
 
 llvm::Module *Codegen::generateIR() {
-  for (auto &&st : resCtx->getStructs())
+  for (auto &&st : resCtx->translationUnit.getAll<res::StructDecl>())
     if (st->typeParams.empty())
       for (auto &&fn : st->getAll<res::FunctionDecl>())
         if (fn->typeParams.empty())
           generateFunctionDecl(*fn);
 
-  for (auto &&fn : resCtx->getFunctions())
+  for (auto &&fn : resCtx->translationUnit.getAll<res::FunctionDecl>())
     if (fn->typeParams.empty())
       generateFunctionDecl(*fn);
 

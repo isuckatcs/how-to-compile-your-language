@@ -125,18 +125,19 @@ int main(int argc, const char **argv) {
 
   ConstExprEvaluator cee(true);
   Sema sema(reporter, cee, ast);
-  auto &&[resolvedTree, typeMgr] = sema.resolveAST();
+  auto &&[resolvedCtx, typeMgr] = sema.resolveAST();
 
   if (options.resDump) {
-    if (resolvedTree)
-      resolvedTree->dump();
+    if (resolvedCtx)
+      resolvedCtx->translationUnit.dump();
 
     return 0;
   }
 
   if (options.cfgDump) {
-    if (resolvedTree) {
-      for (auto &&fn : resolvedTree->getFunctions()) {
+    if (resolvedCtx) {
+      for (auto &&fn :
+           resolvedCtx->translationUnit.getAll<res::FunctionDecl>()) {
         std::cerr << fn->identifier << ':' << '\n';
         CFGBuilder().build(*fn).dump();
       }
@@ -144,10 +145,10 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  if (!resolvedTree)
+  if (!resolvedCtx)
     return 1;
 
-  Codegen codegen(*resolvedTree, *typeMgr, options.source.c_str());
+  Codegen codegen(*resolvedCtx, *typeMgr, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.verifyOnly)
