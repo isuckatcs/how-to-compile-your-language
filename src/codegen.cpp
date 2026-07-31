@@ -148,8 +148,8 @@ llvm::Type *Codegen::generateType(const res::Type *monoType) {
     return llvm::StructType::get(context,
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
-  if (const auto *b = monoType->getAs<res::BorrowedType>()) {
-    if (b->getBorrowedType()->getAs<res::AnyTraitType>())
+  if (const auto *b = monoType->getAs<res::RefType>()) {
+    if (b->getRefType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 
@@ -431,11 +431,10 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   return alloca;
 }
 
-llvm::Value *
-Codegen::generateImplicitBorrow(const res::ImplicitBorrowExpr &borrow) {
-  llvm::Value *value = generateExpr(*borrow.expr);
+llvm::Value *Codegen::generateImplicitAsRef(const res::ImplicitAsRefExpr &ref) {
+  llvm::Value *value = generateExpr(*ref.expr);
 
-  const res::Expr *expr = borrow.expr;
+  const res::Expr *expr = ref.expr;
   while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(expr))
     expr = grouping->expr;
 
@@ -447,7 +446,7 @@ Codegen::generateImplicitBorrow(const res::ImplicitBorrowExpr &borrow) {
 }
 
 llvm::Value *
-Codegen::generatePtrToBorrow(const res::ImplicitPtrToBorrowDecay &decay) {
+Codegen::generatePtrToRef(const res::ImplicitPtrToRefDecay &decay) {
   llvm::Value *val = generateExpr(*decay.expr);
   llvm::Type *ty = generateType(decay.getType());
 
@@ -554,11 +553,11 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr))
     return generateLambdaExpr(*lambda);
 
-  if (auto *borrow = dynamic_cast<const res::ImplicitBorrowExpr *>(&expr))
-    return generateImplicitBorrow(*borrow);
+  if (auto *ref = dynamic_cast<const res::ImplicitAsRefExpr *>(&expr))
+    return generateImplicitAsRef(*ref);
 
-  if (auto *decay = dynamic_cast<const res::ImplicitPtrToBorrowDecay *>(&expr))
-    return generatePtrToBorrow(*decay);
+  if (auto *decay = dynamic_cast<const res::ImplicitPtrToRefDecay *>(&expr))
+    return generatePtrToRef(*decay);
 
   if (auto *promo = dynamic_cast<const res::TraitObjectPromoExpr *>(&expr))
     return generateTraitObjectPromo(*promo);
@@ -1207,7 +1206,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
 
     llvm::Value *argVal = arg;
     if (paramDecl->isMutable && !arg->hasByValAttr() &&
-        !paramDeclTy->getAs<res::BorrowedType>()) {
+        !paramDeclTy->getAs<res::RefType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }

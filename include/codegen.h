@@ -76,8 +76,8 @@ class Codegen {
   llvm::Value *generateGCExpr(const res::GCExpr &gcExpr);
   llvm::Value *generateLambdaExpr(const res::LambdaExpr &lambdaExpr);
   llvm::Value *materializeTemporary(const res::MaterializeTemporaryExpr &mte);
-  llvm::Value *generateImplicitBorrow(const res::ImplicitBorrowExpr &borrow);
-  llvm::Value *generatePtrToBorrow(const res::ImplicitPtrToBorrowDecay &decay);
+  llvm::Value *generateImplicitAsRef(const res::ImplicitAsRefExpr &ref);
+  llvm::Value *generatePtrToRef(const res::ImplicitPtrToRefDecay &decay);
   llvm::Value *generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo);
 
   llvm::Value *
