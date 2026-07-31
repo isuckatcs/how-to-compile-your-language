@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -7,6 +8,11 @@
 
 namespace yl {
 namespace res {
+void Substitution::dump() const {
+  for (auto &&[from, to] : *this)
+    std::cerr << from->getName() << " -> " << to->getName() << '\n';
+}
+
 void TranslationUnit::dump(size_t level) const {
   for (auto &&trait : getAll<res::TraitDecl>())
     trait->dump(0);
@@ -29,6 +35,10 @@ void Context::add(std::unique_ptr<Decl> decl) {
   decls.emplace_back(std::move(decl));
 }
 
+void Context::add(std::unique_ptr<Type> type) {
+  types.emplace_back(std::move(type));
+}
+
 void Context::add(std::unique_ptr<Block> block) {
   blocks.emplace_back(std::move(block));
 }
@@ -39,6 +49,219 @@ void Context::add(std::unique_ptr<TraitConformance> conformance) {
 
 void Context::add(std::unique_ptr<TypeExtension> extension) {
   extensions.emplace_back(std::move(extension));
+}
+
+std::vector<std::string> Context::doUnify(
+    Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
+  t1 = t1->getRootType();
+  t2 = t2->getRootType();
+
+  if (t1 == t2)
+    return {};
+
+  if (auto *u = t1->getAs<UninferredType>()) {
+    u->setParent(t2);
+    pendingUnifications.emplace_back(u);
+    return {};
+  }
+
+  if (t2->getAs<UninferredType>())
+    return doUnify(t2, t1, pendingUnifications);
+
+  if (!t1->isSameBase(t2))
+    return {"cannot unify '" + t1->getName() + "' with '" + t2->getName() +
+            "'"};
+
+  for (size_t i = 0; i < t1->args.size(); ++i) {
+    auto errs = doUnify(t1->args[i], t2->args[i], pendingUnifications);
+    if (!errs.empty()) {
+      errs.emplace_back("cannot unify '" + t1->getName() + "' with '" +
+                        t2->getName() + "'");
+      return errs;
+    }
+  }
+
+  return {};
+}
+
+std::vector<std::pair<TypeExtension *, Substitution>>
+Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
+  std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
+  for (auto &&extension : extensions) {
+    if (extensionStack.count(extension.get()))
+      continue;
+
+    EnterExtensionRAII enterThisExtension(this, extension.get());
+
+    Substitution extSub;
+    for (auto &&typeParam : extension->typeParams) {
+      auto *tpType = typeParam->getType();
+      auto *probeType = UninferredType::create(*this);
+
+      extSub[tpType] = probeType;
+
+      for (auto &&trait : getDirectConformance(tpType))
+        probeType->addObligation(
+            instantiate(trait, extSub)->getAs<res::TraitType>());
+    }
+
+    if (trait) {
+      Type *probedTrait = instantiate(extension->trait, extSub);
+      if (!unify(trait, probedTrait, probeOnly).empty())
+        continue;
+    }
+
+    Type *probedType = instantiate(extension->type, extSub);
+    if (!unify(type, probedType, probeOnly).empty())
+      continue;
+
+    foundExtensions.emplace_back(extension.get(), extSub);
+  }
+
+  return foundExtensions;
+}
+
+bool Context::eq(Type *t1, Type *t2) const {
+  t1 = t1->getRootType();
+  t2 = t2->getRootType();
+
+  if (!t1->isSameBase(t2))
+    return false;
+
+  for (int i = 0; i < t1->args.size(); ++i)
+    if (!eq(t1->args[i], t2->args[i]))
+      return false;
+
+  return true;
+}
+
+std::vector<std::string> Context::unify(Type *t1, Type *t2, bool probeOnly) {
+  std::vector<UninferredType *> pendingUnifications;
+  std::vector<std::string> errors = doUnify(t1, t2, pendingUnifications);
+
+  if (errors.empty()) {
+    for (auto &&u : pendingUnifications)
+      for (auto &&obligation : u->obligations)
+        for (auto &&error : solveConformance(u->getRootType(), obligation))
+          errors.emplace_back(error);
+  }
+
+  if (probeOnly)
+    for (auto &&u : pendingUnifications)
+      u->setParent(nullptr);
+
+  return errors;
+}
+
+std::vector<std::string> Context::solveConformance(Type *type,
+                                                   TraitType *requirement) {
+  std::vector<TraitType *> candidates;
+
+  for (auto &&trait : getEveryConformance(type))
+    if (unify(trait, requirement, true).empty())
+      candidates.emplace_back(trait);
+
+  if (candidates.empty()) {
+    auto extensions = getExtensions(type->getRootType(), requirement, true);
+    for (auto &&[extension, sub] : extensions)
+      candidates.emplace_back(
+          instantiate(extension->trait, sub)->getAs<res::TraitType>());
+  }
+
+  if (candidates.empty())
+    return {"cannot satisfy requirement '" + type->getName() + " : " +
+            requirement->getName() + "'"};
+
+  if (candidates.size() > 1) {
+    std::vector<std::string> errors;
+    for (auto &&candidate : candidates)
+      errors.emplace_back(
+          "'" + candidate->getName() + "' ambigously satisfies requirement '" +
+          type->getName() + " : " + requirement->getName() + "'");
+    return errors;
+  }
+
+  unify(requirement, candidates[0]);
+  return {};
+}
+
+Type *Context::instantiate(Type *t, Substitution sub) {
+  for (auto &&[from, to] : sub)
+    if (eq(from->getRootType(), t->getRootType()))
+      return to;
+
+  if (auto *fnTy = t->getAs<FunctionType>())
+    t = FunctionType::create(*this, fnTy->getArgs(), fnTy->getReturnType());
+  else if (auto *s = t->getAs<StructType>())
+    t = StructType::create(*this, s->getDecl(), s->getTypeArgs());
+  else if (auto *r = t->getAs<RefType>())
+    t = RefType::create(*this, r->getReferencedType(), r->isMutable());
+  else if (auto *p = t->getAs<PointerType>())
+    t = PointerType::create(*this, p->getPointeeType(), p->isMutable());
+  else if (auto *trait = t->getAs<TraitType>())
+    t = TraitType::create(*this, trait->getDecl(), trait->getTypeArgs());
+  else if (auto *trait = t->getAs<AnyTraitType>())
+    t = AnyTraitType::create(*this, trait->getDecl(), trait->getTypeArgs());
+
+  for (auto &arg : t->args)
+    arg = instantiate(arg, sub);
+
+  return t;
+}
+
+Substitution Context::instantiate(Substitution s, Substitution sub) {
+  Substitution res;
+
+  for (auto &&[from, to] : s)
+    res[from] = instantiate(to, sub);
+
+  return res;
+}
+
+std::vector<TraitType *> Context::getDirectConformance(Type *type) {
+  type = type->getRootType();
+
+  if (auto *a = type->getAs<res::AnyTraitType>())
+    return {a->withSelfType(this, a)};
+
+  res::TraitConformance *conformance = nullptr;
+
+  if (auto *t = type->getAs<TraitType>())
+    conformance = t->getDecl()->conformance;
+  else if (auto *tp = type->getAs<TypeParamType>())
+    conformance = tp->getDecl()->conformance;
+
+  if (!conformance)
+    return {};
+
+  std::vector<TraitType *> traits;
+  Substitution sub = type->getSub();
+
+  for (auto &&trait : conformance->traits)
+    traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
+
+  return traits;
+}
+
+std::vector<TraitType *> Context::getEveryConformance(Type *type) {
+  std::vector<TraitType *> result;
+
+  for (auto &&trait : getDirectConformance(type)) {
+    for (auto &&superTrait : getEveryConformance(trait)) {
+      auto pred = [&](res::TraitType *t) { return eq(t, superTrait); };
+      if (std::find_if(result.begin(), result.end(), pred) != result.end())
+        continue;
+
+      result.emplace_back(superTrait);
+    }
+
+    auto pred = [&](res::TraitType *t) { return eq(t, trait); };
+    if (std::find_if(result.begin(), result.end(), pred) != result.end())
+      continue;
+    result.emplace_back(trait);
+  }
+
+  return result;
 }
 
 std::string ConstVal::asString() const {
@@ -74,6 +297,182 @@ GenericDeclContext::lookupDirect(const std::string id) const {
       result.emplace_back(d);
 
   return result;
+}
+
+Type::Type(std::string name,
+           std::variant<void *, size_t> metadata,
+           std::vector<Type *> args)
+    : baseName(std::move(name)),
+      args(std::move(args)),
+      metadata(metadata){};
+
+bool Type::isSameBase(Type *other) const {
+  return baseName == other->baseName && args.size() == other->args.size() &&
+         metadata == other->metadata;
+}
+
+UninferredType::UninferredType()
+    : Type("_", nextId++){};
+
+Type *UninferredType::getRootType() {
+  if (parent)
+    return parent->getRootType();
+  return this;
+}
+
+std::string UninferredType::getName() const {
+  if (parent)
+    return parent->getName();
+  return baseName;
+};
+
+BuiltinUnitType::BuiltinUnitType()
+    : Type("unit"){};
+
+BuiltinNumberType::BuiltinNumberType()
+    : Type("number"){};
+
+BuiltinBoolType::BuiltinBoolType()
+    : Type("bool"){};
+
+TypeParamType::TypeParamType(TypeParamDecl *decl)
+    : Type(decl->identifier, decl) {}
+
+FunctionType::FunctionType(std::vector<Type *> args, Type *ret)
+    : Type("fn", nullptr, std::move(args)) {
+  this->args.emplace_back(ret);
+}
+
+std::string FunctionType::getName() const {
+  std::stringstream ss;
+  // FIXME: repeated pattern
+  ss << '(';
+  for (int i = 0; i < args.size() - 1; ++i) {
+    ss << args[i]->getRootType()->getName();
+
+    if (i < args.size() - 2)
+      ss << ',' << ' ';
+  }
+  ss << ") -> " << getReturnType()->getName();
+
+  return ss.str();
+}
+
+RefType::RefType(Type *referencedType, bool isMutable)
+    : Type(isMutable ? "&mut " : "&", isMutable, {referencedType}){};
+
+PointerType::PointerType(Type *pointeeType, bool isMutable)
+    : Type(isMutable ? "*mut " : "*", isMutable, {pointeeType}){};
+
+TraitType::TraitType(TraitDecl *decl, std::vector<Type *> args)
+    : Type(decl->identifier, decl, std::move(args)) {}
+
+std::string TraitType::getName() const {
+  std::stringstream ss;
+  ss << getDecl()->identifier;
+
+  if (args.size() > 1) {
+    ss << '<';
+    // FIXME: print Self type as well
+    for (int i = 1; i < args.size(); ++i) {
+      ss << args[i]->getName();
+
+      if (i < args.size() - 1)
+        ss << ',' << ' ';
+    }
+    ss << '>';
+  }
+
+  return ss.str();
+}
+
+Substitution TraitType::getSub() const {
+  Substitution res;
+
+  for (int i = 0; i < args.size(); ++i)
+    res[getDecl()->typeParams[i]->getType()] = args[i];
+
+  return res;
+}
+
+std::vector<std::pair<TraitType *, FunctionDecl *>>
+TraitType::getVtableLayout(Context *ctx) {
+  std::vector<std::pair<TraitType *, FunctionDecl *>> layout;
+
+  for (auto &&trait : ctx->getEveryConformance(this))
+    for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
+      layout.emplace_back(trait, fn);
+
+  for (auto &&fn : getDecl()->getAll<res::FunctionDecl>())
+    layout.emplace_back(this, fn);
+
+  return layout;
+}
+
+StructType::StructType(StructDecl *decl, std::vector<Type *> typeArgs)
+    : Type(decl->identifier, decl, std::move(typeArgs)){};
+
+Substitution StructType::getSub() const {
+  Substitution res;
+
+  for (int i = 0; i < args.size(); ++i)
+    res[getDecl()->typeParams[i]->getType()] = args[i];
+
+  return res;
+}
+
+std::string StructType::getName() const {
+  std::stringstream ss;
+  ss << baseName;
+
+  if (!args.empty()) {
+    ss << '<';
+    for (int i = 0; i < args.size(); ++i) {
+      ss << args[i]->getName();
+
+      if (i < args.size() - 1)
+        ss << ',' << ' ';
+    }
+    ss << '>';
+  }
+
+  return ss.str();
+}
+
+AnyTraitType::AnyTraitType(TraitDecl *decl, std::vector<Type *> args)
+    : Type("any " + decl->identifier, decl, std::move(args)) {}
+
+std::string AnyTraitType::getName() const {
+  std::stringstream ss;
+  ss << baseName;
+
+  if (!args.empty()) {
+    ss << '<';
+    for (int i = 0; i < args.size(); ++i) {
+      ss << args[i]->getName();
+
+      if (i < args.size() - 1)
+        ss << ',' << ' ';
+    }
+    ss << '>';
+  }
+
+  return ss.str();
+}
+
+Substitution AnyTraitType::getSub() const {
+  Substitution res;
+
+  for (int i = 0; i < args.size(); ++i)
+    res[getDecl()->typeParams[i + 1]->getType()] = args[i];
+
+  return res;
+}
+
+TraitType *AnyTraitType::withSelfType(Context *ctx, Type *selfType) const {
+  std::vector<Type *> traitArgs = {selfType};
+  traitArgs.insert(traitArgs.end(), args.begin(), args.end());
+  return TraitType::create(*ctx, getDecl(), std::move(traitArgs));
 }
 
 Block::Block(SourceLocation l, std::vector<Stmt *> s)
@@ -307,7 +706,7 @@ DeclRefExpr::DeclRefExpr(SourceLocation loc,
 Type *DeclRefExpr::getReceiverType() const {
   for (auto &&[from, to] : sub)
     if (auto *t = from->getAs<res::TypeParamType>();
-        t && t->decl->isImplicitSelf)
+        t && t->getDecl()->isImplicitSelf)
       return to;
 
   return nullptr;

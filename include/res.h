@@ -2,22 +2,30 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 
 #include <memory>
+#include <set>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include "lexer.h"
-#include "type.h"
 #include "utils.h"
 
 namespace yl {
 namespace res {
-class Stmt;
-class Decl;
-class Block;
-class TraitConformance;
-class TypeExtension;
+struct Stmt;
+struct Decl;
+struct Type;
+struct Block;
+struct TraitConformance;
+struct TypeExtension;
+struct FunctionDecl;
 struct TypeParamDecl;
+struct TraitType;
+struct UninferredType;
+
+struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
+  void dump() const;
+};
 
 struct GenericDeclContext {
   GenericDeclContext *parent;
@@ -53,18 +61,52 @@ struct TranslationUnit final : public GenericDeclContext {
 class Context final {
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
+  std::vector<std::unique_ptr<Type>> types;
   std::vector<std::unique_ptr<Block>> blocks;
   std::vector<std::unique_ptr<TraitConformance>> conformances;
   std::vector<std::unique_ptr<TypeExtension>> extensions;
+
+  class EnterExtensionRAII {
+    Context *c;
+    res::TypeExtension *e;
+
+  public:
+    EnterExtensionRAII(Context *c, res::TypeExtension *e)
+        : c(c),
+          e(e) {
+      c->extensionStack.emplace(e);
+    }
+
+    ~EnterExtensionRAII() { c->extensionStack.erase(e); }
+  };
+
+  std::set<TypeExtension *> extensionStack;
+
+  std::vector<std::string> doUnify(
+      Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
 
 public:
   TranslationUnit translationUnit;
 
   void add(std::unique_ptr<Stmt> stmt);
   void add(std::unique_ptr<Decl> decl);
+  void add(std::unique_ptr<Type> type);
   void add(std::unique_ptr<Block> block);
   void add(std::unique_ptr<TraitConformance> conformance);
   void add(std::unique_ptr<TypeExtension> extension);
+
+  std::vector<std::pair<TypeExtension *, Substitution>>
+  getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
+
+  bool eq(Type *t1, Type *t2) const;
+  std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);
+  std::vector<std::string> solveConformance(Type *type, TraitType *requirement);
+
+  Type *instantiate(Type *t, Substitution sub);
+  Substitution instantiate(Substitution s, Substitution sub);
+
+  std::vector<TraitType *> getDirectConformance(Type *type);
+  std::vector<TraitType *> getEveryConformance(Type *type);
 };
 
 template <typename T> struct Creatable {
@@ -84,6 +126,29 @@ struct ConstVal : public std::variant<std::monostate, bool, double> {
 
   bool isKnown() const { return index() != 0; }
   std::string asString() const;
+};
+
+struct Type {
+  template <typename T> T *getAs() { return dynamic_cast<T *>(getRootType()); }
+
+  virtual Type *getRootType() { return this; }
+  virtual std::string getName() const { return baseName; };
+  virtual Substitution getSub() const { return {}; }
+
+  virtual ~Type() = default;
+
+protected:
+  std::string baseName;
+  std::vector<Type *> args;
+  std::variant<void *, size_t> metadata;
+
+  Type(std::string baseName,
+       std::variant<void *, size_t> metadata = nullptr,
+       std::vector<Type *> args = {});
+
+  bool isSameBase(Type *other) const;
+
+  friend Context;
 };
 
 class TypedNode {
@@ -173,40 +238,6 @@ struct ValueDecl : public Decl {
         isMutable(isMutable) {}
 };
 
-struct Block final : public Creatable<Block> {
-  SourceLocation location;
-  std::vector<Stmt *> statements;
-
-  void dump(size_t level = 0) const;
-
-private:
-  Block(SourceLocation l, std::vector<Stmt *> s);
-  friend Creatable<Block>;
-};
-
-struct IfStmt final : public Creatable<IfStmt>, public Stmt {
-  Expr *condition;
-  Block *trueBlock;
-  Block *falseBlock;
-
-  void dump(size_t level = 0) const override;
-
-private:
-  IfStmt(SourceLocation l, Expr *c, Block *t, Block *f = nullptr);
-  friend Creatable<IfStmt>;
-};
-
-struct WhileStmt final : public Creatable<WhileStmt>, public Stmt {
-  Expr *condition;
-  Block *body;
-
-  void dump(size_t level = 0) const override;
-
-private:
-  WhileStmt(SourceLocation l, Expr *c, Block *b);
-  friend Creatable<WhileStmt>;
-};
-
 struct ParamDecl final : public Creatable<ParamDecl>, public ValueDecl {
   void dump(size_t level = 0) const override;
 
@@ -230,36 +261,6 @@ private:
             GenericDeclContext *c,
             std::vector<TypeParamDecl *> p);
   friend Creatable<TraitDecl>;
-};
-
-struct TraitConformance final : public Creatable<TraitConformance> {
-  SourceLocation location;
-  res::Type *type;
-  std::vector<res::TraitType *> traits;
-
-  void dump(size_t level = 0) const;
-
-private:
-  TraitConformance(SourceLocation l,
-                   res::Type *t,
-                   std::vector<res::TraitType *> ts);
-  friend Creatable<TraitConformance>;
-};
-
-struct TypeExtension final : public Creatable<TypeExtension>,
-                             public GenericDeclContext {
-  SourceLocation location;
-  Type *type;
-  TraitType *trait;
-
-  void dump(size_t level = 0) const;
-
-private:
-  TypeExtension(SourceLocation location,
-                std::vector<TypeParamDecl *> typeParams,
-                Type *type,
-                TraitType *trait);
-  friend Creatable<TypeExtension>;
 };
 
 struct TypeParamDecl final : public Creatable<TypeParamDecl>, public TypeDecl {
@@ -332,6 +333,197 @@ private:
                GenericDeclContext *declContext,
                std::vector<TypeParamDecl *> typeParams = {});
   friend Creatable<FunctionDecl>;
+};
+
+class BuiltinUnitType final : public Creatable<BuiltinUnitType>, public Type {
+  BuiltinUnitType();
+  friend Creatable<BuiltinUnitType>;
+};
+
+class BuiltinNumberType final : public Creatable<BuiltinNumberType>,
+                                public Type {
+  BuiltinNumberType();
+  friend Creatable<BuiltinNumberType>;
+};
+
+class BuiltinBoolType final : public Creatable<BuiltinBoolType>, public Type {
+  BuiltinBoolType();
+  friend Creatable<BuiltinBoolType>;
+};
+
+struct TypeParamType final : public Creatable<TypeParamType>, public Type {
+  TypeParamDecl *getDecl() const {
+    return static_cast<TypeParamDecl *>(std::get<void *>(metadata));
+  }
+
+private:
+  explicit TypeParamType(TypeParamDecl *decl);
+
+  friend Creatable<TypeParamType>;
+};
+
+struct FunctionType final : public Creatable<FunctionType>, public Type {
+  std::string getName() const override;
+  std::vector<Type *> getArgs() const { return {args.begin(), --args.end()}; }
+  Type *getReturnType() const { return args.back()->getRootType(); }
+
+private:
+  explicit FunctionType(std::vector<Type *> args, Type *ret);
+
+  friend Creatable<FunctionType>;
+};
+
+struct RefType final : public Creatable<RefType>, public Type {
+  Type *getReferencedType() const { return args[0]->getRootType(); }
+  bool isMutable() const { return std::get<size_t>(metadata); }
+  std::string getName() const override { return baseName + args[0]->getName(); }
+
+private:
+  RefType(Type *referencedType, bool isMutable);
+
+  friend Creatable<RefType>;
+};
+
+struct PointerType final : public Creatable<PointerType>, public Type {
+  Type *getPointeeType() const { return args[0]->getRootType(); }
+  bool isMutable() const { return std::get<size_t>(metadata); }
+  std::string getName() const override { return baseName + args[0]->getName(); }
+
+private:
+  PointerType(Type *pointeeType, bool isMutable);
+
+  friend Creatable<PointerType>;
+};
+
+class StructType final : public Creatable<StructType>, public Type {
+  StructType(StructDecl *decl, std::vector<Type *> typeArgs = {});
+
+public:
+  StructDecl *getDecl() const {
+    return static_cast<StructDecl *>(std::get<void *>(metadata));
+  }
+
+  std::vector<Type *> getTypeArgs() const { return args; }
+  std::string getName() const override;
+  Substitution getSub() const override;
+
+  friend Creatable<StructType>;
+};
+
+struct TraitType final : public Creatable<TraitType>, public Type {
+  TraitDecl *getDecl() const {
+    return static_cast<TraitDecl *>(std::get<void *>(metadata));
+  }
+  std::vector<Type *> getTypeArgs() const { return args; }
+  std::string getName() const override;
+  Substitution getSub() const override;
+  std::vector<std::pair<TraitType *, FunctionDecl *>>
+  getVtableLayout(Context *ctx);
+
+private:
+  TraitType(TraitDecl *decl, std::vector<Type *> args = {});
+
+  friend Creatable<TraitType>;
+};
+
+struct AnyTraitType final : public Creatable<AnyTraitType>, public Type {
+  TraitDecl *getDecl() const {
+    return static_cast<TraitDecl *>(std::get<void *>(metadata));
+  }
+  std::vector<Type *> getTypeArgs() const { return args; }
+  std::string getName() const override;
+  Substitution getSub() const override;
+
+  TraitType *withSelfType(Context *ctx, Type *selfType) const;
+
+private:
+  AnyTraitType(TraitDecl *decl, std::vector<Type *> args);
+
+  friend Creatable<AnyTraitType>;
+};
+
+struct UninferredType final : public Creatable<UninferredType>, public Type {
+  Type *getRootType() override;
+  std::string getName() const override;
+
+  void addObligation(TraitType *trait) { obligations.emplace_back(trait); }
+
+private:
+  inline static size_t nextId = 0;
+
+  std::vector<TraitType *> obligations;
+  Type *parent = nullptr;
+
+  UninferredType();
+
+  void setParent(Type *t) { parent = t; };
+
+  friend Creatable<UninferredType>;
+  friend Context;
+};
+
+struct Block final : public Creatable<Block> {
+  SourceLocation location;
+  std::vector<Stmt *> statements;
+
+  void dump(size_t level = 0) const;
+
+private:
+  Block(SourceLocation l, std::vector<Stmt *> s);
+  friend Creatable<Block>;
+};
+
+struct IfStmt final : public Creatable<IfStmt>, public Stmt {
+  Expr *condition;
+  Block *trueBlock;
+  Block *falseBlock;
+
+  void dump(size_t level = 0) const override;
+
+private:
+  IfStmt(SourceLocation l, Expr *c, Block *t, Block *f = nullptr);
+  friend Creatable<IfStmt>;
+};
+
+struct WhileStmt final : public Creatable<WhileStmt>, public Stmt {
+  Expr *condition;
+  Block *body;
+
+  void dump(size_t level = 0) const override;
+
+private:
+  WhileStmt(SourceLocation l, Expr *c, Block *b);
+  friend Creatable<WhileStmt>;
+};
+
+struct TraitConformance final : public Creatable<TraitConformance> {
+  SourceLocation location;
+  res::Type *type;
+  std::vector<res::TraitType *> traits;
+
+  void dump(size_t level = 0) const;
+
+private:
+  TraitConformance(SourceLocation l,
+                   res::Type *t,
+                   std::vector<res::TraitType *> ts);
+  friend Creatable<TraitConformance>;
+};
+
+struct TypeExtension final : public Creatable<TypeExtension>,
+                             public GenericDeclContext {
+  SourceLocation location;
+  Type *type;
+  TraitType *trait;
+
+  void dump(size_t level = 0) const;
+
+private:
+  TypeExtension(SourceLocation location,
+                std::vector<TypeParamDecl *> typeParams,
+                Type *type,
+                TraitType *trait);
+  friend Creatable<TypeExtension>;
 };
 
 struct NumberLiteral final : public Creatable<NumberLiteral>, public Expr {
