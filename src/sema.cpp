@@ -29,7 +29,7 @@ res::Type *Sema::Scope::getSelfType() const {
     if (auto *t = dynamic_cast<res::TraitDecl *>(declContext))
       return t->typeParams[0]->getType();
 
-    if (auto *e = dynamic_cast<res::ExtensionDecl *>(declContext))
+    if (auto *e = dynamic_cast<res::TypeExtension *>(declContext))
       return e->type;
 
     declContext = declContext->parent;
@@ -1314,7 +1314,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
   return ctx.create<res::Block>(block.location, std::move(resolvedStatements));
 }
 
-res::ExtensionDecl *
+res::TypeExtension *
 Sema::resolveTypeExtension(res::Context &ctx,
                            const ast::TypeExtension &extension) {
   EnterNewScopeRAII typeParamScope(this);
@@ -1348,9 +1348,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
   }
 
-  auto *typeExtension = ctx.create<res::ExtensionDecl>(
-      extension.location, scope->getDeclContext(), std::move(typeParams), type,
-      traitType);
+  auto *typeExtension = ctx.create<res::TypeExtension>(
+      extension.location, std::move(typeParams), type, traitType);
   typeMgr.addExtension(typeExtension);
 
   EnterNewScopeRAII extensionScope(this, typeExtension);
@@ -1433,7 +1432,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
 }
 
 bool Sema::resolveExtensionBody(res::Context &ctx,
-                                res::ExtensionDecl *extension,
+                                res::TypeExtension *extension,
                                 const ast::TypeExtension &astExtension) {
   bool error = false;
   auto *trait = extension->trait;
@@ -1553,7 +1552,7 @@ bool Sema::resolveGenericParamsInCurrentScope(
 }
 
 bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                                res::ExtensionDecl *extension) {
+                                                res::TypeExtension *extension) {
   bool error = false;
 
   for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {

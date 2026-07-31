@@ -98,7 +98,7 @@ void FunctionDecl::dump(size_t level) const {
     body->dump(level + 1);
 }
 
-void ExtensionDecl::dump(size_t level) const {
+void TypeExtension::dump(size_t level) const {
   std::cerr << indent(level) << "TypeExtension " << type->getName() << " : "
             << trait->getName() << '\n';
 

@@ -217,17 +217,17 @@ struct TraitConformance {
   void dump(size_t level = 0) const;
 };
 
-struct ExtensionDecl : public Decl, public GenericDeclContext {
+struct TypeExtension : public GenericDeclContext {
+  SourceLocation location;
   Type *type;
   TraitType *trait;
 
-  ExtensionDecl(SourceLocation location,
-                GenericDeclContext *declContext,
+  TypeExtension(SourceLocation location,
                 std::vector<TypeParamDecl *> typeParams,
                 Type *type,
                 TraitType *trait)
-      : Decl(location, declContext),
-        GenericDeclContext(declContext, std::move(typeParams)),
+      : GenericDeclContext(nullptr, std::move(typeParams)),
+        location(location),
         type(type),
         trait(trait) {}
 
@@ -554,11 +554,12 @@ class Context {
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Block>> blocks;
   std::vector<std::unique_ptr<TraitConformance>> conformances;
+  std::vector<std::unique_ptr<TypeExtension>> typeExtensions;
 
   std::vector<TraitDecl *> traits;
   std::vector<StructDecl *> structs;
   std::vector<FunctionDecl *> functions;
-  std::vector<ExtensionDecl *> extensions;
+  std::vector<TypeExtension *> extensions;
 
 public:
   // FIXME: rethink this whole method
@@ -574,13 +575,15 @@ public:
       blocks.emplace_back(std::move(ptr));
     else if constexpr (std::is_base_of_v<TraitConformance, T>)
       conformances.emplace_back(std::move(ptr));
+    else if constexpr (std::is_base_of_v<TypeExtension, T>)
+      typeExtensions.emplace_back(std::move(ptr));
     else
       llvm_unreachable(
           "can only create statements, declarations, blocks and traits");
 
     if constexpr (std::is_base_of_v<TraitDecl, T>)
       traits.emplace_back(raw);
-    else if constexpr (std::is_base_of_v<ExtensionDecl, T>)
+    else if constexpr (std::is_base_of_v<TypeExtension, T>)
       extensions.emplace_back(raw);
     else if constexpr (std::is_base_of_v<StructDecl, T>) {
       if (!raw->isLambda)
@@ -607,10 +610,10 @@ public:
     return out;
   }
 
-  const std::vector<ExtensionDecl *> &getTypeExtensions() const {
+  const std::vector<TypeExtension *> &getTypeExtensions() const {
     return extensions;
   }
-  std::vector<ExtensionDecl *> &getTypeExtensions() { return extensions; }
+  std::vector<TypeExtension *> &getTypeExtensions() { return extensions; }
 
   void dump() const;
 };

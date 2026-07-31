@@ -166,10 +166,10 @@ class Sema {
 
   res::Block *resolveBlock(res::Context &ctx, const ast::Block &block);
 
-  res::ExtensionDecl *resolveTypeExtension(res::Context &ctx,
+  res::TypeExtension *resolveTypeExtension(res::Context &ctx,
                                            const ast::TypeExtension &extension);
   bool resolveExtensionBody(res::Context &ctx,
-                            res::ExtensionDecl *extension,
+                            res::TypeExtension *extension,
                             const ast::TypeExtension &astExtension);
 
   res::VarDecl *resolveVarDecl(res::Context &ctx, const ast::VarDecl &varDecl);
@@ -221,7 +221,7 @@ class Sema {
                           res::Type *type);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                            res::ExtensionDecl *extension);
+                                            res::TypeExtension *extension);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);

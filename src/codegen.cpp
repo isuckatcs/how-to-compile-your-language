@@ -1301,7 +1301,7 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
 
   if (auto *sd = dynamic_cast<const res::StructDecl *>(declCtx))
     declCtxType = getMonoType(sd->getType());
-  else if (auto *e = dynamic_cast<const res::ExtensionDecl *>(declCtx))
+  else if (auto *e = dynamic_cast<const res::TypeExtension *>(declCtx))
     declCtxType = getMonoType(e->trait);
   else if (auto *t = dynamic_cast<const res::TraitDecl *>(declCtx))
     declCtxType = getMonoType(t->getType());

@@ -15,7 +15,7 @@ class FunctionDecl;
 class StructDecl;
 class TraitDecl;
 class TypedNode;
-class ExtensionDecl;
+class TypeExtension;
 class TraitConformance;
 
 struct Type {
@@ -224,7 +224,7 @@ class Substitution : public std::unordered_map<const res::Type *, res::Type *> {
 class TypeManager {
   size_t uninferredTypeId = 0;
   std::vector<std::unique_ptr<Type>> types;
-  std::vector<ExtensionDecl *> extensions;
+  std::vector<TypeExtension *> extensions;
   std::unordered_map<UninferredType *, std::vector<TraitType *>> obligations;
 
   using VtableEntryTy = std::pair<TraitType *, const FunctionDecl *>;
@@ -233,10 +233,10 @@ class TypeManager {
 
   class EnterExtensionRAII {
     TypeManager *tm;
-    res::ExtensionDecl *e;
+    res::TypeExtension *e;
 
   public:
-    EnterExtensionRAII(TypeManager *tm, res::ExtensionDecl *e)
+    EnterExtensionRAII(TypeManager *tm, res::TypeExtension *e)
         : tm(tm),
           e(e) {
       tm->extensionStack.emplace(e);
@@ -245,7 +245,7 @@ class TypeManager {
     ~EnterExtensionRAII() { tm->extensionStack.erase(e); }
   };
 
-  std::set<res::ExtensionDecl *> extensionStack;
+  std::set<res::TypeExtension *> extensionStack;
 
   std::vector<std::string>
   unifyImpl(Type *t1, Type *t2, std::vector<UninferredType *> &inferredTypes);
@@ -255,8 +255,8 @@ class TypeManager {
 public:
   void createObligation(UninferredType *type, TraitType *trait);
 
-  void addExtension(ExtensionDecl *typeExtension);
-  std::vector<std::pair<ExtensionDecl *, Substitution>>
+  void addExtension(TypeExtension *typeExtension);
+  std::vector<std::pair<TypeExtension *, Substitution>>
   getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
 
   Substitution extractSubstitutionFrom(const Type *ty);

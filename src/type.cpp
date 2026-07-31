@@ -314,13 +314,13 @@ PointerType *TypeManager::getPointerType(Type *pointeeType, bool isMutable) {
   return ptrTy;
 }
 
-void TypeManager::addExtension(ExtensionDecl *typeExtension) {
+void TypeManager::addExtension(TypeExtension *typeExtension) {
   extensions.emplace_back(typeExtension);
 }
 
-std::vector<std::pair<ExtensionDecl *, Substitution>>
+std::vector<std::pair<TypeExtension *, Substitution>>
 TypeManager::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
-  std::vector<std::pair<ExtensionDecl *, Substitution>> foundExtensions;
+  std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
   for (auto &&extension : extensions) {
     if (extensionStack.count(extension))
       continue;
