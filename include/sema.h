@@ -33,8 +33,8 @@ class Sema {
           ctx(ctx) {}
 
     void addDecl(res::Decl *decl) { decls.emplace_back(decl); }
-    std::vector<res::NamedDecl *> lookupSymbol(const std::string &id,
-                                               bool recursive = true) const;
+    std::vector<res::Decl *> lookupSymbol(const std::string &id,
+                                          bool recursive = true) const;
 
     Scope *getParent() const { return parent; }
     res::GenericDeclContext *getDeclContext() const;
@@ -127,13 +127,11 @@ class Sema {
                                     const ast::PathExpr &pathExpr);
   res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
                                       const ast::DeclRefExpr *dre,
-                                      res::NamedDecl *decl,
+                                      res::Decl *decl,
                                       res::Substitution sub = {});
 
-  std::vector<std::pair<res::NamedDecl *, res::Substitution>>
-  lookupAssociatedDecls(std::string identifier,
-                        res::Type *type,
-                        res::TraitType *trait = nullptr);
+  std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
+      std::string identifier, res::Type *type, res::TraitType *trait = nullptr);
 
   std::pair<res::Expr *, std::vector<res::Expr *>>
   resolveCallBase(res::Context &ctx, const ast::CallExpr &call);

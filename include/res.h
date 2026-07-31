@@ -61,12 +61,16 @@ struct Expr : public TypedNode, public Stmt {
 struct GenericDeclContext;
 
 struct Decl : public TypedNode {
+  std::string identifier;
   SourceLocation location;
   GenericDeclContext *declContext;
   bool needsStorage = false;
 
-  Decl(SourceLocation location, GenericDeclContext *declContext)
-      : location(location),
+  Decl(SourceLocation location,
+       std::string identifier,
+       GenericDeclContext *declContext)
+      : identifier(std::move(identifier)),
+        location(location),
         declContext(declContext) {}
   virtual ~Decl() = default;
 
@@ -85,16 +89,6 @@ struct Decl : public TypedNode {
   virtual void dump(size_t level = 0) const = 0;
 };
 
-struct NamedDecl : public Decl {
-  std::string identifier;
-
-  NamedDecl(SourceLocation location,
-            std::string identifier,
-            GenericDeclContext *declContext)
-      : Decl(location, declContext),
-        identifier(std::move(identifier)) {}
-};
-
 struct TypeParamDecl;
 
 struct GenericDeclContext {
@@ -108,7 +102,7 @@ struct GenericDeclContext {
   virtual ~GenericDeclContext() = default;
 
   void insertDecl(res::Decl *decl) { decls.emplace_back(decl); }
-  std::vector<res::NamedDecl *> lookupDirect(const std::string id) const;
+  std::vector<res::Decl *> lookupDirect(const std::string id) const;
 
   template <typename T> std::vector<T *> getAll() const {
     std::vector<T *> out;
@@ -119,21 +113,21 @@ struct GenericDeclContext {
   }
 };
 
-struct TypeDecl : public NamedDecl {
+struct TypeDecl : public Decl {
   TypeDecl(SourceLocation location,
            std::string identifier,
            GenericDeclContext *declContext)
-      : NamedDecl(location, std::move(identifier), declContext) {}
+      : Decl(location, std::move(identifier), declContext) {}
 };
 
-struct ValueDecl : public NamedDecl {
+struct ValueDecl : public Decl {
   bool isMutable;
 
   ValueDecl(SourceLocation location,
             std::string identifier,
             GenericDeclContext *declContext,
             bool isMutable)
-      : NamedDecl(location, std::move(identifier), declContext),
+      : Decl(location, std::move(identifier), declContext),
         isMutable(isMutable) {}
 };
 
@@ -347,11 +341,11 @@ struct CallExpr : public Expr {
 };
 
 struct DeclRefExpr : public Expr {
-  NamedDecl *decl;
+  Decl *decl;
   Substitution sub;
 
   DeclRefExpr(SourceLocation location,
-              NamedDecl *decl,
+              Decl *decl,
               Expr::Kind kind,
               Substitution sub)
       : Expr(location, kind),

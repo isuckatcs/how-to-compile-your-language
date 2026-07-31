@@ -38,13 +38,13 @@ res::Type *Sema::Scope::getSelfType() const {
   return nullptr;
 }
 
-std::vector<res::NamedDecl *> Sema::Scope::lookupSymbol(const std::string &id,
-                                                        bool recursive) const {
-  std::vector<res::NamedDecl *> results;
+std::vector<res::Decl *> Sema::Scope::lookupSymbol(const std::string &id,
+                                                   bool recursive) const {
+  std::vector<res::Decl *> results;
 
   for (auto &&decl : decls)
-    if (auto *nd = decl->getAs<res::NamedDecl>(); nd && nd->identifier == id)
-      results.emplace_back(nd);
+    if (decl->identifier == id)
+      results.emplace_back(decl);
 
   if (!recursive || !parent)
     return results;
@@ -59,20 +59,18 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   if (!decl)
     return false;
 
-  if (auto *nd = decl->getAs<res::NamedDecl>()) {
-    const auto &results = scope->lookupSymbol(nd->identifier, false);
-    if (results.empty()) {
-      scope->addDecl(decl);
-      return true;
-    }
+  const auto &results = scope->lookupSymbol(decl->identifier, false);
+  if (results.empty()) {
+    scope->addDecl(decl);
+    return true;
+  }
 
-    bool resultIsValue = results[0]->getAs<res::ValueDecl>() != nullptr;
-    bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
+  bool resultIsValue = results[0]->getAs<res::ValueDecl>() != nullptr;
+  bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
 
-    if (results.size() > 1 || resultIsValue == declIsValue) {
-      err::redeclaration(decl->location).with(nd->identifier).report(reporter);
-      return false;
-    }
+  if (results.size() > 1 || resultIsValue == declIsValue) {
+    err::redeclaration(decl->location).with(decl->identifier).report(reporter);
+    return false;
   }
 
   scope->addDecl(decl);
@@ -393,7 +391,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       if (!selfType)
         return err::selfTyNotAllowed(fragment->location).report(reporter);
 
-      res::NamedDecl *decl = nullptr;
+      res::Decl *decl = nullptr;
       res::Substitution sub;
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>())
@@ -478,7 +476,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
 
 res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
                                           const ast::DeclRefExpr *dre,
-                                          res::NamedDecl *decl,
+                                          res::Decl *decl,
                                           res::Substitution sub) {
   auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
@@ -535,11 +533,11 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   return functionInfo->declReferences.emplace_back(resDre);
 }
 
-std::vector<std::pair<res::NamedDecl *, res::Substitution>>
+std::vector<std::pair<res::Decl *, res::Substitution>>
 Sema::lookupAssociatedDecls(std::string identifier,
                             res::Type *type,
                             res::TraitType *trait) {
-  std::vector<std::pair<res::NamedDecl *, res::Substitution>> candidates;
+  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
   if (!trait) {
     if (auto *s = type->getAs<res::StructType>())
@@ -1198,7 +1196,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
   if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
     varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
 
-    const res::NamedDecl *decl = resPath->decl;
+    const res::Decl *decl = resPath->decl;
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
     // FIXME: check these
@@ -1793,7 +1791,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
 
   EnterNewScopeRAII structBodyScope(this);
   for (auto &&decl : astDecl.decls) {
-    res::NamedDecl *memberDecl = nullptr;
+    res::Decl *memberDecl = nullptr;
 
     if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
       if (res::Type *fieldTy = resolveType(ctx, *field->type)) {
@@ -2239,7 +2237,7 @@ bool Sema::checkReturnOnAllPaths(const CFG &cfg) {
 bool Sema::checkVariableInitialization(const CFG &cfg) {
   enum class State { Bottom, Unassigned, Assigned, Top };
 
-  using Lattice = std::map<const res::NamedDecl *, State>;
+  using Lattice = std::map<const res::Decl *, State>;
 
   auto joinStates = [](State s1, State s2) {
     if (s1 == s2)
