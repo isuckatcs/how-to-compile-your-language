@@ -41,10 +41,10 @@
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= 'mut'? <identifier> ':' <borrowedModifier>? <type>
+    ::= 'mut'? <identifier> ':' <refModifier>? <type>
 
-<borrowedModifier>
-    ::= 'borrowed' 'mut'?
+<refModifier>
+    ::= '&' 'mut'?
 
 <varDecl>
     ::= <identifier> <typeAnnotation>? ('=' <expr>)?
