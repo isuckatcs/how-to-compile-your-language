@@ -515,8 +515,8 @@ Type *TypeManager::instantiate(Type *t, const Substitution &substitution) {
     t = getFunctionType(fnTy->getArgs(), fnTy->getReturnType());
   else if (auto *s = t->getAs<StructType>())
     t = getStructType(*s->getDecl(), s->getTypeArgs());
-  else if (auto *b = t->getAs<RefType>())
-    t = getRefType(b->getRefType(), b->isMutable());
+  else if (auto *r = t->getAs<RefType>())
+    t = getRefType(r->getReferencedType(), r->isMutable());
   else if (auto *p = t->getAs<PointerType>())
     t = getPointerType(p->getPointeeType(), p->isMutable());
   else if (auto *trait = t->getAs<TraitType>())

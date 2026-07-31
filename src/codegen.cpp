@@ -149,7 +149,7 @@ llvm::Type *Codegen::generateType(const res::Type *monoType) {
                                  {builder.getPtrTy(), builder.getPtrTy()});
 
   if (const auto *b = monoType->getAs<res::RefType>()) {
-    if (b->getRefType()->getAs<res::AnyTraitType>())
+    if (b->getReferencedType()->getAs<res::AnyTraitType>())
       return llvm::StructType::get(context,
                                    {builder.getPtrTy(), builder.getPtrTy()});
 

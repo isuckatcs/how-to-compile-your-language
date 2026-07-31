@@ -154,8 +154,7 @@ class RefType : public Type {
   bool isSameKind(const Type *other) const override;
 
 public:
-  Type *getRefType() { return args[0]->getRootType(); }
-  const Type *getRefType() const { return args[0]->getRootType(); }
+  Type *getReferencedType() const { return args[0]->getRootType(); }
 
   bool isMutable() const { return isMut; }
   std::string getName() const override { return name + args[0]->getName(); }

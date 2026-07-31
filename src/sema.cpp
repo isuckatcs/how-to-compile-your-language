@@ -990,9 +990,9 @@ res::Expr *Sema::withPtrToRefDecay(res::Type *targetType, res::Expr *expr) {
   if (targetRefType->isMutable() && !currentPtrType->isMutable())
     return expr;
 
-  res::Type *refType = targetRefType->getRefType();
-  res::Type *ptrType = currentPtrType->getPointeeType();
-  if (!typeMgr.unify(refType, ptrType).empty())
+  res::Type *referencedType = targetRefType->getReferencedType();
+  res::Type *pointerType = currentPtrType->getPointeeType();
+  if (!typeMgr.unify(referencedType, pointerType).empty())
     return expr;
 
   auto *p2b = ctx.create<res::ImplicitPtrToRefDecay>(expr->location, expr);
@@ -1014,7 +1014,8 @@ res::Expr *Sema::withImplicitAsRef(res::Type *targetType, res::Expr *expr) {
   if (targetRefType->isMutable() && !expr->isMutable())
     return expr;
 
-  if (!typeMgr.unify(targetRefType->getRefType(), expr->getType()).empty())
+  if (!typeMgr.unify(targetRefType->getReferencedType(), expr->getType())
+           .empty())
     return expr;
 
   auto *be = ctx.create<res::ImplicitAsRefExpr>(expr->location, expr);
@@ -1215,7 +1216,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 
-    auto *outType = resPath->getType()->getAs<res::RefType>();
+    auto *refType = resPath->getType()->getAs<res::RefType>();
 
     if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
       res::Decl *insideDecl = nullptr;
@@ -1229,7 +1230,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
         outsideDecl = r.front();
 
       if (outsideDecl == insideDecl) {
-        if (outType)
+        if (refType)
           return err::refParamCapture(resPath->location)
               .with(decl->identifier)
               .report(reporter);
@@ -1271,10 +1272,10 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
       }
     }
 
-    if (outType && (!typeHint || !typeHint->getAs<res::RefType>())) {
+    if (refType && (!typeHint || !typeHint->getAs<res::RefType>())) {
       auto *ide =
           ctx.create<res::ImplicitDerefExpr>(resPath->location, resPath);
-      ide->setType(outType->getRefType());
+      ide->setType(refType->getReferencedType());
       return ide;
     }
 
@@ -1968,7 +1969,8 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
   }
 
   auto *refType = param->getType()->getAs<res::RefType>();
-  if (!refType || !typeMgr.unify(refType->getRefType(), selfType).empty()) {
+  if (!refType ||
+      !typeMgr.unify(refType->getReferencedType(), selfType).empty()) {
     err::selfWrongType(param->location).report(reporter);
     return false;
   }
