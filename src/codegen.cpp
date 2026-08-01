@@ -10,9 +10,7 @@
 namespace yl {
 namespace {
 struct Mangling {
-  static std::string mangleMonoType(const res::Type *type) {
-    type = type->getRootType();
-
+  static std::string mangleMonoType(res::Type *type) {
     if (type->getAs<res::BuiltinUnitType>())
       return "u";
 
@@ -65,7 +63,7 @@ struct Mangling {
   }
 
   static std::string mangleFunctionDecl(const res::FunctionDecl *fn,
-                                        const res::Type *parentMonoType,
+                                        res::Type *parentMonoType,
                                         const res::Substitution &sub) {
     std::stringstream mangledName;
 
@@ -102,12 +100,8 @@ private:
 };
 } // namespace
 
-Codegen::Codegen(const res::Context &resolvedCtx,
-                 const res::TypeManager &typeMgr,
-                 std::string_view sourcePath)
-    // FIXME: const_cast
-    : typeMgr(const_cast<res::TypeManager *>(&typeMgr)),
-      resCtx(&resolvedCtx),
+Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
+    : resCtx(&resolvedCtx),
       builder(context),
       module("<translation_unit>", context),
       dl(&module.getDataLayout()) {
@@ -115,12 +109,11 @@ Codegen::Codegen(const res::Context &resolvedCtx,
   module.setTargetTriple(llvm::sys::getDefaultTargetTriple());
 }
 
-res::Type *Codegen::getMonoType(const res::Type *type) const {
-  // FIXME: const_cast
-  return typeMgr->instantiate(const_cast<res::Type *>(type), monoCtx);
+res::Type *Codegen::getMonoType(res::Type *type) const {
+  return resCtx->instantiate(type, monoCtx);
 }
 
-llvm::Type *Codegen::generateType(const res::Type *monoType) {
+llvm::Type *Codegen::generateType(res::Type *monoType) {
   assert(!monoType->getAs<res::TypeParamType>() &&
          "expected monomorphized type");
 
@@ -159,13 +152,12 @@ llvm::Type *Codegen::generateType(const res::Type *monoType) {
   llvm_unreachable("unexpected type encountered");
 }
 
-llvm::FunctionType *
-Codegen::generateFunctionType(const res::FunctionType *type) {
+llvm::FunctionType *Codegen::generateFunctionType(res::FunctionType *type) {
   std::vector<llvm::Type *> args;
 
   llvm::Type *res = builder.getVoidTy();
 
-  const res::Type *returnType = type->getReturnType();
+  res::Type *returnType = type->getReturnType();
   if (!returnType->getAs<res::BuiltinUnitType>()) {
     llvm::Type *retTy = generateType(returnType);
     if (dl->getTypeAllocSize(retTy) != 0)
@@ -276,7 +268,7 @@ llvm::Value *Codegen::generateWhileStmt(const res::WhileStmt &stmt) {
 
 llvm::Value *Codegen::generateDeclStmt(const res::DeclStmt &stmt) {
   const res::VarDecl *decl = stmt.varDecl;
-  const res::Type *declMonoType = getMonoType(decl->getType());
+  res::Type *declMonoType = getMonoType(decl->getType());
 
   const res::Expr *initExpr = decl->initializer;
   llvm::Value *initVal =
@@ -327,7 +319,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
   auto *baseType =
       getMonoType(memberExpr.base->getType())->getAs<res::StructType>();
-  EnterMonoCtxRAII structCtx(this, typeMgr->extractSubstitutionFrom(baseType));
+  EnterMonoCtxRAII structCtx(this, baseType->getSub());
 
   unsigned index = 0;
   for (auto &&field : baseType->getDecl()->getAll<res::FieldDecl>()) {
@@ -350,7 +342,7 @@ Codegen::generateStructInstExpr(const res::StructInstantiationExpr &sie) {
     inits[initStmt->field] = tmpVal;
   }
 
-  const auto *structType = getMonoType(sie.getType())->getAs<res::StructType>();
+  auto *structType = getMonoType(sie.getType())->getAs<res::StructType>();
   llvm::Type *structTy = generateType(structType);
   if (dl->getTypeAllocSize(structTy) == 0)
     return nullptr;
@@ -407,7 +399,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
 llvm::Value *
 Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   llvm::Value *tmp = generateExpr(*mte.expr);
-  const res::Type *mteType = mte.getType();
+  res::Type *mteType = mte.getType();
 
   assert(!mteType->getAs<res::AnyTraitType>() &&
          "materializing tmp trait object");
@@ -478,7 +470,7 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
                         ->getAs<res::PointerType>()
                         ->getPointeeType();
 
-  auto *vtable = getVtable(typeMgr->withSelfType(implType, valueType));
+  auto *vtable = getVtable(implType->withSelfType(resCtx, valueType));
   auto *traitObjTy = generateType(promoType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
@@ -490,13 +482,12 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
 
 llvm::Value *Codegen::constructStruct(
     llvm::Value *storage,
-    const res::StructType *structType,
+    res::StructType *structType,
     std::map<const res::FieldDecl *, llvm::Value *> &fieldInits) {
   llvm::Type *structTy = generateType(structType);
   unsigned gepIdx = 0;
 
-  EnterMonoCtxRAII structCtx(this,
-                             typeMgr->extractSubstitutionFrom(structType));
+  EnterMonoCtxRAII structCtx(this, structType->getSub());
 
   for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
     llvm::Type *fieldTy = generateType(getMonoType(fieldDecl->getType()));
@@ -573,7 +564,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (!fnDecl)
     return declarations[dre.decl];
 
-  EnterMonoCtxRAII declCtx(this, typeMgr->compose(dre.sub, monoCtx));
+  EnterMonoCtxRAII declCtx(this, resCtx->instantiate(dre.sub, monoCtx));
 
   if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
     auto *traitType = getMonoType(trait->getType())->getAs<res::TraitType>();
@@ -585,7 +576,7 @@ llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
-  const auto *functionType =
+  auto *functionType =
       getMonoType(call.callee->getType())->getAs<res::FunctionType>();
 
   llvm::Value *callee = nullptr;
@@ -756,7 +747,7 @@ llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
   llvm::Value *rhs = generateExprAndLoadValue(*binop.rhs);
 
   if (op == TokenKind::EqualEqual) {
-    const res::Type *lhsType = binop.lhs->getType();
+    res::Type *lhsType = binop.lhs->getType();
     if (lhsType->getAs<res::BuiltinUnitType>())
       return builder.getInt1(true);
 
@@ -888,7 +879,7 @@ Codegen::allocateStackVariable(const std::string_view identifier,
   return tmpBuilder.CreateAlloca(type, nullptr, identifier);
 }
 
-llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
+llvm::Value *Codegen::allocateHeapVariable(res::Type *type) {
   llvm::Type *ty = generateType(type);
 
   if (ty->isIntegerTy(1))
@@ -899,8 +890,8 @@ llvm::Value *Codegen::allocateHeapVariable(const res::Type *type) {
                             {builder.getInt32(size), getTypeMetadata(type)});
 }
 
-std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
-  if (const auto *p = type->getAs<res::PointerType>()) {
+std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
+  if (auto *p = type->getAs<res::PointerType>()) {
     if (p->getPointeeType()->getAs<res::AnyTraitType>()) {
       llvm::Type *ty = generateType(p);
       auto offset = module.getDataLayout()
@@ -912,7 +903,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
     return {0};
   }
 
-  if (const auto *fn = type->getAs<res::FunctionType>()) {
+  if (auto *fn = type->getAs<res::FunctionType>()) {
     llvm::Type *fnTy = generateType(fn);
     auto offset = module.getDataLayout()
                       .getStructLayout(llvm::cast<llvm::StructType>(fnTy))
@@ -924,8 +915,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   if (!structType)
     return {};
 
-  EnterMonoCtxRAII structCtx(this,
-                             typeMgr->extractSubstitutionFrom(structType));
+  EnterMonoCtxRAII structCtx(this, structType->getSub());
 
   const auto &dataLayout = module.getDataLayout();
   const auto *structLayout =
@@ -935,7 +925,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
 
   int fieldIdx = 0;
   for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
-    const auto *fieldType = getMonoType(field->getType());
+    auto *fieldType = getMonoType(field->getType());
     if (dl->getTypeAllocSize(generateType(fieldType)) == 0)
       continue;
 
@@ -954,7 +944,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(const res::Type *type) {
   return offsets;
 }
 
-llvm::Value *Codegen::getTypeMetadata(const res::Type *type) {
+llvm::Value *Codegen::getTypeMetadata(res::Type *type) {
   std::string globalPrefix = "";
 
   auto *ptr = type->getAs<res::PointerType>();
@@ -1001,7 +991,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
       resVal->isLvalue() && !resVal->isMutable())
     return;
 
-  const res::Type *type = getMonoType(resVal->getType());
+  res::Type *type = getMonoType(resVal->getType());
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
@@ -1033,7 +1023,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   storeValue(val, alloca, valTy);
 }
 
-void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type) {
+void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, res::Type *type) {
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
@@ -1191,7 +1181,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
 
   for (auto &&paramDecl : functionDecl->params) {
-    const res::Type *paramDeclTy = getMonoType(paramDecl->getType());
+    res::Type *paramDeclTy = getMonoType(paramDecl->getType());
     llvm::Type *argTy = generateType(paramDeclTy);
     if (dl->getTypeAllocSize(argTy) == 0) {
       declarations[paramDecl] =
@@ -1279,7 +1269,7 @@ void Codegen::generateMainWrapper() {
 // until monomorphization (e.g.: T::foo()).
 llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
                                                  const res::FunctionDecl *fn) {
-  auto extensions = typeMgr->getExtensions(trait->getTypeArgs()[0], trait);
+  auto extensions = resCtx->getExtensions(trait->getTypeArgs()[0], trait);
   assert(extensions.size() == 1 && "failed to find extension");
   const auto &[extension, extensionSub] = extensions[0];
 
@@ -1322,8 +1312,7 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
 
 llvm::StructType *
 Codegen::generateStructType(const res::StructType *structType) {
-  EnterMonoCtxRAII structCtx(this,
-                             typeMgr->extractSubstitutionFrom(structType));
+  EnterMonoCtxRAII structCtx(this, structType->getSub());
 
   std::vector<llvm::Type *> fieldTys;
   for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
@@ -1343,14 +1332,13 @@ llvm::Value *Codegen::getVtable(res::TraitType *trait) {
     return vtable;
 
   std::vector<llvm::Constant *> vFunctions;
-  for (auto &&[layoutTrait, layoutFn] : typeMgr->getVtableLayout(trait)) {
+  for (auto &&[layoutTrait, layoutFn] : trait->getVtableLayout(resCtx)) {
     if (auto *f = generateExtensionFnDecl(layoutTrait, layoutFn)) {
       vFunctions.emplace_back(f);
       continue;
     }
 
-    EnterMonoCtxRAII traitCtx(this,
-                              typeMgr->extractSubstitutionFrom(layoutTrait));
+    EnterMonoCtxRAII traitCtx(this, layoutTrait->getSub());
     vFunctions.emplace_back(generateFunctionDecl(*layoutFn));
   }
 
@@ -1374,18 +1362,18 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
   const auto *dre = static_cast<const res::DeclRefExpr *>(call->callee);
   auto *declCtx = static_cast<res::TraitDecl *>(dre->decl->declContext);
 
-  auto *declTrait = typeMgr->instantiate(declCtx->getType(), dre->sub)
+  auto *declTrait = resCtx->instantiate(declCtx->getType(), dre->sub)
                         ->getAs<res::TraitType>();
   auto *anyType = declTrait->getTypeArgs()[0]->getAs<res::AnyTraitType>();
 
   assert(anyType && "self is not a trait object");
 
-  auto *concreteTraitType = typeMgr->withSelfType(anyType, anyType);
-  const auto &vtableLayout = typeMgr->getVtableLayout(concreteTraitType);
+  auto *concreteTraitType = anyType->withSelfType(resCtx, anyType);
+  const auto &vtableLayout = concreteTraitType->getVtableLayout(resCtx);
 
   unsigned idx = 0;
   for (auto &&[layoutTrait, layoutFn] : vtableLayout) {
-    if (typeMgr->eq(layoutTrait, declTrait) && layoutFn == dre->decl)
+    if (resCtx->eq(layoutTrait, declTrait) && layoutFn == dre->decl)
       break;
 
     ++idx;

@@ -32,8 +32,7 @@ class Codegen {
     const res::FunctionDecl *decl;
   };
 
-  res::TypeManager *typeMgr;
-  const res::Context *resCtx;
+  res::Context *resCtx;
 
   std::map<const res::Decl *, llvm::Value *> declarations;
 
@@ -54,10 +53,10 @@ class Codegen {
   llvm::Module module;
   const llvm::DataLayout *dl;
 
-  res::Type *getMonoType(const res::Type *type) const;
+  res::Type *getMonoType(res::Type *type) const;
 
-  llvm::Type *generateType(const res::Type *monoType);
-  llvm::FunctionType *generateFunctionType(const res::FunctionType *type);
+  llvm::Type *generateType(res::Type *monoType);
+  llvm::FunctionType *generateFunctionType(res::FunctionType *type);
 
   llvm::Value *generateStmt(const res::Stmt &stmt);
   llvm::Value *generateIfStmt(const res::IfStmt &stmt);
@@ -82,7 +81,7 @@ class Codegen {
 
   llvm::Value *
   constructStruct(llvm::Value *storage,
-                  const res::StructType *structTy,
+                  res::StructType *structTy,
                   std::map<const res::FieldDecl *, llvm::Value *> &fieldInits);
 
   llvm::Value *generateConstantValue(const res::ConstVal &constVal);
@@ -99,7 +98,7 @@ class Codegen {
   llvm::Function *getCurrentFunction();
   llvm::AllocaInst *allocateStackVariable(const std::string_view identifier,
                                           llvm::Type *type);
-  llvm::Value *allocateHeapVariable(const res::Type *type);
+  llvm::Value *allocateHeapVariable(res::Type *type);
   llvm::AttributeList constructAttrList(const res::FunctionType *ty,
                                         bool isVirtualCall = false);
 
@@ -116,10 +115,10 @@ class Codegen {
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();
 
-  std::vector<size_t> getHeapPtrOffsets(const res::Type *type);
-  llvm::Value *getTypeMetadata(const res::Type *type);
+  std::vector<size_t> getHeapPtrOffsets(res::Type *type);
+  llvm::Value *getTypeMetadata(res::Type *type);
   void createTmpGCRootIfNeeded(llvm::Value *val, const res::Expr *resVal);
-  void markIfGCRoot(llvm::AllocaInst *alloca, const res::Type *type);
+  void markIfGCRoot(llvm::AllocaInst *alloca, res::Type *type);
   llvm::Function *getOrInsertGCAlloc();
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
@@ -129,9 +128,7 @@ class Codegen {
   llvm::Value *getVtable(res::TraitType *trait);
 
 public:
-  Codegen(const res::Context &resolvedCtx,
-          const res::TypeManager &typeMgr,
-          std::string_view sourcePath);
+  Codegen(res::Context &resolvedCtx, std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };
