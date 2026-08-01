@@ -1155,7 +1155,6 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
           .with(decl->identifier)
           .report(reporter);
 
-    // FIXME: remove this limitation
     if (resPath->getReceiverType() &&
         resPath->getReceiverType()->getAs<res::AnyTraitType>() &&
         isFunctionDecl && !(modifiers & IsCallee))
