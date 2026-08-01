@@ -125,7 +125,7 @@ int main(int argc, const char **argv) {
 
   ConstExprEvaluator cee(true);
   Sema sema(reporter, cee, ast);
-  auto &&[resolvedCtx, typeMgr] = sema.resolveAST();
+  auto *resolvedCtx = sema.resolveAST();
 
   if (options.resDump) {
     if (resolvedCtx)
@@ -148,7 +148,7 @@ int main(int argc, const char **argv) {
   if (!resolvedCtx)
     return 1;
 
-  Codegen codegen(*resolvedCtx, *typeMgr, options.source.c_str());
+  Codegen codegen(*resolvedCtx, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.verifyOnly)
