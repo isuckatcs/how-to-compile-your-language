@@ -1643,14 +1643,13 @@ Sema::resolveTraitConformance(res::Context &ctx,
 
 res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
                                        const ast::TraitDecl &decl) {
-  auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
-
   auto *self = res::TypeParamDecl::create(ctx, decl.location, selfTypeId, true);
   auto *selfType = res::TypeParamType::create(ctx, self);
   self->setType(selfType);
 
-  // FIXME: something is wrong with the design
-  typeParams.emplace(typeParams.begin(), self);
+  std::vector<res::TypeParamDecl *> typeParams = {self};
+  for (auto &&tp : resolveTypeParamsWithoutBounds(ctx, decl.typeParameters))
+    typeParams.emplace_back(tp);
 
   auto *trait = res::TraitDecl::create(ctx, decl.location, decl.identifier,
                                        nullptr, std::move(typeParams));
