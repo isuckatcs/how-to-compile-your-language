@@ -11,7 +11,7 @@ fn main() {
   // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be taken by reference
   test1(1);
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected an instance of 'S'
+  // CHECK: [[# @LINE + 1 ]]:9: error: referenced declaration has unexpected kind
   test2(S);
   
   // CHECK: [[# @LINE + 1 ]]:9: error: only lvalues can be taken by reference

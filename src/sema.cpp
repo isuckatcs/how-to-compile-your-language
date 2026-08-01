@@ -362,8 +362,8 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       for (auto &&candidate : candidates) {
         if (candidate.first->getAs<res::TypeDecl>()) {
           varOrReturn(dre,
-                      createDeclRefExpr(ctx, fragments[idx - 1].get(),
-                                        candidate.first, candidate.second));
+                      resolveDeclRefExpr(ctx, fragments[idx - 1].get(),
+                                         candidate.first, candidate.second));
           type = dre->getType();
           break;
         }
@@ -414,41 +414,25 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       candidates.emplace_back(symbol, res::Substitution{});
   }
 
-  // FIXME: should just return all candidates and handle errors in wrappers?
-  std::vector<std::pair<res::Decl *, res::Substitution>> filtered;
+  std::vector<std::pair<res::Decl *, res::Substitution>> expectedCandidates;
+  for (auto &&candidate : candidates)
+    if (dynamic_cast<ExpectedDecl *>(candidate.first))
+      expectedCandidates.emplace_back(std::move(candidate));
 
-  for (auto &&[decl, sub] : candidates)
-    if (dynamic_cast<ExpectedDecl *>(decl) &&
-        (dynamic_cast<res::StructDecl *>(decl->declContext) ||
-         dynamic_cast<res::TraitDecl *>(decl->declContext)))
-      filtered.emplace_back(decl, sub);
+  if (expectedCandidates.empty())
+    return err::wrongDeclKind(fragments.back()->location).report(reporter);
 
-  if (filtered.size() > 1)
-    return err::ambigousMemberFn(pathExpr.fragments.back()->location)
-        .report(reporter);
+  if (expectedCandidates.size() > 1 && fragments.size() > 1)
+    return err::ambigousMemberFn(fragments.back()->location).report(reporter);
 
-  for (auto &&[decl, sub] : candidates)
-    if (dynamic_cast<ExpectedDecl *>(decl))
-      return createDeclRefExpr(ctx, fragments.back().get(), decl, sub);
-
-  auto &&[decl, sub] = candidates[0];
-  if (decl->getAs<res::StructDecl>())
-    return err::expectedInstance(pathExpr.fragments.back()->location)
-        .with(decl->identifier)
-        .report(reporter);
-
-  if (decl->getAs<res::TypeParamDecl>())
-    return err::unexpectedTypeParam(pathExpr.fragments.back()->location)
-        .report(reporter);
-
-  return err::expectedStructDecl(pathExpr.fragments.back()->location)
-      .report(reporter);
+  auto &&[decl, sub] = expectedCandidates.front();
+  return resolveDeclRefExpr(ctx, fragments.back().get(), decl, sub);
 }
 
-res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
-                                          const ast::DeclRefExpr *dre,
-                                          res::Decl *decl,
-                                          res::Substitution sub) {
+res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
+                                           const ast::DeclRefExpr *dre,
+                                           res::Decl *decl,
+                                           res::Substitution sub) {
   auto *valueDecl = decl->getAs<res::ValueDecl>();
   res::Expr::Kind kind = res::Expr::Kind::Lvalue;
   if (!valueDecl || decl->getAs<res::FunctionDecl>())
@@ -766,7 +750,7 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
 
   auto &&[decl, sub] = candidates.back();
 
-  varOrReturn(memberDre, createDeclRefExpr(ctx, dre, decl, sub));
+  varOrReturn(memberDre, resolveDeclRefExpr(ctx, dre, decl, sub));
 
   if (!isCallee) {
     if (memberDre->decl->getAs<res::FunctionDecl>())

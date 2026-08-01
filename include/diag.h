@@ -117,8 +117,7 @@ diag(Error, binopIncompatibleOperands, "incompatible operands to binary operator
 diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, rawTrait, "expected a specific extension or a trait object of '{}'");
-diag(Error, expectedInstance, "expected an instance of '{}'");
-diag(Error, expectedStructDecl, "expected struct declaration");
+diag(Error, wrongDeclKind, "referenced declaration has unexpected kind");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "trait '{}' with a template method cannot be used as a trait object");
 diag(Error, traitObjectStaticMemberFn, "trait '{}' with a static method cannot be used as a trait object");
@@ -131,7 +130,6 @@ diag(Error, traitObjectPtrDereference, "cannot dereference pointer to trait obje
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");
 diag(Error, typeArgCntMismatch, "type argument count mismatch, expected {}, but received {}");
-diag(Error, unexpectedTypeParam, "expected value, found type parameter");
 diag(Error, notGeneric, "'{}' is not a generic");
 
 // functions

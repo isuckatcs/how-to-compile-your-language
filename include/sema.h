@@ -124,10 +124,10 @@ class Sema {
   template <typename ExpectedDecl>
   res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
                                     const ast::PathExpr &pathExpr);
-  res::DeclRefExpr *createDeclRefExpr(res::Context &ctx,
-                                      const ast::DeclRefExpr *dre,
-                                      res::Decl *decl,
-                                      res::Substitution sub = {});
+  res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
+                                       const ast::DeclRefExpr *dre,
+                                       res::Decl *decl,
+                                       res::Substitution sub = {});
 
   std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
       std::string identifier, res::Type *type, res::TraitType *trait = nullptr);

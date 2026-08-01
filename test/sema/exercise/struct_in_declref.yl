@@ -9,5 +9,5 @@ fn foo(s: S): number {
 
 fn main(): unit {
   foo(S);
-  // CHECK: [[# @LINE - 1 ]]:7: error: expected an instance of 'S'
+  // CHECK: [[# @LINE - 1 ]]:7: error: referenced declaration has unexpected kind
 }
