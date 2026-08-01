@@ -1150,12 +1150,9 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     const res::Decl *decl = resPath->decl;
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
 
-    // FIXME: check these
     if (decl->getAs<res::FieldDecl>())
-      return err::memberFnLookupFailed(resPath->location)
+      return err::fieldReference(resPath->location)
           .with(decl->identifier)
-          // FIXME: remove this once every parent is a decl
-          .with(((res::StructDecl *)resPath->decl->declContext)->identifier)
           .report(reporter);
 
     // FIXME: remove this limitation
