@@ -493,34 +493,33 @@ Sema::lookupAssociatedDecls(std::string identifier,
                             res::TraitType *trait) {
   std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
-  if (!trait) {
-    if (auto *s = type->getAs<res::StructType>())
-      for (auto &&decl : s->getDecl()->lookupDirect(identifier))
-        candidates.emplace_back(decl, type->getSub());
-
-    if (!candidates.empty())
-      return candidates;
-
-    for (auto &&trait : ctx.getEveryConformance(type))
-      for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
-        candidates.emplace_back(decl, trait->getSub());
-
-    if (!candidates.empty())
-      return candidates;
-  } else if (ctx.solveConformance(type, trait).empty()) {
+  if (trait) {
     for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(decl, trait->getSub());
 
     return candidates;
   }
 
+  if (auto *s = type->getAs<res::StructType>())
+    for (auto &&decl : s->getDecl()->lookupDirect(identifier))
+      candidates.emplace_back(decl, type->getSub());
+
+  if (!candidates.empty())
+    return candidates;
+
+  for (auto &&trait : ctx.getEveryConformance(type))
+    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+      candidates.emplace_back(decl, trait->getSub());
+
+  if (!candidates.empty())
+    return candidates;
+
   auto extensions = ctx.getExtensions(type, trait);
 
   for (auto &&[extension, sub] : extensions) {
-    for (auto &&decl : extension->trait->getDecl()->lookupDirect(identifier))
-      candidates.emplace_back(
-          // FIXME: add an API for substitution composition?
-          decl, ctx.instantiate(extension->trait, sub)->getSub());
+    auto *trait = extension->trait;
+    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+      candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
   }
 
   return candidates;
