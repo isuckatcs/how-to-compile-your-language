@@ -1,27 +1,27 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main() {
   @<number : Foo>::x;
-  // CHECK: PathExpr:
-  // CHECK-NEXT:   TraitSpecifier:
-  // CHECK-NEXT:     BuiltinType: number
-  // CHECK-NEXT:     UserDefinedType: Foo
-  // CHECK-NEXT:   DeclRefExpr: x
+  // CHECK: PathExpr
+  // CHECK-NEXT:   TraitSpecifier
+  // CHECK-NEXT:     BuiltinType 'number'
+  // CHECK-NEXT:     UserDefinedType 'Foo'
+  // CHECK-NEXT:   DeclRefExpr 'x'
 
   @<S<unit> : A<number>>::foo();
-  // CHECK: CallExpr:
-  // CHECK-NEXT:   PathExpr:
-  // CHECK-NEXT:     TraitSpecifier:
-  // CHECK-NEXT:       UserDefinedType: S
-  // CHECK-NEXT:         BuiltinType: unit
-  // CHECK-NEXT:       UserDefinedType: A
-  // CHECK-NEXT:           BuiltinType: number
-  // CHECK-NEXT:     DeclRefExpr: foo
+  // CHECK: CallExpr
+  // CHECK-NEXT:   PathExpr
+  // CHECK-NEXT:     TraitSpecifier
+  // CHECK-NEXT:       UserDefinedType 'S'
+  // CHECK-NEXT:         BuiltinType 'unit'
+  // CHECK-NEXT:       UserDefinedType 'A'
+  // CHECK-NEXT:           BuiltinType 'number'
+  // CHECK-NEXT:     DeclRefExpr 'foo'
 
   @<S : A>::foo::bar;
-  // CHECK: PathExpr:
-  // CHECK-NEXT:   TraitSpecifier:
-  // CHECK-NEXT:     UserDefinedType: S
-  // CHECK-NEXT:     UserDefinedType: A
-  // CHECK-NEXT:   DeclRefExpr: foo
-  // CHECK-NEXT:   DeclRefExpr: bar
+  // CHECK: PathExpr
+  // CHECK-NEXT:   TraitSpecifier
+  // CHECK-NEXT:     UserDefinedType 'S'
+  // CHECK-NEXT:     UserDefinedType 'A'
+  // CHECK-NEXT:   DeclRefExpr 'foo'
+  // CHECK-NEXT:   DeclRefExpr 'bar'
 }

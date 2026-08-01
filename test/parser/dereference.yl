@@ -1,16 +1,16 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
 fn main() {
   ****x;
-  // CHECK: UnaryOperator: '*'
-  // CHECK-NEXT:   UnaryOperator: '*'
-  // CHECK-NEXT:     UnaryOperator: '*'
-  // CHECK-NEXT:       UnaryOperator: '*'
-  // CHECK-NEXT:         PathExpr:
-  // CHECK-NEXT:           DeclRefExpr: x
+  // CHECK: UnaryOperator '*'
+  // CHECK-NEXT:   UnaryOperator '*'
+  // CHECK-NEXT:     UnaryOperator '*'
+  // CHECK-NEXT:       UnaryOperator '*'
+  // CHECK-NEXT:         PathExpr
+  // CHECK-NEXT:           DeclRefExpr 'x'
 
   *!x;
-  // CHECK-NEXT: UnaryOperator: '*'
-  // CHECK-NEXT:   UnaryOperator: '!'
-  // CHECK-NEXT:     PathExpr:
-  // CHECK-NEXT:       DeclRefExpr: x
+  // CHECK-NEXT: UnaryOperator '*'
+  // CHECK-NEXT:   UnaryOperator '!'
+  // CHECK-NEXT:     PathExpr
+  // CHECK-NEXT:       DeclRefExpr 'x'
 }

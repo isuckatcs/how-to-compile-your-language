@@ -5,16 +5,16 @@ fn main() {
   b = true;
   b = false;
 }
-// CHECK: FunctionDecl: main
+// CHECK: FunctionDecl 'main'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: b
-// CHECK-NEXT:         BuiltinType: 
-// CHECK-NEXT:     Assignment:
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: b
-// CHECK-NEXT:       BoolLiteral: 'true'
-// CHECK-NEXT:     Assignment:
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: b
-// CHECK-NEXT:       BoolLiteral: 'false'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'b'
+// CHECK-NEXT:         BuiltinType ''
+// CHECK-NEXT:     Assignment
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'b'
+// CHECK-NEXT:       BoolLiteral 'true'
+// CHECK-NEXT:     Assignment
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'b'
+// CHECK-NEXT:       BoolLiteral 'false'

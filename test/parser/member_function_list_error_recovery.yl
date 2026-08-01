@@ -19,20 +19,20 @@ struct Err2 {
   fn bar() -> {}
 }
 
-// CHECK: StructDecl: Err1
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK: StructDecl 'Err1'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:   FunctionDecl 'baz'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
 
-// CHECK-NEXT: StructDecl: Err2
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK-NEXT: StructDecl 'Err2'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
 
 fn main() {}

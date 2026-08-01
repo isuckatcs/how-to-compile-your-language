@@ -2,10 +2,10 @@
 
 fn foo(mut x: number): unit {
 }
-// CHECK: FunctionDecl: foo
-// CHECK-NEXT:   BuiltinType: unit
-// CHECK-NEXT:   ParamDecl: x
-// CHECK-NEXT:     BuiltinType: number
+// CHECK: FunctionDecl 'foo'
+// CHECK-NEXT:   BuiltinType 'unit'
+// CHECK-NEXT:   ParamDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 fn main(): unit {

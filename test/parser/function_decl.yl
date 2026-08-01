@@ -15,6 +15,6 @@ fn f(): 1.0 {}
 fn f(): unit }
 
 fn main(): validCustomTypeDuringParsing {}
-// CHECK: FunctionDecl: main
-// CHECK-NEXT:   UserDefinedType: validCustomTypeDuringParsing 
+// CHECK: FunctionDecl 'main'
+// CHECK-NEXT:   UserDefinedType 'validCustomTypeDuringParsing'
 // CHECK-NEXT:   Block

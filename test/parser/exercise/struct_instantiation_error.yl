@@ -15,17 +15,17 @@ fn main(): unit {
 
     let x = 1;
 }
-// CHECK: StructDecl: Color
-// CHECK-NEXT:   FieldDecl: r
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: g
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: b
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK: StructDecl 'Color'
+// CHECK-NEXT:   FieldDecl 'r'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'g'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'b'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT: FunctionDecl 'main'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: x
-// CHECK-NEXT:         NumberLiteral: '1'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'x'
+// CHECK-NEXT:         NumberLiteral '1'
 // CHECK-NOT: {{.*}}

@@ -2,20 +2,20 @@
 fn main(): unit {
   if (Struct{ field: 0, field: 1 }) {}
   // CHECK: IfStmt
-  // CHECK-NEXT:   GroupingExpr:
+  // CHECK-NEXT:   GroupingExpr
   // CHECK-NEXT:     StructInstantiationExpr
-  // CHECK-NEXT:       PathExpr:
-  // CHECK-NEXT:         DeclRefExpr: Struct
-  // CHECK-NEXT:       FieldInitStmt: field
-  // CHECK-NEXT:         NumberLiteral: '0'
-  // CHECK-NEXT:       FieldInitStmt: field
-  // CHECK-NEXT:         NumberLiteral: '1'
+  // CHECK-NEXT:       PathExpr
+  // CHECK-NEXT:         DeclRefExpr 'Struct'
+  // CHECK-NEXT:       FieldInitStmt 'field'
+  // CHECK-NEXT:         NumberLiteral '0'
+  // CHECK-NEXT:       FieldInitStmt 'field'
+  // CHECK-NEXT:         NumberLiteral '1'
 
   while (Struct{}) {}
   // CHECK: WhileStmt
-  // CHECK-NEXT:   GroupingExpr:
+  // CHECK-NEXT:   GroupingExpr
   // CHECK-NEXT:     StructInstantiationExpr
-  // CHECK-NEXT:       PathExpr:
-  // CHECK-NEXT:         DeclRefExpr: Struct
+  // CHECK-NEXT:       PathExpr
+  // CHECK-NEXT:         DeclRefExpr 'Struct'
   // CHECK-NEXT:   Block
 }

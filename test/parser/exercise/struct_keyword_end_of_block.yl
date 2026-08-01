@@ -15,10 +15,10 @@ struct S2 {
     x: number,
 }
 
-// CHECK: StructDecl: S
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT: StructDecl: S2
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: number
+// CHECK: StructDecl 'S'
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT: StructDecl 'S2'
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'number'
 // CHECK-NOT: {{.*}}

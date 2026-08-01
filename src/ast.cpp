@@ -6,9 +6,8 @@
 
 namespace yl {
 namespace ast {
-// FIXME: unify AST printing, some nodes end with ':' others don't.
 void BuiltinType::dump(size_t level) const {
-  std::cerr << indent(level) << "BuiltinType: ";
+  std::cerr << indent(level) << "BuiltinType '";
   if (kind == Kind::Unit)
     std::cerr << "unit";
   else if (kind == Kind::Number)
@@ -16,11 +15,11 @@ void BuiltinType::dump(size_t level) const {
   else if (kind == Kind::Self)
     std::cerr << "Self";
 
-  std::cerr << '\n';
+  std::cerr << "'\n";
 }
 
 void UserDefinedType::dump(size_t level) const {
-  std::cerr << indent(level) << "UserDefinedType: " << identifier << '\n';
+  std::cerr << indent(level) << "UserDefinedType '" << identifier << "'\n";
 
   for (auto &&type : typeArguments)
     type->dump(level + 1);
@@ -35,7 +34,8 @@ void FunctionType::dump(size_t level) const {
 }
 
 void PointerType::dump(size_t level) const {
-  std::cerr << indent(level) << "PointerType" << (isMut ? " mut" : "") << '\n';
+  std::cerr << indent(level) << "PointerType" << (isMut ? " 'mut'" : "")
+            << '\n';
 
   pointeeType->dump(level + 1);
 }
@@ -77,12 +77,12 @@ void ReturnStmt::dump(size_t level) const {
 }
 
 void FieldInitStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "FieldInitStmt: " << identifier << '\n';
+  std::cerr << indent(level) << "FieldInitStmt '" << identifier << "'\n";
   initializer->dump(level + 1);
 }
 
 void StructInstantiationExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "StructInstantiationExpr" << '\n';
+  std::cerr << indent(level) << "StructInstantiationExpr\n";
 
   structRef->dump(level + 1);
 
@@ -91,11 +91,11 @@ void StructInstantiationExpr::dump(size_t level) const {
 }
 
 void NumberLiteral::dump(size_t level) const {
-  std::cerr << indent(level) << "NumberLiteral: '" << value << "'\n";
+  std::cerr << indent(level) << "NumberLiteral '" << value << "'\n";
 }
 
 void BoolLiteral::dump(size_t level) const {
-  std::cerr << indent(level) << "BoolLiteral: '" << value << "'\n";
+  std::cerr << indent(level) << "BoolLiteral '" << value << "'\n";
 }
 
 void UnitLiteral::dump(size_t level) const {
@@ -103,21 +103,21 @@ void UnitLiteral::dump(size_t level) const {
 }
 
 void DeclRefExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclRefExpr: " << identifier << '\n';
+  std::cerr << indent(level) << "DeclRefExpr '" << identifier << "'\n";
 
   if (typeArgumentList)
     typeArgumentList->dump(level + 1);
 }
 
 void TraitSpecifier::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitSpecifier:\n";
+  std::cerr << indent(level) << "TraitSpecifier\n";
 
   type->dump(level + 1);
   trait->dump(level + 1);
 }
 
 void PathExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "PathExpr:\n";
+  std::cerr << indent(level) << "PathExpr\n";
 
   if (traitSpecifier)
     traitSpecifier->dump(level + 1);
@@ -134,7 +134,7 @@ void TypeArgumentList::dump(size_t level) const {
 }
 
 void CallExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "CallExpr:\n";
+  std::cerr << indent(level) << "CallExpr\n";
 
   callee->dump(level + 1);
 
@@ -143,29 +143,27 @@ void CallExpr::dump(size_t level) const {
 }
 
 void MemberExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "MemberExpr:\n";
+  std::cerr << indent(level) << "MemberExpr\n";
 
   base->dump(level + 1);
   member->dump(level + 1);
 }
 
 void GroupingExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "GroupingExpr:\n";
+  std::cerr << indent(level) << "GroupingExpr\n";
 
   expr->dump(level + 1);
 }
 
 void BinaryOperator::dump(size_t level) const {
-  std::cerr << indent(level) << "BinaryOperator: '" << getOpStr(op) << '\''
-            << '\n';
+  std::cerr << indent(level) << "BinaryOperator '" << getOpStr(op) << "'\n";
 
   lhs->dump(level + 1);
   rhs->dump(level + 1);
 }
 
 void UnaryOperator::dump(size_t level) const {
-  std::cerr << indent(level) << "UnaryOperator: '" << getOpStr(op) << '\''
-            << '\n';
+  std::cerr << indent(level) << "UnaryOperator '" << getOpStr(op) << "'\n";
 
   operand->dump(level + 1);
 }
@@ -178,24 +176,25 @@ void TraitConformance::dump(size_t level) const {
 }
 
 void TypeParamDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "TypeParamDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "TypeParamDecl '" << identifier << "'\n";
 
   if (traitConformance)
     traitConformance->dump(level + 1);
 }
 
 void RefModifier::dump(size_t level) const {
-  std::cerr << indent(level) << "RefModifier" << (isMut ? " mut" : "") << '\n';
+  std::cerr << indent(level) << "RefModifier" << (isMut ? " 'mut'" : "")
+            << '\n';
 }
 
 void FieldDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FieldDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "FieldDecl '" << identifier << "'\n";
 
   type->dump(level + 1);
 }
 
 void StructDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "StructDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "StructDecl '" << identifier << "'\n";
 
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
@@ -205,7 +204,7 @@ void StructDecl::dump(size_t level) const {
 }
 
 void TraitDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "TraitDecl '" << identifier << "'\n";
 
   if (traitConformance)
     traitConformance->dump(level + 1);
@@ -218,7 +217,7 @@ void TraitDecl::dump(size_t level) const {
 }
 
 void ParamDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "ParamDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "ParamDecl '" << identifier << "'\n";
 
   if (refModifier)
     refModifier->dump(level + 1);
@@ -228,7 +227,7 @@ void ParamDecl::dump(size_t level) const {
 }
 
 void VarDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "VarDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "VarDecl '" << identifier << "'\n";
   if (type)
     type->dump(level + 1);
 
@@ -237,7 +236,7 @@ void VarDecl::dump(size_t level) const {
 }
 
 void FunctionDecl::dump(size_t level) const {
-  std::cerr << indent(level) << "FunctionDecl: " << identifier << '\n';
+  std::cerr << indent(level) << "FunctionDecl '" << identifier << "'\n";
 
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
@@ -253,23 +252,23 @@ void FunctionDecl::dump(size_t level) const {
 }
 
 void DeclStmt::dump(size_t level) const {
-  std::cerr << indent(level) << "DeclStmt:\n";
+  std::cerr << indent(level) << "DeclStmt\n";
   varDecl->dump(level + 1);
 }
 
 void Assignment::dump(size_t level) const {
-  std::cerr << indent(level) << "Assignment:\n";
+  std::cerr << indent(level) << "Assignment\n";
   assignee->dump(level + 1);
   expr->dump(level + 1);
 }
 
 void GCExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "GCExpr" << (isMut ? " mut" : "") << '\n';
+  std::cerr << indent(level) << "GCExpr" << (isMut ? " 'mut'" : "") << '\n';
   expr->dump(level + 1);
 }
 
 void LambdaExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "LambdaExpr:\n";
+  std::cerr << indent(level) << "LambdaExpr\n";
   if (returnType)
     returnType->dump(level + 1);
 
@@ -280,7 +279,7 @@ void LambdaExpr::dump(size_t level) const {
 }
 
 void TypeExtension::dump(size_t level) const {
-  std::cerr << indent(level) << "TypeExtension:\n";
+  std::cerr << indent(level) << "TypeExtension\n";
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
 

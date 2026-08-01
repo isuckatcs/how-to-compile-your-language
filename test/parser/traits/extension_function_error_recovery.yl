@@ -5,10 +5,10 @@ extension S : A {
   fn 123() {}
   fn bar() {}
 }
-// CHECK: TypeExtension:
-// CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   UserDefinedType: A
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'A'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:   FunctionDecl 'bar'
 // CHECK-NEXT:     Block

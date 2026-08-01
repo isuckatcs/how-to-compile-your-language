@@ -69,46 +69,46 @@ fn main(): unit {
     wrapper@<number>();
 }
 
-// CHECK: StructDecl: Wrapper
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT: StructDecl: Wrapper2
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT: StructDecl: Wrapper3
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   TypeParamDecl: U
-// CHECK-NEXT: FunctionDecl: wrapper
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK: StructDecl 'Wrapper'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT: StructDecl 'Wrapper2'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT: StructDecl 'Wrapper3'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT:   TypeParamDecl 'U'
+// CHECK-NEXT: FunctionDecl 'wrapper'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: wrapper2
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK-NEXT: FunctionDecl 'wrapper2'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: wrapper3
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   TypeParamDecl: U
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK-NEXT: FunctionDecl 'wrapper3'
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT:   TypeParamDecl 'U'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT: FunctionDecl: main
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK-NEXT: FunctionDecl 'main'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: Wrapper
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'Wrapper'
 // CHECK-NEXT:           TypeArgumentList
-// CHECK-NEXT:             BuiltinType: number
+// CHECK-NEXT:             BuiltinType 'number'
 // CHECK-NEXT:     StructInstantiationExpr
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: Wrapper
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'Wrapper'
 // CHECK-NEXT:           TypeArgumentList
-// CHECK-NEXT:             BuiltinType: number
-// CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: wrapper
+// CHECK-NEXT:             BuiltinType 'number'
+// CHECK-NEXT:     CallExpr
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'wrapper'
 // CHECK-NEXT:           TypeArgumentList
-// CHECK-NEXT:             BuiltinType: number
-// CHECK-NEXT:     CallExpr:
-// CHECK-NEXT:       PathExpr:
-// CHECK-NEXT:         DeclRefExpr: wrapper
+// CHECK-NEXT:             BuiltinType 'number'
+// CHECK-NEXT:     CallExpr
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'wrapper'
 // CHECK-NEXT:           TypeArgumentList
-// CHECK-NEXT:             BuiltinType: number
+// CHECK-NEXT:             BuiltinType 'number'

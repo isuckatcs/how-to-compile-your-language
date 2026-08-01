@@ -1,11 +1,11 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main() {
   S::A::S2::B::foo();
-  // CHECK: CallExpr:
-  // CHECK-NEXT:   PathExpr:
-  // CHECK-NEXT:     DeclRefExpr: S
-  // CHECK-NEXT:     DeclRefExpr: A
-  // CHECK-NEXT:     DeclRefExpr: S2
-  // CHECK-NEXT:     DeclRefExpr: B
-  // CHECK-NEXT:     DeclRefExpr: foo
+  // CHECK: CallExpr
+  // CHECK-NEXT:   PathExpr
+  // CHECK-NEXT:     DeclRefExpr 'S'
+  // CHECK-NEXT:     DeclRefExpr 'A'
+  // CHECK-NEXT:     DeclRefExpr 'S2'
+  // CHECK-NEXT:     DeclRefExpr 'B'
+  // CHECK-NEXT:     DeclRefExpr 'foo'
 }

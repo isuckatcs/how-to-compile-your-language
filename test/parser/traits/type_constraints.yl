@@ -1,18 +1,18 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 trait A : B & C & D {}
-// CHECK: TraitDecl: A
+// CHECK: TraitDecl 'A'
 // CHECK-NEXT:  TraitConformance
-// CHECK-NEXT:     UserDefinedType: B
-// CHECK-NEXT:     UserDefinedType: C
-// CHECK-NEXT:     UserDefinedType: D
+// CHECK-NEXT:     UserDefinedType 'B'
+// CHECK-NEXT:     UserDefinedType 'C'
+// CHECK-NEXT:     UserDefinedType 'D'
 
 fn foo<T : B & C & D>() {}
-// CHECK: FunctionDecl: foo
-// CHECK-NEXT:   TypeParamDecl: T
+// CHECK: FunctionDecl 'foo'
+// CHECK-NEXT:   TypeParamDecl 'T'
 // CHECK-NEXT:     TraitConformance
-// CHECK-NEXT:       UserDefinedType: B
-// CHECK-NEXT:       UserDefinedType: C
-// CHECK-NEXT:       UserDefinedType: D
+// CHECK-NEXT:       UserDefinedType 'B'
+// CHECK-NEXT:       UserDefinedType 'C'
+// CHECK-NEXT:       UserDefinedType 'D'
 // CHECK-NEXT:   Block
 
 fn main() {}

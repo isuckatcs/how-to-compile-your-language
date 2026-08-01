@@ -3,7 +3,7 @@
 fn main() {
   return unit;
 }
-// CHECK: FunctionDecl: main
+// CHECK: FunctionDecl 'main'
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     ReturnStmt
 // CHECK-NEXT:       UnitLiteral

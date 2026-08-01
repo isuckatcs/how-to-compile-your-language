@@ -7,25 +7,25 @@ fn main(): unit {
     // CHECK: [[# @LINE -1 ]]:19: error: expected identifier
 
     let r = s().r.x();
-    // CHECK: DeclStmt:
-    // CHECK-NEXT:   VarDecl: r
-    // CHECK-NEXT:     CallExpr:
-    // CHECK-NEXT:       MemberExpr:
-    // CHECK-NEXT:         MemberExpr:
-    // CHECK-NEXT:           CallExpr:
-    // CHECK-NEXT:             PathExpr:
-    // CHECK-NEXT:               DeclRefExpr: s
-    // CHECK-NEXT:           DeclRefExpr: r
-    // CHECK-NEXT:         DeclRefExpr: x
+    // CHECK: DeclStmt
+    // CHECK-NEXT:   VarDecl 'r'
+    // CHECK-NEXT:     CallExpr
+    // CHECK-NEXT:       MemberExpr
+    // CHECK-NEXT:         MemberExpr
+    // CHECK-NEXT:           CallExpr
+    // CHECK-NEXT:             PathExpr
+    // CHECK-NEXT:               DeclRefExpr 's'
+    // CHECK-NEXT:           DeclRefExpr 'r'
+    // CHECK-NEXT:         DeclRefExpr 'x'
 
     s.r.x()()();
-    // CHECK: CallExpr:
-    // CHECK-NEXT:   CallExpr:
-    // CHECK-NEXT:     CallExpr:
-    // CHECK-NEXT:       MemberExpr:
-    // CHECK-NEXT:         MemberExpr:
-    // CHECK-NEXT:           PathExpr:
-    // CHECK-NEXT:             DeclRefExpr: s
-    // CHECK-NEXT:           DeclRefExpr: r
-    // CHECK-NEXT:         DeclRefExpr: x
+    // CHECK: CallExpr
+    // CHECK-NEXT:   CallExpr
+    // CHECK-NEXT:     CallExpr
+    // CHECK-NEXT:       MemberExpr
+    // CHECK-NEXT:         MemberExpr
+    // CHECK-NEXT:           PathExpr
+    // CHECK-NEXT:             DeclRefExpr 's'
+    // CHECK-NEXT:           DeclRefExpr 'r'
+    // CHECK-NEXT:         DeclRefExpr 'x'
 }

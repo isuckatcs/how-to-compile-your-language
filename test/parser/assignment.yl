@@ -6,15 +6,15 @@ fn main(): unit {
     a = b = 4.0;
 
     bar() = 3.0;
-    // CHECK: Assignment:
-    // CHECK-NEXT:   CallExpr:
-    // CHECK-NEXT:     PathExpr:
-    // CHECK-NEXT:       DeclRefExpr: bar
-    // CHECK-NEXT:   NumberLiteral: '3.0'
+    // CHECK: Assignment
+    // CHECK-NEXT:   CallExpr
+    // CHECK-NEXT:     PathExpr
+    // CHECK-NEXT:       DeclRefExpr 'bar'
+    // CHECK-NEXT:   NumberLiteral '3.0'
 
     a = 4.0;
-    // CHECK: Assignment:
-    // CHECK-NEXT:   PathExpr:
-    // CHECK-NEXT:     DeclRefExpr: a
-    // CHECK-NEXT:   NumberLiteral: '4.0'
+    // CHECK: Assignment
+    // CHECK-NEXT:   PathExpr
+    // CHECK-NEXT:     DeclRefExpr 'a'
+    // CHECK-NEXT:   NumberLiteral '4.0'
 }

@@ -6,17 +6,17 @@ fn err(): () {}
 fn err2(): () -> {}
 
 fn foo(): () -> number {}
-// CHECK: FunctionDecl: foo
+// CHECK: FunctionDecl 'foo'
 // CHECK-NEXT:   FunctionType
-// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:     BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 fn bar(x: () -> number): unit {}
-// CHECK-NEXT: FunctionDecl: bar
-// CHECK-NEXT:   BuiltinType: unit
-// CHECK-NEXT:   ParamDecl: x
+// CHECK-NEXT: FunctionDecl 'bar'
+// CHECK-NEXT:   BuiltinType 'unit'
+// CHECK-NEXT:   ParamDecl 'x'
 // CHECK-NEXT:     FunctionType
-// CHECK-NEXT:       BuiltinType: number
+// CHECK-NEXT:       BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 fn baz(): unit {
@@ -26,36 +26,36 @@ fn baz(): unit {
 
   let z: (number, number) -> unit = foo;
 }
-// CHECK-NEXT: FunctionDecl: baz
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK-NEXT: FunctionDecl 'baz'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: x
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'x'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'y'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: z
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'z'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:           BuiltinType: number
-// CHECK-NEXT:           BuiltinType: unit
-// CHECK-NEXT:         PathExpr:
-// CHECK-NEXT:           DeclRefExpr: foo
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           BuiltinType 'unit'
+// CHECK-NEXT:         PathExpr
+// CHECK-NEXT:           DeclRefExpr 'foo'
 
 fn nested(): () -> (S<number>) -> () -> number {}
-// CHECK-NEXT: FunctionDecl: nested
+// CHECK-NEXT: FunctionDecl 'nested'
 // CHECK-NEXT:   FunctionType
 // CHECK-NEXT:     FunctionType
-// CHECK-NEXT:       UserDefinedType: S
-// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:       UserDefinedType 'S'
+// CHECK-NEXT:         BuiltinType 'number'
 // CHECK-NEXT:       FunctionType
-// CHECK-NEXT:         BuiltinType: number
+// CHECK-NEXT:         BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 // CHECK-NOT: {{.*}}

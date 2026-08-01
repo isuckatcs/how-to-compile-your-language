@@ -18,13 +18,13 @@ fn main(): unit {
 
     if 0.0 {}
     // CHECK: IfStmt
-    // CHECK-NEXT:   NumberLiteral: '0.0'
+    // CHECK-NEXT:   NumberLiteral '0.0'
     // CHECK-NEXT:   Block
 
     if 0.0 {}
     else {}
     // CHECK: IfStmt
-    // CHECK-NEXT:   NumberLiteral: '0.0'
+    // CHECK-NEXT:   NumberLiteral '0.0'
     // CHECK-NEXT:   Block
     // CHECK-NEXT:   Block
 
@@ -33,15 +33,15 @@ fn main(): unit {
     else if 2.0 {}
     else {}
     // CHECK: IfStmt
-    // CHECK-NEXT:   NumberLiteral: '0.0'
+    // CHECK-NEXT:   NumberLiteral '0.0'
     // CHECK-NEXT:   Block
     // CHECK-NEXT:   Block
     // CHECK-NEXT:     IfStmt
-    // CHECK-NEXT:       NumberLiteral: '1.0'
+    // CHECK-NEXT:       NumberLiteral '1.0'
     // CHECK-NEXT:       Block
     // CHECK-NEXT:       Block
     // CHECK-NEXT:         IfStmt
-    // CHECK-NEXT:           NumberLiteral: '2.0'
+    // CHECK-NEXT:           NumberLiteral '2.0'
     // CHECK-NEXT:           Block
     // CHECK-NEXT:           Block
 }

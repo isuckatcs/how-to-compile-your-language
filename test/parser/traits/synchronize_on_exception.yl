@@ -5,7 +5,7 @@ trait A {}
 fn 123 {}
 
 extension S : A {}
-// CHECK: TraitDecl: A
-// CHECK-NEXT: TypeExtension:
-// CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   UserDefinedType: A
+// CHECK: TraitDecl 'A'
+// CHECK-NEXT: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'A'

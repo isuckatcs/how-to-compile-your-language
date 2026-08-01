@@ -15,9 +15,29 @@ fn bar() {
   mut x: &number;
 }
 
+// CHECK: [[# @LINE + 1 ]]:16: error: expected type specifier
+fn refRef(x: & &unit) {}
+
+// CHECK: [[# @LINE + 1 ]]:22: error: expected type specifier
+fn mutRefRef(x: &mut &unit) {}
+
 fn baz(x: &number) {}
-// CHECK: FunctionDecl: baz
-// CHECK-NEXT:   ParamDecl: x
+// CHECK: FunctionDecl 'baz'
+// CHECK-NEXT:   ParamDecl 'x'
 // CHECK-NEXT:     RefModifier
-// CHECK-NEXT:     BuiltinType: number
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   Block
+
+fn mutRef(x: &mut unit) {}
+// CHECK: FunctionDecl 'mutRef'
+// CHECK-NEXT:   ParamDecl 'x'
+// CHECK-NEXT:     RefModifier 'mut'
+// CHECK-NEXT:     BuiltinType 'unit'
+// CHECK-NEXT:   Block
+
+fn mutRefNoSpace(x: &mutunit) {}
+// CHECK: FunctionDecl 'mutRefNoSpace'
+// CHECK-NEXT:   ParamDecl 'x'
+// CHECK-NEXT:     RefModifier
+// CHECK-NEXT:     UserDefinedType 'mutunit'
 // CHECK-NEXT:   Block

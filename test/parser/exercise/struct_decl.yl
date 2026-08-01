@@ -1,29 +1,29 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 struct Empty {}
-// CHECK: StructDecl: Empty
+// CHECK: StructDecl 'Empty'
 
 struct WithTrailingComma {
     r: number,
     g: number,
     b: number,
 }
-// CHECK: StructDecl: WithTrailingComma
-// CHECK-NEXT:   FieldDecl: r
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: g
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: b
-// CHECK-NEXT:     BuiltinType: number
+// CHECK: StructDecl 'WithTrailingComma'
+// CHECK-NEXT:   FieldDecl 'r'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'g'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'b'
+// CHECK-NEXT:     BuiltinType 'number'
 
 struct WithoutTrailingComma {
     a: number,
     b: number,
     c: number
 }
-// CHECK: StructDecl: WithoutTrailingComma
-// CHECK-NEXT:   FieldDecl: a
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: b
-// CHECK-NEXT:     BuiltinType: number
-// CHECK-NEXT:   FieldDecl: c
-// CHECK-NEXT:     BuiltinType: number
+// CHECK: StructDecl 'WithoutTrailingComma'
+// CHECK-NEXT:   FieldDecl 'a'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'b'
+// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:   FieldDecl 'c'
+// CHECK-NEXT:     BuiltinType 'number'

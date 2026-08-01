@@ -10,12 +10,12 @@ struct Err {
   fn bar() {}
   fn baz() {}
 }
-// CHECK: StructDecl: Err
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK: StructDecl 'Err'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:   FunctionDecl 'bar'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:   FunctionDecl 'baz'
 // CHECK-NEXT:     Block
 
 fn main() {}

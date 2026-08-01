@@ -4,8 +4,8 @@
 // CHECK: [[# @LINE + 9 ]]:1: error: expected '}' at the end of block
 
 fn foo(): unit {}
-// CHECK: FunctionDecl: foo
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK: FunctionDecl 'foo'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
 
 fn bar(): unit {

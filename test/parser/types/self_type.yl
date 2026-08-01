@@ -4,20 +4,20 @@ struct S {
 
   fn foo(self: Self): Self {}
 }
-// CHECK: StructDecl: S
-// CHECK-NEXT:   FieldDecl: x
-// CHECK-NEXT:     BuiltinType: Self
-// CHECK-NEXT:   FunctionDecl: foo
-// CHECK-NEXT:     BuiltinType: Self
-// CHECK-NEXT:     ParamDecl: self
-// CHECK-NEXT:       BuiltinType: Self
+// CHECK: StructDecl 'S'
+// CHECK-NEXT:   FieldDecl 'x'
+// CHECK-NEXT:     BuiltinType 'Self'
+// CHECK-NEXT:   FunctionDecl 'foo'
+// CHECK-NEXT:     BuiltinType 'Self'
+// CHECK-NEXT:     ParamDecl 'self'
+// CHECK-NEXT:       BuiltinType 'Self'
 // CHECK-NEXT:     Block
 
 fn main() {
   let x: Self;
 }
-// CHECK-NEXT: FunctionDecl: main
+// CHECK-NEXT: FunctionDecl 'main'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: x
-// CHECK-NEXT:         BuiltinType: Self
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'x'
+// CHECK-NEXT:         BuiltinType 'Self'

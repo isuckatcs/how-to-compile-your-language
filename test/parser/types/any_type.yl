@@ -1,26 +1,26 @@
 // RUN: compiler %s 2>&1 -ast-dump | filecheck %s
 
 fn foo(): any A {}
-// CHECK: FunctionDecl: foo
+// CHECK: FunctionDecl 'foo'
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     UserDefinedType: A
+// CHECK-NEXT:     UserDefinedType 'A'
 // CHECK-NEXT:   Block
 
 fn bar(): any A<x, y> {}
-// CHECK-NEXT: FunctionDecl: bar
+// CHECK-NEXT: FunctionDecl 'bar'
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     UserDefinedType: A
-// CHECK-NEXT:       UserDefinedType: x
-// CHECK-NEXT:       UserDefinedType: y
+// CHECK-NEXT:     UserDefinedType 'A'
+// CHECK-NEXT:       UserDefinedType 'x'
+// CHECK-NEXT:       UserDefinedType 'y'
 // CHECK-NEXT:   Block
 
 fn baz(): any A<x, y, z> {}
-// CHECK-NEXT: FunctionDecl: baz
+// CHECK-NEXT: FunctionDecl 'baz'
 // CHECK-NEXT:   AnyType
-// CHECK-NEXT:     UserDefinedType: A
-// CHECK-NEXT:       UserDefinedType: x
-// CHECK-NEXT:       UserDefinedType: y
-// CHECK-NEXT:       UserDefinedType: z
+// CHECK-NEXT:     UserDefinedType 'A'
+// CHECK-NEXT:       UserDefinedType 'x'
+// CHECK-NEXT:       UserDefinedType 'y'
+// CHECK-NEXT:       UserDefinedType 'z'
 // CHECK-NEXT:   Block
 
 fn main() {}

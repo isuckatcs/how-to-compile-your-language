@@ -10,7 +10,7 @@ fn main(): unit {
         1.0;
     }
     // CHECK: WhileStmt
-    // CHECK-NEXT:   NumberLiteral: '0.0'
+    // CHECK-NEXT:   NumberLiteral '0.0'
     // CHECK-NEXT:   Block
-    // CHECK-NEXT:     NumberLiteral: '1.0'
+    // CHECK-NEXT:     NumberLiteral '1.0'
 }

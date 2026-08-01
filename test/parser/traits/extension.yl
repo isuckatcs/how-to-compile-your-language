@@ -6,34 +6,34 @@ extension S : A {
   fn bar() {}
   fn baz() {}
 }
-// CHECK: TypeExtension:
-// CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   UserDefinedType: A
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'A'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:   FunctionDecl 'bar'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:   FunctionDecl 'baz'
 // CHECK-NEXT:     Block
 
 extension S : B {}
-// CHECK: TypeExtension:
-// CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   UserDefinedType: B
+// CHECK: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'B'
 
 extension<T> S : C<T> {
   fn foo() {}
   fn bar() {}
   fn baz() {}
 }
-// CHECK: TypeExtension:
-// CHECK-NEXT:   TypeParamDecl: T
-// CHECK-NEXT:   UserDefinedType: S
-// CHECK-NEXT:   UserDefinedType: C
-// CHECK-NEXT:     UserDefinedType: T
-// CHECK-NEXT:   FunctionDecl: foo
+// CHECK: TypeExtension
+// CHECK-NEXT:   TypeParamDecl 'T'
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'C'
+// CHECK-NEXT:     UserDefinedType 'T'
+// CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: bar
+// CHECK-NEXT:   FunctionDecl 'bar'
 // CHECK-NEXT:     Block
-// CHECK-NEXT:   FunctionDecl: baz
+// CHECK-NEXT:   FunctionDecl 'baz'
 // CHECK-NEXT:     Block

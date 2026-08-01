@@ -2,14 +2,14 @@
 fn main() {
   gc(1);
   // CHECK: GCExpr
-  // CHECK-NEXT:   NumberLiteral: '1'
+  // CHECK-NEXT:   NumberLiteral '1'
 
   gcMut(2);
-  // CHECK: GCExpr mut
-  // CHECK-NEXT:   NumberLiteral: '2'
+  // CHECK: GCExpr 'mut'
+  // CHECK-NEXT:   NumberLiteral '2'
 
   gc(gcMut(3));
   // CHECK: GCExpr
-  // CHECK-NEXT:   GCExpr mut
-  // CHECK-NEXT:     NumberLiteral: '3'
+  // CHECK-NEXT:   GCExpr 'mut'
+  // CHECK-NEXT:     NumberLiteral '3'
 }

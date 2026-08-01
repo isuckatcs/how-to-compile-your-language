@@ -8,9 +8,9 @@ fn main(): unit {
 
     return 1.0 + 2.0;
     // CHECK: ReturnStmt
-    // CHECK-NEXT:   BinaryOperator: '+'
-    // CHECK-NEXT:     NumberLiteral: '1.0'
-    // CHECK-NEXT:     NumberLiteral: '2.0'
+    // CHECK-NEXT:   BinaryOperator '+'
+    // CHECK-NEXT:     NumberLiteral '1.0'
+    // CHECK-NEXT:     NumberLiteral '2.0'
     
     return;
     // CHECK: ReturnStmt

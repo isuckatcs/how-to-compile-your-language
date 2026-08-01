@@ -9,12 +9,12 @@ fn error(): unit {
     let z: unit =;
 }
 
-// CHECK: FunctionDecl: error
-// CHECK-NEXT:   BuiltinType: unit
+// CHECK: FunctionDecl 'error'
+// CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt:
-// CHECK-NEXT:       VarDecl: y
-// CHECK-NEXT:         BuiltinType: number
-// CHECK-NEXT:         BinaryOperator: '+'
-// CHECK-NEXT:           NumberLiteral: '1.0'
-// CHECK-NEXT:           NumberLiteral: '2.0'
+// CHECK-NEXT:     DeclStmt
+// CHECK-NEXT:       VarDecl 'y'
+// CHECK-NEXT:         BuiltinType 'number'
+// CHECK-NEXT:         BinaryOperator '+'
+// CHECK-NEXT:           NumberLiteral '1.0'
+// CHECK-NEXT:           NumberLiteral '2.0'
