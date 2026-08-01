@@ -1,0 +1,12 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct shadowed<T, U> {
+  fn method() {}
+}
+
+fn shadowed<T>() {}
+
+fn main(){
+  shadowed@<number, unit>::method();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) method {() -> unit}
+}

@@ -325,155 +325,123 @@ Sema::resolveGroupingExpr(res::Context &ctx,
 template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
                                         const ast::PathExpr &pathExpr) {
-  res::Type *parentType = nullptr;
-  res::TraitType *parentTrait = nullptr;
+  const auto &fragments = pathExpr.fragments;
+  int idx = 0;
+
+  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
   if (auto *traitSpec = pathExpr.traitSpecifier.get()) {
-    varOrReturn(specType, resolveType(ctx, *traitSpec->type, true));
-    varOrReturn(traitType,
-                resolveType(ctx, *traitSpec->trait, false, true, specType));
+    varOrReturn(type, resolveType(ctx, *traitSpec->type, true));
+    varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
+    res::TraitType *trait = t->getAs<res::TraitType>();
 
-    parentType = specType;
-    parentTrait = traitType->getAs<res::TraitType>();
-
-    if (!ctx.solveConformance(parentType, parentTrait).empty())
+    if (!ctx.solveConformance(type, trait).empty())
       return err::traitNotImplemented(traitSpec->trait->location)
-          .with(parentType->getName())
-          .with(parentTrait->getName())
+          .with(type->getName())
+          .with(trait->getName())
           .report(reporter);
+
+    const ast::DeclRefExpr *fragment = fragments[idx].get();
+    candidates = lookupAssociatedDecls(fragment->identifier, type, trait);
+
+    if (candidates.empty())
+      return err::memberLookupFailed(fragment->location)
+          .with(fragment->identifier)
+          .with(trait->getName())
+          .report(reporter);
+
+    ++idx;
   }
 
-  std::vector<res::DeclRefExpr *> results;
+  for (; idx != fragments.size(); ++idx) {
+    const ast::DeclRefExpr *fragment = fragments[idx].get();
+    if (!candidates.empty()) {
+      assert(idx > 0 && "unexpected fragment index");
 
-  for (auto &&fragment : pathExpr.fragments) {
-    if (!results.empty()) {
-      parentType = nullptr;
-      parentTrait = nullptr;
-
-      for (auto &&result : results)
-        if (result->decl->getAs<res::TypeDecl>()) {
-          parentType = result->getType();
+      res::Type *type = nullptr;
+      for (auto &&candidate : candidates) {
+        if (candidate.first->getAs<res::TypeDecl>()) {
+          varOrReturn(dre,
+                      createDeclRefExpr(ctx, fragments[idx - 1].get(),
+                                        candidate.first, candidate.second));
+          type = dre->getType();
           break;
         }
-
-      if (!parentType)
-        return err::memberAccessInValue(results[0]->location).report(reporter);
-
-      if (parentType->getAs<res::TraitType>())
-        return err::memberAccessInRawTrait(results[0]->location)
-            .report(reporter);
-
-      results.clear();
-    }
-
-    if (parentType) {
-      // FIXME: could simplify these branches if both lookup methods returned
-      // the same type... introduce struct LookupResult...
-      auto candidates =
-          lookupAssociatedDecls(fragment->identifier, parentType, parentTrait);
-
-      if (candidates.empty())
-        return err::lookupInTypeFailed(fragment->location)
-            .with(fragment->identifier)
-            .with(parentTrait ? parentTrait->getName() : parentType->getName())
-            .report(reporter);
-
-      assert(candidates.size() == 1 || !parentTrait);
-
-      for (auto &&[candidate, sub] : candidates) {
-        varOrReturn(dre,
-                    createDeclRefExpr(ctx, fragment.get(), candidate, sub));
-        results.emplace_back(dre);
       }
+
+      if (!type)
+        return err::memberAccessInValue(fragment->location).report(reporter);
+
+      if (type->getAs<res::TraitType>())
+        return err::memberAccessInRawTrait(fragment->location).report(reporter);
+
+      candidates = lookupAssociatedDecls(fragment->identifier, type);
+      if (candidates.empty())
+        return err::memberLookupFailed(fragment->location)
+            .with(fragment->identifier)
+            .with(type->getName())
+            .report(reporter);
 
       continue;
     }
+
+    assert(idx == 0 && "unexpected fragment index");
 
     if (fragment->identifier == selfTypeId) {
       auto *selfType = scope->getSelfType();
       if (!selfType)
         return err::selfTyNotAllowed(fragment->location).report(reporter);
 
-      res::Decl *decl = nullptr;
-      res::Substitution sub;
-
-      if (auto *paramType = selfType->getAs<res::TypeParamType>())
-        decl = paramType->getDecl();
-      else if (auto *structType = selfType->getAs<res::StructType>()) {
-        decl = structType->getDecl();
-        sub = structType->getSub();
+      if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
+        candidates.emplace_back(paramType->getDecl(), paramType->getSub());
+        continue;
       }
 
-      assert(decl && "unexpect self type");
+      auto *structType = selfType->getAs<res::StructType>();
+      assert(structType && "unexpect self type");
 
-      varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), decl, sub));
-      results.emplace_back(dre);
+      candidates.emplace_back(structType->getDecl(), structType->getSub());
       continue;
     }
 
-    auto candidates = scope->lookupSymbol(fragment->identifier);
-    if (candidates.empty())
+    auto symbolsInScope = scope->lookupSymbol(fragment->identifier);
+    if (symbolsInScope.empty())
       return err::missingSymbol(fragment->location)
           .with(fragment->identifier)
           .report(reporter);
 
-    bool hasNonValue = false;
-    bool hasValue = false;
-
-    // FIXME: once the parent type and trait are part of the decl, this can be
-    // simplified
-    for (auto &&candidate : candidates) {
-      if (candidate->getAs<res::ValueDecl>()) {
-        if (hasValue)
-          continue;
-
-        varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), candidate, {}));
-        results.emplace_back(dre);
-        hasValue = true;
-        continue;
-      }
-
-      if (hasNonValue)
-        continue;
-
-      varOrReturn(dre, createDeclRefExpr(ctx, fragment.get(), candidate, {}));
-      results.emplace_back(dre);
-      hasNonValue = true;
-    }
+    for (auto &&symbol : symbolsInScope)
+      candidates.emplace_back(symbol, res::Substitution{});
   }
-
-  res::DeclRefExpr *result = nullptr;
-  for (auto &&res : results) {
-    if (res->decl->getAs<ExpectedDecl>()) {
-      if (result)
-        return err::ambigousMemberFn(res->location).report(reporter);
-
-      result = res;
-    }
-  }
-
-  if (result)
-    return result;
 
   // FIXME: should just return all candidates and handle errors in wrappers?
-  if constexpr (std::is_same_v<ExpectedDecl, res::StructDecl>)
-    return err::notStructInstance(pathExpr.fragments.back()->location)
+  std::vector<std::pair<res::Decl *, res::Substitution>> filtered;
+
+  for (auto &&[decl, sub] : candidates)
+    if (dynamic_cast<ExpectedDecl *>(decl) &&
+        (dynamic_cast<res::StructDecl *>(decl->declContext) ||
+         dynamic_cast<res::TraitDecl *>(decl->declContext)))
+      filtered.emplace_back(decl, sub);
+
+  if (filtered.size() > 1)
+    return err::ambigousMemberFn(pathExpr.fragments.back()->location)
         .report(reporter);
 
-  if constexpr (std::is_same_v<ExpectedDecl, res::ValueDecl>) {
-    if (results[0]->decl->getAs<res::StructDecl>())
-      return err::expectedInstance(pathExpr.fragments.back()->location)
-          .with(results[0]->decl->identifier)
-          .report(reporter);
+  for (auto &&[decl, sub] : candidates)
+    if (dynamic_cast<ExpectedDecl *>(decl))
+      return createDeclRefExpr(ctx, fragments.back().get(), decl, sub);
 
-    if (results[0]->decl->getAs<res::TypeParamDecl>())
-      return err::unexpectedTypeParam(pathExpr.fragments.back()->location)
-          .report(reporter);
-  }
+  auto &&[decl, sub] = candidates[0];
+  if (decl->getAs<res::StructDecl>())
+    return err::expectedInstance(pathExpr.fragments.back()->location)
+        .with(decl->identifier)
+        .report(reporter);
 
-  // FIXME: be more descriptive
-  return err::missingSymbol(pathExpr.fragments.back()->location)
-      .with(pathExpr.fragments.back()->identifier)
+  if (decl->getAs<res::TypeParamDecl>())
+    return err::unexpectedTypeParam(pathExpr.fragments.back()->location)
+        .report(reporter);
+
+  return err::expectedStructDecl(pathExpr.fragments.back()->location)
       .report(reporter);
 }
 
@@ -788,7 +756,7 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
     candidates = lookupAssociatedDecls(dre->identifier, ptrType);
 
   if (candidates.empty())
-    return err::lookupInTypeFailed(dre->location)
+    return err::memberLookupFailed(dre->location)
         .with(dre->identifier)
         .with(baseType->getName())
         .report(reporter);

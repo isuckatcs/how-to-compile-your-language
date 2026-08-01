@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct shadowed<T, U> {
+  fn method(t: T, u: U) {}
+}
+
+fn shadowed<T>() {}
+
+fn main(){
+  let m = shadowed::method;
+
+  m(123, unit);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) m {(number, unit) -> unit}
+  // CHECK-NEXT:   NumberLiteral '123' {number}
+  // CHECK-NEXT:   | value: 123
+  // CHECK-NEXT:   UnitLiteral {unit}
+}

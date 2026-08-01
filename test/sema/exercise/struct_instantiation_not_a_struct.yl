@@ -6,10 +6,10 @@ struct S {
 fn main(): unit { 
   let s = S { x: 1 };
 
-  // CHECK: [[# @LINE + 1 ]]:3: error: expected struct declaration to instantiate
+  // CHECK: [[# @LINE + 1 ]]:3: error: expected struct declaration
   s { x: 2 };
 
-  // CHECK: [[# @LINE + 1 ]]:3: error: expected struct declaration to instantiate
+  // CHECK: [[# @LINE + 1 ]]:3: error: expected struct declaration
   main { x: 3 };
 
   // CHECK: [[# @LINE + 1 ]]:3: error: symbol 'NonExistent' not found

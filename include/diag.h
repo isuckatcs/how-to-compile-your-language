@@ -93,7 +93,7 @@ diag(Error, expectedBody, "expected {} body");
 // symbols
 diag(Error, redeclaration, "redeclaration of '{}'");
 diag(Error, missingSymbol, "symbol '{}' not found");
-diag(Error, lookupInTypeFailed, "failed to find member '{}' in '{}'");
+diag(Error, memberLookupFailed, "failed to find member '{}' in '{}'");
 diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'");
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
 diag(Error, memberAccessInRawTrait, "cannot look up member in trait without a specific extension");
@@ -118,7 +118,7 @@ diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, rawTrait, "expected a specific extension or a trait object of '{}'");
 diag(Error, expectedInstance, "expected an instance of '{}'");
-diag(Error, notStructInstance, "expected struct declaration to instantiate");
+diag(Error, expectedStructDecl, "expected struct declaration");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "trait '{}' with a template method cannot be used as a trait object");
 diag(Error, traitObjectStaticMemberFn, "trait '{}' with a static method cannot be used as a trait object");

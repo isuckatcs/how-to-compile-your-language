@@ -4,10 +4,10 @@ struct S {}
 fn foo(p: S) {
   let v = S{};
 
-  // CHECK: [[# @LINE + 1 ]]:3: error: cannot look up member in value
+  // CHECK: [[# @LINE + 1 ]]:6: error: cannot look up member in value
   v::foo();
 
-  // CHECK: [[# @LINE + 1 ]]:3: error: cannot look up member in value
+  // CHECK: [[# @LINE + 1 ]]:6: error: cannot look up member in value
   p::foo();
 }
 
