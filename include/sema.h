@@ -19,7 +19,6 @@ class Sema {
   ConstExprEvaluator *cee;
   const ast::Context *ast;
 
-  res::TypeManager typeMgr;
   res::Context ctx;
 
   class Scope {
@@ -250,7 +249,7 @@ public:
         cee(&cee),
         ast(&ast) {}
 
-  std::pair<const res::Context *, const res::TypeManager *> resolveAST();
+  res::Context *resolveAST();
 };
 } // namespace yl
 

@@ -79,12 +79,13 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
 
 res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
-  auto *numTy = typeMgr.getBuiltinNumberType();
+  auto *numTy = res::BuiltinNumberType::create(ctx);
 
   auto *fn =
       res::FunctionDecl::create(ctx, loc, "println", scope->getDeclContext(),
                                 std::vector<res::TypeParamDecl *>{});
-  fn->setType(typeMgr.getFunctionType({numTy}, typeMgr.getBuiltinUnitType()));
+  fn->setType(res::FunctionType::create(ctx, std::vector<res::Type *>{numTy},
+                                        res::BuiltinUnitType::create(ctx)));
 
   auto *param = res::ParamDecl::create(ctx, loc, "n", fn, false);
   param->setType(numTy);
@@ -99,7 +100,8 @@ res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
 
   auto *fn =
       res::FunctionDecl::create(ctx, loc, "gcCollect", scope->getDeclContext());
-  fn->setType(typeMgr.getFunctionType({}, typeMgr.getBuiltinUnitType()));
+  fn->setType(res::FunctionType::create(ctx, std::vector<res::Type *>{},
+                                        res::BuiltinUnitType::create(ctx)));
   fn->setBody(res::Block::create(ctx, loc, std::vector<res::Stmt *>()));
 
   return fn;
@@ -124,11 +126,11 @@ res::Type *Sema::resolveType(res::Context &ctx,
           dynamic_cast<const ast::BuiltinType *>(&parsedType)) {
     switch (builtin->kind) {
     case ast::BuiltinType::Kind::Unit:
-      return typeMgr.getBuiltinUnitType();
+      return res::BuiltinUnitType::create(ctx);
     case ast::BuiltinType::Kind::Number:
-      return typeMgr.getBuiltinNumberType();
+      return res::BuiltinNumberType::create(ctx);
     case ast::BuiltinType::Kind::Bool:
-      return typeMgr.getBuiltinBoolType();
+      return res::BuiltinBoolType::create(ctx);
     case ast::BuiltinType::Kind::Self:
       if (auto *selfType = scope->getSelfType())
         return selfType;
@@ -152,7 +154,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
           .report(reporter);
 
     if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
-      return typeMgr.getTypeParamType(*typeParamDecl);
+      return res::TypeParamType::create(ctx, typeParamDecl);
 
     auto *gdc = dynamic_cast<res::GenericDeclContext *>(decl);
     assert(gdc && "expected generic decl context");
@@ -176,16 +178,17 @@ res::Type *Sema::resolveType(res::Context &ctx,
       auto *td = decl->getAs<res::TraitDecl>();
       if (!traitSelfType)
         return validatedUserDefinedType(
-            udt, typeMgr.getAnyTraitType(*td, std::move(resolvedTypeArgs)));
+            udt,
+            res::AnyTraitType::create(ctx, td, std::move(resolvedTypeArgs)));
 
       resolvedTypeArgs.emplace(resolvedTypeArgs.begin(), traitSelfType);
       return validatedUserDefinedType(
-          udt, typeMgr.getTraitType(*td, std::move(resolvedTypeArgs)));
+          udt, res::TraitType::create(ctx, td, std::move(resolvedTypeArgs)));
     }
 
     return validatedUserDefinedType(
-        udt, typeMgr.getStructType(*decl->getAs<res::StructDecl>(),
-                                   std::move(resolvedTypeArgs)));
+        udt, res::StructType::create(ctx, decl->getAs<res::StructDecl>(),
+                                     std::move(resolvedTypeArgs)));
   }
 
   if (const auto *function =
@@ -199,7 +202,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     if (args.size() != function->args.size() || !retTy)
       return nullptr;
 
-    return typeMgr.getFunctionType(std::move(args), retTy);
+    return res::FunctionType::create(ctx, std::move(args), retTy);
   }
 
   if (const auto *any = dynamic_cast<const ast::AnyType *>(&parsedType)) {
@@ -213,7 +216,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     std::set<std::string> visited;
     if (!checkVtableCompatibility(
             loc,
-            typeMgr.withSelfType(anyTraitType, typeMgr.getNewUninferredType()),
+            anyTraitType->withSelfType(&ctx, res::UninferredType::create(ctx)),
             visited))
       return err::traitNotTraitObjectCompatible(loc)
           .with(anyTraitType->getDecl()->identifier)
@@ -224,7 +227,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
     varOrReturn(pointeeType, resolveType(ctx, *ptr->pointeeType, true));
-    return typeMgr.getPointerType(pointeeType, ptr->isMut);
+    return res::PointerType::create(ctx, pointeeType, ptr->isMut);
   }
 
   llvm_unreachable("unexpected ast type encountered");
@@ -288,7 +291,7 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   bool isLogicalOp = op == TokenKind::AmpAmp || op == TokenKind::PipePipe;
   bool isNumericOp = !isLogicalOp && op != TokenKind::EqualEqual;
 
-  bool typeError = !typeMgr.unify(lhsTy, rhsTy).empty();
+  bool typeError = !ctx.unify(lhsTy, rhsTy).empty();
   typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
   typeError |= isNumericOp && !rhsTy->getAs<res::BuiltinNumberType>();
   typeError |=
@@ -304,7 +307,7 @@ Sema::resolveBinaryOperator(res::Context &ctx,
       op == TokenKind::EqualEqual || op == TokenKind::Lt || op == TokenKind::Gt;
 
   auto *resBinop = res::BinaryOperator::create(ctx, loc, binop.op, lhs, rhs);
-  resBinop->setType(isCmpOp ? typeMgr.getBuiltinBoolType() : lhsTy);
+  resBinop->setType(isCmpOp ? res::BuiltinBoolType::create(ctx) : lhsTy);
 
   return resBinop;
 }
@@ -333,7 +336,7 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
     parentType = specType;
     parentTrait = traitType->getAs<res::TraitType>();
 
-    if (!typeMgr.solveConformance(parentType, parentTrait).empty())
+    if (!ctx.solveConformance(parentType, parentTrait).empty())
       return err::traitNotImplemented(traitSpec->trait->location)
           .with(parentType->getName())
           .with(parentTrait->getName())
@@ -395,10 +398,10 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
       res::Substitution sub;
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>())
-        decl = paramType->decl;
+        decl = paramType->getDecl();
       else if (auto *structType = selfType->getAs<res::StructType>()) {
         decl = structType->getDecl();
-        sub = typeMgr.extractSubstitutionFrom(structType);
+        sub = structType->getSub();
       }
 
       assert(decl && "unexpect self type");
@@ -489,14 +492,13 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   if (gdc) {
     for (auto &&typeParam : gdc->typeParams) {
       auto *tpType = typeParam->getType();
-      auto *subType = typeMgr.getNewUninferredType();
+      auto *subType = res::UninferredType::create(ctx);
 
       sub[tpType] = subType;
 
-      for (auto &&trait : typeMgr.getDirectConformance(tpType)) {
-        auto *instTrait =
-            typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
-        typeMgr.createObligation(subType, instTrait);
+      for (auto &&trait : ctx.getDirectConformance(tpType)) {
+        auto *instTrait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
+        subType->addObligation(instTrait);
       }
     }
   }
@@ -515,7 +517,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
       varOrReturn(arg, resolveType(ctx, *args[i]));
       auto *expectedType = sub[gdc->typeParams[i]->getType()];
 
-      if (const auto &errs = typeMgr.unify(expectedType, arg); !errs.empty()) {
+      if (const auto &errs = ctx.unify(expectedType, arg); !errs.empty()) {
         for (auto &&err : errs)
           err::inferenceError(args[i]->location).with(err).report(reporter);
 
@@ -525,7 +527,7 @@ res::DeclRefExpr *Sema::createDeclRefExpr(res::Context &ctx,
   }
 
   auto *resDre = res::DeclRefExpr::create(ctx, dre->location, decl, kind, sub);
-  resDre->setType(typeMgr.instantiate(decl->getType(), sub));
+  resDre->setType(ctx.instantiate(decl->getType(), sub));
 
   if (modifiers & AddressTaken)
     resDre->decl->setStorageNeeded();
@@ -542,32 +544,31 @@ Sema::lookupAssociatedDecls(std::string identifier,
   if (!trait) {
     if (auto *s = type->getAs<res::StructType>())
       for (auto &&decl : s->getDecl()->lookupDirect(identifier))
-        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(type));
+        candidates.emplace_back(decl, type->getSub());
 
     if (!candidates.empty())
       return candidates;
 
-    for (auto &&trait : typeMgr.getEveryConformance(type))
+    for (auto &&trait : ctx.getEveryConformance(type))
       for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
-        candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
+        candidates.emplace_back(decl, trait->getSub());
 
     if (!candidates.empty())
       return candidates;
-  } else if (typeMgr.solveConformance(type, trait).empty()) {
+  } else if (ctx.solveConformance(type, trait).empty()) {
     for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
-      candidates.emplace_back(decl, typeMgr.extractSubstitutionFrom(trait));
+      candidates.emplace_back(decl, trait->getSub());
 
     return candidates;
   }
 
-  auto extensions = typeMgr.getExtensions(type, trait);
+  auto extensions = ctx.getExtensions(type, trait);
 
   for (auto &&[extension, sub] : extensions) {
     for (auto &&decl : extension->trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(
           // FIXME: add an API for substitution composition?
-          decl, typeMgr.extractSubstitutionFrom(
-                    typeMgr.instantiate(extension->trait, sub)));
+          decl, ctx.instantiate(extension->trait, sub)->getSub());
   }
 
   return candidates;
@@ -624,7 +625,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
         .report(reporter);
 
   if (!args.empty()) {
-    auto msgs = typeMgr.unify(args[0]->getType(), fnType->getArgs()[0]);
+    auto msgs = ctx.unify(args[0]->getType(), fnType->getArgs()[0]);
     if (!msgs.empty()) {
       for (auto &&msg : msgs)
         err::inferenceError(args[0]->location).with(msg).report(reporter);
@@ -657,8 +658,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     res::Type *actualTy = promotedArg->getType();
 
-    if (const auto &errors = typeMgr.unify(actualTy, expectedTy);
-        !errors.empty()) {
+    if (const auto &errors = ctx.unify(actualTy, expectedTy); !errors.empty()) {
       for (auto &&error : errors)
         err::inferenceError(promotedArg->location).with(error).report(reporter);
       return nullptr;
@@ -707,8 +707,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    res::Type *fieldTy = typeMgr.instantiate(
-        fieldDecl->getType(), typeMgr.extractSubstitutionFrom(structTy));
+    res::Type *fieldTy =
+        ctx.instantiate(fieldDecl->getType(), structTy->getSub());
 
     auto *resolvedInitExpr = resolveExpr(ctx, *initStmt->initializer, fieldTy);
     if (!resolvedInitExpr) {
@@ -724,7 +724,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     }
 
     res::Type *initTy = coercedInitExpr->getType();
-    if (const auto &msg = typeMgr.unify(initTy, fieldTy); !msg.empty()) {
+    if (const auto &msg = ctx.unify(initTy, fieldTy); !msg.empty()) {
       for (auto &&error : msg)
         err::inferenceError(coercedInitExpr->location)
             .with(error)
@@ -818,7 +818,7 @@ res::GCExpr *Sema::resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc) {
   expr->setConstantValue(cee->evaluate(*expr));
 
   auto *gce = res::GCExpr::create(ctx, gc.location, expr);
-  gce->setType(typeMgr.getPointerType(expr->getType(), gc.isMut));
+  gce->setType(res::PointerType::create(ctx, expr->getType(), gc.isMut));
   return gce;
 }
 
@@ -843,7 +843,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   auto *closure =
       res::StructDecl::create(ctx, loc, structId.str(), scope->getDeclContext(),
                               std::vector<res::TypeParamDecl *>{}, true);
-  closure->setType(typeMgr.getStructType(*closure, {}));
+  closure->setType(res::StructType::create(ctx, closure));
 
   bool error = false;
   std::vector<res::Type *> paramTypes = {};
@@ -858,7 +858,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
       if (resolvedParam->getType()->getAs<res::UninferredType>() &&
           expectedFnType && i < expectedFnType->getArgs().size())
-        typeMgr.unify(resolvedParam->getType(), expectedFnType->getArgs()[i]);
+        ctx.unify(resolvedParam->getType(), expectedFnType->getArgs()[i]);
 
       if (resolvedParam->getType()->getAs<res::UninferredType>()) {
         err::annotationsNeeded(param->location)
@@ -883,16 +883,16 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 
   res::Type *returnTy = lambdaExpr.returnType
                             ? resolveType(ctx, *lambdaExpr.returnType)
-                            : typeMgr.getNewUninferredType();
+                            : res::UninferredType::create(ctx);
   if (returnTy && returnTy->getAs<res::UninferredType>() && expectedFnType)
-    typeMgr.unify(returnTy, expectedFnType->getReturnType());
+    ctx.unify(returnTy, expectedFnType->getReturnType());
 
   if (!returnTy || error)
     return nullptr;
 
-  auto *lambdaTy = typeMgr.getFunctionType(paramTypes, returnTy);
+  auto *lambdaTy = res::FunctionType::create(ctx, paramTypes, returnTy);
   if (expectedFnType) {
-    auto msgs = typeMgr.unify(expectedFnType, lambdaTy);
+    auto msgs = ctx.unify(expectedFnType, lambdaTy);
     if (!msgs.empty()) {
       for (auto &&msg : msgs)
         err::inferenceError(loc).with(msg).report(reporter);
@@ -900,12 +900,12 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
     }
   }
 
-  auto *paramType = typeMgr.getPointerType(closure->getType(), false);
+  auto *paramType = res::PointerType::create(ctx, closure->getType(), false);
   paramTypes.emplace_back(paramType);
 
   auto *fn = res::FunctionDecl::create(ctx, loc, lambdaFunctionId, closure,
                                        std::vector<res::TypeParamDecl *>{});
-  fn->setType(typeMgr.getFunctionType(paramTypes, returnTy));
+  fn->setType(res::FunctionType::create(ctx, paramTypes, returnTy));
   closure->insertDecl(fn);
 
   auto *p = res::ParamDecl::create(ctx, loc, "closure", fn, false);
@@ -926,7 +926,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
       res::Type *retTy =
           fn->getType()->getAs<res::FunctionType>()->getReturnType();
       if (retTy->getAs<res::UninferredType>())
-        typeMgr.unify(retTy, typeMgr.getBuiltinUnitType());
+        ctx.unify(retTy, res::BuiltinUnitType::create(ctx));
 
       error |= !runPostFunctionBodyChecks();
     }
@@ -964,8 +964,8 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
       targetPtr->isMutable() != exprPtr->isMutable())
     return expr;
 
-  auto *requiredTrait = typeMgr.withSelfType(targetAny, exprPointee);
-  auto errors = typeMgr.solveConformance(exprPointee, requiredTrait);
+  auto *requiredTrait = targetAny->withSelfType(&ctx, exprPointee);
+  auto errors = ctx.solveConformance(exprPointee, requiredTrait);
 
   if (errors.empty()) {
     auto *top = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
@@ -990,7 +990,7 @@ res::Expr *Sema::withPtrToRefDecay(res::Type *targetType, res::Expr *expr) {
 
   res::Type *referencedType = targetRefType->getReferencedType();
   res::Type *pointerType = currentPtrType->getPointeeType();
-  if (!typeMgr.unify(referencedType, pointerType).empty())
+  if (!ctx.unify(referencedType, pointerType).empty())
     return expr;
 
   auto *p2b = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
@@ -1012,12 +1012,12 @@ res::Expr *Sema::withImplicitAsRef(res::Type *targetType, res::Expr *expr) {
   if (targetRefType->isMutable() && !expr->isMutable())
     return expr;
 
-  if (!typeMgr.unify(targetRefType->getReferencedType(), expr->getType())
-           .empty())
+  if (!ctx.unify(targetRefType->getReferencedType(), expr->getType()).empty())
     return expr;
 
   auto *be = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
-  be->setType(typeMgr.getRefType(expr->getType(), targetRefType->isMutable()));
+  be->setType(
+      res::RefType::create(ctx, expr->getType(), targetRefType->isMutable()));
   return be;
 }
 
@@ -1044,9 +1044,9 @@ res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
 }
 
 res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
-  varOrReturn(
-      cond, resolveExpr(ctx, *ifStmt.condition, typeMgr.getBuiltinBoolType()));
-  if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
+  varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition,
+                                res::BuiltinBoolType::create(ctx)));
+  if (!ctx.unify(cond->getType(), res::BuiltinBoolType::create(ctx)).empty())
     return err::expectedBoolCondition(cond->location).report(reporter);
 
   varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
@@ -1065,8 +1065,8 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
 res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
                                        const ast::WhileStmt &whileStmt) {
   varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition,
-                                typeMgr.getBuiltinBoolType()));
-  if (!typeMgr.unify(cond->getType(), typeMgr.getBuiltinBoolType()).empty())
+                                res::BuiltinBoolType::create(ctx)));
+  if (!ctx.unify(cond->getType(), res::BuiltinBoolType::create(ctx)).empty())
     return err::expectedBoolCondition(cond->location).report(reporter);
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
@@ -1097,7 +1097,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   varOrReturn(coercedRhs, asTraitObjectIfNeeded(lhsTy, rhs));
   auto *rhsTy = coercedRhs->getType();
 
-  if (const auto &errors = typeMgr.unify(lhsTy, rhsTy); !errors.empty()) {
+  if (const auto &errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
       err::inferenceError(coercedRhs->location).with(error).report(reporter);
 
@@ -1131,7 +1131,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
     res::Type *exprTy = expr->getType();
 
-    if (!typeMgr.unify(retTy, exprTy).empty())
+    if (!ctx.unify(retTy, exprTy).empty())
       return err::invalidReturnValue(expr->location)
           .with(exprTy->getName())
           .with(retTy->getName())
@@ -1149,20 +1149,20 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
   if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr)) {
     auto *nl = res::NumberLiteral::create(ctx, number->location,
                                           std::stod(number->value));
-    nl->setType(typeMgr.getBuiltinNumberType());
+    nl->setType(res::BuiltinNumberType::create(ctx));
     return nl;
   }
 
   if (const auto *boolLiteral = dynamic_cast<const ast::BoolLiteral *>(&expr)) {
     auto *bl = res::BoolLiteral::create(ctx, boolLiteral->location,
                                         boolLiteral->value == "true");
-    bl->setType(typeMgr.getBuiltinBoolType());
+    bl->setType(res::BuiltinBoolType::create(ctx));
     return bl;
   }
 
   if (const auto *unit = dynamic_cast<const ast::UnitLiteral *>(&expr)) {
     auto *ul = res::UnitLiteral::create(ctx, unit->location);
-    ul->setType(typeMgr.getBuiltinUnitType());
+    ul->setType(res::BuiltinUnitType::create(ctx));
     return ul;
   }
 
@@ -1329,11 +1329,11 @@ Sema::resolveTypeExtension(res::Context &ctx,
 
   res::Substitution probeSub;
   for (auto &&typeParam : typeParams)
-    probeSub[typeParam->getType()] = typeMgr.getNewUninferredType();
+    probeSub[typeParam->getType()] = res::UninferredType::create(ctx);
 
-  auto conflictingExtensions = typeMgr.getExtensions(
-      typeMgr.instantiate(type, probeSub),
-      typeMgr.instantiate(traitType, probeSub)->getAs<res::TraitType>());
+  auto conflictingExtensions = ctx.getExtensions(
+      ctx.instantiate(type, probeSub),
+      ctx.instantiate(traitType, probeSub)->getAs<res::TraitType>());
   if (!conflictingExtensions.empty()) {
     for (auto &&[extensionDecl, sub] : conflictingExtensions)
       err::conflictingExtension(extension.location)
@@ -1348,7 +1348,6 @@ Sema::resolveTypeExtension(res::Context &ctx,
 
   auto *typeExtension = res::TypeExtension::create(
       ctx, extension.location, std::move(typeParams), type, traitType);
-  typeMgr.addExtension(typeExtension);
   ctx.translationUnit.extensions.emplace_back(typeExtension);
 
   EnterNewScopeRAII extensionScope(this, typeExtension);
@@ -1384,10 +1383,10 @@ Sema::resolveTypeExtension(res::Context &ctx,
       res::Type *implParamTy = implFn->typeParams[i]->getType();
 
       sub[implParamTy] = traitParamTy;
-      for (auto &&trait : typeMgr.getDirectConformance(implParamTy)) {
-        trait = typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
+      for (auto &&trait : ctx.getDirectConformance(implParamTy)) {
+        trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
 
-        auto errors = typeMgr.solveConformance(traitParamTy, trait);
+        auto errors = ctx.solveConformance(traitParamTy, trait);
         if (errors.empty())
           continue;
 
@@ -1406,13 +1405,13 @@ Sema::resolveTypeExtension(res::Context &ctx,
     if (error)
       continue;
 
-    auto traitSub = typeMgr.extractSubstitutionFrom(traitType);
+    auto traitSub = traitType->getSub();
 
-    res::Type *expectedType = typeMgr.instantiate(
-        typeMgr.instantiate(traitFn->getType(), traitSub), sub);
+    res::Type *expectedType =
+        ctx.instantiate(ctx.instantiate(traitFn->getType(), traitSub), sub);
     res::Type *actualType = implFn->getType();
 
-    if (!typeMgr.unify(expectedType, actualType).empty()) {
+    if (!ctx.unify(expectedType, actualType).empty()) {
       err::fnSignatureMismatch(implFn->location)
           .with(expectedType->getName())
           .with(actualType->getName())
@@ -1436,9 +1435,9 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
   bool error = false;
   auto *trait = extension->trait;
 
-  for (auto &&requirement : typeMgr.getDirectConformance(trait)) {
+  for (auto &&requirement : ctx.getDirectConformance(trait)) {
     res::Type *type = extension->type;
-    if (typeMgr.getExtensions(type, requirement).empty()) {
+    if (ctx.getExtensions(type, requirement).empty()) {
       err::missingRequirement(extension->location)
           .with(type->getName())
           .with(trait->getName())
@@ -1462,7 +1461,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
                                    const ast::VarDecl &varDecl) {
   res::Type *declTy = varDecl.type ? resolveType(ctx, *varDecl.type)
-                                   : typeMgr.getNewUninferredType();
+                                   : res::UninferredType::create(ctx);
   if (!declTy)
     return nullptr;
 
@@ -1474,11 +1473,11 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     init = coercedInit;
     auto *initTy = init->getType();
 
-    for (auto &&err : typeMgr.unify(declTy, initTy)) {
+    for (auto &&err : ctx.unify(declTy, initTy)) {
       std::cout << err << '\n';
     }
 
-    if (!typeMgr.unify(declTy, initTy).empty())
+    if (!ctx.unify(declTy, initTy).empty())
       return err::initTyMismatch(init->location)
           .with(initTy->getName())
           .with(declTy->getName())
@@ -1513,7 +1512,7 @@ std::vector<res::TypeParamDecl *> Sema::resolveTypeParamsWithoutBounds(
 
   for (auto &&tp : typeParamDecls) {
     auto *resTP = res::TypeParamDecl::create(ctx, tp->location, tp->identifier);
-    resTP->setType(typeMgr.getTypeParamType(*resTP));
+    resTP->setType(res::TypeParamType::create(ctx, resTP));
     resTypeParams.emplace_back(resTP);
   }
 
@@ -1603,8 +1602,8 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
   }
 
-  res::Type *retTy =
-      decl.type ? resolveType(ctx, *decl.type) : typeMgr.getBuiltinUnitType();
+  res::Type *retTy = decl.type ? resolveType(ctx, *decl.type)
+                               : res::BuiltinUnitType::create(ctx);
   error |= !retTy;
 
   if (error)
@@ -1612,7 +1611,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
 
   auto *fn = res::FunctionDecl::create(ctx, decl.location, decl.identifier,
                                        scope->getDeclContext(), typeParams);
-  fn->setType(typeMgr.getFunctionType(std::move(paramTypes), retTy));
+  fn->setType(res::FunctionType::create(ctx, std::move(paramTypes), retTy));
   fn->setParams(std::move(resolvedParams));
   return fn;
 }
@@ -1662,10 +1661,10 @@ Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
   }
 
   if (!paramTy)
-    paramTy = typeMgr.getNewUninferredType();
+    paramTy = res::UninferredType::create(ctx);
 
   if (auto *ref = param->refModifier.get())
-    paramTy = typeMgr.getRefType(paramTy, ref->isMut);
+    paramTy = res::RefType::create(ctx, paramTy, ref->isMut);
 
   auto *referenceType = paramTy->getAs<res::RefType>();
   if (referenceType && param->isMutable) {
@@ -1700,7 +1699,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
 
   auto *self = res::TypeParamDecl::create(ctx, decl.location, selfTypeId, true);
-  auto *selfType = typeMgr.getTypeParamType(*self);
+  auto *selfType = res::TypeParamType::create(ctx, self);
   self->setType(selfType);
 
   // FIXME: something is wrong with the design
@@ -1713,7 +1712,7 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
   for (auto &&typeParam : trait->typeParams)
     typeParamTys.emplace_back(typeParam->getType());
 
-  auto *traitType = typeMgr.getTraitType(*trait, typeParamTys);
+  auto *traitType = res::TraitType::create(ctx, trait, typeParamTys);
   trait->setType(traitType);
 
   self->conformance = res::TraitConformance::create(
@@ -1779,7 +1778,7 @@ res::StructDecl *Sema::resolveStructDecl(res::Context &ctx,
   for (auto &&typeParam : structDecl->typeParams)
     typeParamTys.emplace_back(typeParam->getType());
 
-  structDecl->setType(typeMgr.getStructType(*structDecl, typeParamTys));
+  structDecl->setType(res::StructType::create(ctx, structDecl, typeParamTys));
   return structDecl;
 }
 
@@ -1840,7 +1839,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   return !error;
 }
 
-std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
+res::Context *Sema::resolveAST() {
   EnterNewScopeRAII globalScope(this, &ctx.translationUnit);
   bool error = false;
 
@@ -1901,7 +1900,7 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   }
 
   if (error)
-    return {nullptr, nullptr};
+    return nullptr;
 
   const auto &astExtensions = ast->extensions;
   auto resExtensions = ctx.translationUnit.extensions;
@@ -1924,9 +1923,9 @@ std::pair<const res::Context *, const res::TypeManager *> Sema::resolveAST() {
   }
 
   if (error)
-    return {nullptr, nullptr};
+    return nullptr;
 
-  return {&ctx, &typeMgr};
+  return &ctx;
 }
 
 bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
@@ -1977,8 +1976,7 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
   }
 
   auto *refType = param->getType()->getAs<res::RefType>();
-  if (!refType ||
-      !typeMgr.unify(refType->getReferencedType(), selfType).empty()) {
+  if (!refType || !ctx.unify(refType->getReferencedType(), selfType).empty()) {
     err::selfWrongType(param->location).report(reporter);
     return false;
   }
@@ -2023,10 +2021,10 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
-      res::Substitution sub = typeMgr.extractSubstitutionFrom(ty);
+      res::Substitution sub = ty->getSub();
 
       for (auto &&[seenTy, seenLevel] : seen)
-        if (seenLevel < level && typeMgr.unify(seenTy, ty).empty())
+        if (seenLevel < level && ctx.unify(seenTy, ty).empty())
           selfContaining.emplace(decl);
 
       if (selfContaining.count(decl))
@@ -2035,7 +2033,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       seen.emplace_back(ty, level);
 
       for (auto &&field : decl->getAll<res::FieldDecl>())
-        if (auto *structTy = typeMgr.instantiate(field->getType(), sub)
+        if (auto *structTy = ctx.instantiate(field->getType(), sub)
                                  ->getAs<res::StructType>())
           worklist.emplace(structTy, level + 1);
     }
@@ -2067,7 +2065,7 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
   }
 
   res::GenericDeclContext *gdc = nullptr;
-  auto sub = typeMgr.extractSubstitutionFrom(type);
+  auto sub = type->getSub();
 
   if (auto *st = type->getAs<res::StructType>())
     gdc = st->getDecl();
@@ -2085,11 +2083,11 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
       continue;
 
     auto *typeParamType = typeParam->getType();
-    auto *typeArg = typeMgr.instantiate(typeParamType, sub);
+    auto *typeArg = ctx.instantiate(typeParamType, sub);
 
-    for (auto &&trait : typeMgr.getDirectConformance(typeParamType)) {
-      trait = typeMgr.instantiate(trait, sub)->getAs<res::TraitType>();
-      if (auto errs = typeMgr.solveConformance(typeArg, trait); !errs.empty()) {
+    for (auto &&trait : ctx.getDirectConformance(typeParamType)) {
+      trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
+      if (auto errs = ctx.solveConformance(typeArg, trait); !errs.empty()) {
         for (auto &&error : errs)
           err::inferenceError((*astIt)->location).with(error).report(reporter);
 
@@ -2131,15 +2129,14 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
 
     res::Type *selfTPType = trait->getDecl()->typeParams[0]->getType();
     res::Substitution testSub;
-    testSub[selfTPType] = typeMgr.getBuiltinUnitType();
+    testSub[selfTPType] = res::BuiltinUnitType::create(ctx);
 
     auto *fnType = fn->getType()->getAs<res::FunctionType>();
     for (int i = 1; i < fn->params.size(); ++i) {
       const auto &param = fn->params[i];
       res::Type *paramType = param->getType();
 
-      if (!typeMgr.unify(paramType, typeMgr.instantiate(paramType, testSub))
-               .empty()) {
+      if (!ctx.unify(paramType, ctx.instantiate(paramType, testSub)).empty()) {
         err::traitObjectSelfParam(param->location)
             .with(trait->getName())
             .report(reporter);
@@ -2150,14 +2147,13 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
 
     res::Type *retType =
         fn->getType()->getAs<res::FunctionType>()->getReturnType();
-    if (!typeMgr.unify(retType, typeMgr.instantiate(retType, testSub))
-             .empty()) {
+    if (!ctx.unify(retType, ctx.instantiate(retType, testSub)).empty()) {
       err::traitObjectSelfReturn(fnLoc).with(trait->getName()).report(reporter);
       error = true;
     }
   }
 
-  for (auto &&parentTrait : typeMgr.getDirectConformance(trait))
+  for (auto &&parentTrait : ctx.getDirectConformance(trait))
     if (!checkVtableCompatibility(loc, parentTrait, visited)) {
       err::superTraitNotTraitObjectCompatible(loc)
           .with(parentTrait->getName())
