@@ -132,7 +132,7 @@ struct Type {
   template <typename T> T *getAs() { return dynamic_cast<T *>(getRootType()); }
 
   virtual Type *getRootType() { return this; }
-  virtual std::string getName() const { return baseName; };
+  virtual std::string getName() const;
   virtual Substitution getSub() const { return {}; }
 
   virtual ~Type() = default;
@@ -404,7 +404,6 @@ public:
   }
 
   std::vector<Type *> getTypeArgs() const { return args; }
-  std::string getName() const override;
   Substitution getSub() const override;
 
   friend Creatable<StructType>;
@@ -431,7 +430,6 @@ struct AnyTraitType final : public Creatable<AnyTraitType>, public Type {
     return static_cast<TraitDecl *>(std::get<void *>(metadata));
   }
   std::vector<Type *> getTypeArgs() const { return args; }
-  std::string getName() const override;
   Substitution getSub() const override;
 
   TraitType *withSelfType(Context *ctx, Type *selfType) const;

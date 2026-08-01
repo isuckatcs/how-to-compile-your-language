@@ -306,6 +306,24 @@ Type::Type(std::string name,
       args(std::move(args)),
       metadata(metadata){};
 
+std::string Type::getName() const {
+  std::stringstream ss;
+  ss << baseName;
+
+  if (!args.empty()) {
+    ss << '<';
+    for (auto &&arg : args) {
+      ss << arg->getName();
+
+      if (arg != args.back())
+        ss << ',' << ' ';
+    }
+    ss << '>';
+  }
+
+  return ss.str();
+}
+
 bool Type::isSameBase(Type *other) const {
   return baseName == other->baseName && args.size() == other->args.size() &&
          metadata == other->metadata;
@@ -345,7 +363,6 @@ FunctionType::FunctionType(std::vector<Type *> args, Type *ret)
 
 std::string FunctionType::getName() const {
   std::stringstream ss;
-  // FIXME: repeated pattern
   ss << '(';
   for (int i = 0; i < args.size() - 1; ++i) {
     ss << args[i]->getRootType()->getName();
@@ -369,11 +386,10 @@ TraitType::TraitType(TraitDecl *decl, std::vector<Type *> args)
 
 std::string TraitType::getName() const {
   std::stringstream ss;
-  ss << getDecl()->identifier;
+  ss << baseName;
 
   if (args.size() > 1) {
     ss << '<';
-    // FIXME: print Self type as well
     for (int i = 1; i < args.size(); ++i) {
       ss << args[i]->getName();
 
@@ -421,44 +437,8 @@ Substitution StructType::getSub() const {
   return res;
 }
 
-std::string StructType::getName() const {
-  std::stringstream ss;
-  ss << baseName;
-
-  if (!args.empty()) {
-    ss << '<';
-    for (int i = 0; i < args.size(); ++i) {
-      ss << args[i]->getName();
-
-      if (i < args.size() - 1)
-        ss << ',' << ' ';
-    }
-    ss << '>';
-  }
-
-  return ss.str();
-}
-
 AnyTraitType::AnyTraitType(TraitDecl *decl, std::vector<Type *> args)
     : Type("any " + decl->identifier, decl, std::move(args)) {}
-
-std::string AnyTraitType::getName() const {
-  std::stringstream ss;
-  ss << baseName;
-
-  if (!args.empty()) {
-    ss << '<';
-    for (int i = 0; i < args.size(); ++i) {
-      ss << args[i]->getName();
-
-      if (i < args.size() - 1)
-        ss << ',' << ' ';
-    }
-    ss << '>';
-  }
-
-  return ss.str();
-}
 
 Substitution AnyTraitType::getSub() const {
   Substitution res;
