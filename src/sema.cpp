@@ -2148,17 +2148,21 @@ bool Sema::runPostFunctionBodyChecks() {
 
 bool Sema::checkDeclRefTypes() {
   bool error = false;
-  for (auto &&dre : functionInfo->declReferences)
-    for (auto &&[from, to] : dre->sub) {
-      if (!to->getRootType()->getAs<res::UninferredType>())
-        continue;
+  for (auto &&dre : functionInfo->declReferences) {
+    auto *gdc = dre->decl->getAs<res::GenericDeclContext>();
+    if (!gdc || gdc->typeParams.empty())
+      continue;
 
-      err::annotationsNeeded(dre->location)
-          .with(dre->decl->identifier)
-          .report(reporter);
-      error = true;
-      break;
-    };
+    for (auto &&tp : gdc->typeParams) {
+      if (dre->sub[tp->getType()]->getAs<res::UninferredType>()) {
+        err::annotationsNeeded(dre->location)
+            .with(dre->decl->identifier)
+            .report(reporter);
+        error = true;
+        break;
+      }
+    }
+  }
 
   return !error;
 }
