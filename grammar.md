@@ -118,7 +118,7 @@
     |   '(' <expr> ')'
 
 <gcExpr>
-    ::= ('gc' | 'gcMut') '(' <expr> ')'
+    ::= 'gc' 'mut'? <expr>
 
 <lambda>
     ::= '->' <lambdaParamList>? <block>
