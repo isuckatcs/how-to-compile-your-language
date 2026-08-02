@@ -69,8 +69,7 @@ std::vector<std::string> Context::doUnify(
     return {};
 
   if (auto *u = t1->getAs<UninferredType>();
-      u && !t2->getAs<res::AnyTraitType>()) {
-
+      u && !t2->getAs<res::AnyTraitType>() && !t2->getAs<res::RefType>()) {
     u->setParent(t2);
     pendingUnifications.emplace_back(u);
     return {};

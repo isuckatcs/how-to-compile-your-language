@@ -1,0 +1,8 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:12: error: failed to resolve type 'S'
+  let f: (&S) -> unit;
+
+  // CHECK: [[# @LINE + 1 ]]:16: error: failed to resolve type 'S'
+  let f: (&mut S) -> unit;
+}

@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let f: (&number) -> unit = ->(mut x) {};
+  // CHECK: [[# @LINE - 1 ]]:37: error: a '&' parameter cannot be 'mut'
+  // CHECK: [[# @LINE - 2 ]]:37: error: explicit type annotations are needed to infer the type of 'x'
+
+  let f2: (&mut number) -> unit = ->(mut x) {};
+  // CHECK: [[# @LINE - 1 ]]:42: error: a '&' parameter cannot be 'mut'
+  // CHECK: [[# @LINE - 2 ]]:42: error: explicit type annotations are needed to infer the type of 'x'
+}

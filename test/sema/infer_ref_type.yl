@@ -1,0 +1,20 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {
+  fn foo(self: &Self, f: (T) -> unit) {}
+}
+
+fn err(n: &number) {}
+
+fn errMut(n: &mut number) {}
+
+fn main() {
+  let s = S{};
+
+  s.foo(err);
+  // CHECK: [[# @LINE - 1 ]]:9: error: cannot unify '_' with '&number'
+  // CHECK: [[# @LINE - 2 ]]:9: error: cannot unify '(&number) -> unit' with '(_) -> unit'
+
+  s.foo(errMut);
+  // CHECK: [[# @LINE - 1 ]]:9: error: cannot unify '_' with '&mut number'
+  // CHECK: [[# @LINE - 2 ]]:9: error: cannot unify '(&mut number) -> unit' with '(_) -> unit'
+}

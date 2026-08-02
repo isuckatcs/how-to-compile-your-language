@@ -191,6 +191,15 @@ res::Type *Sema::resolveType(res::Context &ctx,
                                      std::move(resolvedTypeArgs)));
   }
 
+  if (const auto *arg = dynamic_cast<const ast::ArgumentType *>(&parsedType)) {
+    varOrReturn(type, resolveType(ctx, *arg->type));
+
+    if (const auto *ref = arg->refModifier.get())
+      type = res::RefType::create(ctx, type, ref->isMut);
+
+    return type;
+  }
+
   if (const auto *function =
           dynamic_cast<const ast::FunctionType *>(&parsedType)) {
     std::vector<res::Type *> args;
@@ -808,8 +817,23 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
       auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
 
       if (resolvedParam->getType()->getAs<res::UninferredType>() &&
-          expectedFnType && i < expectedFnType->getArgs().size())
-        ctx.unify(resolvedParam->getType(), expectedFnType->getArgs()[i]);
+          expectedFnType && i < expectedFnType->getArgs().size()) {
+        auto *paramType = resolvedParam->getType();
+        auto *expectedType = expectedFnType->getArgs()[i];
+
+        if (auto *ref = expectedType->getAs<res::RefType>()) {
+          if (!resolvedParam->isMutable) {
+            paramType = res::RefType::create(ctx, paramType, ref->isMutable());
+            resolvedParam->setType(paramType);
+            resolvedParam->isMutable = ref->isMutable();
+          } else {
+            err::mutRefParameter(resolvedParam->location).report(reporter);
+            error = true;
+          }
+        }
+
+        ctx.unify(paramType, expectedType);
+      }
 
       if (resolvedParam->getType()->getAs<res::UninferredType>()) {
         err::annotationsNeeded(param->location)

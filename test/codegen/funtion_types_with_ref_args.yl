@@ -1,0 +1,21 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn main() {
+  mut n = 456;
+  // CHECK: %n = alloca double, align 8
+
+  let f: (&mut number) -> unit = ->(x) { x = 123; };
+
+  transform(n, f);
+  // CHECK: call void @_Y9transformGnE(ptr %n, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+
+  println(n);
+}
+
+fn transform<T>(t: &mut T, f: (&mut T) -> unit) {
+// CHECK: define void @_Y9transformGnE(ptr %t, ptr byval({ ptr, ptr }) %f, ptr %closure) {
+  
+  f(t);
+  // CHECK: call void %1(ptr %t, ptr %3)
+}
