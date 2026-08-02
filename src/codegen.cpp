@@ -1205,8 +1205,8 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
     arg->setName(paramDecl->identifier);
 
     llvm::Value *argVal = arg;
-    if (paramDecl->isMutable && !arg->hasByValAttr() &&
-        !paramDeclTy->getAs<res::RefType>()) {
+    if ((paramDecl->needsStorage || paramDecl->isMutable) &&
+        !arg->hasByValAttr() && !paramDeclTy->getAs<res::RefType>()) {
       argVal = allocateStackVariable(paramDecl->identifier, arg->getType());
       storeValue(arg, argVal, arg->getType());
     }
