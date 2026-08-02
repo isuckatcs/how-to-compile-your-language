@@ -604,8 +604,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
     varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
-    varOrReturn(promotedArg, withImplicitAsRef(expectedTy, coercedArg));
-    promotedArg = withPtrToRefDecay(expectedTy, promotedArg);
+    varOrReturn(decayedArg, withPtrToRefDecay(expectedTy, coercedArg));
+    varOrReturn(promotedArg, withImplicitAsRef(expectedTy, decayedArg));
 
     res::Type *actualTy = promotedArg->getType();
 
@@ -898,29 +898,55 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-// FIXME: should '&' types be allowed as well?
 res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
-  auto *targetPtr = targetType->getAs<res::PointerType>();
-  if (!targetPtr)
+  res::AnyTraitType *targetAnyType = nullptr;
+  bool targetMut = false;
+
+  res::Type *exprBaseType = nullptr;
+  bool baseMut = false;
+  bool needsRefPromo = false;
+
+  if (auto *targetPtr = targetType->getAs<res::PointerType>()) {
+    if (expr->getType()->getAs<res::RefType>())
+      return expr;
+
+    targetAnyType = targetPtr->getPointeeType()->getAs<res::AnyTraitType>();
+    targetMut = targetPtr->isMutable();
+  } else if (auto *targetRef = targetType->getAs<res::RefType>()) {
+    targetAnyType = targetRef->getReferencedType()->getAs<res::AnyTraitType>();
+    targetMut = targetRef->isMutable();
+  }
+
+  if (auto *exprPtr = expr->getType()->getAs<res::PointerType>()) {
+    exprBaseType = exprPtr->getPointeeType();
+    baseMut = exprPtr->isMutable();
+  } else if (auto *exprRef = expr->getType()->getAs<res::RefType>()) {
+    exprBaseType = exprRef->getReferencedType();
+    baseMut = exprRef->isMutable();
+  } else if (expr->isLvalue()) {
+    exprBaseType = expr->getType();
+    baseMut = expr->isMutable();
+    needsRefPromo = true;
+  }
+
+  if (!targetAnyType || !exprBaseType ||
+      exprBaseType->getAs<res::AnyTraitType>() || targetMut != baseMut)
     return expr;
 
-  auto *exprPtr = expr->getType()->getAs<res::PointerType>();
-  if (!exprPtr)
-    return expr;
-
-  auto *exprPointee = exprPtr->getPointeeType();
-  auto *targetAny = targetPtr->getPointeeType()->getAs<res::AnyTraitType>();
-
-  if (exprPointee->getAs<res::AnyTraitType>() || !targetAny ||
-      targetPtr->isMutable() != exprPtr->isMutable())
-    return expr;
-
-  auto *requiredTrait = targetAny->withSelfType(&ctx, exprPointee);
-  auto errors = ctx.solveConformance(exprPointee, requiredTrait);
+  auto *requiredTrait = targetAnyType->withSelfType(&ctx, exprBaseType);
+  auto errors = ctx.solveConformance(exprBaseType, requiredTrait);
 
   if (errors.empty()) {
+    if (needsRefPromo) {
+      expr = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
+      expr->setType(res::RefType::create(ctx, exprBaseType, baseMut));
+    }
+
     auto *top = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
-    top->setType(targetType);
+    if (expr->getType()->getAs<res::PointerType>())
+      top->setType(res::PointerType::create(ctx, targetAnyType, targetMut));
+    else
+      top->setType(res::RefType::create(ctx, targetAnyType, targetMut));
     return top;
   }
 

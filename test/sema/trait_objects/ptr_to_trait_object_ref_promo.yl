@@ -1,0 +1,25 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn foo(self: &Self) {}
+}
+
+extension number : A {}
+extension unit : A {}
+
+fn main() {
+  let n = gc(123);
+  @<any A : A>::foo(n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToRefDecay {&any A}
+  // CHECK-NEXT:     TraitObjectPromoExpr {*any A}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {*number}
+
+  let u = gc(unit);
+  @<any A : A>::foo(u);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToRefDecay {&any A}
+  // CHECK-NEXT:     TraitObjectPromoExpr {*any A}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) u {*unit}
+}

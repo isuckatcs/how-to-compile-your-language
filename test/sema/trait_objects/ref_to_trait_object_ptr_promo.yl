@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+
+fn foo(a: *any A) {}
+
+fn bar(n: &number) {
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&any A' with '*any A'
+  foo(n);
+}
+
+fn main() {}
