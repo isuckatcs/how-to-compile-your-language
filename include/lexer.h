@@ -48,7 +48,6 @@ enum class TokenKind : char {
   KwTrait,
   KwExtension,
   KwGC,
-  KwGCMut,
   KwAny,
 
   Eof = singleCharTokens[0],
@@ -87,7 +86,6 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"true", TokenKind::KwTrue},
     {"false", TokenKind::KwFalse},
     {"gc", TokenKind::KwGC},
-    {"gcMut", TokenKind::KwGCMut},
     {"any", TokenKind::KwAny}};
 
 struct Token {
