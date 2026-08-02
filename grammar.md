@@ -170,7 +170,10 @@
     ::= <identifier> <typeList>?
 
 <functionType>
-    ::= '(' <type> (',' <type>)* ','? ')' -> type
+    ::= '(' <argumentType> (',' <argumentType>)* ','? ')' -> type
+
+<argumentType>
+    ::= <refModifier>? <type>
 
 <pointerType>
     ::= '*' 'mut'? <type>
