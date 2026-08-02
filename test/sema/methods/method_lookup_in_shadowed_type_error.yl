@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct shadowed<T, U, V> {
+  fn method() {}
+}
+
+fn shadowed<T>() {}
+
+fn main(){
+  // CHECK: [[# @LINE + 1 ]]:11: error: type argument count mismatch, expected 3, but received 2
+  shadowed@<number, unit>::method();
+}
