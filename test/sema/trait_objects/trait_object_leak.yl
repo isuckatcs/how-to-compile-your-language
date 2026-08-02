@@ -1,0 +1,22 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {
+  x: *T
+
+  fn deref(self: &Self): T {
+    return *self.x;
+  }
+}
+
+trait A {}
+
+extension unit : A {}
+
+fn main() {
+  let a: *any A = gc(unit);
+
+  let s = S{ x : a };
+  // CHECK: [[# @LINE - 1 ]]:18: error: cannot unify '_' with 'any A'
+  // CHECK: [[# @LINE - 2 ]]:18: error: cannot unify '*any A' with '*_'
+
+  s.deref();
+}

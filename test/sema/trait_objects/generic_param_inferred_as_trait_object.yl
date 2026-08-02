@@ -1,0 +1,16 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  fn a(self: &Self) {}
+}
+
+fn foo<T : A>(t: &T) {
+  t.a();
+}
+
+fn bar(a: &any A) {
+  foo(a);
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot unify '_' with 'any A'
+  // CHECK: [[# @LINE - 2 ]]:7: error: cannot unify '&any A' with '&_'
+}
+
+fn main() {}
