@@ -45,12 +45,37 @@ struct UserDefinedType : public Type {
   void dump(size_t level = 0) const override;
 };
 
+struct RefModifier {
+  SourceLocation location;
+  bool isMut;
+
+  RefModifier(SourceLocation location, bool isMut)
+      : location(location),
+        isMut(isMut) {}
+
+  void dump(size_t level = 0) const;
+};
+
+struct ArgumentType : public Type {
+  std::unique_ptr<RefModifier> refModifier;
+  std::unique_ptr<Type> type;
+
+  ArgumentType(SourceLocation location,
+               std::unique_ptr<RefModifier> refModifier,
+               std::unique_ptr<Type> type)
+      : Type(location),
+        refModifier(std::move(refModifier)),
+        type(std::move(type)) {}
+
+  void dump(size_t level = 0) const override;
+};
+
 struct FunctionType : public Type {
-  std::vector<std::unique_ptr<Type>> args;
+  std::vector<std::unique_ptr<ArgumentType>> args;
   std::unique_ptr<Type> ret;
 
   FunctionType(SourceLocation location,
-               std::vector<std::unique_ptr<Type>> args,
+               std::vector<std::unique_ptr<ArgumentType>> args,
                std::unique_ptr<Type> ret)
       : Type(location),
         args(std::move(args)),
@@ -361,17 +386,6 @@ struct TypeParamDecl : public Decl {
         traitConformance(std::move(traitConformance)) {}
 
   void dump(size_t level = 0) const override;
-};
-
-struct RefModifier {
-  SourceLocation location;
-  bool isMut;
-
-  RefModifier(SourceLocation location, bool isMut)
-      : location(location),
-        isMut(isMut) {}
-
-  void dump(size_t level = 0) const;
 };
 
 struct ParamDecl : public Decl {

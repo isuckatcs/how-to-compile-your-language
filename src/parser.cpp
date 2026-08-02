@@ -420,16 +420,8 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat :
 
-    if (nextToken.kind == TokenKind::Amp) {
-      SourceLocation ampLoc = nextToken.location;
-      eatNextToken(); // eat '&'
-
-      bool isMut = nextToken.kind == TokenKind::KwMut;
-      if (isMut)
-        eatNextToken(); // eat 'mut'
-
-      refModifier = std::make_unique<ast::RefModifier>(ampLoc, isMut);
-    }
+    if (nextToken.kind == TokenKind::Amp)
+      refModifier = parseRefModifier();
 
     type = parseType();
     if (!type)
@@ -1069,7 +1061,10 @@ Parser::parseListWithTrailingComma(
 //  ::= <identifier> <typeList>?
 //
 // <functionType>
-//  ::= '(' <type> (',' <type>)* ','? ')' -> type
+//  ::= '(' <argumentType> (',' <argumentType>)* ','? ')' -> type
+//
+// <argumentType>
+//  ::= <refModifier>? <type>
 //
 // <pointerType>
 //  ::= '*' 'mut'? <type>
@@ -1094,8 +1089,8 @@ std::unique_ptr<ast::Type> Parser::parseType() {
                    err::expected(nextToken.location).with("'('"));
     eatNextToken(); // eat '('
 
-    varOrReturn(argTypeList, parseListWithTrailingComma<ast::Type>(
-                                 &Parser::parseType, TokenKind::Rpar));
+    varOrReturn(argTypeList, parseListWithTrailingComma<ast::ArgumentType>(
+                                 &Parser::parseArgumentType, TokenKind::Rpar));
 
     expectOrReturn(TokenKind::Rpar,
                    err::expected(nextToken.location).with("')'"));
@@ -1136,6 +1131,8 @@ std::unique_ptr<ast::Type> Parser::parseType() {
       .report(reporter);
 };
 
+// <userDefinedDeclInstance>
+//  ::= <identifier> <typeList>?
 std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
   SourceLocation location = nextToken.location;
 
@@ -1154,6 +1151,33 @@ std::unique_ptr<ast::UserDefinedType> Parser::parseUserDefinedType() {
 
   return std::make_unique<ast::UserDefinedType>(location, std::move(identifier),
                                                 std::move(types));
+}
+
+// <argumentType>
+//  ::= <refModifier>? <type>
+std::unique_ptr<ast::ArgumentType> Parser::parseArgumentType() {
+  SourceLocation location = nextToken.location;
+
+  std::unique_ptr<ast::RefModifier> refModifier;
+  if (nextToken.kind == TokenKind::Amp)
+    refModifier = parseRefModifier();
+
+  varOrReturn(type, parseType());
+  return std::make_unique<ast::ArgumentType>(location, std::move(refModifier),
+                                             std::move(type));
+}
+
+// <refModifier>
+//  ::= '&' 'mut'?
+std::unique_ptr<ast::RefModifier> Parser::parseRefModifier() {
+  SourceLocation ampLoc = nextToken.location;
+  eatNextToken(); // eat '&'
+
+  bool isMut = nextToken.kind == TokenKind::KwMut;
+  if (isMut)
+    eatNextToken(); // eat 'mut'
+
+  return std::make_unique<ast::RefModifier>(ampLoc, isMut);
 }
 
 // <sourceFile>

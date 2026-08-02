@@ -25,6 +25,19 @@ void UserDefinedType::dump(size_t level) const {
     type->dump(level + 1);
 }
 
+void RefModifier::dump(size_t level) const {
+  std::cerr << indent(level) << "RefModifier" << (isMut ? " 'mut'" : "")
+            << '\n';
+}
+
+void ArgumentType::dump(size_t level) const {
+  std::cerr << indent(level) << "ArgumentType\n";
+
+  if (refModifier)
+    refModifier->dump(level + 1);
+  type->dump(level + 1);
+}
+
 void FunctionType::dump(size_t level) const {
   std::cerr << indent(level) << "FunctionType\n";
 
@@ -180,11 +193,6 @@ void TypeParamDecl::dump(size_t level) const {
 
   if (traitConformance)
     traitConformance->dump(level + 1);
-}
-
-void RefModifier::dump(size_t level) const {
-  std::cerr << indent(level) << "RefModifier" << (isMut ? " 'mut'" : "")
-            << '\n';
 }
 
 void FieldDecl::dump(size_t level) const {

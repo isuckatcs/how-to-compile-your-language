@@ -91,6 +91,9 @@ class Parser {
 
   std::unique_ptr<ast::Type> parseType();
   std::unique_ptr<ast::UserDefinedType> parseUserDefinedType();
+  std::unique_ptr<ast::ArgumentType> parseArgumentType();
+
+  std::unique_ptr<ast::RefModifier> parseRefModifier();
 
   std::unique_ptr<ast::TraitConformance> parseTraitConformance();
 

@@ -32,18 +32,22 @@ fn baz(): unit {
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl 'x'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           ArgumentType
+// CHECK-NEXT:             BuiltinType 'number'
 // CHECK-NEXT:           BuiltinType 'number'
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl 'y'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           ArgumentType
+// CHECK-NEXT:             BuiltinType 'number'
 // CHECK-NEXT:           BuiltinType 'number'
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl 'z'
 // CHECK-NEXT:         FunctionType
-// CHECK-NEXT:           BuiltinType 'number'
-// CHECK-NEXT:           BuiltinType 'number'
+// CHECK-NEXT:           ArgumentType
+// CHECK-NEXT:             BuiltinType 'number'
+// CHECK-NEXT:           ArgumentType
+// CHECK-NEXT:             BuiltinType 'number'
 // CHECK-NEXT:           BuiltinType 'unit'
 // CHECK-NEXT:         PathExpr
 // CHECK-NEXT:           DeclRefExpr 'foo'
@@ -52,10 +56,32 @@ fn nested(): () -> (S<number>) -> () -> number {}
 // CHECK-NEXT: FunctionDecl 'nested'
 // CHECK-NEXT:   FunctionType
 // CHECK-NEXT:     FunctionType
-// CHECK-NEXT:       UserDefinedType 'S'
-// CHECK-NEXT:         BuiltinType 'number'
+// CHECK-NEXT:       ArgumentType
+// CHECK-NEXT:         UserDefinedType 'S'
+// CHECK-NEXT:           BuiltinType 'number'
 // CHECK-NEXT:       FunctionType
 // CHECK-NEXT:         BuiltinType 'number'
+// CHECK-NEXT:   Block
+
+fn refArgs(): (&number, &mut unit, (&mut S, &S) -> S) -> unit {}
+// CHECK-NEXT: FunctionDecl 'refArgs'
+// CHECK-NEXT:   FunctionType
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       RefModifier
+// CHECK-NEXT:       BuiltinType 'number'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       RefModifier 'mut'
+// CHECK-NEXT:       BuiltinType 'unit'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       FunctionType
+// CHECK-NEXT:         ArgumentType
+// CHECK-NEXT:           RefModifier 'mut'
+// CHECK-NEXT:           UserDefinedType 'S'
+// CHECK-NEXT:         ArgumentType
+// CHECK-NEXT:           RefModifier
+// CHECK-NEXT:           UserDefinedType 'S'
+// CHECK-NEXT:         UserDefinedType 'S'
+// CHECK-NEXT:     BuiltinType 'unit'
 // CHECK-NEXT:   Block
 
 // CHECK-NOT: {{.*}}
