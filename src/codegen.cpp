@@ -459,18 +459,28 @@ Codegen::generatePtrToRef(const res::ImplicitPtrToRefDecay &decay) {
 llvm::Value *
 Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   llvm::Value *obj = generateExpr(*promo.expr);
-  if (promo.expr->isLvalue())
+  if (promo.expr->isLvalue() &&
+      getMonoType(promo.expr->getType())->getAs<res::PointerType>())
     obj = builder.CreateLoad(builder.getPtrTy(), obj);
 
   auto *promoType = getMonoType(promo.getType());
-  auto *implType = promoType->getAs<res::PointerType>()
-                       ->getPointeeType()
-                       ->getAs<res::AnyTraitType>();
-  auto *valueType = getMonoType(promo.expr->getType())
-                        ->getAs<res::PointerType>()
-                        ->getPointeeType();
+  res::Type *anyType = nullptr;
 
-  auto *vtable = getVtable(implType->withSelfType(resCtx, valueType));
+  if (auto *ptrType = promoType->getAs<res::PointerType>())
+    anyType = ptrType->getPointeeType();
+  else
+    anyType = promoType->getAs<res::RefType>()->getReferencedType();
+
+  auto *monoType = getMonoType(promo.expr->getType());
+  res::Type *valType = nullptr;
+
+  if (auto *ptrType = monoType->getAs<res::PointerType>())
+    valType = ptrType->getPointeeType();
+  else
+    valType = monoType->getAs<res::RefType>()->getReferencedType();
+
+  auto *vtable = getVtable(
+      anyType->getAs<res::AnyTraitType>()->withSelfType(resCtx, valType));
   auto *traitObjTy = generateType(promoType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
