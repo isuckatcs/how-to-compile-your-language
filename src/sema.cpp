@@ -1155,9 +1155,9 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
           .with(decl->identifier)
           .report(reporter);
 
-    if (resPath->getReceiverType() &&
-        resPath->getReceiverType()->getAs<res::AnyTraitType>() &&
-        isFunctionDecl && !(modifiers & IsCallee))
+    if (auto *selfType = resPath->sub.getSelfType();
+        selfType && selfType->getAs<res::AnyTraitType>() &&
+        !(modifiers & IsCallee))
       return err::traitObjectMethodNotCalled(resPath->location)
           .report(reporter);
 

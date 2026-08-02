@@ -123,6 +123,7 @@ class Codegen {
   llvm::Function *getOrInsertGCMark();
   llvm::Function *getOrInsertGCSweep();
 
+  bool isVirtualCall(const res::CallExpr &call);
   llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
                                       llvm::Value *receiver);
   llvm::Value *getVtable(res::TraitType *trait);

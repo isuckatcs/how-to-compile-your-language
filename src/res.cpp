@@ -8,6 +8,15 @@
 
 namespace yl {
 namespace res {
+res::Type *Substitution::getSelfType() const {
+  for (auto &&[from, to] : *this)
+    if (auto *t = from->getAs<res::TypeParamType>();
+        t && t->getDecl()->isImplicitSelf)
+      return to;
+
+  return nullptr;
+}
+
 void Substitution::dump() const {
   for (auto &&[from, to] : *this)
     std::cerr << from->getName() << " -> " << to->getName() << '\n';
@@ -685,15 +694,6 @@ DeclRefExpr::DeclRefExpr(SourceLocation loc,
       decl(d),
       sub(sub) {}
 
-Type *DeclRefExpr::getReceiverType() const {
-  for (auto &&[from, to] : sub)
-    if (auto *t = from->getAs<res::TypeParamType>();
-        t && t->getDecl()->isImplicitSelf)
-      return to;
-
-  return nullptr;
-}
-
 void DeclRefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
             << decl->identifier << " {" << getType()->getName() << '}' << '\n';
@@ -705,13 +705,6 @@ CallExpr::CallExpr(SourceLocation location,
     : Expr(location, Expr::Kind::Rvalue),
       callee(callee),
       arguments(std::move(args)){};
-
-bool CallExpr::isVirtual() const {
-  // FIXME: revisit
-  const auto *dre = dynamic_cast<const res::DeclRefExpr *>(callee);
-  return dre && dre->getReceiverType() &&
-         dre->getReceiverType()->getAs<res::AnyTraitType>();
-}
 
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"

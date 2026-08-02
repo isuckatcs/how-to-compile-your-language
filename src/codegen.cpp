@@ -580,9 +580,9 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
       getMonoType(call.callee->getType())->getAs<res::FunctionType>();
 
   llvm::Value *callee = nullptr;
-  bool isVirtualCall = call.isVirtual();
+  bool isVirtual = isVirtualCall(call);
 
-  if (!isVirtualCall) {
+  if (!isVirtual) {
     callee = generateExprAndLoadValue(*call.callee);
     createTmpGCRootIfNeeded(callee, call.callee);
   }
@@ -607,7 +607,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     if (dl->getTypeAllocSize(argTy) == 0)
       continue;
 
-    if (argIdx == 0 && isVirtualCall) {
+    if (argIdx == 0 && isVirtual) {
       incomingArg = argVal;
       llvm::Value *objPtr = builder.CreateStructGEP(argTy, argVal, 0, "objPtr");
       args.emplace_back(builder.CreateLoad(builder.getPtrTy(), objPtr, "obj"));
@@ -626,10 +626,10 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
     ++argIdx;
   }
 
-  if (isVirtualCall)
+  if (isVirtual)
     callee = lookupCalleeFromVtable(&call, incomingArg);
 
-  if (llvm::isa<llvm::Function>(callee) || isVirtualCall) {
+  if (llvm::isa<llvm::Function>(callee) || isVirtual) {
     args.emplace_back(llvm::Constant::getNullValue(builder.getPtrTy()));
   } else {
     llvm::Type *fnVarTy = generateType(functionType);
@@ -642,7 +642,7 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 
   llvm::CallInst *callInst =
       builder.CreateCall(generateFunctionType(functionType), callee, args);
-  callInst->setAttributes(constructAttrList(functionType, isVirtualCall));
+  callInst->setAttributes(constructAttrList(functionType, isVirtual));
 
   return isReturningStruct ? retVal : callInst;
 }
@@ -1355,9 +1355,21 @@ llvm::Value *Codegen::getVtable(res::TraitType *trait) {
   return vtable;
 }
 
+bool Codegen::isVirtualCall(const res::CallExpr &call) {
+  auto *dre = dynamic_cast<res::DeclRefExpr *>(call.callee);
+  if (!dre)
+    return false;
+
+  auto *selfType = dre->sub.getSelfType();
+  if (!selfType || !getMonoType(selfType)->getAs<res::AnyTraitType>())
+    return false;
+
+  return true;
+}
+
 llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
                                              llvm::Value *receiver) {
-  assert(call->isVirtual() && "vtable lookup for non-virtual call");
+  assert(isVirtualCall(*call) && "vtable lookup for non-virtual call");
 
   const auto *dre = static_cast<const res::DeclRefExpr *>(call->callee);
   auto *declCtx = static_cast<res::TraitDecl *>(dre->decl->declContext);

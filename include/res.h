@@ -24,6 +24,8 @@ struct TraitType;
 struct UninferredType;
 
 struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
+  res::Type *getSelfType() const;
+
   void dump() const;
 };
 
@@ -556,7 +558,6 @@ struct CallExpr final : public Creatable<CallExpr>, public Expr {
   Expr *callee;
   std::vector<Expr *> arguments;
 
-  bool isVirtual() const;
   void dump(size_t level = 0) const override;
 
 private:
@@ -567,8 +568,6 @@ private:
 struct DeclRefExpr final : public Creatable<DeclRefExpr>, public Expr {
   Decl *decl;
   Substitution sub;
-
-  Type *getReceiverType() const;
 
   void dump(size_t level = 0) const override;
 
