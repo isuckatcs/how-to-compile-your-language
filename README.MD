@@ -81,7 +81,7 @@ fn wrapper(a: *any A<number>) {
 fn main() {
   123.foo();
 
-  let n = gc(123);
+  let n = gc 123;
   wrapper(n);
 }
 ```
@@ -135,8 +135,8 @@ struct S {
 }
 
 fn main() {
-  mut s = gcMut(S { ptr: gc(123) });
-  s.ptr = gc(456);
+  mut s = gc mut S { ptr: gc 123 };
+  s.ptr = gc 456;
 
   gcCollect(); // manual gc trigger point
 
