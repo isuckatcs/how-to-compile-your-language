@@ -8,11 +8,42 @@
 
 ![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
-**🚧 The guide is currently behind the main branch. Updates are coming soon. 🚧**
+Build a compiler from scratch for _Your Language_, a language designed to demonstrate modern compiler techniques, including traits, generics, type inference, closures, garbage collection, and LLVM-based native code generation.
+ 
+```
+trait Shape {
+  fn area(self: &Self): number;
+}
 
-A simple programming language implementation with an educational guide that displays modern compiler techniques. 
+struct Rectangle {
+  width: number,
+  length: number,
+}
 
-[isuckatcs.github.io/how-to-compile-your-language](https://isuckatcs.github.io/how-to-compile-your-language/)
+extension Rectangle : Shape {
+  fn area(self: &Self): number {
+    return self.width * self.length;
+  }
+}
+
+fn map<T, U>(value: T, transform: (T) -> U): U {
+  return transform(value);
+}
+
+fn main() {
+  let r = Rectangle { width: 4.0, length: 5.0 };
+
+  let areaSquared = map(r.area(), ->(area) { 
+    return area * area;
+  });
+
+  println(areaSquared);
+}
+```
+
+📖 Read how to do it at [isuckatcs.github.io/how-to-compile-your-language](https://isuckatcs.github.io/how-to-compile-your-language/).
+
+**🚧 The guide is currently being updated to match the main branch. 🚧**
 
 ## Getting Started
 
