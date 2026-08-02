@@ -4,7 +4,7 @@ struct S {
 }
 
 fn main() {
-  let s = gc(S { n: 123 });
+  let s = gc S { n: 123 };
 
   // CHECK: [[# @LINE + 1 ]]:7: error: pointee of type '*S' cannot be mutated
   s.n = 0;

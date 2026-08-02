@@ -23,10 +23,10 @@ extension S2 : A {
 // CHECK: @vtable.T1AGS2S2E = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
 
 fn main() {
-  mut p: *any A = gc(S {});
+  mut p: *any A = gc S {};
   p.foo();
 
-  p = gc(S2 {});
+  p = gc S2 {};
   p.foo();
 }
 // CHECK: define void @_YT1AGS1SE3foo(ptr %self, ptr %closure) {

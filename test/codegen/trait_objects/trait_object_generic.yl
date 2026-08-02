@@ -15,7 +15,7 @@ struct S {}
 extension S : A<number> {}
 
 fn main() {
-  let s = gc(S {});
+  let s = gc S {};
   s.foo(0);
   // CHECK: call void @_YT1AGS1SnE3foo(ptr %1, double 0.000000e+00, ptr null)
 

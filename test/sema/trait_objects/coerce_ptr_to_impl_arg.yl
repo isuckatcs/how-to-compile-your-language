@@ -8,7 +8,7 @@ extension S : A {}
 fn foo(x: *any A) {}
 
 fn main() {
-  foo(gc(S{}));
+  foo(gc S{});
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*any A) -> unit}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A}

@@ -25,7 +25,7 @@ extension S : B<number> {
 }
 
 fn main() {
-  let s = gc(S {});
+  let s = gc S {};
 
   s.foo(0);
 

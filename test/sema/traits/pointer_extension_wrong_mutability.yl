@@ -6,6 +6,6 @@ trait A {
 extension *number : A {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:12: error: failed to find member 'foo' in '*mut number'
-  gcMut(0).foo();
+  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find member 'foo' in '*mut number'
+  (gc mut 0).foo();
 }

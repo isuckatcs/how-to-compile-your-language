@@ -15,19 +15,19 @@ struct R2 {
 fn main() {
   let r1 = R1 {
     x: 0,
-    y: gc(0),
+    y: gc 0,
     z: 0,
   };
 
   let r2 = R2 {
     x: 0,
-    y: gc(0),
-    z: gc(0),
+    y: gc 0,
+    z: gc 0,
   };
 
-  let x = gc(0);
+  let x = gc 0;
 
-  let y = gc(0);
+  let y = gc 0;
 
   gcCollect();
   // CHECK: [1] mark {{.*}} data: {{.*}} (8 B) {heap: 160 B, threshold: 256 B}

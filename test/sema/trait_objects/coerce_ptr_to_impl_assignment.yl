@@ -6,7 +6,7 @@ struct S {}
 extension S : A {}
 
 fn foo(mut x: *any A) {
-  x = gc(S{});
+  x = gc S{};
   // CHECK: Assignment
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {*any A}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A}

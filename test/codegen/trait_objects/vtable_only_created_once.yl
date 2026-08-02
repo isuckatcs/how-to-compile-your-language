@@ -13,11 +13,11 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  let s: *any A = gc(S {});
-  let s2: *any A = gc(S {});
-  let s3: *any A = gc(S {});
-  let s4: *any A = gc(S {});
-  let s5: *any A = gc(S {});
+  let s: *any A = gc S {};
+  let s2: *any A = gc S {};
+  let s3: *any A = gc S {};
+  let s4: *any A = gc S {};
+  let s5: *any A = gc S {};
 
   println(123);
 }

@@ -19,5 +19,5 @@ fn foo<T>(x: *any A<T>) {
 }
 
 fn main() {
-  foo(gc(S@<number>{}));
+  foo(gc S@<number>{});
 }

@@ -16,12 +16,12 @@ extension S : A {
 }
 
 fn main() {
-  let s = gc(S{ x: 123 });
+  let s = gc S{ x: 123 };
   (*s).foo();
   // CHECK: %2 = load ptr, ptr %s, align 8
   // CHECK-NEXT: call void @_YT1AGS1SE3foo(ptr %2, ptr null)
 
-  let s2 = gcMut(S{ x: 456 });
+  let s2 = gc mut S{ x: 456 };
   (*s2).foo();
   // CHECK: %5 = load ptr, ptr %s2, align 8
   // CHECK-NEXT: call void @_YT1AGS1SE3foo(ptr %5, ptr null)

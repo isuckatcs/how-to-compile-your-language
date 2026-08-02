@@ -12,13 +12,13 @@ fn bar<T>(t: *T) {}
 fn barM<T>(t: *mut T) {}
 
 fn main() {
-  foo(gc(0));
+  foo(gc 0);
   // CHECK: call void @_Y3fooGpnE(ptr %0, ptr null)
-  bar(gc(gcMut(0)));
+  bar(gc gc mut 0);
   // CHECK: call void @_Y3barGmnE(ptr %2, ptr null)
 
-  foo(gcMut(0));
+  foo(gc mut 0);
   // CHECK: call void @_Y3fooGmnE(ptr %3, ptr null)
-  barM(gcMut(gc(0)));
+  barM(gc mut gc 0);
   // CHECK: call void @_Y4barMGpnE(ptr %5, ptr null)
 }

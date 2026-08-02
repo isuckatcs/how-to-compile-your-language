@@ -3,7 +3,7 @@
 // RUN: compiler %s -o %t && %valgrind %t
 
 fn foo(): *number {
-  return gc(0);
+  return gc 0;
 }
 
 fn bar2(x: *number, y: *number) {}

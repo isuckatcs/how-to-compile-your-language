@@ -7,7 +7,7 @@ fn collect() {
 fn main() {
   mut n = 0;
 
-  while n < *gc(5) {
+  while n < *gc 5 {
     collect();
     n = n + 1;
     // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}

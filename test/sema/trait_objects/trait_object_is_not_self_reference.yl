@@ -10,7 +10,7 @@ struct S {}
 extension S : Foo {}
 
 fn foo(p: &any Foo) {
-  mut x: *mut any Foo = gcMut(S{});
+  mut x: *mut any Foo = gc mut S{};
 
   x.out(p);
   // CHECK: CallExpr {unit}
@@ -19,7 +19,7 @@ fn foo(p: &any Foo) {
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) x {*mut any Foo}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) p {&any Foo}
 
-  x.ptr(gc(S{}));
+  x.ptr(gc S{});
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) ptr {(&any Foo, *any Foo) -> unit}
   // CHECK-NEXT:   ImplicitPtrToRefDecay {&any Foo}

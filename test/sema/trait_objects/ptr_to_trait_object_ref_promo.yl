@@ -7,7 +7,7 @@ extension number : A {}
 extension unit : A {}
 
 fn main() {
-  let n = gc(123);
+  let n = gc 123;
   @<any A : A>::foo(n);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}
@@ -15,7 +15,7 @@ fn main() {
   // CHECK-NEXT:     TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {*number}
 
-  let u = gc(unit);
+  let u = gc unit;
   @<any A : A>::foo(u);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}

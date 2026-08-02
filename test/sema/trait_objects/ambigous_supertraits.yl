@@ -14,7 +14,7 @@ extension S : A<unit> {}
 extension S : A<number> {}
 
 fn main() {
-  let s: *any B = gc(S {});
+  let s: *any B = gc S {};
 
   // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
   s.foo();

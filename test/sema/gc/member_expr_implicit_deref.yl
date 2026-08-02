@@ -4,7 +4,7 @@ struct S {
 }
 
 fn main() {
-  let s = gc(S { n: 123 });
+  let s = gc S { n: 123 };
 
   println(s.n);
   // CHECK: CallExpr {unit}

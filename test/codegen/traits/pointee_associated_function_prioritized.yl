@@ -18,7 +18,7 @@ extension *number : A {
 }
 
 fn main() {
-  gc(0).foo();
+  (gc 0).foo();
   // CHECK: %1 = load ptr, ptr %materialize.tmp, align 8
   // CHECK-NEXT: call void @_YT1AGnE3foo(ptr %1, ptr null)
 }

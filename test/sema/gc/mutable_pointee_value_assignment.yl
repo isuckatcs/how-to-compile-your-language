@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main() {
-  let n = gcMut(123);
+  let n = gc mut 123;
 
   *n = 456;
   // CHECK: Assignment

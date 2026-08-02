@@ -5,7 +5,7 @@ trait A {
 }
 
 fn main() {
-  gc(123).foo();
+  (gc 123).foo();
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 }
 

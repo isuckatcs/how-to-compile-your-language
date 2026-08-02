@@ -1,7 +1,7 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 fn alloc(): *number {
-  return gc(456);
+  return gc 456;
 }
 
 fn collect(ptr: *mut *number): *mut *number {
@@ -10,7 +10,7 @@ fn collect(ptr: *mut *number): *mut *number {
 }
 
 fn main() {
-  let p = gcMut(gc(123));
+  let p = gc mut gc 123;
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) offsets: {0 (nil)} {heap: 64 B, threshold: 96 B}
 

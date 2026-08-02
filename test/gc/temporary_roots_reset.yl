@@ -17,11 +17,11 @@ struct S2 {
 }
 
 fn foo(): S1 {
-  return S1 { x: 0, y: gc(123), z: unit };
+  return S1 { x: 0, y: gc 123, z: unit };
 }
 
 fn bar(): S2 {
-  return S2 { p1: unit, x: 0, p2: unit, p3: unit, y: gc(123), z: unit, w: gc(456) };
+  return S2 { p1: unit, x: 0, p2: unit, p3: unit, y: gc 123, z: unit, w: gc 456 };
 }
 
 fn main() {

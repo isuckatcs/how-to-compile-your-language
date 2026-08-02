@@ -8,7 +8,7 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  let s: *any A = gc(S {});
+  let s: *any A = gc S {};
   // CHECK: %0 = call ptr @gcAlloc(i32 0, ptr null)
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 0
   // CHECK-NEXT: store ptr %0, ptr %1, align 8

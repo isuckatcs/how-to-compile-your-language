@@ -2,8 +2,8 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 fn alloc<T>(t: T): *T {
-  gcMut(t);
-  return gc(t);
+  gc mut t;
+  return gc t;
 }
 
 fn main() {

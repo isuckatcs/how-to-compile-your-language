@@ -6,7 +6,7 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  let x: *any A = gc(S{});
+  let x: *any A = gc S{};
   // CHECK: VarDecl @({{.*}}) x {*any A}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A}
   // CHECK-NEXT:     GCExpr {*S}

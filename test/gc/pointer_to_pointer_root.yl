@@ -1,7 +1,7 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 fn foo(): **number {
-  return gc(gc(123));
+  return gc gc 123;
 }
 
 fn main() {

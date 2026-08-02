@@ -6,7 +6,7 @@ struct S {
 }
 
 fn foo(n: number): S {
-  return S{ p: gc(n) };
+  return S{ p: gc n };
 }
 
 fn main() {

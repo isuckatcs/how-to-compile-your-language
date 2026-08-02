@@ -15,9 +15,9 @@ struct S2 {
 fn main() {
   S2{ 
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*any A'
-    x: gcMut(S{}),
+    x: gc mut S{},
 
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy requirement 'S : B'
-    y: gc(S{}),
+    y: gc S{},
   };
 }

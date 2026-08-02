@@ -5,14 +5,14 @@ struct S {
 }
 
 fn main() {
-  mut s = S { ptr: gc(123) };
+  mut s = S { ptr: gc 123 };
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   caller(s, mutator(s));
 }
 
 fn mutator(s: &mut S) {
-  s.ptr = gc(456);
+  s.ptr = gc 456;
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
   
   gcCollect();

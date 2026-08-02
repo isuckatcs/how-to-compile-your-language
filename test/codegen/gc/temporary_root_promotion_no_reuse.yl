@@ -6,7 +6,7 @@ struct S {
 }
 
 fn foo(): S {
-  return S{ p: gc(0) };
+  return S{ p: gc 0 };
 }
 
 fn bar2(x: S, y: S) {}

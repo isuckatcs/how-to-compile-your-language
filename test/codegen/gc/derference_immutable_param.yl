@@ -13,5 +13,5 @@ fn foo(n: **number) {
 // CHECK-NEXT: }
 
 fn main(): unit {
-  foo(gc(gc(123)));
+  foo(gc gc 123);
 }

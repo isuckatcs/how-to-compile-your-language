@@ -40,11 +40,11 @@ struct Empty {}
 
 fn foo(): *S {
   let e = Empty {};
-  let n = gc(123);
+  let n = gc 123;
 
-  let s3 = gc(S3{ x: e, y: unit, z: 0, w: n, x2: e, y2: unit, z2: 0, w2: n });
-  let s2 = gc(S2{ x: e, y: unit, z: 0, w: s3, x2: e, y2: unit, z2: 0, w2: s3 });
-  let s = gc(S{ x: e, y: unit, z: 0, w: s2, x2: e, y2: unit, z2: 0, w2: s2 });
+  let s3 = gc S3{ x: e, y: unit, z: 0, w: n, x2: e, y2: unit, z2: 0, w2: n };
+  let s2 = gc S2{ x: e, y: unit, z: 0, w: s3, x2: e, y2: unit, z2: 0, w2: s3 };
+  let s = gc S{ x: e, y: unit, z: 0, w: s2, x2: e, y2: unit, z2: 0, w2: s2 };
   return s;
 }
 

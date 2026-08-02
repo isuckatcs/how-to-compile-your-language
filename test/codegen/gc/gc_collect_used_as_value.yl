@@ -8,7 +8,7 @@ fn main() {
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %collect, i32 0, i32 1
   // CHECK-NEXT: store ptr null, ptr %1, align 8
 
-  let n = *gc(123);
+  let n = *gc 123;
 
   collect();
   // CHECK: %4 = getelementptr inbounds nuw { ptr, ptr }, ptr %collect, i32 0, i32 0

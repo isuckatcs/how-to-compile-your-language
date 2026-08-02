@@ -12,6 +12,6 @@ extension *number : A {
 }
 
 fn main() {
-  gc(0).foo();
+  (gc 0).foo();
   // CHECK: call void @_YT1AGpnE3foo(ptr %materialize.tmp, ptr null)
 }

@@ -28,7 +28,7 @@ extension S : B2 {}
 extension S : C {}
 
 fn main() {
-  let s: *any C = gc(S {});
+  let s: *any C = gc S {};
   s.c();
 }
 

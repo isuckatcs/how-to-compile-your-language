@@ -6,7 +6,7 @@ fn collect() {
 
 fn main() {
   // CHECK: [0] alloc {{.*}} data: {{.*}} (1 B) {heap: 25 B, threshold: 96 B}
-  if *gc(true) {
+  if *gc true {
 
     collect();
     // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (1 B) {heap: 0 B, threshold: 96 B}
@@ -14,7 +14,7 @@ fn main() {
   }
 
   // CHECK-NEXT: [1] alloc {{.*}} data: {{.*}} (1 B) {heap: 25 B, threshold: 96 B}
-  if *gc(false) {
+  if *gc false {
 
   } else {
     collect();

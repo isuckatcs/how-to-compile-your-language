@@ -9,10 +9,10 @@ extension S : A {}
 
 fn foo(mut x: *any A, y: *any B) {
   // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any A' but received '*mut S' instead
-  x = gcMut(S{});
+  x = gc mut S{};
   
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'S : B'
-  y = gc(S{});
+  y = gc S{};
 }
 
 fn main() {}

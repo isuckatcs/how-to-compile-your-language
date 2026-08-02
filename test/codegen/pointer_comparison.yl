@@ -3,8 +3,8 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 
 fn main() {
-  let p1 = gc(123);
-  let p2 = gc(456);
+  let p1 = gc 123;
+  let p2 = gc 456;
 
   if p1 == p1 {
   // CHECK: %2 = load ptr, ptr %p1, align 8

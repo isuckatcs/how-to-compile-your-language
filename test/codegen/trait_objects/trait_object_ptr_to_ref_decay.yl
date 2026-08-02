@@ -12,7 +12,7 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  let s: *any A = gc(S {});
+  let s: *any A = gc S {};
 
   // CHECK: %decay = alloca { ptr, ptr }, align 8
 

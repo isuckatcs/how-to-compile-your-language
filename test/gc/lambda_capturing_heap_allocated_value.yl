@@ -1,7 +1,7 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 fn getGenerator(): () -> number {
-  let x = gc(123);
+  let x = gc 123;
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   return ->() { return *x; };

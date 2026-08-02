@@ -62,6 +62,6 @@ fn vcall(traitObject: *any A) {
 }
 
 fn main() {
-  vcall(gc(S { n: 3 }));
-  vcall(gc(S2 {}));
+  vcall(gc S { n: 3 });
+  vcall(gc S2 {});
 }

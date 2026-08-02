@@ -6,7 +6,7 @@ struct S {
 }
 
 fn foo(n: number): S {
-  return S{x: 1, y: gc(n)};
+  return S{x: 1, y: gc n};
 }
 
 fn main() {
@@ -31,7 +31,7 @@ fn main() {
   println(*x.y);
   // CHECK-NEXT: 456
 
-  x.y = gc(789);
+  x.y = gc 789;
   // CHECK-NEXT: [2] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
 
   gcCollect();

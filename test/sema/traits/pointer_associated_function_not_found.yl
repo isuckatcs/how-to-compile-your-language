@@ -1,5 +1,5 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:11: error: failed to find member 'foo' in '*number'
-  gc(123).foo();
+  // CHECK: [[# @LINE + 1 ]]:12: error: failed to find member 'foo' in '*number'
+  (gc 123).foo();
 }

@@ -35,7 +35,7 @@ fn generateVtable(c: *any C) {
 }
 
 fn main() {
-  let s = gc(S {});
+  let s = gc S {};
 
   generateVtable(s);
 

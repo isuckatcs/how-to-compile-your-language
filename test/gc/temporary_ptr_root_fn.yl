@@ -1,7 +1,7 @@
 // RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
 // RUN: %valgrind %t
 fn allocate(): *number {
-  let n = gc(123);
+  let n = gc 123;
   return n;
 }
 

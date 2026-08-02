@@ -14,7 +14,7 @@ struct S {
 }
 
 fn allocate(): *number {
-  let n = gc(123);
+  let n = gc 123;
   return n;
 }
 

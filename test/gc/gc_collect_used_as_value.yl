@@ -2,7 +2,7 @@
 fn main() {
   let collect = gcCollect;
 
-  let n = *gc(123);
+  let n = *gc 123;
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 
   collect();

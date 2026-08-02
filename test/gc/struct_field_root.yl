@@ -6,7 +6,7 @@ struct S {
 }
 
 fn foo(n: number): S {
-  return S{x: 1, y: gc(n)};
+  return S{x: 1, y: gc n};
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
 }
 

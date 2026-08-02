@@ -22,7 +22,7 @@ struct R3 {
 
 extension R3 : Allocable {
   fn alloc(): *Self {
-    return gc(Self{ r4: R4::alloc() });
+    return gc Self{ r4: R4::alloc() };
   }
 }
 
@@ -34,7 +34,7 @@ struct R4 {
 
 extension R4 : Allocable {
   fn alloc(): *Self {
-    return gc(Self{ x: R5::alloc(), y: R5::alloc(), z: gc(0) });
+    return gc Self{ x: R5::alloc(), y: R5::alloc(), z: gc 0 };
   }
 }
 
@@ -46,7 +46,7 @@ struct R5 {
 
 extension R5 : Allocable {
   fn alloc(): *Self {
-    return gc(Self{ x: gc(0), y: 0, z: gc(0) });
+    return gc Self{ x: gc 0, y: 0, z: gc 0 };
   }
 }
 

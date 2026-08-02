@@ -23,11 +23,11 @@ extension S : Foo {
   }
 
   fn ptr(self: &Self): *Self {
-    return gc(S{});
+    return gc S{};
   }
 
   fn ptrMut(self: &Self): *mut Self {
-    return gcMut(S{});
+    return gc mut S{};
   }
 
   fn template(self: &Self): T<Self> {
@@ -37,5 +37,5 @@ extension S : Foo {
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:19: error: trait 'Foo' is not trait object compatible
-  mut x: *mut any Foo = gcMut(S{});
+  mut x: *mut any Foo = gc mut S{};
 }

@@ -5,7 +5,7 @@ struct S {
 }
 
 fn allocate(): S {
-  return S { n: gc(123) };
+  return S { n: gc 123 };
 }
 
 fn collect() {

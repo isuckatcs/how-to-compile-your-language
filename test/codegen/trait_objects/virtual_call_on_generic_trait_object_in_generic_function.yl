@@ -25,7 +25,7 @@ extension S : A<number> {
 }
 
 fn foo<U>() {
-  let s: *any B<U> = gc(S {});
+  let s: *any B<U> = gc S {};
 
   @<any B<U> : A<number>>::foo(s);
   // CHECK: %vtablePtr = getelementptr inbounds nuw { ptr, ptr }, ptr %decay, i32 0, i32 1

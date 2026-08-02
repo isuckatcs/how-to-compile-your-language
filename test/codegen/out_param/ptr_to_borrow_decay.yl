@@ -12,7 +12,7 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  let s = gc(S{});
+  let s = gc S{};
   // CHECK: %0 = call ptr @gcAlloc(i32 0, ptr null)
   // CHECK-NEXT: store ptr %0, ptr %s, align 8
 

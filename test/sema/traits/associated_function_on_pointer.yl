@@ -6,11 +6,12 @@ trait A {
 extension *number : A {}
 
 fn main() {
-  gc(123).foo();
+  (gc 123).foo();
   // CHECK:   DeclRefExpr @({{.*}}) foo {(&*number) -> unit}
   // CHECK-NEXT:   ImplicitAsRefExpr {&*number}
   // CHECK-NEXT:     MaterializeTemporaryExpr {*number}
-  // CHECK-NEXT:       GCExpr {*number}
-  // CHECK-NEXT:         NumberLiteral '123' {number}
-  // CHECK-NEXT:         | value: 123
+  // CHECK-NEXT:       GroupingExpr {*number}
+  // CHECK-NEXT:         GCExpr {*number}
+  // CHECK-NEXT:           NumberLiteral '123' {number}
+  // CHECK-NEXT:           | value: 123
 }

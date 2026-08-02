@@ -22,7 +22,7 @@ extension unit : A {
 }
 
 fn main() {
-  let n = gc(123);
+  let n = gc 123;
   @<any A : A>::foo(n);
   // CHECK: %0 = call ptr @gcAlloc(i32 8, ptr null)
   // CHECK-NEXT: store double 1.230000e+02, ptr %0, align 8
@@ -39,7 +39,7 @@ fn main() {
   // CHECK-NEXT: %vFn = load ptr, ptr %vFnPtr, align 8
   // CHECK-NEXT: call void %vFn(ptr %obj, ptr null)
 
-  let u = gc(unit);
+  let u = gc unit;
   @<any A : A>::foo(u);
   // CHECK: %6 = call ptr @gcAlloc(i32 0, ptr null)
   // CHECK-NEXT: store ptr %6, ptr %u, align 8

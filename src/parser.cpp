@@ -819,7 +819,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
     return literal;
   }
 
-  if (nextToken.kind == TokenKind::KwGC || nextToken.kind == TokenKind::KwGCMut)
+  if (nextToken.kind == TokenKind::KwGC)
     return parseGCExpr();
 
   if (nextToken.kind == TokenKind::Arrow)
@@ -936,21 +936,16 @@ std::unique_ptr<ast::DeclRefExpr> Parser::parseDeclRefExpr() {
 }
 
 // <gcExpr>
-//  ::= ('gc' | 'gcMut') '(' <expr> ')'
+//  ::= 'gc' 'mut'? <expr>
 std::unique_ptr<ast::GCExpr> Parser::parseGCExpr() {
-  bool isMut = nextToken.kind == TokenKind::KwGCMut;
   SourceLocation location = nextToken.location;
-  eatNextToken(); // eat 'gc' or 'gcMut'
+  eatNextToken(); // eat 'gc'
 
-  expectOrReturn(TokenKind::Lpar,
-                 err::expected(nextToken.location).with("'('"));
-  eatNextToken(); // eat '('
+  bool isMut = nextToken.kind == TokenKind::KwMut;
+  if (isMut)
+    eatNextToken(); // eat 'mut'
 
   varOrReturn(expr, parseExpr());
-
-  expectOrReturn(TokenKind::Rpar,
-                 err::expected(nextToken.location).with("')'"));
-  eatNextToken(); // eat ')'
 
   return std::make_unique<ast::GCExpr>(location, std::move(expr), isMut);
 }

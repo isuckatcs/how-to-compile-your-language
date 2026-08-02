@@ -37,7 +37,7 @@ extension S : B<() -> unit> {
 }
 
 fn main() {
-  let s = gc(S {});
+  let s = gc S {};
 
   s.foo(unit);
   // CHECK: call void @_YT1AGS1SunFRuE3foo(ptr %1, ptr null)

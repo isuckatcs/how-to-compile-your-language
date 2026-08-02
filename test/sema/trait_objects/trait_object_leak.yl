@@ -12,7 +12,7 @@ trait A {}
 extension unit : A {}
 
 fn main() {
-  let a: *any A = gc(unit);
+  let a: *any A = gc unit;
 
   let s = S{ x : a };
   // CHECK: [[# @LINE - 1 ]]:18: error: cannot unify '_' with 'any A'

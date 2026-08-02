@@ -15,7 +15,7 @@ struct S {
 }
 
 fn main() {
-  let s = S { x: 123, p: gc(Empty {}) };
+  let s = S { x: 123, p: gc Empty {} };
 
   s.p.a();
 }

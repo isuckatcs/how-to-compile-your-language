@@ -8,7 +8,7 @@ extension S : A {}
 fn foo(x: &*any A) {}
 
 fn main() {
-  mut s = gc(S{});
+  mut s = gc S{};
 
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*S' with '&*any A'
   foo(s);

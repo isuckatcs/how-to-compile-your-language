@@ -5,10 +5,10 @@ struct S2 { s3: *S3 }
 struct S3 { n: *number }
 
 fn foo(): *S {
-  let n = gc(123);
-  let s3 = gc(S3{ n: n });
-  let s2 = gc(S2{ s3: s3 });
-  let s = gc(S{ s2: s2 });
+  let n = gc 123;
+  let s3 = gc S3{ n: n };
+  let s2 = gc S2{ s3: s3 };
+  let s = gc S{ s2: s2 };
   return s;
 }
 

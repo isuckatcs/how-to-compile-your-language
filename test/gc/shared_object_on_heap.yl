@@ -17,9 +17,9 @@ struct D {
   c: *C
 
   fn create(n: number): D {
-    let a = gc(A{ n: n });
-    let b = gc(B{ a: a });
-    let c = gc(C{ a: a });
+    let a = gc A{ n: n };
+    let b = gc B{ a: a };
+    let c = gc C{ a: a };
 
     return D{ b: b, c: c };
   }

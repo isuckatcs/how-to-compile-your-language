@@ -12,11 +12,11 @@ struct S3 {
 }
 
 fn main() {
-  let s3 = gcMut(S3{ n: gcMut(0) });
-  let s2 = gcMut(S2{ s3: s3 });
-  let s = gc(S{ s2: s2 });
+  let s3 = gc mut S3{ n: gc mut 0 };
+  let s2 = gc mut S2{ s3: s3 };
+  let s = gc S{ s2: s2 };
 
-  ((s.s2.s3.n)) = gcMut(0);
+  ((s.s2.s3.n)) = gc mut 0;
   // CHECK: Assignment
   // CHECK-NEXT:   GroupingExpr {*mut number}
   // CHECK-NEXT:     GroupingExpr {*mut number}

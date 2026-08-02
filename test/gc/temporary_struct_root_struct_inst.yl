@@ -18,7 +18,7 @@ struct S2 {
 }
 
 fn allocate(): S2 {
-  return S2 { n: gc(123) };
+  return S2 { n: gc 123 };
 }
 
 fn collect() {

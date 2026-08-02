@@ -3,16 +3,16 @@
 struct Empty {}
 
 fn main() {
-  mut e = gc(Empty{});
+  mut e = gc Empty{};
   // CHECK: [0] alloc {{.*}} data: {{.*}} (0 B) {heap: 24 B, threshold: 96 B}
 
-  mut u = gc(unit);
+  mut u = gc unit;
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (0 B) {heap: 48 B, threshold: 96 B}
 
-  e = gc(Empty{});
+  e = gc Empty{};
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (0 B) {heap: 72 B, threshold: 96 B}
 
-  u = gc(unit);
+  u = gc unit;
   // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (0 B) {heap: 96 B, threshold: 96 B}
 
   gcCollect();

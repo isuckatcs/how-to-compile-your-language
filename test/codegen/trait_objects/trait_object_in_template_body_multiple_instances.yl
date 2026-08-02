@@ -21,7 +21,7 @@ extension<T> S<T> : A<S<T>> {
 }
 
 fn foo<T : A<T>>(t: T) {
-  let x: *any A<T> = gc(t);
+  let x: *any A<T> = gc t;
   x.foo(t);
 }
 

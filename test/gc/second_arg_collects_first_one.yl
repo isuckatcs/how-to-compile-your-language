@@ -15,7 +15,7 @@ extension S : Foo {
 }
 
 fn foo(sPtr: &mut *S) {
-  sPtr = gc(S{ x: 456 });
+  sPtr = gc S{ x: 456 };
   // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
 
   gcCollect();
@@ -25,7 +25,7 @@ fn foo(sPtr: &mut *S) {
 }
 
 fn main() {
-  mut s = gc(S{ x: 123 });
+  mut s = gc S{ x: 123 };
 
   (*s).foo(foo(s));
   // CHECK-NEXT: 123

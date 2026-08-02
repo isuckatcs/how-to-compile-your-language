@@ -10,17 +10,17 @@ extension<T> S<T> : A<T> {}
 fn foo<T>(x: *any A<T>) {}
 
 fn main() {
-  foo(gc(S@<unit>{}));
+  foo(gc S@<unit>{});
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*any A<unit>) -> unit}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A<unit>}
 
-  foo(gc(S@<number>{}));
+  foo(gc S@<number>{});
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*any A<number>) -> unit}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A<number>}
 
-  foo(gc(S@<() -> unit>{}));
+  foo(gc S@<() -> unit>{});
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*any A<() -> unit>) -> unit}
   // CHECK-NEXT:   TraitObjectPromoExpr {*any A<() -> unit>}

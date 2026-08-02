@@ -8,7 +8,7 @@ struct S<T> {}
 extension<T> S<T> : A<T> {}
 
 fn foo<T : A<T>>(t: T) {
-  let x: *any A<T> = gc(t);
+  let x: *any A<T> = gc t;
   // CHECK: DeclStmt
   // CHECK-NEXT:   VarDecl @({{.*}}) x {*any A<T>}
   // CHECK-NEXT:     TraitObjectPromoExpr {*any A<T>}
