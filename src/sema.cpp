@@ -1786,7 +1786,7 @@ bool Sema::resolveStructBody(res::Context &ctx,
                                                    astDecl.typeParameters);
 
   EnterNewScopeRAII structBodyScope(this);
-  for (auto &&decl : astDecl.decls) {
+  for (auto &&decl : astDecl.fields) {
     res::Decl *memberDecl = nullptr;
 
     if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
@@ -1821,7 +1821,7 @@ bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
   EnterNewScopeRAII structBodyScope(this);
   bool error = false;
 
-  for (auto &&memberDecl : astDecl.decls) {
+  for (auto &&memberDecl : astDecl.fields) {
     if (const auto *memberFn =
             dynamic_cast<const ast::FunctionDecl *>(memberDecl.get())) {
       for (auto &&d : decl.lookupDirect(memberFn->identifier))

@@ -459,15 +459,15 @@ struct FieldDecl : public Decl {
 
 struct StructDecl : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<Decl>> decls;
+  std::vector<std::unique_ptr<FieldDecl>> fields;
 
   StructDecl(SourceLocation location,
              std::string identifier,
              std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
-             std::vector<std::unique_ptr<Decl>> decls)
+             std::vector<std::unique_ptr<FieldDecl>> fields)
       : Decl(std::move(location), std::move(identifier)),
         typeParameters(std::move(typeParameters)),
-        decls(std::move(decls)) {}
+        fields(std::move(fields)) {}
 
   void dump(size_t level = 0) const override;
 };

@@ -173,8 +173,7 @@ std::unique_ptr<ast::TypeParamDecl> Parser::parseTypeParamDecl() {
 }
 
 // <structDecl>
-//  ::= 'struct' <identifier> <typeParamList>? '{' (<fieldList> |
-//      <functionDecl>)* '}'
+//  ::= 'struct' <identifier> <typeParamList>? '{' <fieldList>? '}'
 //
 // <fieldList>
 //  ::= <fieldDecl> (',' <fieldDecl>)* ','?
@@ -189,43 +188,21 @@ std::unique_ptr<ast::StructDecl> Parser::parseStructDecl() {
   std::string structIdentifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  varOrReturn(typeParamList, parseTypeParamList());
+  varOrReturn(typeParams, parseTypeParamList());
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expected(nextToken.location).with("'{'"));
   eatNextToken(); // eat '{'
 
-  std::vector<std::unique_ptr<ast::Decl>> decls;
+  varOrReturn(fields, parseListWithTrailingComma<ast::FieldDecl>(
+                          &Parser::parseFieldDecl, TokenKind::Rbrace));
 
-  while (true) {
-    std::unique_ptr<ast::Decl> decl = nullptr;
-
-    if (nextToken.kind == TokenKind::Identifier) {
-      decl = parseFieldDecl();
-      if (decl && nextToken.kind == TokenKind::Comma)
-        eatNextToken(); // eat ','
-    } else if (nextToken.kind == TokenKind::KwFn)
-      decl = parseFunctionDecl();
-    else
-      break;
-
-    if (!decl) {
-      synchronize();
-      continue;
-    }
-
-    decls.emplace_back(std::move(decl));
-  }
-
-  expectOrReturn(TokenKind::Rbrace, err::expected4(nextToken.location)
-                                        .with("identifier")
-                                        .with("'fn'")
-                                        .with("'impl'")
-                                        .with("'}'"));
+  expectOrReturn(TokenKind::Rbrace,
+                 err::expected(nextToken.location).with("'}'"));
   eatNextToken(); // eat '}'
 
   return std::make_unique<ast::StructDecl>(
-      location, structIdentifier, std::move(*typeParamList), std::move(decls));
+      location, structIdentifier, std::move(*typeParams), std::move(*fields));
 }
 
 // <traitDecl>
@@ -281,7 +258,7 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
 }
 
 // <typeExtension>
-//  ::= 'extension' <typeParamList> <type> ':' <traitInstance> '{'
+//  ::= 'extension' <typeParamList> <type> ':' <userDefinedType>? '{'
 //      <functionDecl>* '}'
 std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
   expectOrReturn(TokenKind::KwExtension,
@@ -293,10 +270,15 @@ std::unique_ptr<ast::TypeExtension> Parser::parseTypeExtension() {
   varOrReturn(type, parseType());
 
   SourceLocation loc = nextToken.location;
-  expectOrReturn(TokenKind::Colon, err::expected(loc).with("':'"));
-  eatNextToken(); // eat ':'
+  std::unique_ptr<ast::UserDefinedType> trait;
 
-  varOrReturn(trait, parseUserDefinedType());
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat ':'
+
+    trait = parseUserDefinedType();
+    if (!trait)
+      return nullptr;
+  }
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expected(nextToken.location).with("'{'"));

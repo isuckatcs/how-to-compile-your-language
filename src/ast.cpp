@@ -207,8 +207,8 @@ void StructDecl::dump(size_t level) const {
   for (auto &&typeParamDecl : typeParameters)
     typeParamDecl->dump(level + 1);
 
-  for (auto &&decl : decls)
-    decl->dump(level + 1);
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 void TraitDecl::dump(size_t level) const {
@@ -293,7 +293,8 @@ void TypeExtension::dump(size_t level) const {
 
   type->dump(level + 1);
 
-  trait->dump(level + 1);
+  if (trait)
+    trait->dump(level + 1);
 
   for (auto &&fn : functions)
     fn->dump(level + 1);

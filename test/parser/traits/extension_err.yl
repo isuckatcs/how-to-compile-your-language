@@ -2,9 +2,6 @@
 // CHECK: [[# @LINE + 1 ]]:11: error: expected type specifier
 extension {}
 
-// CHECK: [[# @LINE + 1 ]]:13: error: expected ':'
-extension S {}
-
 // CHECK: [[# @LINE + 1 ]]:15: error: expected identifier
 extension S : {}
 

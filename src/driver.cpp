@@ -112,6 +112,7 @@ int main(int argc, const char **argv) {
   Parser parser(reporter, lexer);
   auto [ast, success] = parser.parseSourceFile();
 
+  // FIXME: print nodes in declaration order
   if (options.astDump) {
     for (auto &&decl : ast.decls)
       decl->dump();
