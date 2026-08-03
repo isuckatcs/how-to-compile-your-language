@@ -14,7 +14,7 @@
     ::= ':' <userDefinedType> ('&' <userDefinedType>)*
 
 <structDecl>
-    ::= 'struct' <identifier> <typeParamList>? '{' (<fieldList> | <functionDecl>)* '}'
+    ::= 'struct' <identifier> <typeParamList>? '{' <fieldList>? '}'
 
 <typeParamList>
     ::= '<' <typeParamDecl> (',' <typeParamDecl>)* ','? '>'
@@ -23,13 +23,13 @@
     ::= <identifier> <traitConformance>?
 
 <fieldList>
-    ::= (<fieldDecl> (',' <fieldDecl>)* ','?)?
+    ::= <fieldDecl> (',' <fieldDecl>)* ','?
 
 <fieldDecl>
     ::= <identifier> <typeAnnotation>
 
 <typeExtension> 
-    ::= 'extension' <typeParamList> <type> <userDefinedType> '{' <functionDecl>* '}'
+    ::= 'extension' <typeParamList> <type> (':' <userDefinedType>)? '{' <functionDecl>* '}'
 
 <functionDecl> 
     ::= 'fn' <functionSignature> <block>
