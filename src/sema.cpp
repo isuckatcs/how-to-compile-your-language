@@ -1331,62 +1331,30 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
 
   varOrReturn(type, resolveType(ctx, *extension.type));
+
   res::TraitType *trait = nullptr;
-  if (auto *t = extension.trait.get()) {
-    varOrReturn(resT, resolveType(ctx, *t, false, true, type));
-    trait = resT->getAs<res::TraitType>();
+  if (auto *astTrait = extension.trait.get()) {
+    varOrReturn(resTrait, resolveType(ctx, *astTrait, false, true, type));
+    trait = resTrait->getAs<res::TraitType>();
   }
 
   if (!trait && type->getAs<res::TypeParamType>())
     return err::universalTypeExtension(extension.type->location)
         .report(reporter);
 
-  res::Substitution probeSub;
-  for (auto &&typeParam : typeParams)
-    probeSub[typeParam->getType()] = res::UninferredType::create(ctx);
-
-  auto conflictingExtensions = ctx.getExtensions(
-      ctx.instantiate(type, probeSub),
-      trait ? ctx.instantiate(trait, probeSub)->getAs<res::TraitType>()
-            : nullptr);
-  if (trait && !conflictingExtensions.empty()) {
-    for (auto &&[extensionDecl, sub] : conflictingExtensions)
-      err::conflictingExtension(extension.location)
-          .with(type->getName())
-          .with(trait->getName())
-          .with(extensionDecl->type->getName())
-          .with(extensionDecl->trait->getName())
-          .report(reporter);
-
-    return nullptr;
-  }
-
-  auto *typeExtension = res::TypeExtension::create(
+  auto *resExtension = res::TypeExtension::create(
       ctx, extension.location, std::move(typeParams), type, trait);
-  ctx.translationUnit.extensions.emplace_back(typeExtension);
 
-  EnterNewScopeRAII extensionScope(this, typeExtension);
+  EnterNewScopeRAII extensionScope(this, resExtension);
   for (auto &&fn : extension.functions) {
     if (!trait) {
-      // bool error = false;
-      // for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr)) {
-      //   if (!extension->lookupDirect(fn->identifier).empty()) {
-      //     err::redeclaration(fn->location)
-      //         .with(fn->identifier)
-      //         .report(reporter);
-      //     error = true;
-      //   }
-      // }
-      // if (error)
-      //   continue;
-
       if (!lookupAssociatedDecls(fn->identifier, type).empty()) {
         err::redeclaration(fn->location).with(fn->identifier).report(reporter);
         continue;
       }
 
       if (auto *memberFn = resolveFunctionDecl(ctx, *fn))
-        typeExtension->insertDecl(memberFn);
+        resExtension->insertDecl(memberFn);
 
       continue;
     }
@@ -1459,45 +1427,63 @@ Sema::resolveTypeExtension(res::Context &ctx,
     }
 
     if (insertDeclToCurrentScope(implFn))
-      typeExtension->insertDecl(implFn);
+      resExtension->insertDecl(implFn);
   }
 
-  if (typeExtension->decls.size() != extension.functions.size())
-    return nullptr;
-
-  return typeExtension;
+  return resExtension;
 }
 
 bool Sema::resolveExtensionBody(res::Context &ctx,
                                 res::TypeExtension *extension,
                                 const ast::TypeExtension &astExtension) {
   bool error = false;
-  if (auto *trait = extension->trait) {
-    for (auto &&requirement : ctx.getDirectConformance(trait)) {
-      res::Type *type = extension->type;
-      if (ctx.getExtensions(type, requirement).empty()) {
-        err::missingRequirement(extension->location)
-            .with(type->getName())
-            .with(trait->getName())
-            .with(type->getName())
-            .with(requirement->getName())
-            .report(reporter);
-        error = true;
-      }
+  res::Type *type = extension->type;
+
+  if (res::TraitType *trait = extension->trait) {
+    res::Substitution extSub;
+    for (auto &&typeParam : extension->typeParams) {
+      auto *tpType = typeParam->getType();
+      auto *probeType = res::UninferredType::create(ctx);
+
+      extSub[tpType] = probeType;
+
+      for (auto &&trait : ctx.getDirectConformance(tpType))
+        probeType->addObligation(
+            ctx.instantiate(trait, extSub)->getAs<res::TraitType>());
     }
+
+    for (auto &&[conflict, sub] : ctx.getExtensions(
+             ctx.instantiate(type, extSub),
+             ctx.instantiate(trait, extSub)->getAs<res::TraitType>())) {
+      if (conflict == extension)
+        break;
+
+      err::conflictingExtension(extension->location)
+          .with(type->getName())
+          .with(trait->getName())
+          .with(conflict->type->getName())
+          .with(conflict->trait->getName())
+          .report(reporter);
+      error = true;
+    }
+
+    for (auto &&requirement : ctx.getDirectConformance(trait)) {
+      if (!ctx.getExtensions(type, requirement).empty())
+        continue;
+
+      err::missingRequirement(extension->location)
+          .with(type->getName())
+          .with(trait->getName())
+          .with(type->getName())
+          .with(requirement->getName())
+          .report(reporter);
+      error = true;
+    }
+
+    error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
   }
 
-  EnterNewScopeRAII extensionParamScope(this, extension);
-  for (auto &&tp : extension->typeParams)
-    insertDeclToCurrentScope(tp);
-
-  EnterNewScopeRAII extensionScope(this);
-  for (int i = 0; i < astExtension.functions.size(); ++i)
-    error |=
-        !resolveFunctionBody(ctx, *astExtension.functions[i],
-                             extension->decls[i]->getAs<res::FunctionDecl>());
-
-  error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
+  error |= extension->decls.size() != astExtension.functions.size();
   return !error;
 }
 
@@ -1594,9 +1580,6 @@ bool Sema::resolveGenericParamsInCurrentScope(
 
 bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                                 res::TypeExtension *extension) {
-  if (!extension->trait)
-    return true;
-
   bool error = false;
 
   for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {
@@ -1889,6 +1872,8 @@ res::Context *Sema::resolveAST() {
   bool error = false;
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
+  std::vector<std::pair<res::TypeExtension *, const ast::TypeExtension *>>
+      resExtensions;
 
   for (auto &&decl : ast->decls) {
     res::Decl *rd = nullptr;
@@ -1924,8 +1909,19 @@ res::Context *Sema::resolveAST() {
 
   error |= hasSelfContainingStructs(ctx);
 
-  for (auto &&extension : ast->extensions)
-    error |= !resolveTypeExtension(ctx, *extension);
+  for (auto &&extension : ast->extensions) {
+    if (auto *resExtension = resolveTypeExtension(ctx, *extension)) {
+      ctx.translationUnit.extensions.emplace_back(resExtension);
+      resExtensions.emplace_back(resExtension, extension.get());
+      continue;
+    }
+
+    error = true;
+  }
+
+  for (auto &&[resExtension, extension] : resExtensions)
+    error |= !resolveExtensionBody(ctx, resExtension, *extension);
+
   error |= !checkDelayedUserDefinedTypes(ctx);
 
   auto *builtinGCCollect = createBuiltinGCCollect(ctx);
@@ -1947,11 +1943,17 @@ res::Context *Sema::resolveAST() {
   if (error)
     return nullptr;
 
-  const auto &astExtensions = ast->extensions;
-  auto resExtensions = ctx.translationUnit.extensions;
+  for (auto &&[resExt, astExt] : resExtensions) {
+    EnterNewScopeRAII extensionParamScope(this, resExt);
+    for (auto &&tp : resExt->typeParams)
+      insertDeclToCurrentScope(tp);
 
-  for (int i = 0; i < astExtensions.size(); ++i)
-    error |= !resolveExtensionBody(ctx, resExtensions[i], *astExtensions[i]);
+    EnterNewScopeRAII extensionScope(this);
+    for (int i = 0; i < astExt->functions.size(); ++i)
+      error |=
+          !resolveFunctionBody(ctx, *astExt->functions[i],
+                               resExt->decls[i]->getAs<res::FunctionDecl>());
+  }
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *rs = resDecl->getAs<res::StructDecl>())

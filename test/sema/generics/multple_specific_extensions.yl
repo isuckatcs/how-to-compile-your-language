@@ -1,3 +1,4 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S<T> {}
 
 extension<T> S<T> {
@@ -7,12 +8,14 @@ extension<T> S<T> {
 }
 
 extension S<unit> {
+  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
   fn foo(self: &Self) {
     println(123);
   }
 }
 
 extension S<number> {
+  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
   fn foo(self: &Self) {
     println(456);
   }

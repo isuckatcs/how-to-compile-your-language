@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B {}
+
+extension<T: B> T : A {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A' conflicts with extension 'T : A'
+extension number : A {}
+
+extension number : B {}
+
+fn main() {}
