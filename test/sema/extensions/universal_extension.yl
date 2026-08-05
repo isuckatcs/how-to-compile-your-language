@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+// CHECK: [[# @LINE + 1 ]]:14: error: expected a trait extension or an extension of a concrete type
+extension<T> T {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: expected a trait extension or an extension of a concrete type
+extension<U : A> U {}
+
+fn main () {}
