@@ -3,7 +3,9 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n'
 struct S<T> {
   x: T
+}
 
+extension<T> S<T> {
   fn foo(self: &Self, x: T): T {
     return self.x;
   }

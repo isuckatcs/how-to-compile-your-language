@@ -3,7 +3,9 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '6\n3\n'
 struct S {
   x: number
+}
 
+extension S {
   fn foo(self: &mut Self): Self {
     self.x = 3;
     return self;

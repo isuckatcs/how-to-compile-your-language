@@ -1,10 +1,12 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct S {
+struct S {}
+
+extension S {
   fn create(): Self {
     return S{};
   }
 }
-// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK: TypeExtension S
 // CHECK-NEXT:   FunctionDecl @({{.*}}) create {() -> S}
 // CHECK-NEXT:     Block
 // CHECK-NEXT:       ReturnStmt

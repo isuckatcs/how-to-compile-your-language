@@ -1,7 +1,11 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  x:number
+  x: number
+}
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
 
+extension S {
   fn foo(self: &Self) {
     println(self.x);
   }
@@ -10,8 +14,7 @@ struct S {
     println(self.x);
   }
 }
-// CHECK: StructDecl @({{.*}}) S {S}
-// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT: TypeExtension S
 // CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(&S) -> unit}
 // CHECK-NEXT:     ParamDecl @({{.*}}) self {&S}
 // CHECK-NEXT:     Block

@@ -1,5 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct S {
+struct S {}
+
+extension S {
   fn foo() {}
 
   fn bar(x: number) {}

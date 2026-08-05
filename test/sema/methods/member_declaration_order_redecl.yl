@@ -2,16 +2,18 @@
 struct S {
   x: number,
   y: number,
+  z: number,
+  foo: number,
+}
 
+extension S {
   // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'x'
   fn x() {}
+}
 
-  z: number,
-
+extension S {
+  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
   fn foo() {}
-
-  // CHECK: [[# @LINE + 1 ]]:3: error: redeclaration of 'foo'
-  foo: number,
 }
 
 fn main() {}

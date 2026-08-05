@@ -2,8 +2,8 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '5\n'
 struct S {
-  x: number
-  y: number
+  x: number,
+  y: number,
 }
 
 fn main() {

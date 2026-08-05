@@ -1,13 +1,17 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '0\n1\n1\n'
-struct S {
+struct S {}
+
+extension S {
   fn foo<U>(self: &Self, x: U) {
     println(0);
   }
 }
 
-struct S2<T> {
+struct S2<T> {}
+
+extension<T> S2<T> {
   fn foo<U>(x: U) {
     println(1);
   }

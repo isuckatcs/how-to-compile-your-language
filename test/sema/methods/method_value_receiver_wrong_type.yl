@@ -1,7 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
   x: number
+}
 
+extension S {
   // CHECK: [[# @LINE + 1 ]]:10: error: 'self' can only have '&Self' or '&mut Self' types
   fn foo(self: number) {}
   

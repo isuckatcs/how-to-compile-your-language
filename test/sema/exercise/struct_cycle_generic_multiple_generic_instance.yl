@@ -5,7 +5,7 @@ struct A<T> {
 
 // CHECK: [[# @LINE + 1 ]]:8: error: struct 'S' contains itself
 struct S {
-  ptr1: A<unit>
+  ptr1: A<unit>,
   ptr2: A<S>
 }
 

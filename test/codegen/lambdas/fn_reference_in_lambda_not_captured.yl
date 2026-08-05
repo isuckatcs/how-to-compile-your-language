@@ -1,7 +1,9 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
-struct S {
+struct S {}
+
+extension S {
   fn foo(x: number) {
     println(x);
   }

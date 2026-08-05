@@ -1,9 +1,13 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct S {
+struct S {}
+
+extension S {
   fn foo<U>(self: &Self, x: U) {}
 }
 
-struct S2<T> {
+struct S2<T> {}
+
+extension<T> S2<T> {
   fn foo<U>(x: U) {}
 }
 

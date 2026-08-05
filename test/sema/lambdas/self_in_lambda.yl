@@ -8,7 +8,9 @@ trait A {
   }
 }
 
-struct S {
+struct S {}
+
+extension S {
   fn foo() {
     ->(){
       Self::foo;

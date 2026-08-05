@@ -3,10 +3,10 @@ struct Empty {}
 // CHECK: StructDecl @({{.*}}) Empty {Empty}
 
 struct S {
-  x: Empty
-  y: Empty
-  z: Empty
-  w: Empty
+  x: Empty,
+  y: Empty,
+  z: Empty,
+  w: Empty,
 }
 // CHECK-NEXT: StructDecl @({{.*}}) S {S}
 // CHECK-NEXT:   FieldDecl @({{.*}}) x {Empty}

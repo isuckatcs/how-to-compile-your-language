@@ -8,7 +8,7 @@ struct S {}
 extension S : A {}
 
 struct S2 {
-  x: *any A
+  x: *any A,
   y: *any B
 }
 

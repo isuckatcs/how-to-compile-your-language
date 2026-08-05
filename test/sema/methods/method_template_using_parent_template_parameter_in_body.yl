@@ -1,7 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn foo<T>() {}
 
-struct S<T> {
+struct S<T> {}
+
+extension<T> S<T> {
   fn foo<U>() {
     foo@<T>();
   }

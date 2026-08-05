@@ -1,5 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct shadowed<T, U> {
+struct shadowed<T, U> {}
+
+extension<T, U> shadowed<T, U> {
   fn method() {}
 }
 

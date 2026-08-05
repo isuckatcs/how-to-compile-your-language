@@ -5,7 +5,9 @@ fn foo<T>(x: T): T {
   return x;
 }
 
-struct S<T> {
+struct S<T> {}
+
+extension<T> S<T> {
   fn foo<U>(x: T, y: U) {
     foo@<(T, U) -> U>(S::bar)(x, y);
   }

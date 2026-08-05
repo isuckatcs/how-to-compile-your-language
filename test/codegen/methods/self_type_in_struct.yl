@@ -7,7 +7,9 @@ fn foo<T>(t: T) {
 
 struct S {
   x: number,
+}
 
+extension S {
   fn create(): Self {
     println(0);
     return Self{ x : 1 };

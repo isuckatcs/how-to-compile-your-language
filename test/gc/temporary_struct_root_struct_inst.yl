@@ -3,7 +3,9 @@
 struct S {
   n: S2,
   u: unit
+}
 
+extension S {
   fn print(self: &Self) {
     println(*self.n.n);
   }

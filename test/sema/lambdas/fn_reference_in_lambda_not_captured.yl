@@ -1,5 +1,7 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
-struct S {
+struct S {}
+
+extension S {
   fn foo(x: number) {}
 }
 
@@ -9,10 +11,10 @@ fn main() {
     f(x);
   };
   // CHECK: LambdaExpr {(number) -> unit}
-  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:7:11) {(closure@<source>:7:11)}
-  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(closure@<source>:7:11)) -> unit}
+  // CHECK-NEXT:   StructDecl @({{.*}}) (closure@{{.*}}) {(closure@{{.*}})}
+  // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(closure@{{.*}})) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
-  // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:7:11)}
+  // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@{{.*}})}
   // CHECK-NEXT:       Block
   // CHECK-NEXT:         DeclStmt
   // CHECK-NEXT:           VarDecl @({{.*}}) f {(number) -> unit}

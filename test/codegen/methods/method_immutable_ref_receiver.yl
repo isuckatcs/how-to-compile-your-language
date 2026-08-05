@@ -3,7 +3,9 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n246\n123\n'
 struct S {
   x: number
+}
 
+extension S {
   fn foo(self: &Self): Self {
     println(self.x);
     return self;

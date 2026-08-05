@@ -1,0 +1,30 @@
+struct S<T> {}
+
+extension<T> S<T> {
+  fn foo(self: &Self) {
+    println(123);
+  }
+}
+
+extension S<unit> {
+  fn foo(self: &Self) {
+    println(123);
+  }
+}
+
+extension S<number> {
+  fn foo(self: &Self) {
+    println(456);
+  }
+}
+
+fn foo<T>() {
+  let s = S@<T>{};
+  s.foo();
+}
+
+fn main() {
+  foo@<unit>();
+  foo@<number>();
+  foo@<(number) -> unit>();
+}

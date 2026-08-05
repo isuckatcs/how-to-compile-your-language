@@ -4,22 +4,24 @@
 struct S {
   x: number,
   y: number,
+  z: number,
+  w: number,
+}
 
+extension S {
   fn foo() {}
   // CHECK: define void @_YS1S3foo(ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
+}
 
-  z: number,
-
+extension S {
   fn bar() {}
   // CHECK: define void @_YS1S3bar(ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
-
-  w: number,
 }
 
 fn main() {

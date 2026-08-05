@@ -1,10 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {}
 
-struct S {
+struct S {}
+// CHECK: StructDecl @({{.*}}) S {S}
+
+extension S {
   fn A() {}
 }
-// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT: TypeExtension S
 // CHECK-NEXT:   FunctionDecl @({{.*}}) A {() -> unit}
 // CHECK-NEXT:     Block
 

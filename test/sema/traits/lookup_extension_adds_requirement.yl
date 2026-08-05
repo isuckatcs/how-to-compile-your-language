@@ -5,11 +5,12 @@ trait A {
 trait B<T> {}
 
 extension<T : A> T : A {}
+
 extension<T : B<number>> T : B<number> {}
+
 extension<T : B<number> & B<unit>> T : B<unit> {}
+
+// CHECK: [[# @LINE + 1 ]]:36: error: extension 'U : B<unit>' conflicts with extension 'T : B<unit>'
 extension<T, U : B<T> & B<unit>> U : B<unit> {}
 
-fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
-  123.foo();
-}
+fn main() {}

@@ -1,7 +1,9 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S<T> {
   x: T
+}
 
+extension<T> S<T> {
   fn foo(self: &Self, x: T): T {
     return self.x;
   }

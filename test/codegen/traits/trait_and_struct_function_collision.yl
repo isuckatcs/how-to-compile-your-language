@@ -5,7 +5,9 @@ trait A {
   fn foo();
 }
 
-struct S {
+struct S {}
+
+extension S {
   fn foo<T>() {
     println(123);
   }

@@ -5,7 +5,9 @@ fn foo<T>() {
   println(123);
 }
 
-struct S<T> {
+struct S<T> {}
+
+extension<T> S<T> {
   fn foo<U>() {
     foo@<T>();
   }

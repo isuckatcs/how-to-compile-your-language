@@ -13,7 +13,9 @@ trait A {
   }
 }
 
-struct S {
+struct S {}
+
+extension S {
   fn bar() {
     println(456);
   }

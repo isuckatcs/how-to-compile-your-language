@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  x: number
+  x: number,
   y: number
 }
 
