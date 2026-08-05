@@ -99,7 +99,6 @@ public:
 
   std::vector<std::pair<TypeExtension *, Substitution>>
   getEveryExtension(Type *type, bool probeOnly = false);
-
   std::vector<std::pair<TypeExtension *, Substitution>>
   getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
 
@@ -109,6 +108,8 @@ public:
 
   Type *instantiate(Type *t, Substitution sub);
   Substitution instantiate(Substitution s, Substitution sub);
+
+  Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

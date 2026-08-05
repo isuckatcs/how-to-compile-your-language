@@ -450,19 +450,9 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     kind = res::Expr::Kind::MutLvalue;
 
   auto *gdc = decl->getAs<res::GenericDeclContext>();
-  if (gdc) {
-    for (auto &&typeParam : gdc->typeParams) {
-      auto *tpType = typeParam->getType();
-      auto *subType = res::UninferredType::create(ctx);
-
-      sub[tpType] = subType;
-
-      for (auto &&trait : ctx.getDirectConformance(tpType)) {
-        auto *instTrait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
-        subType->addObligation(instTrait);
-      }
-    }
-  }
+  if (gdc)
+    for (auto &&[from, to] : ctx.getUninferredInstantiation(gdc))
+      sub[from] = to;
 
   if (auto *typeArgList = dre->typeArgumentList.get()) {
     if (!gdc || gdc->typeParams.empty())
@@ -525,22 +515,17 @@ Sema::lookupAssociatedDecls(std::string identifier,
   if (!candidates.empty())
     return candidates;
 
-  // FIXME: prioritize non-trait methods
-  auto extensionsWithoutTrait = ctx.getExtensions(type, nullptr);
-  for (auto &&[extension, sub] : extensionsWithoutTrait)
+  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
     for (auto &&decl : extension->lookupDirect(identifier))
       candidates.emplace_back(decl, sub);
 
   if (!candidates.empty())
     return candidates;
 
-  auto extensions = ctx.getEveryExtension(type);
-
-  for (auto &&[extension, sub] : extensions) {
+  for (auto &&[extension, sub] : ctx.getEveryExtension(type))
     if (auto *trait = extension->trait)
       for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
         candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
-  }
 
   return candidates;
 }
@@ -1440,21 +1425,10 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
   res::Type *type = extension->type;
 
   if (res::TraitType *trait = extension->trait) {
-    res::Substitution extSub;
-    for (auto &&typeParam : extension->typeParams) {
-      auto *tpType = typeParam->getType();
-      auto *probeType = res::UninferredType::create(ctx);
-
-      extSub[tpType] = probeType;
-
-      for (auto &&trait : ctx.getDirectConformance(tpType))
-        probeType->addObligation(
-            ctx.instantiate(trait, extSub)->getAs<res::TraitType>());
-    }
-
+    res::Substitution testSub = ctx.getUninferredInstantiation(extension);
     for (auto &&[conflict, sub] : ctx.getExtensions(
-             ctx.instantiate(type, extSub),
-             ctx.instantiate(trait, extSub)->getAs<res::TraitType>())) {
+             ctx.instantiate(type, testSub),
+             ctx.instantiate(trait, testSub)->getAs<res::TraitType>())) {
       if (conflict == extension)
         break;
 
