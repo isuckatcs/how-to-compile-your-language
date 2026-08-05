@@ -570,8 +570,10 @@ TypeExtension::TypeExtension(SourceLocation location,
       trait(trait) {}
 
 void TypeExtension::dump(size_t level) const {
-  std::cerr << indent(level) << "TypeExtension " << type->getName() << " : "
-            << trait->getName() << '\n';
+  std::cerr << indent(level) << "TypeExtension " << type->getName();
+  if (trait)
+    std::cerr << " : " << trait->getName();
+  std::cerr << '\n';
 
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
