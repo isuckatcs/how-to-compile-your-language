@@ -95,8 +95,10 @@ std::vector<std::string> Context::doUnify(
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
-  std::vector<std::pair<TypeExtension *, Substitution>> foundExtensions;
+Context::getEveryExtension(Type *type, bool probeOnly) {
+  std::vector<std::pair<TypeExtension *, Substitution>> exactMatches;
+  std::vector<std::pair<TypeExtension *, Substitution>> probedMatches;
+
   for (auto &&extension : extensions) {
     if (extensionStack.count(extension.get()))
       continue;
@@ -115,20 +117,46 @@ Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
             instantiate(trait, extSub)->getAs<res::TraitType>());
     }
 
-    if (trait) {
-      Type *probedTrait = instantiate(extension->trait, extSub);
-      if (!unify(trait, probedTrait, probeOnly).empty())
-        continue;
-    }
-
-    Type *probedType = instantiate(extension->type, extSub);
-    if (!unify(type, probedType, probeOnly).empty())
+    if (!unify(type, instantiate(extension->type, extSub), probeOnly).empty())
       continue;
 
-    foundExtensions.emplace_back(extension.get(), extSub);
+    // if (eq(type, extension->type))
+    //   exactMatches.emplace_back(extension.get(), extSub);
+    // else
+    probedMatches.emplace_back(extension.get(), extSub);
   }
 
-  return foundExtensions;
+  if (!exactMatches.empty())
+    return exactMatches;
+
+  return probedMatches;
+}
+
+std::vector<std::pair<TypeExtension *, Substitution>>
+Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
+  std::vector<std::pair<TypeExtension *, Substitution>> exactMatches;
+  std::vector<std::pair<TypeExtension *, Substitution>> probedMatches;
+
+  for (auto &&[extension, sub] : getEveryExtension(type)) {
+    if (!extension->trait && !trait) {
+      exactMatches.emplace_back(extension, sub);
+      continue;
+    }
+
+    if (extension->trait && trait) {
+      // if (eq(trait, extension->trait))
+      //   exactMatches.emplace_back(extension, sub);
+
+      // else
+      if (unify(trait, instantiate(extension->trait, sub), probeOnly).empty())
+        probedMatches.emplace_back(extension, sub);
+    }
+  }
+
+  if (!exactMatches.empty())
+    return exactMatches;
+
+  return probedMatches;
 }
 
 bool Context::eq(Type *t1, Type *t2) const {
@@ -167,9 +195,16 @@ std::vector<std::string> Context::solveConformance(Type *type,
                                                    TraitType *requirement) {
   std::vector<TraitType *> candidates;
 
-  for (auto &&trait : getEveryConformance(type))
-    if (unify(trait, requirement, true).empty())
-      candidates.emplace_back(trait);
+  if (auto *u = type->getAs<res::UninferredType>())
+    for (auto &&o : u->obligations)
+      if (unify(o, requirement, true).empty())
+        candidates.emplace_back(o);
+
+  if (candidates.empty()) {
+    for (auto &&trait : getEveryConformance(type))
+      if (unify(trait, requirement, true).empty())
+        candidates.emplace_back(trait);
+  }
 
   if (candidates.empty()) {
     auto extensions = getExtensions(type->getRootType(), requirement, true);

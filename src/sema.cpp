@@ -509,6 +509,8 @@ Sema::lookupAssociatedDecls(std::string identifier,
     return candidates;
   }
 
+  // FIXME: how to decide between fields and associated functions? This
+  // prioritizes fields.
   if (auto *s = type->getAs<res::StructType>())
     for (auto &&decl : s->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(decl, type->getSub());
@@ -523,12 +525,21 @@ Sema::lookupAssociatedDecls(std::string identifier,
   if (!candidates.empty())
     return candidates;
 
-  auto extensions = ctx.getExtensions(type, trait);
+  // FIXME: prioritize non-trait methods
+  auto extensionsWithoutTrait = ctx.getExtensions(type, nullptr);
+  for (auto &&[extension, sub] : extensionsWithoutTrait)
+    for (auto &&decl : extension->lookupDirect(identifier))
+      candidates.emplace_back(decl, sub);
+
+  if (!candidates.empty())
+    return candidates;
+
+  auto extensions = ctx.getEveryExtension(type);
 
   for (auto &&[extension, sub] : extensions) {
-    auto *trait = extension->trait;
-    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
-      candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
+    if (auto *trait = extension->trait)
+      for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+        candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
   }
 
   return candidates;
@@ -1357,17 +1368,22 @@ Sema::resolveTypeExtension(res::Context &ctx,
   EnterNewScopeRAII extensionScope(this, typeExtension);
   for (auto &&fn : extension.functions) {
     if (!trait) {
-      bool error = false;
-      for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr)) {
-        if (!extension->lookupDirect(fn->identifier).empty()) {
-          err::redeclaration(fn->location)
-              .with(fn->identifier)
-              .report(reporter);
-          error = true;
-        }
-      }
-      if (error)
+      // bool error = false;
+      // for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr)) {
+      //   if (!extension->lookupDirect(fn->identifier).empty()) {
+      //     err::redeclaration(fn->location)
+      //         .with(fn->identifier)
+      //         .report(reporter);
+      //     error = true;
+      //   }
+      // }
+      // if (error)
+      //   continue;
+
+      if (!lookupAssociatedDecls(fn->identifier, type).empty()) {
+        err::redeclaration(fn->location).with(fn->identifier).report(reporter);
         continue;
+      }
 
       if (auto *memberFn = resolveFunctionDecl(ctx, *fn))
         typeExtension->insertDecl(memberFn);
