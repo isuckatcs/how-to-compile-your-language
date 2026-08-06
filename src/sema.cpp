@@ -874,17 +874,21 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   auto *paramType = res::PointerType::create(ctx, closure->getType(), false);
   paramTypes.emplace_back(paramType);
 
-  auto *fn = res::FunctionDecl::create(ctx, loc, lambdaFunctionId, closure,
+  auto *ext =
+      res::TypeExtension::create(ctx, loc, std::vector<res::TypeParamDecl *>{},
+                                 closure->getType(), nullptr);
+
+  auto *fn = res::FunctionDecl::create(ctx, loc, lambdaFunctionId, ext,
                                        std::vector<res::TypeParamDecl *>{});
   fn->setType(res::FunctionType::create(ctx, paramTypes, returnTy));
-  closure->insertDecl(fn);
+  ext->insertDecl(fn);
 
   auto *p = res::ParamDecl::create(ctx, loc, "closure", fn, false);
   p->setType(paramType);
   resolvedParams.emplace_back(p);
   fn->setParams(std::move(resolvedParams));
 
-  auto *resLambdaExpr = res::LambdaExpr::create(ctx, loc, closure, fn);
+  auto *resLambdaExpr = res::LambdaExpr::create(ctx, loc, closure, ext);
   resLambdaExpr->setType(lambdaTy);
 
   std::vector<const ast::Expr *> pendingCaptureInits;

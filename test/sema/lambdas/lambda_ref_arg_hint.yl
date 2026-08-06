@@ -3,6 +3,7 @@ fn main() {
   let f: (&number) -> unit = ->(x) { println(x); };
   // CHECK: LambdaExpr {(&number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@{{.*}}) {(closure@{{.*}})}
+  // CHECK-NEXT:   TypeExtension (closure@{{.*}})
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(&number, *(closure@{{.*}})) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {&number}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@{{.*}})}
@@ -15,6 +16,7 @@ fn main() {
   let f2: (&mut number) -> unit = ->(x) { println(x); };
   // CHECK: LambdaExpr {(&mut number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@{{.*}}) {(closure@{{.*}})}
+  // CHECK-NEXT:   TypeExtension (closure@{{.*}})
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(&mut number, *(closure@{{.*}})) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {&mut number}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@{{.*}})}

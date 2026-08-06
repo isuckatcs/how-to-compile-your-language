@@ -11,5 +11,7 @@ fn main() {
   // CHECK: LambdaExpr {() -> number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) s {S}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:10:3) {(closure@<source>:10:3)}
+  // CHECK-NEXT:     FieldDecl @({{.*}}) s {S}
+  // CHECK-NEXT:   TypeExtension (closure@<source>:10:3)
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:10:3)) -> number}
 }

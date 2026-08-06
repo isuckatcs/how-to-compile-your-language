@@ -12,6 +12,7 @@ fn main() {
   };
   // CHECK: LambdaExpr {(number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@{{.*}}) {(closure@{{.*}})}
+  // CHECK-NEXT:   TypeExtension (closure@{{.*}})
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(number, *(closure@{{.*}})) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {number}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@{{.*}})}

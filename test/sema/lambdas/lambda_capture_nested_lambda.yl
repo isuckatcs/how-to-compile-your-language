@@ -10,6 +10,8 @@ fn main() {
   // CHECK: LambdaExpr {() -> unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:5:3) {(closure@<source>:5:3)}
+  // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
+  // CHECK-NEXT:   TypeExtension (closure@<source>:5:3)
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:5:3)) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:5:3)}
   // CHECK-NEXT:       Block
@@ -18,6 +20,8 @@ fn main() {
   // CHECK-NEXT:             UnaryOperator '*' {(closure@<source>:5:3)}
   // CHECK-NEXT:               DeclRefExpr @({{.*}}) closure {*(closure@<source>:5:3)}
   // CHECK-NEXT:           StructDecl @({{.*}}) (closure@<source>:6:5) {(closure@<source>:6:5)}
+  // CHECK-NEXT:             FieldDecl @({{.*}}) x {number}
+  // CHECK-NEXT:           TypeExtension (closure@<source>:6:5)
   // CHECK-NEXT:             FunctionDecl @({{.*}}) __builtin_lambda_call {(*(closure@<source>:6:5)) -> unit}
   // CHECK-NEXT:               ParamDecl @({{.*}}) closure {*(closure@<source>:6:5)}
   // CHECK-NEXT:               Block
@@ -26,6 +30,4 @@ fn main() {
   // CHECK-NEXT:                   MemberExpr @({{.*}}) x {number}
   // CHECK-NEXT:                     UnaryOperator '*' {(closure@<source>:6:5)}
   // CHECK-NEXT:                       DeclRefExpr @({{.*}}) closure {*(closure@<source>:6:5)}
-  // CHECK-NEXT:             FieldDecl @({{.*}}) x {number}
-  // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
 }

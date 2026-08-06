@@ -705,6 +705,7 @@ private:
 struct LambdaExpr final : public Creatable<LambdaExpr>, public Expr {
   res::StructDecl *closure;
   std::vector<res::Expr *> fieldInits;
+  res::TypeExtension *ext;
   res::FunctionDecl *method;
 
   void dump(size_t level = 0) const override;
@@ -712,7 +713,7 @@ struct LambdaExpr final : public Creatable<LambdaExpr>, public Expr {
 private:
   LambdaExpr(SourceLocation location,
              res::StructDecl *closure,
-             res::FunctionDecl *method,
+             res::TypeExtension *ext,
              std::vector<res::Expr *> fieldInits = {});
   friend Creatable<LambdaExpr>;
 };

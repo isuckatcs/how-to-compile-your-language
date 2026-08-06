@@ -3,6 +3,7 @@ fn main() {
   ->(x: &mut number) { x = 1; };
   // CHECK: LambdaExpr {(&mut number) -> unit}
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:3:3) {(closure@<source>:3:3)}
+  // CHECK-NEXT:   TypeExtension (closure@<source>:3:3)
   // CHECK-NEXT:     FunctionDecl @({{.*}}) __builtin_lambda_call {(&mut number, *(closure@<source>:3:3)) -> unit}
   // CHECK-NEXT:       ParamDecl @({{.*}}) x {&mut number}
   // CHECK-NEXT:       ParamDecl @({{.*}}) closure {*(closure@<source>:3:3)}

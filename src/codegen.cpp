@@ -1299,10 +1299,7 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
   res::Type *declCtxType = nullptr;
   const res::GenericDeclContext *declCtx = fn.declContext;
 
-  // FIXME: this branch is unreachable
-  if (auto *sd = dynamic_cast<const res::StructDecl *>(declCtx))
-    declCtxType = getMonoType(sd->getType());
-  else if (auto *e = dynamic_cast<const res::TypeExtension *>(declCtx))
+  if (auto *e = dynamic_cast<const res::TypeExtension *>(declCtx))
     declCtxType = e->trait ? getMonoType(e->trait) : getMonoType(e->type);
   else if (auto *t = dynamic_cast<const res::TraitDecl *>(declCtx))
     declCtxType = getMonoType(t->getType());

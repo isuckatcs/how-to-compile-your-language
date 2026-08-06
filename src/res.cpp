@@ -889,12 +889,16 @@ void GCExpr::dump(size_t level) const {
 
 LambdaExpr::LambdaExpr(SourceLocation location,
                        res::StructDecl *closure,
-                       res::FunctionDecl *method,
+                       res::TypeExtension *ext,
                        std::vector<res::Expr *> fieldInits)
     : Expr(location, Expr::Kind::Rvalue),
       closure(closure),
-      method(method),
-      fieldInits(std::move(fieldInits)) {}
+      ext(ext),
+      fieldInits(std::move(fieldInits)) {
+  // FIXME: revisit the lambda node and logic, and allow specifying decl types
+  // for the decl context
+  method = (FunctionDecl *)ext->decls[0];
+}
 
 void LambdaExpr::dump(size_t level) const {
   std::cerr << indent(level) << "LambdaExpr"
@@ -904,6 +908,7 @@ void LambdaExpr::dump(size_t level) const {
     init->dump(level + 1);
 
   closure->dump(level + 1);
+  ext->dump(level + 1);
 }
 
 ImplicitPtrToRefDecay::ImplicitPtrToRefDecay(SourceLocation location,
