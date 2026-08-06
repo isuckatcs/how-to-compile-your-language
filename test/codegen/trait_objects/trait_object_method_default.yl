@@ -1,6 +1,10 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+
+// CHECK: @vtable.T1AGS1SE = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
+// CHECK: @vtable.T1AGS2S2E = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
+
 trait A {
   fn foo(self: &Self) {
     println(123);
@@ -17,10 +21,12 @@ extension S2 : A {
   fn foo(self: &Self) {
     println(456);
   }
+  // CHECK: define void @_YT1AGS2S2E3foo(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
 }
-
-// CHECK: @vtable.T1AGS1SE = internal constant [1 x ptr] [ptr @_YT1AGS1SE3foo]
-// CHECK: @vtable.T1AGS2S2E = internal constant [1 x ptr] [ptr @_YT1AGS2S2E3foo]
 
 fn main() {
   mut p: *any A = gc S {};
@@ -32,11 +38,5 @@ fn main() {
 // CHECK: define void @_YT1AGS1SE3foo(ptr %self, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }
-
-// CHECK: define void @_YT1AGS2S2E3foo(ptr %self, ptr %closure) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

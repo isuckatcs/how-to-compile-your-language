@@ -13,12 +13,27 @@ extension S : A<number> {
   fn foo(self: &Self, x: number) {
     println(self.x * x);
   }
+  // CHECK: define void @_YT1AGS1SnE3foo(ptr %self, double %x, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+  // CHECK-NEXT:   %1 = load double, ptr %0, align 8
+  // CHECK-NEXT:   %2 = fmul double %1, %x
+  // CHECK-NEXT:   call void @println(double %2, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
 }
 
 extension S : A<unit> {
   fn foo(self: &Self, x: unit) {
     println(self.x);
   }
+  // CHECK: define void @_YT1AGS1SuE3foo(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
+  // CHECK-NEXT:   %1 = load double, ptr %0, align 8
+  // CHECK-NEXT:   call void @println(double %1, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
 }
 
 fn main() {
@@ -30,20 +45,3 @@ fn main() {
   @<S : A<number>>::foo(s, 2);
   // CHECK-NEXT: call void @_YT1AGS1SnE3foo(ptr %s, double 2.000000e+00, ptr null)
 }
-
-// CHECK: define void @_YT1AGS1SuE3foo(ptr %self, ptr %closure) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
-// CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   call void @println(double %1, ptr null)
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }
-
-// CHECK: define void @_YT1AGS1SnE3foo(ptr %self, double %x, ptr %closure) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %self, i32 0, i32 0
-// CHECK-NEXT:   %1 = load double, ptr %0, align 8
-// CHECK-NEXT:   %2 = fmul double %1, %x
-// CHECK-NEXT:   call void @println(double %2, ptr null)
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }

@@ -17,6 +17,11 @@ extension S : A {
   fn foo() {
     println(456);
   }
+  // CHECK: define void @_YT1AGS1SE3foo(ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
 }
 
 fn main() {
@@ -33,11 +38,5 @@ fn main() {
 // CHECK: define void @_YS1S3fooGS1SE(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }
-
-// CHECK: define void @_YT1AGS1SE3foo(ptr %closure) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
