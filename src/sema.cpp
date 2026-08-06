@@ -499,15 +499,6 @@ Sema::lookupAssociatedDecls(std::string identifier,
     return candidates;
   }
 
-  // FIXME: how to decide between fields and associated functions? This
-  // prioritizes fields.
-  if (auto *s = type->getAs<res::StructType>())
-    for (auto &&decl : s->getDecl()->lookupDirect(identifier))
-      candidates.emplace_back(decl, type->getSub());
-
-  if (!candidates.empty())
-    return candidates;
-
   for (auto &&trait : ctx.getEveryConformance(type))
     for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
       candidates.emplace_back(decl, trait->getSub());
@@ -739,7 +730,14 @@ res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
   const ast::DeclRefExpr *dre = memberExpr.member.get();
   auto *lookupType = ptrType ? ptrType->getPointeeType() : baseType;
 
-  auto candidates = lookupAssociatedDecls(dre->identifier, lookupType);
+  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
+  if (auto *s = lookupType->getAs<res::StructType>(); s && !isCallee)
+    for (auto &&decl : s->getDecl()->lookupDirect(dre->identifier))
+      candidates.emplace_back(decl, s->getSub());
+
+  if (candidates.empty())
+    candidates = lookupAssociatedDecls(dre->identifier, lookupType);
+
   if (ptrType && candidates.empty())
     candidates = lookupAssociatedDecls(dre->identifier, ptrType);
 
@@ -1199,11 +1197,6 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
 
     const res::Decl *decl = resPath->decl;
     bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
-
-    if (decl->getAs<res::FieldDecl>())
-      return err::fieldReference(resPath->location)
-          .with(decl->identifier)
-          .report(reporter);
 
     if (auto *selfType = resPath->sub.getSelfType();
         selfType && selfType->getAs<res::AnyTraitType>() &&

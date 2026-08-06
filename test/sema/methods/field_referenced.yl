@@ -4,6 +4,6 @@ struct S {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:14: error: cannot access field 'x' on its parent type
+  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find member 'x' in 'S'
   let s = S::x;
 }

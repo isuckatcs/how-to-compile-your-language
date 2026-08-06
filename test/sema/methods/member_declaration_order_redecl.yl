@@ -5,15 +5,24 @@ struct S {
   z: number,
   foo: number,
 }
+// CHECK: StructDecl @({{.*}}) S {S}
+// CHECK-NEXT:   FieldDecl @({{.*}}) x {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) y {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) z {number}
+// CHECK-NEXT:   FieldDecl @({{.*}}) foo {number}
 
 extension S {
-  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'x'
   fn x() {}
 }
+// CHECK-NEXT: TypeExtension S
+// CHECK-NEXT:   FunctionDecl @({{.*}}) x {() -> unit}
+// CHECK-NEXT:     Block
 
 extension S {
-  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
   fn foo() {}
 }
+// CHECK-NEXT: TypeExtension S
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:     Block
 
 fn main() {}

@@ -94,7 +94,6 @@ diag(Error, expectedBody, "expected {} body");
 diag(Error, redeclaration, "redeclaration of '{}'");
 diag(Error, missingSymbol, "symbol '{}' not found");
 diag(Error, memberLookupFailed, "failed to find member '{}' in '{}'");
-diag(Error, fieldReference, "cannot access field '{}' on its parent type");
 diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'");
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
 diag(Error, memberAccessInRawTrait, "cannot look up member in trait without a specific extension");

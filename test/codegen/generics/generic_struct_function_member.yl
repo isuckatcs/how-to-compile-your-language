@@ -14,7 +14,7 @@ fn wrapperNum(x: number): number {
 
 fn main(): unit {
   let s = S{x: wrapperNum};
-  println(s.x(10));
+  println((s.x)(10));
 }
 // CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
 // CHECK-NEXT: entry:
