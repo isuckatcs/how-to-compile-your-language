@@ -14,11 +14,6 @@ bool isTerminator(const res::Stmt &stmt) {
 } // namespace
 
 void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
-  if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(stmt)) {
-    dumpStmt(grouping->expr);
-    return;
-  }
-
   if (value.count(stmt)) {
     std::cerr << value[stmt];
     return;
@@ -262,9 +257,6 @@ int CFGBuilder::insertReturnStmt(const res::ReturnStmt &stmt, int block) {
 }
 
 int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
-  if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
-    return insertExpr(*grouping->expr, block);
-
   cfg.insertStmt(&expr, block);
 
   if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {

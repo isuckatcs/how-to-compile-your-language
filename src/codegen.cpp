@@ -407,11 +407,7 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
   if (tmp && mteType->getAs<res::StructType>())
     return tmp;
 
-  const res::Expr *expr = mte.expr;
-  while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(expr))
-    expr = grouping->expr;
-
-  if (dynamic_cast<const res::LambdaExpr *>(expr))
+  if (dynamic_cast<const res::LambdaExpr *>(mte.expr))
     return tmp;
 
   llvm::Type *tmpTy = generateType(mteType);
@@ -426,11 +422,7 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
 llvm::Value *Codegen::generateImplicitAsRef(const res::ImplicitAsRefExpr &ref) {
   llvm::Value *value = generateExpr(*ref.expr);
 
-  const res::Expr *expr = ref.expr;
-  while (auto *grouping = dynamic_cast<const res::GroupingExpr *>(expr))
-    expr = grouping->expr;
-
-  auto *unary = dynamic_cast<const res::UnaryOperator *>(expr);
+  auto *unary = dynamic_cast<const res::UnaryOperator *>(ref.expr);
   if (unary && unary->op == TokenKind::Asterisk)
     createTmpGCRootIfNeeded(value, unary->operand);
 
@@ -529,9 +521,6 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
   if (auto *call = dynamic_cast<const res::CallExpr *>(&expr))
     return generateCallExpr(*call);
-
-  if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
-    return generateExpr(*grouping->expr);
 
   if (auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
     return generateBinaryOperator(*binop);

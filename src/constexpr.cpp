@@ -106,9 +106,6 @@ res::ConstVal ConstExprEvaluator::evaluate(const res::Expr &expr) {
   if (auto *boolLit = dynamic_cast<const res::BoolLiteral *>(&expr))
     return boolLit->value;
 
-  if (auto *groupingExpr = dynamic_cast<const res::GroupingExpr *>(&expr))
-    return evaluate(*groupingExpr->expr);
-
   if (auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
     return evaluateBinaryOperator(*binop);
 

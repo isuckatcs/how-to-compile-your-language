@@ -9,6 +9,7 @@ fn main() {
   // CHECK-NEXT:   VarDecl @({{.*}}) f {(number) -> number}
   // CHECK-NEXT:     LambdaExpr {(number) -> number}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:       | value: 0
   // CHECK-NEXT:       StructDecl @({{.*}}) (closure@<source>:7:31) {(closure@<source>:7:31)}
 
   f = ->(x){ return n; };
@@ -16,5 +17,6 @@ fn main() {
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
   // CHECK-NEXT:   LambdaExpr {(number) -> number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
-  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:14:7) {(closure@<source>:14:7)}
+  // CHECK-NEXT:     | value: 0
+  // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:15:7) {(closure@<source>:15:7)}
 }

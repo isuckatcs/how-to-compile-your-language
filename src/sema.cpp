@@ -321,16 +321,6 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   return resBinop;
 }
 
-res::GroupingExpr *
-Sema::resolveGroupingExpr(res::Context &ctx,
-                          const ast::GroupingExpr &grouping) {
-  varOrReturn(expr, resolveExpr(ctx, *grouping.expr));
-
-  auto *g = res::GroupingExpr::create(ctx, grouping.location, expr);
-  g->setType(expr->getType());
-  return g;
-}
-
 template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
                                         const ast::PathExpr &pathExpr) {
@@ -1193,7 +1183,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     return resolveCallExpr(ctx, *callExpr);
 
   if (const auto *groupingExpr = dynamic_cast<const ast::GroupingExpr *>(&expr))
-    return resolveGroupingExpr(ctx, *groupingExpr);
+    return resolveExpr(ctx, *groupingExpr->expr, typeHint);
 
   if (const auto *binaryOperator =
           dynamic_cast<const ast::BinaryOperator *>(&expr))
@@ -2335,11 +2325,6 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
           while (true) {
             if (const auto *me = dynamic_cast<const res::MemberExpr *>(base)) {
               base = me->base;
-              continue;
-            }
-
-            if (const auto *g = dynamic_cast<const res::GroupingExpr *>(base)) {
-              base = g->expr;
               continue;
             }
 

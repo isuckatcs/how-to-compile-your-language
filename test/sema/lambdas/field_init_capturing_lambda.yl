@@ -10,5 +10,6 @@ fn main() {
   // CHECK: FieldInitStmt @({{.*}}) f
   // CHECK-NEXT:   LambdaExpr {(number) -> number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+  // CHECK-NEXT:     | value: 0
   // CHECK-NEXT:     StructDecl @({{.*}}) (closure@<source>:9:10) {(closure@<source>:9:10)}
 }

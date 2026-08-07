@@ -5,6 +5,7 @@ fn main() {
   ->(){ return x + 1; };
   // CHECK: LambdaExpr {() -> number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
+  // CHECK-NEXT:   | value: 0
   // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:5:3) {(closure@<source>:5:3)}
   // CHECK-NEXT:     FieldDecl @({{.*}}) x {number}
   // CHECK-NEXT:   TypeExtension (closure@<source>:5:3)

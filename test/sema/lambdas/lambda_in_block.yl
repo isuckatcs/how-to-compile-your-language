@@ -11,6 +11,7 @@ fn foo<T>(b: bool): (T) -> T {
     };
     // CHECK: LambdaExpr {(T) -> T}
     // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
+    // CHECK-NEXT:   | value: 0
     // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:7:9) {(closure@<source>:7:9)}
   } else {
     l = ->(n) {
@@ -20,7 +21,8 @@ fn foo<T>(b: bool): (T) -> T {
     };
     // CHECK: LambdaExpr {(T) -> T}
     // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
-    // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:16:9) {(closure@<source>:16:9)}
+    // CHECK-NEXT:   | value: 0
+    // CHECK-NEXT:   StructDecl @({{.*}}) (closure@<source>:17:9) {(closure@<source>:17:9)}
   }
 
   return l;

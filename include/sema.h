@@ -118,8 +118,6 @@ class Sema {
                                            const ast::UnaryOperator &unary);
   res::BinaryOperator *resolveBinaryOperator(res::Context &ctx,
                                              const ast::BinaryOperator &binop);
-  res::GroupingExpr *resolveGroupingExpr(res::Context &ctx,
-                                         const ast::GroupingExpr &grouping);
 
   template <typename ExpectedDecl>
   res::DeclRefExpr *resolvePathExpr(res::Context &ctx,

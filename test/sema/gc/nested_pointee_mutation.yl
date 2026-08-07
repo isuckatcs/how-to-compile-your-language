@@ -18,15 +18,13 @@ fn main() {
 
   ((s.s2.s3.n)) = gc mut 0;
   // CHECK: Assignment
-  // CHECK-NEXT:   GroupingExpr {*mut number}
-  // CHECK-NEXT:     GroupingExpr {*mut number}
-  // CHECK-NEXT:       MemberExpr @({{.*}}) n {*mut number}
-  // CHECK-NEXT:         UnaryOperator '*' {S3}
-  // CHECK-NEXT:           MemberExpr @({{.*}}) s3 {*mut S3}
-  // CHECK-NEXT:             UnaryOperator '*' {S2}
-  // CHECK-NEXT:               MemberExpr @({{.*}}) s2 {*mut S2}
-  // CHECK-NEXT:                 UnaryOperator '*' {S}
-  // CHECK-NEXT:                   DeclRefExpr @({{.*}}) s {*S}
+  // CHECK-NEXT:   MemberExpr @({{.*}}) n {*mut number}
+  // CHECK-NEXT:     UnaryOperator '*' {S3}
+  // CHECK-NEXT:       MemberExpr @({{.*}}) s3 {*mut S3}
+  // CHECK-NEXT:         UnaryOperator '*' {S2}
+  // CHECK-NEXT:           MemberExpr @({{.*}}) s2 {*mut S2}
+  // CHECK-NEXT:             UnaryOperator '*' {S}
+  // CHECK-NEXT:               DeclRefExpr @({{.*}}) s {*S}
   // CHECK-NEXT:   GCExpr {*mut number}
   // CHECK-NEXT:     NumberLiteral '0' {number}
   // CHECK-NEXT:     | value: 0

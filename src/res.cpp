@@ -720,6 +720,9 @@ DeclRefExpr::DeclRefExpr(SourceLocation loc,
 void DeclRefExpr::dump(size_t level) const {
   std::cerr << indent(level) << "DeclRefExpr @(" << decl << ") "
             << decl->identifier << " {" << getType()->getName() << '}' << '\n';
+
+  if (constVal.isKnown())
+    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
 }
 
 CallExpr::CallExpr(SourceLocation location, Expr *callee)
@@ -747,20 +750,6 @@ void MemberExpr::dump(size_t level) const {
             << '\n';
 
   base->dump(level + 1);
-}
-
-GroupingExpr::GroupingExpr(SourceLocation location, Expr *expr)
-    : Expr(location, expr->kind),
-      expr(expr) {}
-
-void GroupingExpr::dump(size_t level) const {
-  std::cerr << indent(level) << "GroupingExpr"
-            << " {" << getType()->getName() << '}' << '\n';
-
-  if (constVal.isKnown())
-    std::cerr << indent(level) << "| value: " << constVal.asString() << '\n';
-
-  expr->dump(level + 1);
 }
 
 BinaryOperator::BinaryOperator(SourceLocation loc,

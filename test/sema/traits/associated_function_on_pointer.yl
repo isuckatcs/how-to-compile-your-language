@@ -10,8 +10,7 @@ fn main() {
   // CHECK:   DeclRefExpr @({{.*}}) foo {(&*number) -> unit}
   // CHECK-NEXT:   ImplicitAsRefExpr {&*number}
   // CHECK-NEXT:     MaterializeTemporaryExpr {*number}
-  // CHECK-NEXT:       GroupingExpr {*number}
-  // CHECK-NEXT:         GCExpr {*number}
-  // CHECK-NEXT:           NumberLiteral '123' {number}
-  // CHECK-NEXT:           | value: 123
+  // CHECK-NEXT:       GCExpr {*number}
+  // CHECK-NEXT:         NumberLiteral '123' {number}
+  // CHECK-NEXT:         | value: 123
 }

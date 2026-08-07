@@ -593,16 +593,6 @@ private:
   friend Creatable<MemberExpr>;
 };
 
-struct GroupingExpr final : public Creatable<GroupingExpr>, public Expr {
-  Expr *expr;
-
-  void dump(size_t level = 0) const override;
-
-private:
-  GroupingExpr(SourceLocation location, Expr *expr);
-  friend Creatable<GroupingExpr>;
-};
-
 struct BinaryOperator final : public Creatable<BinaryOperator>, public Expr {
   TokenKind op;
   Expr *lhs;
