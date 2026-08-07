@@ -587,6 +587,9 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
     resCall->addArg(resolvedArgument);
   }
 
+  if (resCall->arguments.size() != expectedArgCnt)
+    return nullptr;
+
   return resCall;
 }
 

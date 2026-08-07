@@ -1,0 +1,11 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(x: number, y: number, z: number) {}
+
+fn main(): unit {
+  foo(unit, unit, unit);
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot unify 'unit' with 'number'
+  // CHECK: [[# @LINE - 2 ]]:13: error: cannot unify 'unit' with 'number'
+  // CHECK: [[# @LINE - 3 ]]:19: error: cannot unify 'unit' with 'number'
+}
+
+// CHECK-NOT: {{.*error.*}}
