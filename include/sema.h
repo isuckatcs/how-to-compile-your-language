@@ -132,16 +132,13 @@ class Sema {
   std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
       std::string identifier, res::Type *type, res::TraitType *trait = nullptr);
 
-  std::pair<res::Expr *, std::vector<res::Expr *>>
-  resolveCallBase(res::Context &ctx, const ast::CallExpr &call);
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);
   res::StructInstantiationExpr *resolveStructInstantiation(
       res::Context &ctx,
       const ast::StructInstantiationExpr &structInstantiation);
-  res::MemberExpr *resolveMemberExpr(res::Context &ctx,
-                                     const ast::MemberExpr &memberExpr,
-                                     bool isCallee = false);
+  res::Expr *
+  resolveMemberExpr(res::Context &ctx, const ast::MemberExpr &me, bool asCall);
   res::Expr *resolveExpr(res::Context &ctx,
                          const ast::Expr &expr,
                          res::Type *typeHint = nullptr);

@@ -12,10 +12,10 @@ trait A : B {}
 fn foo<T : C>(t : T) {}
 
 fn bar<T : A>(t : T) {
-  // CHECK: [[# @LINE + 1 ]]:5: error: ambigous member function reference
+  // CHECK: [[# @LINE + 1 ]]:5: error: ambigous associated function reference
   t.foo();
 
-  // CHECK: [[# @LINE + 1 ]]:6: error: ambigous member function reference
+  // CHECK: [[# @LINE + 1 ]]:6: error: ambigous associated function reference
   T::foo(t);
 }
 

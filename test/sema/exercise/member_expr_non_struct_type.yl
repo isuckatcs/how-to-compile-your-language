@@ -4,5 +4,5 @@ fn main(): unit {
   let x = 1.0;
 
   let y = x.x;
-  // CHECK: [[# @LINE - 1 ]]:13: error: failed to find member 'x' in 'number'
+  // CHECK: [[# @LINE - 1 ]]:13: error: cannot look up field 'x' in primitive type 'number'
 }

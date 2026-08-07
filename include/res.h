@@ -562,10 +562,12 @@ struct CallExpr final : public Creatable<CallExpr>, public Expr {
   Expr *callee;
   std::vector<Expr *> arguments;
 
+  void addArg(res::Expr *arg) { arguments.emplace_back(arg); }
+
   void dump(size_t level = 0) const override;
 
 private:
-  CallExpr(SourceLocation location, Expr *callee, std::vector<Expr *> args);
+  CallExpr(SourceLocation location, Expr *callee);
   friend Creatable<CallExpr>;
 };
 

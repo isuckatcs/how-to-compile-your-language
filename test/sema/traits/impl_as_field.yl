@@ -6,6 +6,6 @@ struct S {}
 extension S : A {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:7: error: failed to find member 'A' in 'S'
+  // CHECK: [[# @LINE + 1]]:7: error: failed to find field 'A' in 'S'
   S{}.A;
 }

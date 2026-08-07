@@ -432,7 +432,8 @@ res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
     return err::wrongDeclKind(fragments.back()->location).report(reporter);
 
   if (expectedCandidates.size() > 1 && fragments.size() > 1)
-    return err::ambigousMemberFn(fragments.back()->location).report(reporter);
+    return err::ambigousAssociatedFn(fragments.back()->location)
+        .report(reporter);
 
   auto &&[decl, sub] = expectedCandidates.front();
   return resolveDeclRefExpr(ctx, fragments.back().get(), decl, sub);
@@ -521,103 +522,72 @@ Sema::lookupAssociatedDecls(std::string identifier,
   return candidates;
 }
 
-std::pair<res::Expr *, std::vector<res::Expr *>>
-Sema::resolveCallBase(res::Context &ctx, const ast::CallExpr &call) {
-  const auto *me = dynamic_cast<const ast::MemberExpr *>(call.callee.get());
-  if (!me) {
-    WithModifiersRAII callee(this, IsCallee);
-    return {resolveExpr(ctx, *call.callee), {}};
-  }
-
-  res::MemberExpr *resMemberExpr = resolveMemberExpr(ctx, *me, true);
-  if (!resMemberExpr)
-    return {nullptr, {}};
-
-  const auto *method = resMemberExpr->member->decl->getAs<res::FunctionDecl>();
-  if (!method)
-    return {resMemberExpr, {}};
-
-  if (method->params.empty() || method->params[0]->identifier != selfParamId)
-    return {err::classMethodCallOnInstance(call.location).report(reporter), {}};
-
-  res::Expr *selfArg = resMemberExpr->base;
-  if (auto *deref = dynamic_cast<res::ImplicitDerefExpr *>(selfArg))
-    selfArg = deref->dre;
-
-  if (!selfArg->isLvalue()) {
-    auto *mte =
-        res::MaterializeTemporaryExpr::create(ctx, selfArg->location, selfArg);
-    mte->setType(selfArg->getType());
-    selfArg = mte;
-  }
-
-  auto *targetType =
-      resMemberExpr->getType()->getAs<res::FunctionType>()->getArgs()[0];
-  selfArg = withPtrToRefDecay(targetType, selfArg);
-  selfArg = withImplicitAsRef(targetType, selfArg);
-
-  return {resMemberExpr->member, {selfArg}};
-}
-
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
-  auto &&[callee, args] = resolveCallBase(ctx, call);
-  if (!callee)
-    return nullptr;
+  SourceLocation callLoc = call.location;
+  const auto *callee = call.callee.get();
+  const auto &arguments = call.arguments;
 
-  auto *fnType = callee->getType()->getAs<res::FunctionType>();
-  if (!fnType)
-    return err::invalidCallTy(call.location)
-        .with(callee->getType()->getName())
-        .report(reporter);
+  res::CallExpr *resCall = nullptr;
 
-  if (!args.empty()) {
-    auto msgs = ctx.unify(args[0]->getType(), fnType->getArgs()[0]);
-    if (!msgs.empty()) {
-      for (auto &&msg : msgs)
-        err::inferenceError(args[0]->location).with(msg).report(reporter);
-      return nullptr;
-    }
+  if (auto *me = dynamic_cast<const ast::MemberExpr *>(callee)) {
+    varOrReturn(call, resolveMemberExpr(ctx, *me, true));
+    resCall = static_cast<res::CallExpr *>(call);
+  } else {
+    WithModifiersRAII isCallee(this, IsCallee);
+    varOrReturn(resCallee, resolveExpr(ctx, *callee));
+
+    auto *functionType = resCallee->getType()->getAs<res::FunctionType>();
+    if (!functionType)
+      return err::invalidCallTy(callLoc)
+          .with(resCallee->getType()->getName())
+          .report(reporter);
+
+    resCall = res::CallExpr::create(ctx, callLoc, resCallee);
+    resCall->setType(functionType->getReturnType());
   }
 
-  std::vector<res::Type *> argTypes = fnType->getArgs();
+  std::vector<res::Type *> argumentTypes =
+      resCall->callee->getType()->getAs<res::FunctionType>()->getArgs();
 
-  size_t expectedArgCnt = argTypes.size();
-  size_t implicitArgCnt = args.size();
-  size_t sourceSpelledArgCnt = call.arguments.size();
+  size_t expectedArgCnt = argumentTypes.size();
+  size_t implicitArgCnt = resCall->arguments.size();
+  size_t sourceSpelledArgCnt = arguments.size();
 
   if ((sourceSpelledArgCnt + implicitArgCnt) != expectedArgCnt)
-    return err::wrongArgCount(call.location)
+    return err::wrongArgCount(callLoc)
         .with(expectedArgCnt - implicitArgCnt)
         .with(sourceSpelledArgCnt)
         .report(reporter);
 
-  for (auto &&arg : call.arguments) {
-    res::Type *expectedTy = argTypes[args.size()];
+  size_t argIdx = implicitArgCnt;
+  for (auto &&argument : arguments) {
+    res::Type *expectedType = argumentTypes[argIdx++];
+    WithModifiersRAII addrTaken(
+        this, expectedType->getAs<res::RefType>() ? AddressTaken : 0);
 
-    WithModifiersRAII unaryAmpAllowed(
-        this, expectedTy->getAs<res::RefType>() ? AddressTaken : 0);
+    auto *resolvedArgument = resolveExpr(ctx, *argument, expectedType);
+    if (!resolvedArgument)
+      continue;
 
-    varOrReturn(resolvedArg, resolveExpr(ctx, *arg, expectedTy));
-    varOrReturn(coercedArg, asTraitObjectIfNeeded(expectedTy, resolvedArg));
-    varOrReturn(decayedArg, withPtrToRefDecay(expectedTy, coercedArg));
-    varOrReturn(promotedArg, withImplicitAsRef(expectedTy, decayedArg));
+    resolvedArgument = asTraitObjectIfNeeded(expectedType, resolvedArgument);
+    resolvedArgument = withPtrToRefDecay(expectedType, resolvedArgument);
+    resolvedArgument = withImplicitAsRef(expectedType, resolvedArgument);
+    if (!resolvedArgument)
+      continue;
 
-    res::Type *actualTy = promotedArg->getType();
-
-    if (const auto &errors = ctx.unify(actualTy, expectedTy); !errors.empty()) {
+    res::Type *actualType = resolvedArgument->getType();
+    if (auto errors = ctx.unify(actualType, expectedType); !errors.empty()) {
       for (auto &&error : errors)
-        err::inferenceError(promotedArg->location).with(error).report(reporter);
-      return nullptr;
+        err::inferenceError(argument->location).with(error).report(reporter);
+      continue;
     }
 
-    promotedArg->setConstantValue(cee->evaluate(*promotedArg));
-    args.emplace_back(promotedArg);
+    resolvedArgument->setConstantValue(cee->evaluate(*resolvedArgument));
+    resCall->addArg(resolvedArgument);
   }
 
-  auto *ce = res::CallExpr::create(ctx, call.location, callee, std::move(args));
-  ce->setType(fnType->getReturnType());
-  return ce;
+  return resCall;
 }
 
 res::StructInstantiationExpr *Sema::resolveStructInstantiation(
@@ -718,53 +688,104 @@ res::UnaryOperator *Sema::insertUnaryDeref(res::Context &ctx, res::Expr *val) {
   return uo;
 }
 
-res::MemberExpr *Sema::resolveMemberExpr(res::Context &ctx,
-                                         const ast::MemberExpr &memberExpr,
-                                         bool isCallee) {
-  WithModifiersRAII mods(this, isCallee ? AddressTaken : 0);
-  varOrReturn(base, resolveExpr(ctx, *memberExpr.base));
+res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
+                                   const ast::MemberExpr &me,
+                                   bool asCall) {
+  WithModifiersRAII mods(this, asCall ? AddressTaken : 0);
+  varOrReturn(base, resolveExpr(ctx, *me.base));
 
   auto *baseType = base->getType();
-  auto *ptrType = baseType->getAs<res::PointerType>();
+  auto *basePtrType = baseType->getAs<res::PointerType>();
+  auto *lookupType = basePtrType ? basePtrType->getPointeeType() : baseType;
 
-  const ast::DeclRefExpr *dre = memberExpr.member.get();
-  auto *lookupType = ptrType ? ptrType->getPointeeType() : baseType;
+  const auto *member = me.member.get();
+  const SourceLocation &memberLoc = member->location;
+  std::string memberId = member->identifier;
 
   std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
-  if (auto *s = lookupType->getAs<res::StructType>(); s && !isCallee)
-    for (auto &&decl : s->getDecl()->lookupDirect(dre->identifier))
-      candidates.emplace_back(decl, s->getSub());
 
-  if (candidates.empty())
-    candidates = lookupAssociatedDecls(dre->identifier, lookupType);
+  if (!asCall) {
+    auto *structType = lookupType->getAs<res::StructType>();
+    if (!structType)
+      return err::fieldLookupBaseInvalid(memberLoc)
+          .with(memberId)
+          .with(baseType->getName())
+          .report(reporter);
 
-  if (ptrType && candidates.empty())
-    candidates = lookupAssociatedDecls(dre->identifier, ptrType);
-
-  if (candidates.empty())
-    return err::memberLookupFailed(dre->location)
-        .with(dre->identifier)
-        .with(baseType->getName())
-        .report(reporter);
-
-  if (candidates.size() > 1)
-    return err::ambigousMemberFn(dre->location).report(reporter);
-
-  auto &&[decl, sub] = candidates.back();
-
-  varOrReturn(memberDre, resolveDeclRefExpr(ctx, dre, decl, sub));
-
-  if (!isCallee) {
-    if (memberDre->decl->getAs<res::FunctionDecl>())
-      return err::expectedMethodCall(memberExpr.location).report(reporter);
-
-    if (ptrType)
-      base = insertUnaryDeref(ctx, base);
+    const auto &fields = structType->getDecl()->lookupDirect(memberId);
+    if (!fields.empty()) {
+      assert(fields.size() == 1 && "ambigous fields");
+      candidates.emplace_back(fields[0], structType->getSub());
+    }
   }
 
-  auto *me = res::MemberExpr::create(ctx, memberExpr.location, base, memberDre);
-  me->setType(memberDre->getType());
-  return me;
+  if (candidates.empty())
+    candidates = lookupAssociatedDecls(member->identifier, lookupType);
+
+  if (candidates.empty() && basePtrType)
+    candidates = lookupAssociatedDecls(member->identifier, basePtrType);
+
+  if (candidates.size() > 1)
+    return err::ambigousAssociatedFn(member->location).report(reporter);
+
+  if (candidates.empty()) {
+    if (!asCall)
+      return err::fieldLookupFailed(memberLoc)
+          .with(memberId)
+          .with(lookupType->getName())
+          .report(reporter);
+
+    return err::memberLookupFailed(member->location)
+        .with(member->identifier)
+        .with(baseType->getName())
+        .report(reporter);
+  }
+
+  auto &&[decl, sub] = candidates.back();
+  varOrReturn(dre, resolveDeclRefExpr(ctx, member, decl, sub));
+
+  if (!asCall) {
+    if (decl->getAs<res::FunctionDecl>())
+      return err::expectedMethodCall(me.location).report(reporter);
+
+    if (basePtrType)
+      base = insertUnaryDeref(ctx, base);
+
+    auto *resMemberExpr = res::MemberExpr::create(ctx, me.location, base, dre);
+    resMemberExpr->setType(dre->getType());
+    return resMemberExpr;
+  }
+
+  auto *fnDecl = decl->getAs<res::FunctionDecl>();
+  auto *functionType = dre->getType()->getAs<res::FunctionType>();
+
+  assert(fnDecl && "expected function decl");
+
+  if (fnDecl->params.empty() || fnDecl->params[0]->identifier != selfParamId)
+    return err::classMethodCallOnInstance(memberLoc).report(reporter);
+
+  if (!base->isLvalue()) {
+    auto *mte =
+        res::MaterializeTemporaryExpr::create(ctx, base->location, base);
+    mte->setType(base->getType());
+    base = mte;
+  }
+
+  auto *call = res::CallExpr::create(ctx, me.location, dre);
+  call->setType(functionType->getReturnType());
+
+  auto *selfType = functionType->getArgs()[0];
+  base = withPtrToRefDecay(selfType, base);
+  base = withImplicitAsRef(selfType, base);
+
+  if (auto errors = ctx.unify(base->getType(), selfType); !errors.empty()) {
+    for (auto &&error : errors)
+      err::inferenceError(base->location).with(error).report(reporter);
+    return nullptr;
+  }
+
+  call->addArg(base);
+  return call;
 }
 
 res::GCExpr *Sema::resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc) {
@@ -974,7 +995,7 @@ res::Expr *Sema::asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr) {
 
   for (auto &&error : errors)
     err::inferenceError(expr->location).with(error).report(reporter);
-  return nullptr;
+  return expr;
 }
 
 res::Expr *Sema::withPtrToRefDecay(res::Type *targetType, res::Expr *expr) {
@@ -1184,7 +1205,7 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
     return resolveStructInstantiation(ctx, *structInstantiation);
 
   if (const auto *memberExpr = dynamic_cast<const ast::MemberExpr *>(&expr))
-    return resolveMemberExpr(ctx, *memberExpr);
+    return resolveMemberExpr(ctx, *memberExpr, false);
 
   if (const auto *gc = dynamic_cast<const ast::GCExpr *>(&expr))
     return resolveGCExpr(ctx, *gc);

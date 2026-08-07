@@ -722,12 +722,9 @@ void DeclRefExpr::dump(size_t level) const {
             << decl->identifier << " {" << getType()->getName() << '}' << '\n';
 }
 
-CallExpr::CallExpr(SourceLocation location,
-                   Expr *callee,
-                   std::vector<Expr *> args)
+CallExpr::CallExpr(SourceLocation location, Expr *callee)
     : Expr(location, Expr::Kind::Rvalue),
-      callee(callee),
-      arguments(std::move(args)){};
+      callee(callee){};
 
 void CallExpr::dump(size_t level) const {
   std::cerr << indent(level) << "CallExpr"

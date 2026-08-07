@@ -93,12 +93,14 @@ diag(Error, expectedBody, "expected {} body");
 // symbols
 diag(Error, redeclaration, "redeclaration of '{}'");
 diag(Error, missingSymbol, "symbol '{}' not found");
+diag(Error, fieldLookupBaseInvalid, "cannot look up field '{}' in primitive type '{}'");
+diag(Error, fieldLookupFailed, "failed to find field '{}' in '{}'");
 diag(Error, memberLookupFailed, "failed to find member '{}' in '{}'");
 diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'");
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
 diag(Error, memberAccessInRawTrait, "cannot look up member in trait without a specific extension");
 diag(Error, memberAccessInValue, "cannot look up member in value");
-diag(Error, ambigousMemberFn, "ambigous member function reference");
+diag(Error, ambigousAssociatedFn, "ambigous associated function reference");
 diag(Error, traitObjectMethodNotCalled, "expected to call member function on trait object");
 
 // types
