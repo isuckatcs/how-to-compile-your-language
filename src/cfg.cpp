@@ -136,6 +136,11 @@ int CFGBuilder::insertIfStmt(const res::IfStmt &stmt, int exit) {
   int trueBlock = insertBlock(*stmt.trueBlock, exit);
   int entry = cfg.insertNewBlock();
 
+  if (trueBlock == falseBlock) {
+    cfg.insertEdge(entry, exit, true);
+    return insertExpr(*stmt.condition, entry);
+  }
+
   bool trueReachable = true;
   bool falseReachable = true;
 

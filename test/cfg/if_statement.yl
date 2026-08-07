@@ -9,12 +9,11 @@ fn main(): unit {
 // CHECK-NEXT: 
 // CHECK-NEXT: [1]
 // CHECK-NEXT:   preds: 2 
-// CHECK-NEXT:   succs: 0(U) 0 
+// CHECK-NEXT:   succs: 0 
 // CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [1.1]
 // CHECK-NEXT: 
 // CHECK-NEXT: [0 (exit)]
-// CHECK-NEXT:   preds: 1(U) 1 
+// CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
 
 fn body(): unit {
