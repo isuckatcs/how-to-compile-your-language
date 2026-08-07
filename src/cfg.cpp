@@ -13,119 +13,166 @@ bool isTerminator(const res::Stmt &stmt) {
 }
 } // namespace
 
+void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
+  if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(stmt)) {
+    dumpStmt(grouping->expr);
+    return;
+  }
+
+  if (value.count(stmt)) {
+    std::cerr << value[stmt];
+    return;
+  }
+
+  if (topLevel)
+    std::cerr << "  ";
+
+  if (auto *ifStmt = dynamic_cast<const res::IfStmt *>(stmt)) {
+    std::cerr << "if ";
+    dumpStmt(ifStmt->condition);
+    return;
+  }
+
+  if (auto *whileStmt = dynamic_cast<const res::WhileStmt *>(stmt)) {
+    std::cerr << "while ";
+    dumpStmt(whileStmt->condition);
+    return;
+  }
+
+  if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
+    dumpStmt(assignment->assignee);
+    std::cerr << " = ";
+    dumpStmt(assignment->expr);
+    return;
+  }
+
+  if (auto *retStmt = dynamic_cast<const res::ReturnStmt *>(stmt)) {
+    std::cerr << "return ";
+    dumpStmt(retStmt->expr);
+    return;
+  }
+
+  if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(stmt)) {
+    auto *varDecl = declStmt->varDecl;
+    std::cerr << (varDecl->isMutable ? "mut " : "let ") << varDecl->identifier;
+
+    if (auto *init = varDecl->initializer) {
+      std::cerr << " = ";
+      dumpStmt(init);
+    }
+
+    return;
+  }
+
+  if (topLevel) {
+    value[stmt] = '$' + std::to_string(value.size() + 1);
+    std::cerr << value[stmt] << " = ";
+  }
+
+  if (auto *unit = dynamic_cast<const res::UnitLiteral *>(stmt)) {
+    std::cerr << "unit";
+    return;
+  }
+
+  if (auto *number = dynamic_cast<const res::NumberLiteral *>(stmt)) {
+    std::cerr << number->value;
+    return;
+  }
+
+  if (auto *boolLiteral = dynamic_cast<const res::BoolLiteral *>(stmt)) {
+    std::cerr << (boolLiteral->value ? "true" : "false");
+    return;
+  }
+
+  if (auto *callExpr = dynamic_cast<const res::CallExpr *>(stmt)) {
+    dumpStmt(callExpr->callee);
+    std::cerr << '(';
+    for (int i = 0; i < callExpr->arguments.size(); ++i) {
+      dumpStmt(callExpr->arguments[i]);
+
+      if (i != callExpr->arguments.size() - 1)
+        std::cerr << ", ";
+    }
+    std::cerr << ')';
+  }
+
+  if (auto *binop = dynamic_cast<const res::BinaryOperator *>(stmt)) {
+    dumpStmt(binop->lhs);
+    std::cerr << ' ' << getOpStr(binop->op) << ' ';
+    dumpStmt(binop->rhs);
+    return;
+  }
+
+  if (auto *unop = dynamic_cast<const res::UnaryOperator *>(stmt)) {
+    std::cerr << getOpStr(unop->op);
+    dumpStmt(unop->operand);
+    return;
+  }
+
+  if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(stmt)) {
+    dumpStmt(sie->structPath);
+
+    std::cerr << " { ";
+    for (auto &&fieldInit : sie->fieldInitializers) {
+      std::cerr << fieldInit->field->identifier << ": ";
+      dumpStmt(fieldInit->initializer);
+
+      if (fieldInit != sie->fieldInitializers.back())
+        std::cerr << ", ";
+    }
+    std::cerr << " }";
+    return;
+  }
+
+  if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
+    std::cerr << dre->decl->identifier;
+    return;
+  }
+
+  if (auto *memberExpr = dynamic_cast<const res::MemberExpr *>(stmt)) {
+    dumpStmt(memberExpr->base);
+    std::cerr << '.' << memberExpr->member->decl->identifier;
+    return;
+  }
+
+  if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(stmt)) {
+    std::cerr << "->[";
+    for (int i = 0; i < lambda->fieldInits.size(); ++i) {
+      dumpStmt(lambda->fieldInits[i]);
+
+      if (i != lambda->fieldInits.size() - 1)
+        std::cerr << ',' << ' ';
+    }
+    std::cerr << "](...){...}";
+  }
+}
+
 void CFG::dump() const {
+  std::cerr << "fn " << fn->identifier << "(...) {\n";
+
   for (int i = basicBlocks.size() - 1; i >= 0; --i) {
-    std::cerr << '[' << i;
-    if (i == entry)
-      std::cerr << " (entry)";
-    else if (i == exit)
-      std::cerr << " (exit)";
-    std::cerr << ']' << '\n';
+    std::cerr << "bb" << i << ":\n";
 
     std::cerr << "  preds: ";
     for (auto &&[id, reachable] : basicBlocks[i].predecessors)
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
+    const auto &statements = basicBlocks[i].statements;
+    for (auto it = statements.rbegin(); it != statements.rend(); ++it) {
+      dumpStmt(*it, true);
+      std::cerr << '\n';
+    }
+
     std::cerr << "  succs: ";
     for (auto &&[id, reachable] : basicBlocks[i].successors)
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
-    std::unordered_map<const res::Stmt *, std::string> stmtToRef;
-
-    const auto &statements = basicBlocks[i].statements;
-    for (auto it = statements.rbegin(); it != statements.rend(); ++it) {
-      std::cerr << ' ' << ' ' << stmtToRef.size() + 1 << ':' << ' ';
-
-      if (auto *ifStmt = dynamic_cast<const res::IfStmt *>(*it)) {
-        std::cerr << "if " << stmtToRef[ifStmt->condition];
-      } else if (auto *whileStmt = dynamic_cast<const res::WhileStmt *>(*it)) {
-        std::cerr << "while " << stmtToRef[whileStmt->condition];
-      } else if (auto *assignment =
-                     dynamic_cast<const res::Assignment *>(*it)) {
-        if (auto *dre =
-                dynamic_cast<const res::DeclRefExpr *>(assignment->assignee))
-          std::cerr << dre->decl->identifier;
-        else
-          std::cerr << stmtToRef[assignment->assignee];
-
-        std::cerr << " = " << stmtToRef[assignment->expr];
-      } else if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(*it)) {
-        std::cerr << (declStmt->varDecl->isMutable ? "mut " : "let ")
-                  << declStmt->varDecl->identifier;
-
-        if (const auto *init = declStmt->varDecl->initializer)
-          std::cerr << " = " << stmtToRef[init];
-      } else if (auto *retStmt = dynamic_cast<const res::ReturnStmt *>(*it)) {
-        std::cerr << "return " << stmtToRef[retStmt->expr];
-      } else if (auto *fi = dynamic_cast<const res::FieldInitStmt *>(*it)) {
-        std::cerr << fi->field->identifier << ": "
-                  << stmtToRef[fi->initializer];
-      } else if (const auto *unit =
-                     dynamic_cast<const res::UnitLiteral *>(*it)) {
-        std::cerr << "unit";
-      } else if (const auto *number =
-                     dynamic_cast<const res::NumberLiteral *>(*it)) {
-        std::cerr << number->value;
-      } else if (const auto *boolLiteral =
-                     dynamic_cast<const res::BoolLiteral *>(*it)) {
-        std::cerr << (boolLiteral->value ? "true" : "false");
-      } else if (const auto *callExpr =
-                     dynamic_cast<const res::CallExpr *>(*it)) {
-        std::cerr << stmtToRef[callExpr->callee] << '(';
-        for (int i = 0; i < callExpr->arguments.size(); ++i) {
-          std::cerr << stmtToRef[callExpr->arguments[i]];
-
-          if (i != callExpr->arguments.size() - 1)
-            std::cerr << ',' << ' ';
-        }
-        std::cerr << ')';
-      } else if (const auto *grouping =
-                     dynamic_cast<const res::GroupingExpr *>(*it)) {
-        std::cerr << '(' << stmtToRef[grouping->expr] << ')';
-      } else if (const auto *binop =
-                     dynamic_cast<const res::BinaryOperator *>(*it)) {
-        std::cerr << stmtToRef[binop->lhs] << ' ' << getOpStr(binop->op) << ' '
-                  << stmtToRef[binop->rhs];
-      } else if (const auto *unop =
-                     dynamic_cast<const res::UnaryOperator *>(*it)) {
-        std::cerr << getOpStr(unop->op) << stmtToRef[unop->operand];
-      } else if (const auto *si =
-                     dynamic_cast<const res::StructInstantiationExpr *>(*it)) {
-        std::cerr << stmtToRef[si->structPath] << ' ' << '{';
-        for (int i = 0; i < si->fieldInitializers.size(); ++i) {
-          std::cerr << stmtToRef[si->fieldInitializers[i]];
-
-          if (i != si->fieldInitializers.size() - 1)
-            std::cerr << ',' << ' ';
-        }
-        std::cerr << '}';
-      } else if (const auto *dre =
-                     dynamic_cast<const res::DeclRefExpr *>(*it)) {
-        std::cerr << dre->decl->identifier;
-      } else if (const auto *memberExpr =
-                     dynamic_cast<const res::MemberExpr *>(*it)) {
-        std::cerr << stmtToRef[memberExpr->base] << '.'
-                  << memberExpr->member->decl->identifier;
-      } else if (const auto *lambda =
-                     dynamic_cast<const res::LambdaExpr *>(*it)) {
-        std::cerr << "->[";
-        for (int i = 0; i < lambda->fieldInits.size(); ++i) {
-          std::cerr << stmtToRef[lambda->fieldInits[i]];
-
-          if (i != lambda->fieldInits.size() - 1)
-            std::cerr << ',' << ' ';
-        }
-        std::cerr << "](...){...}";
-      }
-
-      stmtToRef[*it] = '[' + std::to_string(i) + '.' +
-                       std::to_string(stmtToRef.size() + 1) + ']';
+    if (i > 0)
       std::cerr << '\n';
-    }
-    std::cerr << '\n';
   }
+  std::cerr << "}\n";
 }
 
 int CFGBuilder::insertIfStmt(const res::IfStmt &stmt, int exit) {
@@ -198,8 +245,8 @@ int CFGBuilder::insertDeclStmt(const res::DeclStmt &stmt, int block) {
 int CFGBuilder::insertAssignment(const res::Assignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
 
-  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee))
-    block = insertExpr(*stmt.assignee, block);
+  if (auto *me = dynamic_cast<const res::MemberExpr *>(stmt.assignee))
+    block = insertExpr(*me->base, block);
 
   return insertExpr(*stmt.expr, block);
 }
@@ -215,37 +262,35 @@ int CFGBuilder::insertReturnStmt(const res::ReturnStmt &stmt, int block) {
 }
 
 int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
+  if (auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
+    return insertExpr(*grouping->expr, block);
+
   cfg.insertStmt(&expr, block);
 
-  if (const auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
+  if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
     block = insertExpr(*call->callee, block);
     for (auto it = call->arguments.rbegin(); it != call->arguments.rend(); ++it)
       block = insertExpr(**it, block);
     return block;
   }
 
-  if (const auto *memberExpr = dynamic_cast<const res::MemberExpr *>(&expr))
+  if (auto *memberExpr = dynamic_cast<const res::MemberExpr *>(&expr))
     return insertExpr(*memberExpr->base, block);
 
-  if (const auto *grouping = dynamic_cast<const res::GroupingExpr *>(&expr))
-    return insertExpr(*grouping->expr, block);
-
-  if (const auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
+  if (auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
     return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);
 
-  if (const auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
+  if (auto *unop = dynamic_cast<const res::UnaryOperator *>(&expr))
     return insertExpr(*unop->operand, block);
 
-  if (const auto *structInst =
-          dynamic_cast<const res::StructInstantiationExpr *>(&expr)) {
-    block = insertStmt(*structInst->structPath, block);
-    for (auto it = structInst->fieldInitializers.rbegin();
-         it != structInst->fieldInitializers.rend(); ++it)
-      block = insertStmt(**it, block);
+  if (auto *sie = dynamic_cast<const res::StructInstantiationExpr *>(&expr)) {
+    auto &fieldInits = sie->fieldInitializers;
+    for (auto it = fieldInits.rbegin(); it != fieldInits.rend(); ++it)
+      block = insertStmt(*(*it)->initializer, block);
     return block;
   }
 
-  if (const auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr)) {
+  if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(&expr)) {
     const auto &inits = lambda->fieldInits;
     for (auto it = inits.rbegin(); it != inits.rend(); ++it)
       block = insertExpr(**it, block);

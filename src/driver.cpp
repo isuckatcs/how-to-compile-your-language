@@ -137,10 +137,13 @@ int main(int argc, const char **argv) {
 
   if (options.cfgDump) {
     if (resolvedCtx) {
-      for (auto &&fn :
-           resolvedCtx->translationUnit.getAll<res::FunctionDecl>()) {
-        std::cerr << fn->identifier << ':' << '\n';
+      const auto &fns =
+          resolvedCtx->translationUnit.getAll<res::FunctionDecl>();
+      for (auto &&fn : fns) {
         CFGBuilder().build(*fn).dump();
+
+        if (fn != fns.back())
+          std::cerr << '\n';
       }
     }
     return 0;

@@ -2,44 +2,46 @@
 fn main(): unit {
     if true {}
 }
-// CHECK: main:
-// CHECK-NEXT: [2 (entry)]
+// CHECK: fn main(...) {
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   $1 = true
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: true
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn body(): unit {
     if false {
         1.0;
     }
 }
-// CHECK: body:
-// CHECK-NEXT: [3 (entry)]
+// CHECK: fn body(...) {
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 2 
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 3 
+// CHECK-NEXT:   $1 = false
+// CHECK-NEXT:   if $1
 // CHECK-NEXT:   succs: 0 1(U) 
-// CHECK-NEXT:   1: false
-// CHECK-NEXT:   2: if [2.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2(U) 
+// CHECK-NEXT:   $2 = 1
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 2 
 // CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn additionalBlockAfterIf(): unit {
     if false {
@@ -48,30 +50,31 @@ fn additionalBlockAfterIf(): unit {
 
     2.0;
 }
-// CHECK: additionalBlockAfterIf:
-// CHECK-NEXT: [4 (entry)]
+// CHECK: fn additionalBlockAfterIf(...) {
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $1 = false
+// CHECK-NEXT:   if $1
 // CHECK-NEXT:   succs: 1 2(U) 
-// CHECK-NEXT:   1: false
-// CHECK-NEXT:   2: if [3.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 3(U) 
+// CHECK-NEXT:   $2 = 1
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 1
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 3 
+// CHECK-NEXT:   $3 = 2
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 2
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn multipleBranches(): unit {
     if true {
@@ -86,53 +89,58 @@ fn multipleBranches(): unit {
 
     1;
 }
-// CHECK: multipleBranches:
-// CHECK-NEXT: [9 (entry)]
+// CHECK: fn multipleBranches(...) {
+// CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
 // CHECK-NEXT: 
-// CHECK-NEXT: [8]
+// CHECK-NEXT: bb8:
 // CHECK-NEXT:   preds: 9 
+// CHECK-NEXT:   $1 = true
+// CHECK-NEXT:   if $1
 // CHECK-NEXT:   succs: 6(U) 7 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [8.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [7]
+// CHECK-NEXT: bb7:
 // CHECK-NEXT:   preds: 8 
+// CHECK-NEXT:   $2 = 7
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 7
 // CHECK-NEXT: 
-// CHECK-NEXT: [6]
+// CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 8(U) 
+// CHECK-NEXT:   $3 = true
+// CHECK-NEXT:   if $3
 // CHECK-NEXT:   succs: 4(U) 5 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [6.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [5]
+// CHECK-NEXT: bb5:
 // CHECK-NEXT:   preds: 6 
+// CHECK-NEXT:   $4 = 5
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 5
 // CHECK-NEXT: 
-// CHECK-NEXT: [4]
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 6(U) 
+// CHECK-NEXT:   $5 = true
+// CHECK-NEXT:   if $5
 // CHECK-NEXT:   succs: 2(U) 3 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [4.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $6 = 3
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 3
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 4(U) 
+// CHECK-NEXT:   $7 = 2
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 2
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 3 5 7 
+// CHECK-NEXT:   $8 = 1
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
+// CHECK-NEXT: 
+// CHECK-NEXT: bb0:
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn nestedIfStatements(): unit {
     if true {
@@ -145,41 +153,42 @@ fn nestedIfStatements(): unit {
 
     1;
 }
-// CHECK: nestedIfStatements:
-// CHECK-NEXT: [6 (entry)]
+// CHECK: fn nestedIfStatements(...) {
+// CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
 // CHECK-NEXT: 
-// CHECK-NEXT: [5]
+// CHECK-NEXT: bb5:
 // CHECK-NEXT:   preds: 6 
+// CHECK-NEXT:   $1 = true
+// CHECK-NEXT:   if $1
 // CHECK-NEXT:   succs: 1(U) 4 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [5.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [4]
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 5 
+// CHECK-NEXT:   $2 = true
+// CHECK-NEXT:   if $2
 // CHECK-NEXT:   succs: 2(U) 3 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: if [4.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $3 = 3
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 3
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 4(U) 
+// CHECK-NEXT:   $4 = 2
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 2
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 3 5(U) 
+// CHECK-NEXT:   $5 = 1
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn orCondition(): unit {
     5.0;
@@ -189,35 +198,36 @@ fn orCondition(): unit {
 
     1.0;
 }
-// CHECK: orCondition:
-// CHECK-NEXT: [4 (entry)]
+// CHECK: fn orCondition(...) {
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $1 = 5
+// CHECK-NEXT:   $2 = true
+// CHECK-NEXT:   $3 = false
+// CHECK-NEXT:   $4 = $2 || $3
+// CHECK-NEXT:   $5 = true
+// CHECK-NEXT:   $6 = $4 || $5
+// CHECK-NEXT:   if $6
 // CHECK-NEXT:   succs: 1(U) 2 
-// CHECK-NEXT:   1: 5
-// CHECK-NEXT:   2: true
-// CHECK-NEXT:   3: false
-// CHECK-NEXT:   4: [3.2] || [3.3]
-// CHECK-NEXT:   5: true
-// CHECK-NEXT:   6: [3.4] || [3.5]
-// CHECK-NEXT:   7: if [3.6]
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 3 
+// CHECK-NEXT:   $7 = 2
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 2
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 3(U) 
+// CHECK-NEXT:   $8 = 1
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn andCondition(): unit {
     5.0;
@@ -227,35 +237,36 @@ fn andCondition(): unit {
 
     1.0;
 }
-// CHECK: andCondition:
-// CHECK-NEXT: [4 (entry)]
+// CHECK: fn andCondition(...) {
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $1 = 5
+// CHECK-NEXT:   $2 = true
+// CHECK-NEXT:   $3 = true
+// CHECK-NEXT:   $4 = $2 && $3
+// CHECK-NEXT:   $5 = true
+// CHECK-NEXT:   $6 = $4 && $5
+// CHECK-NEXT:   if $6
 // CHECK-NEXT:   succs: 1(U) 2 
-// CHECK-NEXT:   1: 5
-// CHECK-NEXT:   2: true
-// CHECK-NEXT:   3: true
-// CHECK-NEXT:   4: [3.2] && [3.3]
-// CHECK-NEXT:   5: true
-// CHECK-NEXT:   6: [3.4] && [3.5]
-// CHECK-NEXT:   7: if [3.6]
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 3 
+// CHECK-NEXT:   $7 = 2
 // CHECK-NEXT:   succs: 1 
-// CHECK-NEXT:   1: 2
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 3(U) 
+// CHECK-NEXT:   $8 = 1
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn ifWhileFirstStmt(p: bool): unit {
     if p {
@@ -264,40 +275,41 @@ fn ifWhileFirstStmt(p: bool): unit {
         while p {}
     }
 }
-// CHECK: ifWhileFirstStmt:
-// CHECK-NEXT: [6 (entry)]
+// CHECK: fn ifWhileFirstStmt(...) {
+// CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
 // CHECK-NEXT: 
-// CHECK-NEXT: [5]
+// CHECK-NEXT: bb5:
 // CHECK-NEXT:   preds: 6 
+// CHECK-NEXT:   $1 = p
+// CHECK-NEXT:   if $1
 // CHECK-NEXT:   succs: 2 4 
-// CHECK-NEXT:   1: p
-// CHECK-NEXT:   2: if [5.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [4]
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 3 5 
+// CHECK-NEXT:   $2 = p
+// CHECK-NEXT:   while $2
 // CHECK-NEXT:   succs: 0 3 
-// CHECK-NEXT:   1: p
-// CHECK-NEXT:   2: while [4.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 4 
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 1 5 
+// CHECK-NEXT:   $3 = p
+// CHECK-NEXT:   while $3
 // CHECK-NEXT:   succs: 0 1 
-// CHECK-NEXT:   1: p
-// CHECK-NEXT:   2: while [2.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 2 
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 2 4 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn nestedInLoopConditionalOps(): unit {
     if true || true {
@@ -308,57 +320,58 @@ fn nestedInLoopConditionalOps(): unit {
         while true {}
     }
 }
-// CHECK: nestedInLoopConditionalOps:
-// CHECK-NEXT: [9 (entry)]
+// CHECK: fn nestedInLoopConditionalOps(...) {
+// CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
 // CHECK-NEXT: 
-// CHECK-NEXT: [8]
+// CHECK-NEXT: bb8:
 // CHECK-NEXT:   preds: 9 
+// CHECK-NEXT:   $1 = true
+// CHECK-NEXT:   $2 = true
+// CHECK-NEXT:   $3 = $1 || $2
+// CHECK-NEXT:   if $3
 // CHECK-NEXT:   succs: 5(U) 7 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: true
-// CHECK-NEXT:   3: [8.1] || [8.2]
-// CHECK-NEXT:   4: if [8.3]
 // CHECK-NEXT: 
-// CHECK-NEXT: [7]
+// CHECK-NEXT: bb7:
 // CHECK-NEXT:   preds: 6 8 
+// CHECK-NEXT:   $4 = true
+// CHECK-NEXT:   while $4
 // CHECK-NEXT:   succs: 0(U) 6 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: while [7.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [6]
+// CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 7 
 // CHECK-NEXT:   succs: 7 
 // CHECK-NEXT: 
-// CHECK-NEXT: [5]
+// CHECK-NEXT: bb5:
 // CHECK-NEXT:   preds: 8(U) 
+// CHECK-NEXT:   $5 = true
+// CHECK-NEXT:   $6 = true
+// CHECK-NEXT:   $7 = $5 && $6
+// CHECK-NEXT:   if $7
 // CHECK-NEXT:   succs: 2(U) 4 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: true
-// CHECK-NEXT:   3: [5.1] && [5.2]
-// CHECK-NEXT:   4: if [5.3]
 // CHECK-NEXT: 
-// CHECK-NEXT: [4]
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 3 5 
+// CHECK-NEXT:   $8 = true
+// CHECK-NEXT:   while $8
 // CHECK-NEXT:   succs: 0(U) 3 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: while [4.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
 // CHECK-NEXT:   succs: 4 
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 1 5(U) 
+// CHECK-NEXT:   $9 = true
+// CHECK-NEXT:   while $9
 // CHECK-NEXT:   succs: 0(U) 1 
-// CHECK-NEXT:   1: true
-// CHECK-NEXT:   2: while [2.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 
 // CHECK-NEXT:   succs: 2 
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 2(U) 4(U) 7(U) 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }

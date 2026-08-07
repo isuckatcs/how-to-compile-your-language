@@ -8,24 +8,25 @@ fn main(): unit {
 
     x = x + 1.0;
 }
-// CHECK: main:
-// CHECK-NEXT: [2 (entry)]
+// CHECK: fn main(...) {
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   mut x
+// CHECK-NEXT:   $1 = 2
+// CHECK-NEXT:   x = $1
+// CHECK-NEXT:   $2 = 3
+// CHECK-NEXT:   x = $2
+// CHECK-NEXT:   $3 = x
+// CHECK-NEXT:   $4 = 1
+// CHECK-NEXT:   $5 = $3 + $4
+// CHECK-NEXT:   x = $5
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: mut x
-// CHECK-NEXT:   2: 2
-// CHECK-NEXT:   3: x = [1.2]
-// CHECK-NEXT:   4: 3
-// CHECK-NEXT:   5: x = [1.4]
-// CHECK-NEXT:   6: x
-// CHECK-NEXT:   7: 1
-// CHECK-NEXT:   8: [1.6] + [1.7]
-// CHECK-NEXT:   9: x = [1.8]
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
-// CHECK-NEXT:   succs:
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }

@@ -8,33 +8,34 @@ fn foo(): number {
 
     return 1.0;
 }
-// CHECK: foo:
-// CHECK-NEXT: [4 (entry)]
+// CHECK: fn foo(...) {
+// CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
 // CHECK-NEXT: 
-// CHECK-NEXT: [3]
+// CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 4 
+// CHECK-NEXT:   $1 = 3
+// CHECK-NEXT:   $2 = 3
+// CHECK-NEXT:   return $2
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 3
-// CHECK-NEXT:   2: 3
-// CHECK-NEXT:   3: return [3.2]
 // CHECK-NEXT: 
-// CHECK-NEXT: [2]
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
+// CHECK-NEXT:   $3 = 2
+// CHECK-NEXT:   $4 = 2
+// CHECK-NEXT:   return $4
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 2
-// CHECK-NEXT:   2: 2
-// CHECK-NEXT:   3: return [2.2]
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 
+// CHECK-NEXT:   $5 = 1
+// CHECK-NEXT:   return $5
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
-// CHECK-NEXT:   2: return [1.1]
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 2 3 
 // CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
 
 fn main(): unit {}

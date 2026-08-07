@@ -40,6 +40,10 @@ struct CFG {
   }
 
   void dump() const;
+
+private:
+  mutable std::unordered_map<const res::Stmt *, std::string> value;
+  void dumpStmt(const res::Stmt *stmt, bool topLevel = false) const;
 };
 
 class CFGBuilder {

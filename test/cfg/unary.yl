@@ -4,21 +4,22 @@ fn main(): unit {
 
   let y = !true;
 }
-// CHECK: main:
-// CHECK-NEXT: [2 (entry)]
+// CHECK: fn main(...) {
+// CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
 // CHECK-NEXT: 
-// CHECK-NEXT: [1]
+// CHECK-NEXT: bb1:
 // CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   $1 = 1
+// CHECK-NEXT:   $2 = -$1
+// CHECK-NEXT:   let x = $2
+// CHECK-NEXT:   $3 = true
+// CHECK-NEXT:   $4 = !$3
+// CHECK-NEXT:   let y = $4
 // CHECK-NEXT:   succs: 0 
-// CHECK-NEXT:   1: 1
-// CHECK-NEXT:   2: -[1.1]
-// CHECK-NEXT:   3: let x = [1.2]
-// CHECK-NEXT:   4: true
-// CHECK-NEXT:   5: ![1.4]
-// CHECK-NEXT:   6: let y = [1.5]
 // CHECK-NEXT: 
-// CHECK-NEXT: [0 (exit)]
+// CHECK-NEXT: bb0:
 // CHECK-NEXT:   preds: 1 
 // CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
