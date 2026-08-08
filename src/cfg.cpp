@@ -240,8 +240,8 @@ int CFGBuilder::insertDeclStmt(const res::DeclStmt &stmt, int block) {
 int CFGBuilder::insertAssignment(const res::Assignment &stmt, int block) {
   cfg.insertStmt(&stmt, block);
 
-  if (auto *me = dynamic_cast<const res::MemberExpr *>(stmt.assignee))
-    block = insertExpr(*me->base, block);
+  if (!dynamic_cast<const res::DeclRefExpr *>(stmt.assignee))
+    block = insertExpr(*stmt.assignee, block);
 
   return insertExpr(*stmt.expr, block);
 }
@@ -257,6 +257,9 @@ int CFGBuilder::insertReturnStmt(const res::ReturnStmt &stmt, int block) {
 }
 
 int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
+  if (auto *memberExpr = dynamic_cast<const res::MemberExpr *>(&expr))
+    return insertExpr(*memberExpr->base, block);
+
   cfg.insertStmt(&expr, block);
 
   if (auto *call = dynamic_cast<const res::CallExpr *>(&expr)) {
@@ -265,9 +268,6 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
       block = insertExpr(**it, block);
     return block;
   }
-
-  if (auto *memberExpr = dynamic_cast<const res::MemberExpr *>(&expr))
-    return insertExpr(*memberExpr->base, block);
 
   if (auto *binop = dynamic_cast<const res::BinaryOperator *>(&expr))
     return insertExpr(*binop->rhs, block), insertExpr(*binop->lhs, block);

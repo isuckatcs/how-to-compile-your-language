@@ -26,9 +26,7 @@ fn main(): unit {
 // CHECK-NEXT:   $4 = S { x: $1, s2: $3 }
 // CHECK-NEXT:   let s = $4
 // CHECK-NEXT:   $5 = s
-// CHECK-NEXT:   $6 = $5.s2
-// CHECK-NEXT:   $7 = $6.y
-// CHECK-NEXT:   let n = $7
+// CHECK-NEXT:   let n = $5.s2.y
 // CHECK-NEXT:   succs: 0 
 // CHECK-NEXT: 
 // CHECK-NEXT: bb0:
