@@ -1,5 +1,5 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:21: error: 'x' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:21: error: cannot assign to immutable value
   ->(x: number) { x = 1; };
 }

@@ -2,13 +2,13 @@
 fn main() {
   let im = gc mut 123;
   
-  // CHECK: [[# @LINE + 1 ]]:6: error: 'im' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:6: error: cannot assign to immutable value
   im = gc mut 123;
   *im = 456;
 
   mut mi = gc 123;
   mi = gc 123;
   
-  // CHECK: [[# @LINE + 1 ]]:7: error: pointee of type '*number' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot assign to immutable value
   *mi = 456;
 }

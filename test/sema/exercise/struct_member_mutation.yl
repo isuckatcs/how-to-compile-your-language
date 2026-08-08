@@ -21,10 +21,10 @@ fn bar(structParam: S): unit {
 
   let s = S { x: 1 };
   s.x = 3;
-  // CHECK: [[# @LINE - 1 ]]:7: error: 's' cannot be mutated
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot assign to immutable value
 
   structParam.x = 3;
-  // CHECK: [[# @LINE - 1 ]]:17: error: 'structParam' cannot be mutated
+  // CHECK: [[# @LINE - 1 ]]:17: error: cannot assign to immutable value
 }
 
 fn main(): unit {

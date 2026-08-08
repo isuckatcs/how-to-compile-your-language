@@ -6,7 +6,7 @@ fn mutableParam(mut n: number): unit {
 
 fn immutableParam(n: number): unit {
   n = 1;
-  // CHECK: [[# @LINE - 1 ]]:5: error: 'n' cannot be mutated
+  // CHECK: [[# @LINE - 1 ]]:5: error: cannot assign to immutable value
 }
 
 fn main(): unit {

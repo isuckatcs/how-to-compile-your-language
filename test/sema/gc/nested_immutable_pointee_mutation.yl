@@ -16,6 +16,6 @@ fn main() {
   let s2 = gc mut S2{ s3: s3 };
   let s = gc S{ s2: s2 };
 
-  // CHECK: [[# @LINE + 1 ]]:17: error: pointee of type '*S3' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:17: error: cannot assign to immutable value
   ((s.s2.s3.n)) = gc 0;
 }

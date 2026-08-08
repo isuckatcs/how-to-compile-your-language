@@ -27,6 +27,6 @@ fn main(): unit {
 }
 
 fn assignParam(x: number): unit {
-    // CHECK: [[# @LINE + 1 ]]:7: error: 'x' cannot be mutated
+    // CHECK: [[# @LINE + 1 ]]:7: error: cannot assign to immutable value
     x = 1.0;
 }

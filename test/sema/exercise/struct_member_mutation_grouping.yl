@@ -6,6 +6,6 @@ struct S<T> {
 fn main(): unit {
   let s = S{ x: S{ x: 1 } };
   
-  // CHECK: [[# @LINE + 1 ]]:15: error: 's' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:15: error: cannot assign to immutable value
   (((s.x).x)) = 2;
 }

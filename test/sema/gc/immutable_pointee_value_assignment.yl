@@ -2,6 +2,6 @@
 fn main() {
   let n = gc 123;
 
-  // CHECK: [[# @LINE + 1 ]]:6: error: pointee of type '*number' cannot be mutated
+  // CHECK: [[# @LINE + 1 ]]:6: error: cannot assign to immutable value
   *n = 456;
 }

@@ -2295,98 +2295,66 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
     return State::Top;
   };
 
-  std::vector<Lattice> curLattices(cfg.basicBlocks.size());
-  std::vector<diag::DiagBuilder> pendingErrors;
+  std::vector<Lattice> lattices(cfg.basicBlocks.size());
+  std::vector<diag::DiagBuilder> errors;
 
   bool changed = true;
   while (changed) {
-    changed = false;
-    pendingErrors.clear();
+    errors.clear();
 
     for (int bb = cfg.entry; bb != cfg.exit; --bb) {
       const auto &[preds, succs, stmts] = cfg.basicBlocks[bb];
 
-      Lattice tmp;
-      for (auto &&pred : preds)
-        for (auto &&[decl, state] : curLattices[pred.first])
-          tmp[decl] = joinStates(tmp[decl], state);
+      Lattice state;
+      for (auto &&[block, reachable] : preds)
+        for (auto &&[decl, declState] : lattices[block])
+          state[decl] = joinStates(state[decl], declState);
 
       for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
-        const res::Stmt *stmt = *it;
-
-        if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(stmt)) {
+        if (auto *declStmt = dynamic_cast<const res::DeclStmt *>(*it)) {
           const res::VarDecl *decl = declStmt->varDecl;
-          tmp[decl] = decl->initializer ? State::Assigned : State::Unassigned;
+          state[decl] = decl->initializer ? State::Assigned : State::Unassigned;
+
+          if (decl->getType()->getAs<res::UninferredType>())
+            errors.emplace_back(
+                err::unknownType(decl->location).with(decl->identifier));
+
           continue;
         }
 
-        if (auto *assignment = dynamic_cast<const res::Assignment *>(stmt)) {
-          const res::Expr *base = assignment->assignee;
-          while (true) {
-            if (const auto *me = dynamic_cast<const res::MemberExpr *>(base)) {
-              base = me->base;
-              continue;
-            }
+        if (auto *assignment = dynamic_cast<const res::Assignment *>(*it)) {
+          const auto *assignee = assignment->assignee;
 
-            if (const auto *i =
-                    dynamic_cast<const res::ImplicitDerefExpr *>(base)) {
-              base = i->dre;
-              continue;
-            }
-
-            if (const auto *u =
-                    dynamic_cast<const res::UnaryOperator *>(base)) {
-              if (u->op == TokenKind::Asterisk && !u->isMutable())
-                pendingErrors.emplace_back(
-                    err::pointeeCannotBeMutated(assignment->location)
-                        .with(u->operand->getType()->getName()));
-              break;
-            }
-
-            break;
+          auto *dre = dynamic_cast<const res::DeclRefExpr *>(assignee);
+          if (dre && state[dre->decl] == State::Unassigned) {
+            state[dre->decl] = State::Assigned;
+            continue;
           }
 
-          const auto *path = dynamic_cast<const res::DeclRefExpr *>(base);
-          if (!path)
-            continue;
+          if (!assignee->isMutable())
+            errors.emplace_back(err::immutableAssignment(assignment->location));
 
-          const auto *decl = path->decl->getAs<res::ValueDecl>();
-          if (!decl->isMutable && tmp[decl] != State::Unassigned)
-            pendingErrors.emplace_back(
-                err::cannotBeMutated(assignment->location)
-                    .with(decl->identifier));
-
-          tmp[decl] = State::Assigned;
           continue;
         }
 
-        if (const auto *path = dynamic_cast<const res::DeclRefExpr *>(stmt)) {
-          const auto *dre = path;
-          const auto *var = dre->decl->getAs<res::VarDecl>();
-          if (var && tmp[var] != State::Assigned)
-            pendingErrors.emplace_back(
-                err::notInitialized(dre->location).with(var->identifier));
+        if (const auto *dre = dynamic_cast<const res::DeclRefExpr *>(*it)) {
+          auto *decl = dre->decl->getAs<res::VarDecl>();
+          if (decl && state[decl] != State::Assigned)
+            errors.emplace_back(
+                err::notInitialized(dre->location).with(decl->identifier));
 
           continue;
         }
       }
 
-      if (curLattices[bb] != tmp) {
-        curLattices[bb] = tmp;
-        changed = true;
-      }
+      changed = lattices[bb] != state;
+      lattices[bb] = state;
     }
   }
 
-  for (auto &&[d, s] : curLattices[cfg.exit + 1])
-    if (s == State::Unassigned && d->getType()->getAs<res::UninferredType>()) {
-      err::unknownType(d->location).with(d->identifier).report(reporter);
-      return false;
-    }
-
-  for (auto &&err : pendingErrors)
+  for (auto &&err : errors)
     err.report(reporter);
 
-  return pendingErrors.empty();
+  return errors.empty();
 }
 } // namespace yl

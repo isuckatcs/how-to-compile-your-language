@@ -145,8 +145,7 @@ diag(Error, noReturnValue, "expected a return value");
 
 // values
 diag(Error, rvalueAssignment, "cannot assign to rvalue");
-diag(Error, cannotBeMutated, "'{}' cannot be mutated");
-diag(Error, pointeeCannotBeMutated, "pointee of type '{}' cannot be mutated");
+diag(Error, immutableAssignment, "cannot assign to immutable value");
 diag(Error, rvalueRef, "only lvalues can be taken by reference");
 diag(Error, mutRefParameter, "a '&' parameter cannot be 'mut'");
 

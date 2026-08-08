@@ -15,14 +15,14 @@ fn modifyImmutable(): unit {
     let x: number = 1.0;
     
     if true {
-        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: cannot assign to immutable value
         x = 1.0;
     } else {
-        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: cannot assign to immutable value
         x = 2.0;
     }
 
-    // CHECK: [[# @LINE + 1 ]]:7: error: 'x' cannot be mutated
+    // CHECK: [[# @LINE + 1 ]]:7: error: cannot assign to immutable value
     x = 3.0;
 }
 
@@ -75,7 +75,7 @@ fn loop(): unit {
     mut y: number;
     
     while true {
-        // CHECK: [[# @LINE + 1 ]]:11: error: 'x' cannot be mutated
+        // CHECK: [[# @LINE + 1 ]]:11: error: cannot assign to immutable value
         x = 1.0;
 
         // CHECK-NOT: [[# @LINE + 1 ]]:11: error
