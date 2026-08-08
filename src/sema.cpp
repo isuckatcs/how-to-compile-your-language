@@ -1799,57 +1799,25 @@ bool Sema::resolveStructBody(res::Context &ctx,
                              res::StructDecl &structDecl,
                              const ast::StructDecl &astDecl) {
   EnterNewScopeRAII structParamScope(this, &structDecl);
-  bool error = !resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
-                                                   astDecl.typeParameters);
+  if (!resolveGenericParamsInCurrentScope(ctx, structDecl.typeParams,
+                                          astDecl.typeParameters))
+    return false;
 
   EnterNewScopeRAII structBodyScope(this);
-  for (auto &&decl : astDecl.fields) {
-    res::Decl *memberDecl = nullptr;
+  for (auto &&field : astDecl.fields) {
+    res::Type *fieldTy = resolveType(ctx, *field->type);
+    if (!fieldTy)
+      continue;
 
-    if (auto *field = dynamic_cast<ast::FieldDecl *>(decl.get())) {
-      if (res::Type *fieldTy = resolveType(ctx, *field->type)) {
-        memberDecl = res::FieldDecl::create(ctx, field->location,
+    auto *resField = res::FieldDecl::create(ctx, field->location,
                                             field->identifier, &structDecl);
-        memberDecl->setType(fieldTy);
-      }
-    }
+    resField->setType(fieldTy);
 
-    if (auto *memberFunction = dynamic_cast<ast::FunctionDecl *>(decl.get()))
-      memberDecl = resolveFunctionDecl(ctx, *memberFunction);
-
-    if (!insertDeclToCurrentScope(memberDecl)) {
-      error = true;
-      continue;
-    }
-
-    structDecl.insertDecl(memberDecl);
+    if (insertDeclToCurrentScope(resField))
+      structDecl.insertDecl(resField);
   }
 
-  return !error;
-}
-
-bool Sema::resolveMemberFunctionBodies(res::Context &ctx,
-                                       res::StructDecl &decl,
-                                       const ast::StructDecl &astDecl) {
-  EnterNewScopeRAII structParamScope(this, &decl);
-  for (auto &&typeParamDecl : decl.typeParams)
-    insertDeclToCurrentScope(typeParamDecl);
-
-  EnterNewScopeRAII structBodyScope(this);
-  bool error = false;
-
-  for (auto &&memberDecl : astDecl.fields) {
-    if (const auto *memberFn =
-            dynamic_cast<const ast::FunctionDecl *>(memberDecl.get())) {
-      for (auto &&d : decl.lookupDirect(memberFn->identifier))
-        if (auto *fd = d->getAs<res::FunctionDecl>())
-          error |= !resolveFunctionBody(ctx, *memberFn, fd);
-
-      continue;
-    }
-  }
-
-  return !error;
+  return structDecl.decls.size() == astDecl.fields.size();
 }
 
 res::Context *Sema::resolveAST() {
@@ -1941,10 +1909,6 @@ res::Context *Sema::resolveAST() {
   }
 
   for (auto &&[resDecl, astDecl] : resDecls) {
-    if (auto *rs = resDecl->getAs<res::StructDecl>())
-      error |= !resolveMemberFunctionBodies(
-          ctx, *rs, *static_cast<const ast::StructDecl *>(astDecl));
-
     if (auto *rt = resDecl->getAs<res::TraitDecl>())
       error |= !resolveTraitFunctionBodies(
           ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));

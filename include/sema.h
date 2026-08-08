@@ -187,9 +187,6 @@ class Sema {
   bool resolveStructBody(res::Context &ctx,
                          res::StructDecl &structDecl,
                          const ast::StructDecl &astDecl);
-  bool resolveMemberFunctionBodies(res::Context &ctx,
-                                   res::StructDecl &decl,
-                                   const ast::StructDecl &astDecl);
 
   bool checkTypeParameterCount(SourceLocation loc,
                                size_t received,
