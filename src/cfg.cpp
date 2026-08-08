@@ -310,11 +310,6 @@ int CFGBuilder::insertStmt(const res::Stmt &stmt, int block) {
   if (auto *returnStmt = dynamic_cast<const res::ReturnStmt *>(&stmt))
     return insertReturnStmt(*returnStmt, block);
 
-  if (auto *fieldInit = dynamic_cast<const res::FieldInitStmt *>(&stmt)) {
-    cfg.insertStmt(fieldInit, block);
-    return insertExpr(*fieldInit->initializer, block);
-  }
-
   llvm_unreachable("unexpected expression");
 }
 
