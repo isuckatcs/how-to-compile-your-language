@@ -159,7 +159,7 @@ diag(Error, traitNotImplemented, "'{}' doesn't implement trait '{}'");
 diag(Error, stricterParamTy, "cannot replace parameter of type '{}' with stricter implementation type '{}'");
 diag(Error, fnSignatureMismatch, "trait function declaration has '{}' signature, but the given implementation is '{}'");
 diag(Error, notATrait, "'{}' is not a trait");
-diag(Error, missingTraitFn, "struct '{}' must implement function '{}' from trait '{}'");
+diag(Error, missingTraitFn, "'{}' must implement function '{}' from trait '{}'");
 diag(Error, conflictingExtension, "extension '{} : {}' conflicts with extension '{} : {}'");
 diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
 diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");

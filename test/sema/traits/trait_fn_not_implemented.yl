@@ -1,6 +1,6 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 trait A {
-  // CHECK: [[# @LINE + 1]]:6: error: struct 'S' must implement function 'foo'
+  // CHECK: [[# @LINE + 1]]:6: error: 'S' must implement function 'foo' from trait 'A'
   fn foo();
 }
 
