@@ -11,15 +11,15 @@ fn main() {
   @<any A : A>::foo(n);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToRefDecay {&any A}
-  // CHECK-NEXT:     TraitObjectPromoExpr {*any A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {&any A}
+  // CHECK-NEXT:     ImplicitPtrToRefDecay {&number}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {*number}
 
   let u = gc unit;
   @<any A : A>::foo(u);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any A) -> unit}
-  // CHECK-NEXT:   ImplicitPtrToRefDecay {&any A}
-  // CHECK-NEXT:     TraitObjectPromoExpr {*any A}
+  // CHECK-NEXT:   TraitObjectPromoExpr {&any A}
+  // CHECK-NEXT:     ImplicitPtrToRefDecay {&unit}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) u {*unit}
 }

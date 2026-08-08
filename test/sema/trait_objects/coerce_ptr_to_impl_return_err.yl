@@ -13,7 +13,7 @@ fn foo(): *any A {
 }
 
 fn bar(): *any B {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot satisfy requirement 'S : B'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*S' from a function returning '*any B'
   return gc S{};
 }
 

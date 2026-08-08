@@ -192,9 +192,8 @@ class Sema {
                                size_t received,
                                size_t expected) const;
 
-  res::Expr *asTraitObjectIfNeeded(res::Type *targetType, res::Expr *expr);
-  res::Expr *withPtrToRefDecay(res::Type *targetType, res::Expr *expr);
-  res::Expr *withImplicitAsRef(res::Type *targetType, res::Expr *expr);
+  bool isTraitObjectOf(res::Type *type, res::Type *any);
+  res::Expr *tryCoerce(res::Expr *expr, res::Type *to);
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,

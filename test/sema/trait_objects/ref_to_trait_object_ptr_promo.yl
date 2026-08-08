@@ -6,7 +6,7 @@ extension number : A {}
 fn foo(a: *any A) {}
 
 fn bar(n: &number) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&any A' with '*any A'
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify 'number' with '*any A'
   foo(n);
 }
 

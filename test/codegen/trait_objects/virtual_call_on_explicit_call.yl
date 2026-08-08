@@ -33,7 +33,7 @@ fn main() {
   // CHECK-NEXT: %3 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
   // CHECK-NEXT: store ptr @vtable.T1AGnE, ptr %3, align 8
 
-  // CHECK: %vtablePtr = getelementptr inbounds nuw { ptr, ptr }, ptr %decay, i32 0, i32 1
+  // CHECK: %vtablePtr = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
   // CHECK-NEXT: %vtable = load ptr, ptr %vtablePtr, align 8
   // CHECK-NEXT: %vFnPtr = getelementptr ptr, ptr %vtable, i32 0
   // CHECK-NEXT: %vFn = load ptr, ptr %vFnPtr, align 8
@@ -41,17 +41,17 @@ fn main() {
 
   let u = gc unit;
   @<any A : A>::foo(u);
-  // CHECK: %6 = call ptr @gcAlloc(i32 0, ptr null)
-  // CHECK-NEXT: store ptr %6, ptr %u, align 8
-  // CHECK-NEXT: %7 = load ptr, ptr %u, align 8
-  // CHECK-NEXT: %8 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject1, i32 0, i32 0
-  // CHECK-NEXT: store ptr %7, ptr %8, align 8
-  // CHECK-NEXT: %9 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject1, i32 0, i32 1
-  // CHECK-NEXT: store ptr @vtable.T1AGuE, ptr %9, align 8
+  // CHECK: %4 = call ptr @gcAlloc(i32 0, ptr null)
+  // CHECK-NEXT: store ptr %4, ptr %u, align 8
+  // CHECK-NEXT: %5 = load ptr, ptr %u, align 8
+  // CHECK-NEXT: %6 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject1, i32 0, i32 0
+  // CHECK-NEXT: store ptr %5, ptr %6, align 8
+  // CHECK-NEXT: %7 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject1, i32 0, i32 1
+  // CHECK-NEXT: store ptr @vtable.T1AGuE, ptr %7, align 8
 
-  // CHECK: %vtablePtr5 = getelementptr inbounds nuw { ptr, ptr }, ptr %decay2, i32 0, i32 1
-  // CHECK-NEXT: %vtable6 = load ptr, ptr %vtablePtr5, align 8
-  // CHECK-NEXT: %vFnPtr7 = getelementptr ptr, ptr %vtable6, i32 0
-  // CHECK-NEXT: %vFn8 = load ptr, ptr %vFnPtr7, align 8
-  // CHECK-NEXT: call void %vFn8(ptr %obj4, ptr null)
+  // CHECK: %vtablePtr4 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject1, i32 0, i32 1
+  // CHECK-NEXT: %vtable5 = load ptr, ptr %vtablePtr4, align 8
+  // CHECK-NEXT: %vFnPtr6 = getelementptr ptr, ptr %vtable5, i32 0
+  // CHECK-NEXT: %vFn7 = load ptr, ptr %vFnPtr6, align 8
+  // CHECK-NEXT: call void %vFn7(ptr %obj3, ptr null)
 }
