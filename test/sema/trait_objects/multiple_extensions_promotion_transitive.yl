@@ -1,0 +1,21 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+trait B {}
+trait C : B {}
+
+extension number : A {}
+extension number : B {}
+extension number : C {}
+
+fn foo(c: &any C) {}
+
+fn main() {
+  let n = 123;
+
+  foo(n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&any C) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {&any C}
+  // CHECK-NEXT:     ImplicitAsRefExpr {&number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) n {number}
+}

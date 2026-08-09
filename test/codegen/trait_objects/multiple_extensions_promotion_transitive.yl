@@ -1,0 +1,49 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '2\n'
+trait A {
+  fn foo(self: &Self) {}
+}
+
+trait B {
+  fn foo(self: &Self) {}
+}
+
+trait C : B {
+  fn foo(self: &Self) {}
+}
+
+extension number : A {
+  fn foo(self: &Self) {
+    println(0);
+  }
+}
+
+extension number : B {
+  fn foo(self: &Self) {
+    println(1);
+  }
+}
+
+extension number : C {
+  fn foo(self: &Self) {
+    println(2);
+  }
+}
+
+// CHECK: @vtable.T1CGnE = internal constant [2 x ptr] [ptr @_YT1BGnE3foo, ptr @_YT1CGnE3foo]
+
+fn foo(c: &any C) {
+  @<any C : C>::foo(c);
+  // CHECK: %vtablePtr = getelementptr inbounds nuw { ptr, ptr }, ptr %c, i32 0, i32 1
+  // CHECK-NEXT: %vtable = load ptr, ptr %vtablePtr, align 8
+  // CHECK-NEXT: %vFnPtr = getelementptr ptr, ptr %vtable, i32 1
+  // CHECK-NEXT: %vFn = load ptr, ptr %vFnPtr, align 8
+  // CHECK-NEXT: call void %vFn(ptr %obj, ptr null)
+}
+
+fn main() {
+  let n = 123;
+
+  foo(n);
+}
