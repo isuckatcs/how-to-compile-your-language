@@ -451,29 +451,28 @@ Codegen::generatePtrToRef(const res::ImplicitPtrToRefDecay &decay) {
 llvm::Value *
 Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   llvm::Value *obj = generateExpr(*promo.expr);
-  if (promo.expr->isLvalue() &&
-      getMonoType(promo.expr->getType())->getAs<res::PointerType>())
-    obj = builder.CreateLoad(builder.getPtrTy(), obj);
 
-  auto *promoType = getMonoType(promo.getType());
-  res::Type *anyType = nullptr;
+  res::Type *resultType = getMonoType(promo.getType());
+  res::Type *originType = getMonoType(promo.expr->getType());
 
-  if (auto *ptrType = promoType->getAs<res::PointerType>())
-    anyType = ptrType->getPointeeType();
-  else
-    anyType = promoType->getAs<res::RefType>()->getReferencedType();
+  res::AnyTraitType *anyType = nullptr;
+  res::Type *objectType = nullptr;
 
-  auto *monoType = getMonoType(promo.expr->getType());
-  res::Type *valType = nullptr;
+  if (auto *ptrType = resultType->getAs<res::PointerType>()) {
+    objectType = originType->getAs<res::PointerType>()->getPointeeType();
+    anyType = ptrType->getPointeeType()->getAs<res::AnyTraitType>();
 
-  if (auto *ptrType = monoType->getAs<res::PointerType>())
-    valType = ptrType->getPointeeType();
-  else
-    valType = monoType->getAs<res::RefType>()->getReferencedType();
+    if (promo.expr->isLvalue())
+      obj = loadValue(obj, builder.getPtrTy());
+  } else {
+    objectType = originType->getAs<res::RefType>()->getReferencedType();
+    anyType = resultType->getAs<res::RefType>()
+                  ->getReferencedType()
+                  ->getAs<res::AnyTraitType>();
+  }
 
-  auto *vtable = getVtable(
-      anyType->getAs<res::AnyTraitType>()->withSelfType(resCtx, valType));
-  auto *traitObjTy = generateType(promoType);
+  auto *vtable = getVtable(anyType->withSelfType(resCtx, objectType));
+  auto *traitObjTy = generateType(resultType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
   builder.CreateStore(obj, builder.CreateStructGEP(traitObjTy, traitObj, 0));

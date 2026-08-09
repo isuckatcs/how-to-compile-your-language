@@ -17,15 +17,28 @@ trait C : B1 & B2 {
   fn c(self: &Self) { println(3); }
 }
 
-struct S {}
+struct S { 
+  a: number,
+  b1: number,
+  b2: number,
+  c: number,
+}
 
-extension S : A {}
+extension S : A {
+  fn a(self: &Self) { println(self.a); }
+}
 
-extension S : B1 {}
+extension S : B1 {
+  fn b(self: &Self) { println(self.b1); }
+}
 
-extension S : B2 {}
+extension S : B2 {
+  fn b(self: &Self) { println(self.b2); }
+}
 
-extension S : C {}
+extension S : C {
+  fn c(self: &Self) { println(self.c); }
+}
 
 fn generateVtable(c: *any C) {
   c.a();
@@ -35,21 +48,21 @@ fn generateVtable(c: *any C) {
 }
 
 fn main() {
-  let s = gc S {};
+  let s = gc S { a: 0, b1: 1, b2: 2, c: 3 };
 
   generateVtable(s);
 
   // CHECK: @vtable.T1CGS1SE = internal constant [4 x ptr] [ptr @_YT1AGS1SE1a, ptr @_YT2B1GS1SE1b, ptr @_YT2B2GS1SE1b, ptr @_YT1CGS1SE1c]
 
   s.a();
-  // CHECK: call void @_YT1AGS1SE1a(ptr %4, ptr null)
+  // CHECK: call void @_YT1AGS1SE1a(ptr %8, ptr null)
 
   @<S : B1>::b(s);
-  // CHECK: call void @_YT2B1GS1SE1b(ptr %5, ptr null)
+  // CHECK: call void @_YT2B1GS1SE1b(ptr %9, ptr null)
   
   @<S : B2>::b(s);
-  // CHECK: call void @_YT2B2GS1SE1b(ptr %6, ptr null)
+  // CHECK: call void @_YT2B2GS1SE1b(ptr %10, ptr null)
   
   s.c();
-  // CHECK: call void @_YT1CGS1SE1c(ptr %7, ptr null)
+  // CHECK: call void @_YT1CGS1SE1c(ptr %11, ptr null)
 }
