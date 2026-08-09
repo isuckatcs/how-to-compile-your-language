@@ -1417,11 +1417,6 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     init = tryCoerce(init, declTy);
     auto *initTy = init->getType();
 
-    // FIXME: artifact
-    for (auto &&err : ctx.unify(declTy, initTy)) {
-      std::cout << err << '\n';
-    }
-
     if (!ctx.unify(declTy, initTy).empty())
       return err::initTyMismatch(init->location)
           .with(initTy->getName())
