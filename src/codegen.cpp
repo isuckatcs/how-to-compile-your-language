@@ -646,12 +646,8 @@ llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
 }
 
 llvm::Value *Codegen::generateUnaryOperator(const res::UnaryOperator &unop) {
-  if (unop.op == TokenKind::Asterisk) {
-    if (dl->getTypeAllocSize(generateType(unop.getType())) == 0)
-      return nullptr;
-
+  if (unop.op == TokenKind::Asterisk)
     return generateExprAndLoadValue(*unop.operand);
-  }
 
   llvm::Value *rhs = generateExprAndLoadValue(*unop.operand);
 

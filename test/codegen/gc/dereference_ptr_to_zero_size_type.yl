@@ -12,12 +12,14 @@ fn main() {
   // CHECK-NEXT: store ptr %0, ptr %x, align 8
   
   foo(*x);
+  // CHECK-NEXT: %1 = load ptr, ptr %x, align 8
   // CHECK-NEXT: call void @_Y3fooGuE(ptr null)
 
   let y = gc Empty{};
-  // CHECK-NEXT: %1 = call ptr @gcAlloc(i32 0, ptr null)
-  // CHECK-NEXT: store ptr %1, ptr %y, align 8
+  // CHECK-NEXT: %2 = call ptr @gcAlloc(i32 0, ptr null)
+  // CHECK-NEXT: store ptr %2, ptr %y, align 8
   
   foo(*y);
+  // CHECK-NEXT: %3 = load ptr, ptr %y, align 8
   // CHECK-NEXT: call void @_Y3fooGS5EmptyE(ptr null)
 }
