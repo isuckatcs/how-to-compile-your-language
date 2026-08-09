@@ -42,6 +42,8 @@ fn main() {
 
 // CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
+// CHECK-NEXT:   %0 = getelementptr {}, ptr %closure, i64 1
+// CHECK-NEXT:   %1 = getelementptr {}, ptr %closure, i64 1
 // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

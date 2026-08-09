@@ -312,17 +312,24 @@ llvm::Value *Codegen::generateReturnStmt(const res::ReturnStmt &stmt) {
 
 llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   llvm::Value *base = generateExpr(*memberExpr.base);
-
-  auto *resTy = generateType(getMonoType(memberExpr.getType()));
-  if (dl->getTypeAllocSize(resTy) == 0)
+  if (!base)
     return nullptr;
 
-  auto *baseType =
-      getMonoType(memberExpr.base->getType())->getAs<res::StructType>();
+  res::Type *baseType = getMonoType(memberExpr.base->getType());
+  llvm::Type *baseTy = generateType(baseType);
+
+  llvm::Type *fieldTy = generateType(getMonoType(memberExpr.getType()));
+  if (dl->getTypeAllocSize(fieldTy) == 0) {
+    if (base->getType()->isVoidTy())
+      return allocateStackVariable("", fieldTy);
+
+    return builder.CreateGEP(baseTy, base, {builder.getInt64(1)});
+  }
+
   EnterMonoCtxRAII structCtx(this, baseType->getSub());
 
   unsigned index = 0;
-  for (auto &&field : baseType->getDecl()->getAll<res::FieldDecl>()) {
+  for (auto &&field : baseType->getAs<res::StructType>()->getDecl()->decls) {
     if (field == memberExpr.member->decl)
       break;
 
@@ -330,7 +337,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
       ++index;
   }
 
-  return builder.CreateStructGEP(generateType(baseType), base, index);
+  return builder.CreateStructGEP(baseTy, base, index);
 }
 
 llvm::Value *

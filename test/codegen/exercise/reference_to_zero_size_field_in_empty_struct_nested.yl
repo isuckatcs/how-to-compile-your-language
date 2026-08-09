@@ -1,0 +1,26 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+struct ZeroSize {
+  x: unit,
+  y: unit,
+}
+
+struct S {
+  x: unit,
+  z: ZeroSize,
+}
+
+fn foo(x: &unit, y: &unit) {}
+
+fn main() {
+  let s = S {x: unit, z: ZeroSize {x: unit, y: unit}};
+  // CHECK: %s = alloca {}, align 8
+
+  foo(s.z.x, s.z.y);
+  // CHECK-NEXT: %0 = getelementptr {}, ptr %s, i64 1
+  // CHECK-NEXT: %1 = getelementptr {}, ptr %0, i64 1
+  // CHECK-NEXT: %2 = getelementptr {}, ptr %s, i64 1
+  // CHECK-NEXT: %3 = getelementptr {}, ptr %2, i64 1
+  // CHECK-NEXT: call void @foo(ptr %1, ptr %3, ptr null)
+}

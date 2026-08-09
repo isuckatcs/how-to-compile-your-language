@@ -1,0 +1,22 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+struct ZeroSize {
+  x: unit,
+  y: number,
+}
+
+struct S {
+  x: number,
+  z: ZeroSize,
+}
+
+fn foo(x: &unit) {}
+
+fn main() {
+  let s = S {x: 123, z: ZeroSize {x: unit, y: 456}};
+  foo(s.z.x);
+  // CHECK: %3 = getelementptr inbounds nuw { double, { double } }, ptr %s, i32 0, i32 1
+  // CHECK-NEXT: %4 = getelementptr { double }, ptr %3, i64 1
+  // CHECK-NEXT: call void @foo(ptr %4, ptr null)
+}

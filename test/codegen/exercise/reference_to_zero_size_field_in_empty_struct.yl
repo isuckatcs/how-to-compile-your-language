@@ -1,0 +1,19 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %valgrind %t
+struct S {
+  x: unit,
+  y: unit,
+}
+
+fn foo(x: &unit, y: &unit) {}
+
+fn main() {
+  let s = S {x: unit, y: unit};
+  // CHECK: %s = alloca {}, align 8
+
+  foo(s.x, s.y);
+  // CHECK-NEXT: %0 = getelementptr {}, ptr %s, i64 1
+  // CHECK-NEXT: %1 = getelementptr {}, ptr %s, i64 1
+  // CHECK-NEXT: call void @foo(ptr %0, ptr %1, ptr null)
+}
