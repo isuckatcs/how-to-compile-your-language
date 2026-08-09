@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct foo {}
+
+fn foo() {}
+
+// CHECK: [[# @LINE + 1 ]]:7: error: redeclaration of 'foo'
+trait foo {}
+
+// CHECK: [[# @LINE + 1 ]]:4: error: redeclaration of 'foo'
+fn foo() {}
+
+fn main() {}
