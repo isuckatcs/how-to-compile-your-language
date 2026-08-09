@@ -13,7 +13,6 @@ namespace yl {
 class Sema {
   static constexpr const char *selfParamId = "self";
   static constexpr const char *selfTypeId = "Self";
-  static constexpr const char *lambdaFunctionId = "__builtin_lambda_call";
 
   diag::DiagnosticReporter *reporter;
   ConstExprEvaluator *cee;
@@ -60,7 +59,6 @@ class Sema {
   enum Modifiers : unsigned char {
     IsCallee = 1 << 0,
     AddressTaken = 1 << 1,
-    MissingTypeAnnotationsAllowed = 1 << 2,
   };
 
   class WithModifiersRAII {
@@ -119,9 +117,12 @@ class Sema {
   res::BinaryOperator *resolveBinaryOperator(res::Context &ctx,
                                              const ast::BinaryOperator &binop);
 
+  res::Expr *resolvePathExpr(res::Context &ctx,
+                             const ast::PathExpr &path,
+                             res::Type *typeHint = nullptr);
   template <typename ExpectedDecl>
-  res::DeclRefExpr *resolvePathExpr(res::Context &ctx,
-                                    const ast::PathExpr &pathExpr);
+  res::DeclRefExpr *resolvePathDeclRef(res::Context &ctx,
+                                       const ast::PathExpr &pathExpr);
   res::DeclRefExpr *resolveDeclRefExpr(res::Context &ctx,
                                        const ast::DeclRefExpr *dre,
                                        res::Decl *decl,
@@ -141,6 +142,10 @@ class Sema {
                          const ast::Expr &expr,
                          res::Type *typeHint = nullptr);
   res::GCExpr *resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc);
+
+  bool shouldCaptureInCurrentLambda(res::DeclRefExpr *dre);
+  res::MemberExpr *captureInCurrentLambda(const ast::PathExpr &path,
+                                          res::DeclRefExpr *dre);
   res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
                                      const ast::LambdaExpr &lambda,
                                      res::Type *typeHint = nullptr);
@@ -171,7 +176,9 @@ class Sema {
                                          const ast::FunctionDecl &functionDecl,
                                          res::FunctionDecl *function);
   std::pair<res::ParamDecl *, bool>
-  resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param);
+  resolveParamDecl(res::Context &ctx,
+                   const ast::ParamDecl *param,
+                   res::Type *typeHint = nullptr);
 
   res::TraitDecl *resolveTraitDecl(res::Context &ctx,
                                    const ast::TraitDecl &decl);

@@ -1,6 +1,5 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
   let x: (unit) -> unit = ->(x: number){ return x; };
-  // CHECK: [[# @LINE - 1 ]]:27: error: cannot unify 'unit' with 'number'
-  // CHECK: [[# @LINE - 2 ]]:27: error: cannot unify '(unit) -> unit' with '(number) -> unit'
+  // CHECK: [[# @LINE - 1 ]]:49: error: cannot return 'number' from a function returning 'unit'
 }

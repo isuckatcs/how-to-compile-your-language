@@ -6,22 +6,22 @@ struct S<T> {
 fn foo(x: unit) {}
 
 fn bar<T>(t: T) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: unexpected lambda, expected 'T'
-  t = ->(x){};
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign 'T' but received '(number) -> unit' instead
+  t = ->(x: number){};
 }
 
 fn baz(): S<*unit> {
-  // CHECK: [[# @LINE + 1 ]]:10: error: unexpected lambda, expected 'S<*unit>'
-  return ->(x){};
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '(number) -> unit' from a function returning 'S<*unit>'
+  return ->(x: number){};
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:19: error: unexpected lambda, expected 'number'
-  let n: number = ->(x){};
+  // CHECK: [[# @LINE + 1 ]]:19: error: an expression of type '(unit) -> unit' cannot be used to initialize a variable of type 'number'
+  let n: number = ->(x: unit){};
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: unexpected lambda, expected 'unit'
-  foo(->(x){});
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '(S<unit>) -> unit' with 'unit'
+  foo(->(x: S<unit>){});
 
-  // CHECK: [[# @LINE + 1 ]]:10: error: unexpected lambda, expected '*_'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '() -> unit' with '*_'
   S { x: ->(){} };
 }

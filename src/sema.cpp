@@ -321,9 +321,99 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   return resBinop;
 }
 
+bool Sema::shouldCaptureInCurrentLambda(res::DeclRefExpr *dre) {
+  if (!functionInfo || !functionInfo->lambda || !dre->isLvalue())
+    return false;
+
+  const std::string &id = dre->decl->identifier;
+
+  res::Decl *insideDecl = nullptr;
+  if (auto r = scope->lookupSymbol(id); !r.empty())
+    insideDecl = r.front();
+
+  res::Decl *outsideDecl = nullptr;
+  if (auto r = functionInfo->lambdaParamScope->getParent()->lookupSymbol(id);
+      !r.empty())
+    outsideDecl = r.front();
+
+  return insideDecl == outsideDecl;
+}
+
+res::MemberExpr *Sema::captureInCurrentLambda(const ast::PathExpr &path,
+                                              res::DeclRefExpr *dre) {
+  const std::string &id = dre->decl->identifier;
+
+  res::LambdaExpr *lambda = functionInfo->lambda;
+  res::StructDecl *closureDecl = lambda->closure;
+
+  SourceLocation lambdaLoc = lambda->location;
+  SourceLocation dreLoc = dre->location;
+
+  res::FieldDecl *fieldDecl = nullptr;
+  if (auto r = closureDecl->lookupDirect(id); !r.empty())
+    fieldDecl = r.front()->getAs<res::FieldDecl>();
+
+  if (!fieldDecl) {
+    fieldDecl = res::FieldDecl::create(ctx, lambdaLoc, id, closureDecl);
+    fieldDecl->setType(dre->getType());
+    closureDecl->insertDecl(fieldDecl);
+    functionInfo->pendingCaptureInits.emplace_back(&path);
+  }
+
+  res::ParamDecl *closureParam = lambda->method->params.back();
+  auto emptySub = res::Substitution{};
+  auto lvalueKind = res::Expr::Kind::Lvalue;
+
+  res::Expr *closure =
+      res::DeclRefExpr::create(ctx, dreLoc, closureParam, lvalueKind, emptySub);
+  closure->setType(closureParam->getType());
+
+  closure = res::UnaryOperator::create(ctx, dreLoc, TokenKind::Asterisk,
+                                       closure, lvalueKind);
+  closure->setType(closureDecl->getType());
+
+  auto *field =
+      res::DeclRefExpr::create(ctx, dreLoc, fieldDecl, lvalueKind, emptySub);
+  field->setType(fieldDecl->getType());
+
+  auto *memberExpr = res::MemberExpr::create(ctx, dreLoc, closure, field);
+  memberExpr->setType(field->getType());
+  return memberExpr;
+}
+
+res::Expr *Sema::resolvePathExpr(res::Context &ctx,
+                                 const ast::PathExpr &path,
+                                 res::Type *typeHint) {
+  varOrReturn(dre, resolvePathDeclRef<res::ValueDecl>(ctx, path));
+
+  const res::Decl *decl = dre->decl;
+
+  if (auto *selfType = dre->sub.getSelfType();
+      selfType && selfType->getAs<res::AnyTraitType>() &&
+      !(modifiers & IsCallee))
+    return err::traitObjectMethodNotCalled(dre->location).report(reporter);
+
+  auto *refType = dre->getType()->getAs<res::RefType>();
+
+  if (shouldCaptureInCurrentLambda(dre)) {
+    if (refType)
+      return err::refParamCapture(dre->location).report(reporter);
+
+    return captureInCurrentLambda(path, dre);
+  }
+
+  if (refType && (!typeHint || !typeHint->getAs<res::RefType>())) {
+    auto *ide = res::ImplicitDerefExpr::create(ctx, dre->location, dre);
+    ide->setType(refType->getReferencedType());
+    return ide;
+  }
+
+  return dre;
+}
+
 template <typename ExpectedDecl>
-res::DeclRefExpr *Sema::resolvePathExpr(res::Context &ctx,
-                                        const ast::PathExpr &pathExpr) {
+res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
+                                           const ast::PathExpr &pathExpr) {
   const auto &fragments = pathExpr.fragments;
   int idx = 0;
 
@@ -587,7 +677,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     res::Context &ctx,
     const ast::StructInstantiationExpr &structInstantiation) {
-  varOrReturn(path, resolvePathExpr<res::StructDecl>(
+  varOrReturn(path, resolvePathDeclRef<res::StructDecl>(
                         ctx, *structInstantiation.structRef));
 
   auto *structTy = path->getType()->getAs<res::StructType>();
@@ -788,137 +878,100 @@ res::GCExpr *Sema::resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc) {
 res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
                                          const ast::LambdaExpr &lambdaExpr,
                                          res::Type *typeHint) {
-  SourceLocation loc = lambdaExpr.location;
+  std::vector<res::Type *> paramHints;
+  res::Type *returnHint = nullptr;
 
-  res::FunctionType *expectedFnType = nullptr;
-  if (typeHint) {
-    expectedFnType = typeHint->getAs<res::FunctionType>();
-
-    if (!expectedFnType && !typeHint->getAs<res::UninferredType>())
-      return err::unexpectedLambda(loc)
-          .with(typeHint->getName())
-          .report(reporter);
+  if (auto *hint = typeHint ? typeHint->getAs<res::FunctionType>() : nullptr) {
+    paramHints = hint->getArgs();
+    returnHint = hint->getReturnType();
   }
 
-  std::stringstream structId;
-  structId << "(closure@<source>:" << loc.line << ':' << loc.col << ')';
-
-  auto *closure =
-      res::StructDecl::create(ctx, loc, structId.str(), scope->getDeclContext(),
-                              std::vector<res::TypeParamDecl *>{}, true);
-  closure->setType(res::StructType::create(ctx, closure));
-
-  bool error = false;
   std::vector<res::Type *> paramTypes = {};
-  std::vector<res::ParamDecl *> resolvedParams = {};
+  std::vector<res::ParamDecl *> params = {};
 
   EnterNewScopeRAII paramScope(this);
-  {
-    WithModifiersRAII lambdaParamList(this, MissingTypeAnnotationsAllowed);
-    int i = 0;
-    for (auto &&param : lambdaExpr.params) {
-      auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
+  for (int i = 0; i < lambdaExpr.params.size(); ++i) {
+    const ast::ParamDecl *astParam = lambdaExpr.params[i].get();
+    res::Type *paramHint = i < paramHints.size() ? paramHints[i] : nullptr;
 
-      if (resolvedParam->getType()->getAs<res::UninferredType>() &&
-          expectedFnType && i < expectedFnType->getArgs().size()) {
-        auto *paramType = resolvedParam->getType();
-        auto *expectedType = expectedFnType->getArgs()[i];
+    auto [param, err] = resolveParamDecl(ctx, astParam, paramHint);
+    res::Type *paramType = param->getType();
 
-        if (auto *ref = expectedType->getAs<res::RefType>()) {
-          if (!resolvedParam->isMutable) {
-            paramType = res::RefType::create(ctx, paramType, ref->isMutable());
-            resolvedParam->setType(paramType);
-            resolvedParam->isMutable = ref->isMutable();
-          } else {
-            err::mutRefParameter(resolvedParam->location).report(reporter);
-            error = true;
-          }
-        }
+    if (param->identifier == selfParamId)
+      param = err::selfParamNotAllowed(astParam->location).report(reporter);
 
-        ctx.unify(paramType, expectedType);
-      }
+    if (paramType->getAs<res::UninferredType>())
+      param = err::annotationsNeeded(astParam->location)
+                  .with(astParam->identifier)
+                  .report(reporter);
 
-      if (resolvedParam->getType()->getAs<res::UninferredType>()) {
-        err::annotationsNeeded(param->location)
-            .with(param->identifier)
-            .report(reporter);
-        error = true;
-      }
-
-      paramTypes.emplace_back(resolvedParam->getType());
-      resolvedParams.emplace_back(resolvedParam);
-
-      error |= !insertDeclToCurrentScope(resolvedParam);
-
-      if (param->identifier == selfParamId) {
-        err::selfParamNotAllowed(param->location).report(reporter);
-        error = true;
-      }
-
-      ++i;
+    if (!err && insertDeclToCurrentScope(param)) {
+      paramTypes.emplace_back(paramType);
+      params.emplace_back(param);
     }
   }
 
-  res::Type *returnTy = lambdaExpr.returnType
-                            ? resolveType(ctx, *lambdaExpr.returnType)
-                            : res::UninferredType::create(ctx);
-  if (returnTy && returnTy->getAs<res::UninferredType>() && expectedFnType)
-    ctx.unify(returnTy, expectedFnType->getReturnType());
+  res::Type *returnType = returnHint;
+  if (auto *astReturnType = lambdaExpr.returnType.get()) {
+    varOrReturn(resolvedType, resolveType(ctx, *astReturnType));
+    returnType = resolvedType;
+  }
 
-  if (!returnTy || error)
+  if (!returnType)
+    returnType = res::UninferredType::create(ctx);
+
+  if (params.size() != lambdaExpr.params.size())
     return nullptr;
 
-  auto *lambdaTy = res::FunctionType::create(ctx, paramTypes, returnTy);
-  if (expectedFnType) {
-    auto msgs = ctx.unify(expectedFnType, lambdaTy);
-    if (!msgs.empty()) {
-      for (auto &&msg : msgs)
-        err::inferenceError(loc).with(msg).report(reporter);
-      return nullptr;
-    }
-  }
+  SourceLocation loc = lambdaExpr.location;
 
-  auto *paramType = res::PointerType::create(ctx, closure->getType(), false);
-  paramTypes.emplace_back(paramType);
+  auto *lambdaExprType = res::FunctionType::create(ctx, paramTypes, returnType);
 
-  auto *ext =
-      res::TypeExtension::create(ctx, loc, std::vector<res::TypeParamDecl *>{},
-                                 closure->getType(), nullptr);
+  std::stringstream closureId;
+  closureId << "(closure@<source>:" << loc.line << ':' << loc.col << ')';
+  auto noTypeParams = std::vector<res::TypeParamDecl *>{};
 
-  auto *fn = res::FunctionDecl::create(ctx, loc, lambdaFunctionId, ext,
-                                       std::vector<res::TypeParamDecl *>{});
-  fn->setType(res::FunctionType::create(ctx, paramTypes, returnTy));
-  ext->insertDecl(fn);
+  auto *closure = res::StructDecl::create(
+      ctx, loc, closureId.str(), scope->getDeclContext(), noTypeParams, true);
+  res::Type *closureType = res::StructType::create(ctx, closure);
+  closure->setType(closureType);
 
-  auto *p = res::ParamDecl::create(ctx, loc, "closure", fn, false);
-  p->setType(paramType);
-  resolvedParams.emplace_back(p);
-  fn->setParams(std::move(resolvedParams));
+  auto *closureExtension =
+      res::TypeExtension::create(ctx, loc, noTypeParams, closureType, nullptr);
 
-  auto *resLambdaExpr = res::LambdaExpr::create(ctx, loc, closure, ext);
-  resLambdaExpr->setType(lambdaTy);
+  auto *closureParamType = res::PointerType::create(ctx, closureType, false);
+  paramTypes.emplace_back(closureParamType);
+  auto *lambdaFnType = res::FunctionType::create(ctx, paramTypes, returnType);
+
+  auto *lambdaFn = res::FunctionDecl::create(ctx, loc, "__builtin_lambda_call",
+                                             closureExtension, noTypeParams);
+  lambdaFn->setType(lambdaFnType);
+  closureExtension->insertDecl(lambdaFn);
+
+  auto *param = res::ParamDecl::create(ctx, loc, "closure", lambdaFn, false);
+  param->setType(closureParamType);
+  params.emplace_back(param);
+  lambdaFn->setParams(std::move(params));
+
+  auto *resLambdaExpr =
+      res::LambdaExpr::create(ctx, loc, closure, closureExtension);
+  resLambdaExpr->setType(lambdaExprType);
 
   std::vector<const ast::Expr *> pendingCaptureInits;
   {
-    WithFunctionInfoRAII lambdaInfo(this, {fn, resLambdaExpr, scope});
+    WithFunctionInfoRAII lambdaInfo(this, {lambdaFn, resLambdaExpr, scope});
 
-    if (res::Block *block = resolveBlock(ctx, *lambdaExpr.body)) {
-      fn->setBody(block);
+    varOrReturn(block, resolveBlock(ctx, *lambdaExpr.body));
+    lambdaFn->setBody(block);
 
-      res::Type *retTy =
-          fn->getType()->getAs<res::FunctionType>()->getReturnType();
-      if (retTy->getAs<res::UninferredType>())
-        ctx.unify(retTy, res::BuiltinUnitType::create(ctx));
+    if (returnType->getAs<res::UninferredType>())
+      ctx.unify(returnType, res::BuiltinUnitType::create(ctx));
 
-      error |= !runPostFunctionBodyChecks();
-    }
+    if (!runPostFunctionBodyChecks())
+      return nullptr;
 
-    error |= !fn->body;
     pendingCaptureInits = std::move(functionInfo->pendingCaptureInits);
   }
-
-  if (error)
-    return nullptr;
 
   for (auto &&pendingInit : pendingCaptureInits) {
     res::Expr *initExpr = resolveExpr(ctx, *pendingInit);
@@ -1159,83 +1212,8 @@ res::Expr *Sema::resolveExpr(res::Context &ctx,
   if (const auto *lambda = dynamic_cast<const ast::LambdaExpr *>(&expr))
     return resolveLambdaExpr(ctx, *lambda, typeHint);
 
-  if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr)) {
-    varOrReturn(resPath, resolvePathExpr<res::ValueDecl>(ctx, *path));
-
-    const res::Decl *decl = resPath->decl;
-    bool isFunctionDecl = decl->getAs<res::FunctionDecl>();
-
-    if (auto *selfType = resPath->sub.getSelfType();
-        selfType && selfType->getAs<res::AnyTraitType>() &&
-        !(modifiers & IsCallee))
-      return err::traitObjectMethodNotCalled(resPath->location)
-          .report(reporter);
-
-    auto *refType = resPath->getType()->getAs<res::RefType>();
-
-    if (functionInfo && functionInfo->lambda && !isFunctionDecl) {
-      res::Decl *insideDecl = nullptr;
-      if (auto r = scope->lookupSymbol(decl->identifier); !r.empty())
-        insideDecl = r.front();
-
-      res::Decl *outsideDecl = nullptr;
-      if (auto r = functionInfo->lambdaParamScope->getParent()->lookupSymbol(
-              decl->identifier);
-          !r.empty())
-        outsideDecl = r.front();
-
-      if (outsideDecl == insideDecl) {
-        if (refType)
-          return err::refParamCapture(resPath->location)
-              .with(decl->identifier)
-              .report(reporter);
-
-        auto *lambda = functionInfo->lambda;
-
-        res::FieldDecl *field = nullptr;
-        if (auto r = lambda->closure->lookupDirect(decl->identifier);
-            !r.empty())
-          field = r.front()->getAs<res::FieldDecl>();
-
-        if (!field) {
-          field = res::FieldDecl::create(ctx, lambda->location,
-                                         decl->identifier, lambda->closure);
-          field->setType(resPath->getType());
-          lambda->closure->insertDecl(field);
-          functionInfo->pendingCaptureInits.emplace_back(&expr);
-        }
-
-        res::Expr *base = res::DeclRefExpr::create(
-            ctx, lambda->location, lambda->method->params.back(),
-            res::Expr::Kind::Lvalue, res::Substitution{});
-        base->setType(lambda->method->params.back()->getType());
-
-        base = res::UnaryOperator::create(ctx, lambda->location,
-                                          TokenKind::Asterisk, base,
-                                          res::Expr::Kind::Lvalue);
-        base->setType(lambda->closure->getType());
-
-        auto *fieldDre = res::DeclRefExpr::create(ctx, lambda->location, field,
-                                                  res::Expr::Kind::Lvalue,
-                                                  res::Substitution{});
-        fieldDre->setType(field->getType());
-
-        auto *me =
-            res::MemberExpr::create(ctx, lambda->location, base, fieldDre);
-        me->setType(fieldDre->getType());
-        return me;
-      }
-    }
-
-    if (refType && (!typeHint || !typeHint->getAs<res::RefType>())) {
-      auto *ide =
-          res::ImplicitDerefExpr::create(ctx, resPath->location, resPath);
-      ide->setType(refType->getReferencedType());
-      return ide;
-    }
-
-    return resPath;
-  }
+  if (const auto *path = dynamic_cast<const ast::PathExpr *>(&expr))
+    return resolvePathExpr(ctx, *path, typeHint);
 
   llvm_unreachable("unexpected expression");
 }
@@ -1439,6 +1417,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     init = tryCoerce(init, declTy);
     auto *initTy = init->getType();
 
+    // FIXME: artifact
     for (auto &&err : ctx.unify(declTy, initTy)) {
       std::cout << err << '\n';
     }
@@ -1613,12 +1592,10 @@ Sema::resolveFunctionBody(res::Context &ctx,
   return function;
 }
 
-std::pair<res::ParamDecl *, bool>
-Sema::resolveParamDecl(res::Context &ctx, const ast::ParamDecl *param) {
-  assert((param->type || modifiers & MissingTypeAnnotationsAllowed) &&
-         "param without type annotations outside lambda");
-
-  res::Type *paramTy = nullptr;
+// FIXME: is this pair based design needed?
+std::pair<res::ParamDecl *, bool> Sema::resolveParamDecl(
+    res::Context &ctx, const ast::ParamDecl *param, res::Type *typeHint) {
+  res::Type *paramTy = typeHint;
   bool error = false;
 
   if (param->type) {

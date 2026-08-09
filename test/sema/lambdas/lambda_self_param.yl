@@ -1,7 +1,8 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:6: error: 'self' parameter is only allowed in methods
   ->(self) {
+  // CHECK: [[# @LINE - 1 ]]:6: error: 'self' parameter is only allowed in methods
+  // CHECK: [[# @LINE - 2 ]]:6: error: explicit type annotations are needed to infer the type of 'self'
     self.x;
   };
 }
