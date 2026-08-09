@@ -14,10 +14,7 @@ res::GenericDeclContext *Sema::Scope::getDeclContext() const {
   if (ctx)
     return ctx;
 
-  if (parent)
-    return parent->getDeclContext();
-
-  return nullptr;
+  return parent->getDeclContext();
 }
 
 res::Type *Sema::Scope::getSelfType() const {
