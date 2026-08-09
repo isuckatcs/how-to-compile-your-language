@@ -1,0 +1,9 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  ->(x, x, x) {};  
+  // CHECK: [[# @LINE - 1 ]]:6: error: explicit type annotations are needed to infer the type of 'x'
+  // CHECK: [[# @LINE - 2 ]]:9: error: explicit type annotations are needed to infer the type of 'x'
+  // CHECK: [[# @LINE - 3 ]]:9: error: redeclaration of 'x'
+  // CHECK: [[# @LINE - 4 ]]:12: error: explicit type annotations are needed to infer the type of 'x'
+  // CHECK: [[# @LINE - 5 ]]:12: error: redeclaration of 'x'
+}

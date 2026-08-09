@@ -1,0 +1,20 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  ->(
+    x: S, 
+    // CHECK: [[# @LINE - 1 ]]:8: error: failed to resolve type 'S'
+
+    self, 
+    // CHECK: [[# @LINE - 1 ]]:5: error: explicit type annotations are needed to infer the type of 'self'
+    // CHECK: [[# @LINE - 2 ]]:5: error: 'self' in lambda parameter list is not allowed
+
+    x: number, 
+    // CHECK: [[# @LINE - 1 ]]:5: error: redeclaration of 'x'
+
+    mut self: &unit,
+    // CHECK: [[# @LINE - 1 ]]:9: error: a '&' parameter cannot be 'mut'
+    // CHECK: [[# @LINE - 2 ]]:9: error: 'self' in lambda parameter list is not allowed
+    // CHECK: [[# @LINE - 3 ]]:9: error: redeclaration of 'self'
+  ): Self {};
+  // CHECK: [[# @LINE - 1 ]]:6: error: 'Self' is only allowed inside traits, structs and extensions
+}
