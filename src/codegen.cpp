@@ -429,9 +429,10 @@ Codegen::materializeTemporary(const res::MaterializeTemporaryExpr &mte) {
 llvm::Value *Codegen::generateImplicitAsRef(const res::ImplicitAsRefExpr &ref) {
   llvm::Value *value = generateExpr(*ref.expr);
 
-  auto *unary = dynamic_cast<const res::UnaryOperator *>(ref.expr);
-  if (unary && unary->op == TokenKind::Asterisk)
+  if (auto *unary = dynamic_cast<const res::UnaryOperator *>(ref.expr)) {
+    assert(unary->op == TokenKind::Asterisk && "unexpected unary op");
     createTmpGCRootIfNeeded(value, unary->operand);
+  }
 
   return value;
 }
@@ -856,9 +857,7 @@ Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
 }
 
 void Codegen::breakIntoBB(llvm::BasicBlock *targetBB) {
-  llvm::BasicBlock *currentBB = builder.GetInsertBlock();
-
-  if (currentBB && !currentBB->getTerminator())
+  if (llvm::BasicBlock *currentBB = builder.GetInsertBlock())
     builder.CreateBr(targetBB);
 
   builder.ClearInsertionPoint();
@@ -1119,7 +1118,7 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty,
   }
 
   llvm::AttributeSet retAttrSet;
-  if (retTy && retTy->isIntegerTy(1))
+  if (retTy->isIntegerTy(1))
     retAttrSet = retAttrSet.addAttribute(context, llvm::Attribute::ZExt);
 
   return llvm::AttributeList::get(context, llvm::AttributeSet{}, retAttrSet,
@@ -1384,7 +1383,7 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   unsigned idx = 0;
   for (auto &&[layoutTrait, layoutFn] : vtableLayout) {
-    if (resCtx->eq(layoutTrait, declTrait) && layoutFn == dre->decl)
+    if (layoutFn == dre->decl && resCtx->eq(layoutTrait, declTrait))
       break;
 
     ++idx;
