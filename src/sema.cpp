@@ -319,21 +319,14 @@ Sema::resolveBinaryOperator(res::Context &ctx,
 }
 
 bool Sema::shouldCaptureInCurrentLambda(res::DeclRefExpr *dre) {
-  if (!functionInfo || !functionInfo->lambda || !dre->isLvalue())
+  if (!functionInfo->lambda || !dre->isLvalue())
     return false;
 
-  const std::string &id = dre->decl->identifier;
+  res::Decl *decl = dre->decl;
+  auto r = functionInfo->lambdaParamScope->getParent()->lookupSymbol(
+      decl->identifier);
 
-  res::Decl *insideDecl = nullptr;
-  if (auto r = scope->lookupSymbol(id); !r.empty())
-    insideDecl = r.front();
-
-  res::Decl *outsideDecl = nullptr;
-  if (auto r = functionInfo->lambdaParamScope->getParent()->lookupSymbol(id);
-      !r.empty())
-    outsideDecl = r.front();
-
-  return insideDecl == outsideDecl;
+  return !r.empty() && decl == r.front();
 }
 
 res::MemberExpr *Sema::captureInCurrentLambda(const ast::PathExpr &path,
