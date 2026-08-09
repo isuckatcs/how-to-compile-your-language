@@ -127,7 +127,7 @@
     ::= '(' (<lambdaParamDecl> (',' <lambdaParamDecl>)* ','?)? ')' <typeAnnotation>?
 
 <lambdaParamDecl>
-    ::= 'mut'? <identifier> <typeAnnotation>?
+    ::= 'mut'? <identifier> (':' <refModifier>? <type>)?
 
 <typeAnnotation>
     ::= ':' <type>
