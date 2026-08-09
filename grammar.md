@@ -194,7 +194,7 @@
 
 | Precedence | Type           | Symbols |
 |------------|----------------|---------|
-| Highest    | Prefix         | !, -    |
+| Highest    | Prefix         | !, -, * |
 |            | Multiplicative | *, /    |
 |            | Additive       | +, -    |
 |            | Comparison     | <, >    |
