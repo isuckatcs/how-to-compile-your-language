@@ -184,6 +184,7 @@ diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be 
 
 // lambdas
 diag(Error, refParamCapture, "capturing '&' parameter in lambda is not allowed");
+diag(Error, lamdaSelfParam, "'self' in lambda parameter list is not allowed");
 // clang-format on
 }; // namespace err
 

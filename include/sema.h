@@ -175,10 +175,9 @@ class Sema {
   res::FunctionDecl *resolveFunctionBody(res::Context &ctx,
                                          const ast::FunctionDecl &functionDecl,
                                          res::FunctionDecl *function);
-  std::pair<res::ParamDecl *, bool>
-  resolveParamDecl(res::Context &ctx,
-                   const ast::ParamDecl *param,
-                   res::Type *typeHint = nullptr);
+  res::ParamDecl *resolveParamDecl(res::Context &ctx,
+                                   const ast::ParamDecl *param,
+                                   res::Type *typeHint = nullptr);
 
   res::TraitDecl *resolveTraitDecl(res::Context &ctx,
                                    const ast::TraitDecl &decl);

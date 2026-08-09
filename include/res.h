@@ -162,7 +162,12 @@ class TypedNode {
 
 public:
   void setType(Type *type) { this->type = type; }
-  Type *getType() const { return type->getRootType(); }
+
+  Type *getType() const {
+    if (type)
+      return type->getRootType();
+    return nullptr;
+  }
 };
 
 struct Stmt {

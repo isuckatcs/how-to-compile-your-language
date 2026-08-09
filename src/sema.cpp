@@ -894,21 +894,22 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
     const ast::ParamDecl *astParam = lambdaExpr.params[i].get();
     res::Type *paramHint = i < paramHints.size() ? paramHints[i] : nullptr;
 
-    auto [param, err] = resolveParamDecl(ctx, astParam, paramHint);
+    auto *param = resolveParamDecl(ctx, astParam, paramHint);
     res::Type *paramType = param->getType();
 
+    if (paramType && paramType->getAs<res::UninferredType>())
+      paramType = err::annotationsNeeded(astParam->location)
+                      .with(astParam->identifier)
+                      .report(reporter);
+
     if (param->identifier == selfParamId)
-      param = err::selfParamNotAllowed(astParam->location).report(reporter);
+      paramType = err::lamdaSelfParam(astParam->location).report(reporter);
 
-    if (paramType->getAs<res::UninferredType>())
-      param = err::annotationsNeeded(astParam->location)
-                  .with(astParam->identifier)
-                  .report(reporter);
+    if (!insertDeclToCurrentScope(param) || !paramType)
+      continue;
 
-    if (!err && insertDeclToCurrentScope(param)) {
-      paramTypes.emplace_back(paramType);
-      params.emplace_back(param);
-    }
+    paramTypes.emplace_back(paramType);
+    params.emplace_back(param);
   }
 
   res::Type *returnType = returnHint;
@@ -1527,26 +1528,31 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     }
   }
 
+  if (error)
+    return nullptr;
+
   std::vector<res::Type *> paramTypes;
   std::vector<res::ParamDecl *> resolvedParams;
 
   EnterNewScopeRAII paramScope(this);
   for (auto &&param : decl.params) {
-    auto [resolvedParam, err] = resolveParamDecl(ctx, param.get());
+    res::ParamDecl *resolvedParam = resolveParamDecl(ctx, param.get());
+    res::Type *paramType = resolvedParam->getType();
 
-    paramTypes.emplace_back(resolvedParam->getType());
-    resolvedParams.emplace_back(resolvedParam);
-
-    error |= err;
+    bool error = !paramType;
+    error |= !checkSelfParameter(resolvedParam, resolvedParams.size());
     error |= !insertDeclToCurrentScope(resolvedParam);
-    error |= !checkSelfParameter(resolvedParam, resolvedParams.size() - 1);
+
+    if (!error) {
+      paramTypes.emplace_back(resolvedParam->getType());
+      resolvedParams.emplace_back(resolvedParam);
+    }
   }
 
   res::Type *retTy = decl.type ? resolveType(ctx, *decl.type)
                                : res::BuiltinUnitType::create(ctx);
-  error |= !retTy;
 
-  if (error)
+  if (!retTy || resolvedParams.size() != decl.params.size())
     return nullptr;
 
   auto *fn = res::FunctionDecl::create(ctx, decl.location, decl.identifier,
@@ -1587,34 +1593,36 @@ Sema::resolveFunctionBody(res::Context &ctx,
   return function;
 }
 
-// FIXME: is this pair based design needed?
-std::pair<res::ParamDecl *, bool> Sema::resolveParamDecl(
-    res::Context &ctx, const ast::ParamDecl *param, res::Type *typeHint) {
-  res::Type *paramTy = typeHint;
-  bool error = false;
+res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
+                                       const ast::ParamDecl *param,
+                                       res::Type *typeHint) {
+  res::Type *paramType;
 
-  if (param->type) {
-    paramTy = resolveType(ctx, *param->type, param->refModifier != nullptr);
-    error |= !paramTy;
+  if (param->type)
+    paramType = resolveType(ctx, *param->type, param->refModifier != nullptr);
+  else if (typeHint)
+    paramType = typeHint;
+  else
+    paramType = res::UninferredType::create(ctx);
+
+  bool isMut = param->isMutable;
+
+  if (paramType) {
+    if (auto *ref = param->refModifier.get())
+      paramType = res::RefType::create(ctx, paramType, ref->isMut);
+
+    if (auto *refType = paramType->getAs<res::RefType>()) {
+      if (isMut)
+        paramType = err::mutRefParameter(param->location).report(reporter);
+
+      isMut = refType->isMutable();
+    }
   }
 
-  if (!paramTy)
-    paramTy = res::UninferredType::create(ctx);
-
-  if (auto *ref = param->refModifier.get())
-    paramTy = res::RefType::create(ctx, paramTy, ref->isMut);
-
-  auto *referenceType = paramTy->getAs<res::RefType>();
-  if (referenceType && param->isMutable) {
-    err::mutRefParameter(param->location).report(reporter);
-    error = true;
-  }
-
-  auto *p = res::ParamDecl::create(
-      ctx, param->location, param->identifier, scope->getDeclContext(),
-      param->isMutable || referenceType && referenceType->isMutable());
-  p->setType(paramTy);
-  return std::make_pair(p, error);
+  auto *resParam = res::ParamDecl::create(
+      ctx, param->location, param->identifier, scope->getDeclContext(), isMut);
+  resParam->setType(paramType);
+  return resParam;
 }
 
 res::TraitConformance *
@@ -1894,6 +1902,9 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
     err::selfWrongPosition(param->location).report(reporter);
     return false;
   }
+
+  if (!param->getType())
+    return false;
 
   auto *refType = param->getType()->getAs<res::RefType>();
   if (!refType || !ctx.unify(refType->getReferencedType(), selfType).empty()) {
