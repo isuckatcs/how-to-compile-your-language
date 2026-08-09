@@ -520,8 +520,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *unit = dynamic_cast<const res::UnitLiteral *>(&expr))
     return nullptr;
 
-  if (expr.hasConstantValue())
-    return generateConstantValue(expr.getConstantValue());
+  if (auto *constantValue = generateConstantValue(expr.getConstantValue()))
+    return constantValue;
 
   if (auto *dre = dynamic_cast<const res::DeclRefExpr *>(&expr))
     return generateDeclRefExpr(*dre);
@@ -675,7 +675,7 @@ llvm::Value *Codegen::generateConstantValue(const res::ConstVal &constVal) {
   if (const auto *doubleVal = std::get_if<double>(&constVal))
     return llvm::ConstantFP::get(builder.getDoubleTy(), *doubleVal);
 
-  llvm_unreachable("unhandled constant value");
+  return nullptr;
 }
 
 void Codegen::generateConditionalOperator(const res::Expr &op,
