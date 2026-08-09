@@ -1482,8 +1482,17 @@ bool Sema::resolveGenericParamsInCurrentScope(
       resParam->conformance =
           resolveTraitConformance(ctx, *astConformance, resParam->getType());
 
-      if (!resParam->conformance)
-        return false;
+      error |= !resParam->conformance;
+    }
+
+    for (auto &&decl : scope->getParent()->lookupSymbol(resParam->identifier)) {
+      if (decl->getAs<res::TypeParamDecl>()) {
+        err::typeParamShadowed(resParam->location)
+            .with(resParam->identifier)
+            .report(reporter);
+        error = true;
+        break;
+      }
     }
   }
 
@@ -1514,21 +1523,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
   EnterNewScopeRAII typeParamScope(this);
 
   auto typeParams = resolveTypeParamsWithoutBounds(ctx, decl.typeParameters);
-  bool error =
-      !resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters);
-  for (auto &&tp : typeParams) {
-    for (auto &&decl : scope->getParent()->lookupSymbol(tp->identifier)) {
-      if (decl->getAs<res::TypeParamDecl>()) {
-        err::typeParamShadowed(tp->location)
-            .with(tp->identifier)
-            .report(reporter);
-        error = true;
-        break;
-      }
-    }
-  }
-
-  if (error)
+  if (!resolveGenericParamsInCurrentScope(ctx, typeParams, decl.typeParameters))
     return nullptr;
 
   std::vector<res::Type *> paramTypes;
