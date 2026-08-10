@@ -22,6 +22,8 @@ struct FunctionDecl;
 struct TypeParamDecl;
 struct TraitType;
 struct UninferredType;
+struct TraitDecl;
+struct StructDecl;
 
 struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
   res::Type *getSelfType() const;
@@ -31,27 +33,18 @@ struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
 
 struct GenericDeclContext {
   GenericDeclContext *parent;
-  std::vector<res::Decl *> decls;
   std::vector<res::TypeParamDecl *> typeParams;
 
   GenericDeclContext(GenericDeclContext *parent,
                      std::vector<res::TypeParamDecl *> typeParams);
 
   virtual ~GenericDeclContext() = default;
-
-  void insertDecl(res::Decl *decl) { decls.emplace_back(decl); }
-  std::vector<res::Decl *> lookupDirect(const std::string id) const;
-
-  template <typename T> std::vector<T *> getAll() const {
-    std::vector<T *> out;
-    for (auto &&decl : decls)
-      if (auto *d = dynamic_cast<T *>(decl))
-        out.emplace_back(d);
-    return out;
-  }
 };
 
 struct TranslationUnit final : public GenericDeclContext {
+  std::vector<TraitDecl *> traits;
+  std::vector<StructDecl *> structs;
+  std::vector<FunctionDecl *> functions;
   std::vector<TypeExtension *> extensions;
 
   TranslationUnit()
@@ -67,6 +60,7 @@ class Context final {
   std::vector<std::unique_ptr<Block>> blocks;
   std::vector<std::unique_ptr<TraitConformance>> conformances;
   std::vector<std::unique_ptr<TypeExtension>> extensions;
+  std::unique_ptr<TranslationUnit> translationUnit;
 
   class EnterExtensionRAII {
     Context *c;
@@ -88,7 +82,8 @@ class Context final {
       Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
 
 public:
-  TranslationUnit translationUnit;
+  Context()
+      : translationUnit(std::make_unique<TranslationUnit>()) {}
 
   void add(std::unique_ptr<Stmt> stmt);
   void add(std::unique_ptr<Decl> decl);
@@ -96,6 +91,8 @@ public:
   void add(std::unique_ptr<Block> block);
   void add(std::unique_ptr<TraitConformance> conformance);
   void add(std::unique_ptr<TypeExtension> extension);
+
+  TranslationUnit *getTU() const { return translationUnit.get(); };
 
   std::vector<std::pair<TypeExtension *, Substitution>>
   getEveryExtension(Type *type, bool probeOnly = false);
@@ -217,9 +214,7 @@ struct Decl : public TypedNode {
   }
 
   void setStorageNeeded() { needsStorage = true; }
-  void setDeclContext(GenericDeclContext *declContext) {
-    this->declContext = declContext;
-  }
+
   virtual void dump(size_t level = 0) const = 0;
 
 protected:
@@ -263,6 +258,9 @@ struct TraitDecl final : public Creatable<TraitDecl>,
                          public TypeDecl,
                          public GenericDeclContext {
   TraitConformance *conformance = nullptr;
+  std::vector<res::FunctionDecl *> functions;
+
+  res::FunctionDecl *lookupFunction(const std::string &id) const;
 
   void dump(size_t level = 0) const override;
 
@@ -277,6 +275,10 @@ private:
 struct TypeParamDecl final : public Creatable<TypeParamDecl>, public TypeDecl {
   TraitConformance *conformance = nullptr;
   bool isImplicitSelf;
+
+  void setDeclContext(GenericDeclContext *declContext) {
+    this->declContext = declContext;
+  }
 
   void dump(size_t level = 0) const override;
 
@@ -310,7 +312,10 @@ private:
 struct StructDecl final : public Creatable<StructDecl>,
                           public TypeDecl,
                           public GenericDeclContext {
+  std::vector<res::FieldDecl *> fields;
   bool isLambda;
+
+  res::FieldDecl *lookupField(const std::string &id) const;
 
   void dump(size_t level = 0) const override;
 
@@ -524,6 +529,9 @@ struct TypeExtension final : public Creatable<TypeExtension>,
   SourceLocation location;
   Type *type;
   TraitType *trait;
+  std::vector<res::FunctionDecl *> functions;
+
+  res::FunctionDecl *getFunction(const std::string &id) const;
 
   void dump(size_t level = 0) const;
 
@@ -703,7 +711,8 @@ struct LambdaExpr final : public Creatable<LambdaExpr>, public Expr {
   res::StructDecl *closure;
   std::vector<res::Expr *> fieldInits;
   res::TypeExtension *ext;
-  res::FunctionDecl *method;
+
+  res::FunctionDecl *getFunction() const { return ext->functions[0]; }
 
   void dump(size_t level = 0) const override;
 

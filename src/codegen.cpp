@@ -329,7 +329,7 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
   EnterMonoCtxRAII structCtx(this, baseType->getSub());
 
   unsigned index = 0;
-  for (auto &&field : baseType->getAs<res::StructType>()->getDecl()->decls) {
+  for (auto &&field : baseType->getAs<res::StructType>()->getDecl()->fields) {
     if (field == memberExpr.member->decl)
       break;
 
@@ -377,7 +377,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
 
-  llvm::Value *function = generateFunctionDecl(*lambdaExpr.method);
+  llvm::Value *function = generateFunctionDecl(*lambdaExpr.getFunction());
 
   bool needsClosure = dl->getTypeAllocSize(generateType(closureType)) != 0;
   llvm::Value *closure = needsClosure
@@ -389,7 +389,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   builder.CreateStore(closure, builder.CreateStructGEP(lambdaTy, lambda, 1));
 
   if (needsClosure) {
-    const auto &fieldDecls = closureType->getDecl()->getAll<res::FieldDecl>();
+    const auto &fieldDecls = closureType->getDecl()->fields;
 
     // Note: none of the initializers can trigger the GC.
     std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
@@ -498,7 +498,7 @@ llvm::Value *Codegen::constructStruct(
 
   EnterMonoCtxRAII structCtx(this, structType->getSub());
 
-  for (auto &&fieldDecl : structType->getDecl()->getAll<res::FieldDecl>()) {
+  for (auto &&fieldDecl : structType->getDecl()->fields) {
     llvm::Type *fieldTy = generateType(getMonoType(fieldDecl->getType()));
     if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
@@ -924,7 +924,7 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
   std::vector<size_t> offsets;
 
   int fieldIdx = 0;
-  for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
+  for (auto &&field : structType->getDecl()->fields) {
     auto *fieldType = getMonoType(field->getType());
     if (dl->getTypeAllocSize(generateType(fieldType)) == 0)
       continue;
@@ -1273,14 +1273,12 @@ llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
   assert(extensions.size() == 1 && "failed to find extension");
   const auto &[extension, extensionSub] = extensions[0];
 
-  auto r = extension->lookupDirect(fn->identifier);
-  if (r.empty())
+  auto *extensionFn = extension->getFunction(fn->identifier);
+  if (!extensionFn)
     return nullptr;
 
-  assert(r.size() == 1 && "ambigous function in extension");
-
   EnterMonoCtxRAII extensionCtx(this, extensionSub);
-  return generateFunctionDecl(*r[0]->getAs<res::FunctionDecl>());
+  return generateFunctionDecl(*extensionFn);
 }
 
 llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
@@ -1313,7 +1311,7 @@ Codegen::generateStructType(const res::StructType *structType) {
   EnterMonoCtxRAII structCtx(this, structType->getSub());
 
   std::vector<llvm::Type *> fieldTys;
-  for (auto &&field : structType->getDecl()->getAll<res::FieldDecl>()) {
+  for (auto &&field : structType->getDecl()->fields) {
     llvm::Type *fieldTy = generateType(getMonoType(field->getType()));
     if (dl->getTypeAllocSize(fieldTy) == 0)
       continue;
@@ -1402,13 +1400,13 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 }
 
 llvm::Module *Codegen::generateIR() {
-  for (auto &&e : resCtx->translationUnit.extensions)
+  for (auto &&e : resCtx->getTU()->extensions)
     if (e->typeParams.empty())
-      for (auto &&fn : e->getAll<res::FunctionDecl>())
+      for (auto &&fn : e->functions)
         if (fn->typeParams.empty())
           generateFunctionDecl(*fn);
 
-  for (auto &&fn : resCtx->translationUnit.getAll<res::FunctionDecl>())
+  for (auto &&fn : resCtx->getTU()->functions)
     if (fn->typeParams.empty())
       generateFunctionDecl(*fn);
 

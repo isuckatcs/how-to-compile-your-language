@@ -23,16 +23,16 @@ void Substitution::dump() const {
 }
 
 void TranslationUnit::dump(size_t level) const {
-  for (auto &&trait : getAll<res::TraitDecl>())
+  for (auto &&trait : traits)
     trait->dump(0);
 
-  for (auto &&s : getAll<res::StructDecl>())
+  for (auto &&s : structs)
     s->dump(0);
 
   for (auto &&extension : extensions)
     extension->dump(0);
 
-  for (auto &&fn : getAll<res::FunctionDecl>())
+  for (auto &&fn : functions)
     fn->dump(0);
 }
 
@@ -320,17 +320,6 @@ GenericDeclContext::GenericDeclContext(
     tp->setDeclContext(this);
 }
 
-std::vector<res::Decl *>
-GenericDeclContext::lookupDirect(const std::string id) const {
-  std::vector<res::Decl *> result;
-
-  for (auto &&d : decls)
-    if (d->identifier == id)
-      result.emplace_back(d);
-
-  return result;
-}
-
 Type::Type(std::string name,
            std::variant<void *, size_t> metadata,
            std::vector<Type *> args)
@@ -448,10 +437,10 @@ TraitType::getVtableLayout(Context *ctx) {
   std::vector<std::pair<TraitType *, FunctionDecl *>> layout;
 
   for (auto &&trait : ctx->getEveryConformance(this))
-    for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>())
+    for (auto &&fn : trait->getDecl()->functions)
       layout.emplace_back(trait, fn);
 
-  for (auto &&fn : getDecl()->getAll<res::FunctionDecl>())
+  for (auto &&fn : getDecl()->functions)
     layout.emplace_back(this, fn);
 
   return layout;
@@ -591,6 +580,14 @@ TypeExtension::TypeExtension(SourceLocation location,
       type(type),
       trait(trait) {}
 
+res::FunctionDecl *TypeExtension::getFunction(const std::string &id) const {
+  for (auto &&function : functions)
+    if (function->identifier == id)
+      return function;
+
+  return nullptr;
+}
+
 void TypeExtension::dump(size_t level) const {
   std::cerr << indent(level) << "TypeExtension " << type->getName();
   if (trait)
@@ -600,8 +597,8 @@ void TypeExtension::dump(size_t level) const {
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
 
-  for (auto &&decl : decls)
-    decl->dump(level + 1);
+  for (auto &&function : functions)
+    function->dump(level + 1);
 }
 
 StructDecl::StructDecl(SourceLocation location,
@@ -613,6 +610,14 @@ StructDecl::StructDecl(SourceLocation location,
       GenericDeclContext(declContext, std::move(typeParams)),
       isLambda(isLambda) {}
 
+res::FieldDecl *StructDecl::lookupField(const std::string &id) const {
+  for (auto &&field : fields)
+    if (field->identifier == id)
+      return field;
+
+  return nullptr;
+}
+
 void StructDecl::dump(size_t level) const {
   std::cerr << indent(level) << "StructDecl @(" << this << ") " << identifier
             << " {" << getType()->getName() << '}' << '\n';
@@ -620,8 +625,8 @@ void StructDecl::dump(size_t level) const {
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
 
-  for (auto &&decl : decls)
-    decl->dump(level + 1);
+  for (auto &&field : fields)
+    field->dump(level + 1);
 }
 
 TraitConformance::TraitConformance(SourceLocation l,
@@ -651,6 +656,14 @@ TraitDecl::TraitDecl(SourceLocation l,
     : TypeDecl(l, std::move(i), c),
       GenericDeclContext(c, std::move(p)) {}
 
+res::FunctionDecl *TraitDecl::lookupFunction(const std::string &id) const {
+  for (auto &&function : functions)
+    if (function->identifier == id)
+      return function;
+
+  return nullptr;
+}
+
 void TraitDecl::dump(size_t level) const {
   std::cerr << indent(level) << "TraitDecl @(" << this << ") " << identifier
             << '\n';
@@ -661,8 +674,8 @@ void TraitDecl::dump(size_t level) const {
   for (auto &&typeParam : typeParams)
     typeParam->dump(level + 1);
 
-  for (auto &&decl : decls)
-    decl->dump(level + 1);
+  for (auto &&function : functions)
+    function->dump(level + 1);
 }
 
 TypeParamDecl::TypeParamDecl(SourceLocation l, std::string i, bool s)
@@ -880,11 +893,7 @@ LambdaExpr::LambdaExpr(SourceLocation location,
     : Expr(location, Expr::Kind::Rvalue),
       closure(closure),
       ext(ext),
-      fieldInits(std::move(fieldInits)) {
-  // FIXME: revisit the lambda node and logic, and allow specifying decl types
-  // for the decl context
-  method = (FunctionDecl *)ext->decls[0];
-}
+      fieldInits(std::move(fieldInits)) {}
 
 void LambdaExpr::dump(size_t level) const {
   std::cerr << indent(level) << "LambdaExpr"

@@ -339,18 +339,15 @@ res::MemberExpr *Sema::captureInCurrentLambda(const ast::PathExpr &path,
   SourceLocation lambdaLoc = lambda->location;
   SourceLocation dreLoc = dre->location;
 
-  res::FieldDecl *fieldDecl = nullptr;
-  if (auto r = closureDecl->lookupDirect(id); !r.empty())
-    fieldDecl = r.front()->getAs<res::FieldDecl>();
-
+  res::FieldDecl *fieldDecl = closureDecl->lookupField(id);
   if (!fieldDecl) {
     fieldDecl = res::FieldDecl::create(ctx, lambdaLoc, id, closureDecl);
     fieldDecl->setType(dre->getType());
-    closureDecl->insertDecl(fieldDecl);
+    closureDecl->fields.emplace_back(fieldDecl);
     functionInfo->pendingCaptureInits.emplace_back(&path);
   }
 
-  res::ParamDecl *closureParam = lambda->method->params.back();
+  res::ParamDecl *closureParam = lambda->getFunction()->params.back();
   auto emptySub = res::Substitution{};
   auto lvalueKind = res::Expr::Kind::Lvalue;
 
@@ -564,21 +561,21 @@ Sema::lookupAssociatedDecls(std::string identifier,
   std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
   if (trait) {
-    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+    if (auto *decl = trait->getDecl()->lookupFunction(identifier))
       candidates.emplace_back(decl, trait->getSub());
 
     return candidates;
   }
 
   for (auto &&trait : ctx.getEveryConformance(type))
-    for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+    if (auto *decl = trait->getDecl()->lookupFunction(identifier))
       candidates.emplace_back(decl, trait->getSub());
 
   if (!candidates.empty())
     return candidates;
 
   for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
-    for (auto &&decl : extension->lookupDirect(identifier))
+    if (auto *decl = extension->getFunction(identifier))
       candidates.emplace_back(decl, sub);
 
   if (!candidates.empty())
@@ -586,7 +583,7 @@ Sema::lookupAssociatedDecls(std::string identifier,
 
   for (auto &&[extension, sub] : ctx.getEveryExtension(type))
     if (auto *trait = extension->trait)
-      for (auto &&decl : trait->getDecl()->lookupDirect(identifier))
+      if (auto *decl = trait->getDecl()->lookupFunction(identifier))
         candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
 
   return candidates;
@@ -677,7 +674,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
   std::map<std::string_view, res::FieldInitStmt *> inits;
 
   std::map<std::string_view, res::FieldDecl *> fields;
-  for (auto &&fieldDecl : sd->getAll<res::FieldDecl>())
+  for (auto &&fieldDecl : sd->fields)
     fields[fieldDecl->identifier] = fieldDecl;
 
   bool error = false;
@@ -723,7 +720,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
         res::FieldInitStmt::create(ctx, loc, fieldDecl, resolvedInitExpr));
   }
 
-  for (auto &&fieldDecl : sd->getAll<res::FieldDecl>()) {
+  for (auto &&fieldDecl : sd->fields) {
     if (!inits.count(fieldDecl->identifier)) {
       err::fieldNotInitialized(structInstantiation.location)
           .with(fieldDecl->identifier)
@@ -781,11 +778,8 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
           .with(baseType->getName())
           .report(reporter);
 
-    const auto &fields = structType->getDecl()->lookupDirect(memberId);
-    if (!fields.empty()) {
-      assert(fields.size() == 1 && "ambigous fields");
-      candidates.emplace_back(fields[0], structType->getSub());
-    }
+    if (auto *field = structType->getDecl()->lookupField(memberId))
+      candidates.emplace_back(field, structType->getSub());
   }
 
   if (candidates.empty())
@@ -937,7 +931,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   auto *lambdaFn = res::FunctionDecl::create(ctx, loc, "__builtin_lambda_call",
                                              closureExtension, noTypeParams);
   lambdaFn->setType(lambdaFnType);
-  closureExtension->insertDecl(lambdaFn);
+  closureExtension->functions.emplace_back(lambdaFn);
 
   auto *param = res::ParamDecl::create(ctx, loc, "closure", lambdaFn, false);
   param->setType(closureParamType);
@@ -1272,14 +1266,13 @@ Sema::resolveTypeExtension(res::Context &ctx,
       }
 
       if (auto *memberFn = resolveFunctionDecl(ctx, *fn))
-        resExtension->insertDecl(memberFn);
+        resExtension->functions.emplace_back(memberFn);
 
       continue;
     }
 
-    res::FunctionDecl *traitFn = nullptr;
-    if (auto r = trait->getDecl()->lookupDirect(fn->identifier); !r.empty())
-      traitFn = r.front()->getAs<res::FunctionDecl>();
+    res::FunctionDecl *traitFn =
+        trait->getDecl()->lookupFunction(fn->identifier);
 
     if (!traitFn) {
       err::memberFnLookupFailed(fn->location)
@@ -1345,7 +1338,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
     }
 
     if (insertDeclToCurrentScope(implFn))
-      resExtension->insertDecl(implFn);
+      resExtension->functions.emplace_back(implFn);
   }
 
   return resExtension;
@@ -1390,7 +1383,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
   }
 
-  error |= extension->decls.size() != astExtension.functions.size();
+  error |= extension->functions.size() != astExtension.functions.size();
   return !error;
 }
 
@@ -1493,8 +1486,8 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
                                                 res::TypeExtension *extension) {
   bool error = false;
 
-  for (auto &&fn : extension->trait->getDecl()->getAll<res::FunctionDecl>()) {
-    if (!fn->mustImplement || !extension->lookupDirect(fn->identifier).empty())
+  for (auto &&fn : extension->trait->getDecl()->functions) {
+    if (!fn->mustImplement || extension->getFunction(fn->identifier))
       continue;
 
     err::missingTraitFn(fn->location)
@@ -1673,7 +1666,7 @@ bool Sema::resolveTraitBody(res::Context &ctx,
     }
 
     resolvedFn->setMustImplement(!fn->body);
-    traitDecl.insertDecl(resolvedFn);
+    traitDecl.functions.emplace_back(resolvedFn);
   }
 
   return !error;
@@ -1690,7 +1683,7 @@ bool Sema::resolveTraitFunctionBodies(res::Context &ctx,
 
   bool error = false;
   int idx = 0;
-  for (auto &&fn : traitDecl.getAll<res::FunctionDecl>()) {
+  for (auto &&fn : traitDecl.functions) {
     error |= !resolveFunctionBody(ctx, *astDecl.traitFunctions[idx], fn);
     ++idx;
   }
@@ -1731,14 +1724,14 @@ bool Sema::resolveStructBody(res::Context &ctx,
     resField->setType(fieldTy);
 
     if (insertDeclToCurrentScope(resField))
-      structDecl.insertDecl(resField);
+      structDecl.fields.emplace_back(resField);
   }
 
-  return structDecl.decls.size() == astDecl.fields.size();
+  return structDecl.fields.size() == astDecl.fields.size();
 }
 
 res::Context *Sema::resolveAST() {
-  EnterNewScopeRAII globalScope(this, &ctx.translationUnit);
+  EnterNewScopeRAII globalScope(this, ctx.getTU());
   bool error = false;
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
@@ -1762,26 +1755,26 @@ res::Context *Sema::resolveAST() {
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *resSD = resDecl->getAs<res::StructDecl>()) {
-      ctx.translationUnit.insertDecl(resSD);
+      ctx.getTU()->structs.emplace_back(resSD);
       error |= !resolveStructBody(
           ctx, *resSD, *static_cast<const ast::StructDecl *>(astDecl));
     }
 
     if (auto *resTD = resDecl->getAs<res::TraitDecl>()) {
-      ctx.translationUnit.insertDecl(resTD);
+      ctx.getTU()->traits.emplace_back(resTD);
       error |= !resolveTraitBody(ctx, *resTD,
                                  *static_cast<const ast::TraitDecl *>(astDecl));
     }
   }
 
-  for (auto &&trait : ctx.translationUnit.getAll<res::TraitDecl>())
+  for (auto &&trait : ctx.getTU()->traits)
     error |= isSelfContainingTrait(trait);
 
   error |= hasSelfContainingStructs(ctx);
 
   for (auto &&extension : ast->extensions) {
     if (auto *resExtension = resolveTypeExtension(ctx, *extension)) {
-      ctx.translationUnit.extensions.emplace_back(resExtension);
+      ctx.getTU()->extensions.emplace_back(resExtension);
       resExtensions.emplace_back(resExtension, extension.get());
       continue;
     }
@@ -1796,18 +1789,18 @@ res::Context *Sema::resolveAST() {
 
   auto *builtinGCCollect = createBuiltinGCCollect(ctx);
   insertDeclToCurrentScope(builtinGCCollect);
-  ctx.translationUnit.insertDecl(builtinGCCollect);
+  ctx.getTU()->functions.emplace_back(builtinGCCollect);
 
   auto *builtinPrintln = createBuiltinPrintln(ctx);
   insertDeclToCurrentScope(builtinPrintln);
-  ctx.translationUnit.insertDecl(builtinPrintln);
+  ctx.getTU()->functions.emplace_back(builtinPrintln);
 
   for (auto &&fn : ast->functions) {
     auto *rf = resolveFunctionDecl(ctx, *fn);
     error |= !insertDeclToCurrentScope(rf);
     error |= hasBuiltinFunctionCollisions(rf);
     resDecls.emplace_back(rf, fn);
-    ctx.translationUnit.insertDecl(rf);
+    ctx.getTU()->functions.emplace_back(rf);
   }
 
   if (error)
@@ -1820,9 +1813,8 @@ res::Context *Sema::resolveAST() {
 
     EnterNewScopeRAII extensionScope(this);
     for (int i = 0; i < astExt->functions.size(); ++i)
-      error |=
-          !resolveFunctionBody(ctx, *astExt->functions[i],
-                               resExt->decls[i]->getAs<res::FunctionDecl>());
+      error |= !resolveFunctionBody(ctx, *astExt->functions[i],
+                                    resExt->functions[i]);
   }
 
   for (auto &&[resDecl, astDecl] : resDecls) {
@@ -1928,7 +1920,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   std::stack<std::pair<res::StructType *, int>> worklist;
   std::set<res::StructDecl *> selfContaining;
 
-  for (auto &&sd : ctx.translationUnit.getAll<res::StructDecl>()) {
+  for (auto &&sd : ctx.getTU()->structs) {
     std::vector<std::pair<res::StructType *, int>> seen;
     worklist.emplace(sd->getType()->getAs<res::StructType>(), 0);
 
@@ -1948,7 +1940,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
 
       seen.emplace_back(ty, level);
 
-      for (auto &&field : decl->getAll<res::FieldDecl>())
+      for (auto &&field : decl->fields)
         if (auto *structTy = ctx.instantiate(field->getType(), sub)
                                  ->getAs<res::StructType>())
           worklist.emplace(structTy, level + 1);
@@ -2024,7 +2016,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     return true;
 
   bool error = false;
-  for (auto &&fn : trait->getDecl()->getAll<res::FunctionDecl>()) {
+  for (auto &&fn : trait->getDecl()->functions) {
     SourceLocation fnLoc = fn->location;
 
     if (fn->typeParams.size() > 0) {

@@ -130,15 +130,14 @@ int main(int argc, const char **argv) {
 
   if (options.resDump) {
     if (resolvedCtx)
-      resolvedCtx->translationUnit.dump();
+      resolvedCtx->getTU()->dump();
 
     return 0;
   }
 
   if (options.cfgDump) {
     if (resolvedCtx) {
-      const auto &fns =
-          resolvedCtx->translationUnit.getAll<res::FunctionDecl>();
+      const auto &fns = resolvedCtx->getTU()->functions;
       for (auto &&fn : fns) {
         CFGBuilder().build(*fn).dump();
 
