@@ -571,9 +571,16 @@ struct TypeExtension final : public TopLevelNode {
 };
 
 struct SourceFile {
+  SourceLocation eofLocation;
   std::vector<std::unique_ptr<ast::TopLevelNode>> nodes;
-  SourceLocation eofLoc;
-  bool isIncomplete = false;
+  bool isComplete;
+
+  SourceFile(SourceLocation eofLocation,
+             std::vector<std::unique_ptr<ast::TopLevelNode>> nodes,
+             bool isComplete)
+      : eofLocation(eofLocation),
+        nodes(std::move(nodes)),
+        isComplete(isComplete) {}
 
   void dump() const;
 };

@@ -1815,7 +1815,7 @@ res::Context *Sema::resolveAST() {
   }
 
   if (!hasMainFunction)
-    return err::mainNotFound(ast->eofLoc).report(reporter);
+    return err::mainNotFound(ast->eofLocation).report(reporter);
 
   if (error)
     return nullptr;

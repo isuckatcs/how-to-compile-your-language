@@ -1187,11 +1187,11 @@ std::unique_ptr<ast::TopLevelNode> Parser::parseTopLevel() {
 //     ::= (<traitDecl> | <structDecl> | <functionDecl> | <typeExtension>)*
 //     EOF
 std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
-  auto sourceFile = std::make_unique<ast::SourceFile>();
+  std::vector<std::unique_ptr<ast::TopLevelNode>> nodes;
 
   while (nextToken.kind != TokenKind::Eof) {
     if (auto node = parseTopLevel()) {
-      sourceFile->nodes.emplace_back(std::move(node));
+      nodes.emplace_back(std::move(node));
       continue;
     }
 
@@ -1201,8 +1201,7 @@ std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
 
   assert(nextToken.kind == TokenKind::Eof && "to see end of file");
 
-  sourceFile->eofLoc = nextToken.location;
-  sourceFile->isIncomplete = incompleteAST;
-  return sourceFile;
+  return std::make_unique<ast::SourceFile>(nextToken.location, std::move(nodes),
+                                           !incompleteAST);
 }
 } // namespace yl

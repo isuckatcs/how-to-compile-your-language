@@ -117,7 +117,7 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  if (ast->isIncomplete)
+  if (!ast->isComplete)
     return 1;
 
   ConstExprEvaluator cee(true);
