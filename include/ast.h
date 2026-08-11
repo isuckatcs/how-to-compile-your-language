@@ -10,7 +10,7 @@
 namespace yl {
 namespace ast {
 struct Node {
-  SourceLocation location;
+  const SourceLocation location;
 
   explicit Node(SourceLocation location)
       : location(location) {}
@@ -20,8 +20,8 @@ struct Node {
 };
 
 struct SourceFile final : public Node {
-  std::vector<std::unique_ptr<ast::Node>> topLevel;
-  bool isComplete;
+  const std::vector<std::unique_ptr<ast::Node>> topLevel;
+  const bool isComplete;
 
   SourceFile(SourceLocation eofLocation,
              std::vector<std::unique_ptr<ast::Node>> nodes,
@@ -34,6 +34,7 @@ struct SourceFile final : public Node {
 };
 
 struct Type : public Node {
+protected:
   explicit Type(SourceLocation location)
       : Node(location) {}
 };
@@ -41,7 +42,7 @@ struct Type : public Node {
 struct BuiltinType final : public Type {
   enum class Kind { Unit, Number, Bool, Self };
 
-  Kind kind;
+  const Kind kind;
 
   BuiltinType(SourceLocation location, Kind kind)
       : Type(location),
@@ -51,8 +52,8 @@ struct BuiltinType final : public Type {
 };
 
 struct UserDefinedType final : public Type {
-  std::string identifier;
-  std::vector<std::unique_ptr<Type>> typeArguments;
+  const std::string identifier;
+  const std::vector<std::unique_ptr<Type>> typeArguments;
 
   UserDefinedType(SourceLocation location,
                   std::string identifier,
@@ -65,7 +66,7 @@ struct UserDefinedType final : public Type {
 };
 
 struct RefModifier final : public Node {
-  bool isMut;
+  const bool isMut;
 
   RefModifier(SourceLocation location, bool isMut)
       : Node(location),
@@ -75,8 +76,8 @@ struct RefModifier final : public Node {
 };
 
 struct ArgumentType final : public Type {
-  std::unique_ptr<RefModifier> refModifier;
-  std::unique_ptr<Type> type;
+  const std::unique_ptr<RefModifier> refModifier;
+  const std::unique_ptr<Type> type;
 
   ArgumentType(SourceLocation location,
                std::unique_ptr<RefModifier> refModifier,
@@ -89,8 +90,8 @@ struct ArgumentType final : public Type {
 };
 
 struct FunctionType final : public Type {
-  std::vector<std::unique_ptr<ArgumentType>> args;
-  std::unique_ptr<Type> ret;
+  const std::vector<std::unique_ptr<ArgumentType>> args;
+  const std::unique_ptr<Type> ret;
 
   FunctionType(SourceLocation location,
                std::vector<std::unique_ptr<ArgumentType>> args,
@@ -103,8 +104,8 @@ struct FunctionType final : public Type {
 };
 
 struct PointerType final : public Type {
-  std::unique_ptr<Type> pointeeType;
-  bool isMut;
+  const std::unique_ptr<Type> pointeeType;
+  const bool isMut;
 
   PointerType(SourceLocation location,
               std::unique_ptr<Type> pointeeType,
@@ -117,7 +118,7 @@ struct PointerType final : public Type {
 };
 
 struct AnyType final : public Type {
-  std::unique_ptr<UserDefinedType> type;
+  const std::unique_ptr<UserDefinedType> type;
 
   AnyType(SourceLocation location, std::unique_ptr<UserDefinedType> type)
       : Type(location),
@@ -127,7 +128,7 @@ struct AnyType final : public Type {
 };
 
 struct Decl : public Node {
-  std::string identifier;
+  const std::string identifier;
 
   Decl(SourceLocation location, std::string identifier)
       : Node(location),
@@ -135,17 +136,19 @@ struct Decl : public Node {
 };
 
 struct Stmt : public Node {
+protected:
   explicit Stmt(SourceLocation location)
       : Node(location) {}
 };
 
 struct Expr : public Stmt {
-  Expr(SourceLocation location)
+protected:
+  explicit Expr(SourceLocation location)
       : Stmt(location) {}
 };
 
 struct Block final : public Node {
-  std::vector<std::unique_ptr<Stmt>> statements;
+  const std::vector<std::unique_ptr<Stmt>> statements;
 
   Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
       : Node(location),
@@ -155,7 +158,7 @@ struct Block final : public Node {
 };
 
 struct TraitConformance : public Node {
-  std::vector<std::unique_ptr<UserDefinedType>> traits;
+  const std::vector<std::unique_ptr<UserDefinedType>> traits;
 
   TraitConformance(SourceLocation location,
                    std::vector<std::unique_ptr<UserDefinedType>> traits)
@@ -166,9 +169,9 @@ struct TraitConformance : public Node {
 };
 
 struct IfStmt final : public Stmt {
-  std::unique_ptr<Expr> condition;
-  std::unique_ptr<Block> trueBlock;
-  std::unique_ptr<Block> falseBlock;
+  const std::unique_ptr<Expr> condition;
+  const std::unique_ptr<Block> trueBlock;
+  const std::unique_ptr<Block> falseBlock;
 
   IfStmt(SourceLocation location,
          std::unique_ptr<Expr> condition,
@@ -183,8 +186,8 @@ struct IfStmt final : public Stmt {
 };
 
 struct WhileStmt final : public Stmt {
-  std::unique_ptr<Expr> condition;
-  std::unique_ptr<Block> body;
+  const std::unique_ptr<Expr> condition;
+  const std::unique_ptr<Block> body;
 
   WhileStmt(SourceLocation location,
             std::unique_ptr<Expr> condition,
@@ -197,7 +200,7 @@ struct WhileStmt final : public Stmt {
 };
 
 struct ReturnStmt final : public Stmt {
-  std::unique_ptr<Expr> expr;
+  const std::unique_ptr<Expr> expr;
 
   ReturnStmt(SourceLocation location, std::unique_ptr<Expr> expr = nullptr)
       : Stmt(location),
@@ -207,8 +210,8 @@ struct ReturnStmt final : public Stmt {
 };
 
 struct FieldInitStmt final : public Stmt {
-  std::string identifier;
-  std::unique_ptr<Expr> initializer;
+  const std::string identifier;
+  const std::unique_ptr<Expr> initializer;
 
   FieldInitStmt(SourceLocation location,
                 std::string identifier,
@@ -221,7 +224,7 @@ struct FieldInitStmt final : public Stmt {
 };
 
 struct NumberLiteral final : public Expr {
-  std::string value;
+  const std::string value;
 
   NumberLiteral(SourceLocation location, std::string value)
       : Expr(location),
@@ -231,7 +234,7 @@ struct NumberLiteral final : public Expr {
 };
 
 struct BoolLiteral final : public Expr {
-  std::string value;
+  const std::string value;
 
   BoolLiteral(SourceLocation location, std::string value)
       : Expr(location),
@@ -241,15 +244,15 @@ struct BoolLiteral final : public Expr {
 };
 
 struct UnitLiteral final : public Expr {
-  UnitLiteral(SourceLocation location)
+  explicit UnitLiteral(SourceLocation location)
       : Expr(location) {}
 
   void dump(size_t level = 0) const override;
 };
 
 struct CallExpr final : public Expr {
-  std::unique_ptr<Expr> callee;
-  std::vector<std::unique_ptr<Expr>> arguments;
+  const std::unique_ptr<Expr> callee;
+  const std::vector<std::unique_ptr<Expr>> arguments;
 
   CallExpr(SourceLocation location,
            std::unique_ptr<Expr> callee,
@@ -262,7 +265,7 @@ struct CallExpr final : public Expr {
 };
 
 struct TypeArgumentList final : public Expr {
-  std::vector<std::unique_ptr<Type>> args;
+  const std::vector<std::unique_ptr<Type>> args;
 
   TypeArgumentList(SourceLocation location,
                    std::vector<std::unique_ptr<Type>> args)
@@ -273,8 +276,8 @@ struct TypeArgumentList final : public Expr {
 };
 
 struct DeclRefExpr final : public Expr {
-  std::string identifier;
-  std::unique_ptr<TypeArgumentList> typeArgumentList;
+  const std::string identifier;
+  const std::unique_ptr<TypeArgumentList> typeArgumentList;
 
   DeclRefExpr(SourceLocation location,
               std::string identifier,
@@ -287,8 +290,8 @@ struct DeclRefExpr final : public Expr {
 };
 
 struct TraitSpecifier final : public Expr {
-  std::unique_ptr<Type> type;
-  std::unique_ptr<UserDefinedType> trait;
+  const std::unique_ptr<Type> type;
+  const std::unique_ptr<UserDefinedType> trait;
 
   TraitSpecifier(SourceLocation location,
                  std::unique_ptr<Type> type,
@@ -301,8 +304,8 @@ struct TraitSpecifier final : public Expr {
 };
 
 struct PathExpr final : public Expr {
-  std::unique_ptr<TraitSpecifier> traitSpecifier;
-  std::vector<std::unique_ptr<DeclRefExpr>> fragments;
+  const std::unique_ptr<TraitSpecifier> traitSpecifier;
+  const std::vector<std::unique_ptr<DeclRefExpr>> fragments;
 
   PathExpr(std::unique_ptr<TraitSpecifier> traitSpecifier,
            std::vector<std::unique_ptr<DeclRefExpr>> fragments)
@@ -314,8 +317,8 @@ struct PathExpr final : public Expr {
 };
 
 struct StructInstantiationExpr final : public Expr {
-  std::unique_ptr<PathExpr> structRef;
-  std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
+  const std::unique_ptr<PathExpr> structRef;
+  const std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
 
   StructInstantiationExpr(
       SourceLocation location,
@@ -329,8 +332,8 @@ struct StructInstantiationExpr final : public Expr {
 };
 
 struct MemberExpr final : public Expr {
-  std::unique_ptr<Expr> base;
-  std::unique_ptr<DeclRefExpr> member;
+  const std::unique_ptr<Expr> base;
+  const std::unique_ptr<DeclRefExpr> member;
 
   MemberExpr(SourceLocation location,
              std::unique_ptr<Expr> base,
@@ -343,7 +346,7 @@ struct MemberExpr final : public Expr {
 };
 
 struct GroupingExpr final : public Expr {
-  std::unique_ptr<Expr> expr;
+  const std::unique_ptr<Expr> expr;
 
   GroupingExpr(SourceLocation location, std::unique_ptr<Expr> expr)
       : Expr(location),
@@ -353,9 +356,9 @@ struct GroupingExpr final : public Expr {
 };
 
 struct BinaryOperator final : public Expr {
-  std::unique_ptr<Expr> lhs;
-  std::unique_ptr<Expr> rhs;
-  TokenKind op;
+  const std::unique_ptr<Expr> lhs;
+  const std::unique_ptr<Expr> rhs;
+  const TokenKind op;
 
   BinaryOperator(SourceLocation location,
                  std::unique_ptr<Expr> lhs,
@@ -370,8 +373,8 @@ struct BinaryOperator final : public Expr {
 };
 
 struct UnaryOperator final : public Expr {
-  std::unique_ptr<Expr> operand;
-  TokenKind op;
+  const std::unique_ptr<Expr> operand;
+  const TokenKind op;
 
   UnaryOperator(SourceLocation location,
                 std::unique_ptr<Expr> operand,
@@ -384,7 +387,7 @@ struct UnaryOperator final : public Expr {
 };
 
 struct TypeParamDecl final : public Decl {
-  std::unique_ptr<TraitConformance> traitConformance;
+  const std::unique_ptr<TraitConformance> traitConformance;
 
   TypeParamDecl(SourceLocation location,
                 std::string identifier,
@@ -396,9 +399,9 @@ struct TypeParamDecl final : public Decl {
 };
 
 struct ParamDecl final : public Decl {
-  std::unique_ptr<RefModifier> refModifier;
-  std::unique_ptr<Type> type;
-  bool isMutable;
+  const std::unique_ptr<RefModifier> refModifier;
+  const std::unique_ptr<Type> type;
+  const bool isMutable;
 
   ParamDecl(SourceLocation location,
             std::string identifier,
@@ -414,9 +417,9 @@ struct ParamDecl final : public Decl {
 };
 
 struct VarDecl final : public Decl {
-  std::unique_ptr<Type> type;
-  std::unique_ptr<Expr> initializer;
-  bool isMutable;
+  const std::unique_ptr<Type> type;
+  const std::unique_ptr<Expr> initializer;
+  const bool isMutable;
 
   VarDecl(SourceLocation location,
           std::string identifier,
@@ -432,10 +435,10 @@ struct VarDecl final : public Decl {
 };
 
 struct FunctionDecl final : public Decl {
-  std::unique_ptr<Type> type;
-  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<ParamDecl>> params;
-  std::unique_ptr<Block> body;
+  const std::unique_ptr<Type> type;
+  const std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
+  const std::vector<std::unique_ptr<ParamDecl>> params;
+  const std::unique_ptr<Block> body;
 
   FunctionDecl(SourceLocation location,
                std::string identifier,
@@ -453,7 +456,7 @@ struct FunctionDecl final : public Decl {
 };
 
 struct FieldDecl final : public Decl {
-  std::unique_ptr<Type> type;
+  const std::unique_ptr<Type> type;
 
   FieldDecl(SourceLocation location,
             std::string identifier,
@@ -465,8 +468,8 @@ struct FieldDecl final : public Decl {
 };
 
 struct StructDecl final : public Decl {
-  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<FieldDecl>> fields;
+  const std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
+  const std::vector<std::unique_ptr<FieldDecl>> fields;
 
   StructDecl(SourceLocation location,
              std::string identifier,
@@ -480,9 +483,9 @@ struct StructDecl final : public Decl {
 };
 
 struct TraitDecl final : public Decl {
-  std::unique_ptr<TraitConformance> traitConformance;
-  std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
-  std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
+  const std::unique_ptr<TraitConformance> traitConformance;
+  const std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
+  const std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
 
   TraitDecl(SourceLocation location,
             std::string identifier,
@@ -498,7 +501,7 @@ struct TraitDecl final : public Decl {
 };
 
 struct DeclStmt final : public Stmt {
-  std::unique_ptr<VarDecl> varDecl;
+  const std::unique_ptr<VarDecl> varDecl;
 
   DeclStmt(SourceLocation location, std::unique_ptr<VarDecl> varDecl)
       : Stmt(location),
@@ -508,8 +511,8 @@ struct DeclStmt final : public Stmt {
 };
 
 struct Assignment final : public Stmt {
-  std::unique_ptr<Expr> assignee;
-  std::unique_ptr<Expr> expr;
+  const std::unique_ptr<Expr> assignee;
+  const std::unique_ptr<Expr> expr;
 
   Assignment(SourceLocation location,
              std::unique_ptr<Expr> assignee,
@@ -522,8 +525,8 @@ struct Assignment final : public Stmt {
 };
 
 struct GCExpr final : public Expr {
-  std::unique_ptr<Expr> expr;
-  bool isMut;
+  const std::unique_ptr<Expr> expr;
+  const bool isMut;
 
   GCExpr(SourceLocation location, std::unique_ptr<Expr> expr, bool isMut)
       : Expr(location),
@@ -534,9 +537,9 @@ struct GCExpr final : public Expr {
 };
 
 struct LambdaExpr final : public Expr {
-  std::vector<std::unique_ptr<ParamDecl>> params;
-  std::unique_ptr<Type> returnType;
-  std::unique_ptr<Block> body;
+  const std::vector<std::unique_ptr<ParamDecl>> params;
+  const std::unique_ptr<Type> returnType;
+  const std::unique_ptr<Block> body;
 
   LambdaExpr(SourceLocation location,
              std::vector<std::unique_ptr<ParamDecl>> params,
@@ -551,10 +554,10 @@ struct LambdaExpr final : public Expr {
 };
 
 struct TypeExtension final : public Node {
-  std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
-  std::unique_ptr<Type> type;
-  std::unique_ptr<UserDefinedType> trait;
-  std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
+  const std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
+  const std::unique_ptr<Type> type;
+  const std::unique_ptr<UserDefinedType> trait;
+  const std::vector<std::unique_ptr<ast::FunctionDecl>> functions;
 
   TypeExtension(SourceLocation location,
                 std::vector<std::unique_ptr<TypeParamDecl>> typeParams,
