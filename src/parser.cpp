@@ -1162,39 +1162,37 @@ std::unique_ptr<ast::RefModifier> Parser::parseRefModifier() {
   return std::make_unique<ast::RefModifier>(ampLoc, isMut);
 }
 
+std::unique_ptr<ast::TopLevelNode> Parser::parseTopLevel() {
+  if (nextToken.kind == TokenKind::KwTrait)
+    return parseTraitDecl();
+
+  if (nextToken.kind == TokenKind::KwStruct)
+    return parseStructDecl();
+
+  if (nextToken.kind == TokenKind::KwFn)
+    return parseFunctionDecl();
+
+  if (nextToken.kind == TokenKind::KwExtension)
+    return parseTypeExtension();
+
+  return err::expected4(nextToken.location)
+      .with("'trait'")
+      .with("'struct'")
+      .with("'extension'")
+      .with("'fn'")
+      .report(reporter);
+}
+
 // <sourceFile>
-//     ::= (<traitDecl> | <structDecl> | <functionDecl>)* EOF
+//     ::= (<traitDecl> | <structDecl> | <functionDecl> | <typeExtension>)*
+//     EOF
 std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
   auto sourceFile = std::make_unique<ast::SourceFile>();
 
   while (nextToken.kind != TokenKind::Eof) {
-    if (nextToken.kind == TokenKind::KwFn) {
-      if (auto fn = parseFunctionDecl()) {
-        sourceFile->nodes.emplace_back(std::move(fn));
-        continue;
-      }
-    } else if (nextToken.kind == TokenKind::KwStruct) {
-      if (auto st = parseStructDecl()) {
-        sourceFile->nodes.emplace_back(std::move(st));
-        continue;
-      }
-    } else if (nextToken.kind == TokenKind::KwTrait) {
-      if (auto trait = parseTraitDecl()) {
-        sourceFile->nodes.emplace_back(std::move(trait));
-        continue;
-      }
-    } else if (nextToken.kind == TokenKind::KwExtension) {
-      if (auto extension = parseTypeExtension()) {
-        sourceFile->nodes.emplace_back(std::move(extension));
-        continue;
-      }
-    } else {
-      err::expected4(nextToken.location)
-          .with("'trait'")
-          .with("'struct'")
-          .with("'extension'")
-          .with("'fn'")
-          .report(reporter);
+    if (auto node = parseTopLevel()) {
+      sourceFile->nodes.emplace_back(std::move(node));
+      continue;
     }
 
     synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait,
