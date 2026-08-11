@@ -1,4 +1,4 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 
-// CHECK: [[# @LINE + 1 ]]:1: error: expected function, struct or trait declaration on the top level
+// CHECK: [[# @LINE + 1 ]]:1: error: expected 'trait', 'struct', 'extension' or 'fn'
 while 0.0 {}

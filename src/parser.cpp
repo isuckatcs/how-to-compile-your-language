@@ -1189,12 +1189,16 @@ std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
         continue;
       }
     } else {
-      err::expectedTopLevel(nextToken.location).report(reporter);
+      err::expected4(nextToken.location)
+          .with("'trait'")
+          .with("'struct'")
+          .with("'extension'")
+          .with("'fn'")
+          .report(reporter);
     }
 
     synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait,
                    TokenKind::KwExtension});
-    continue;
   }
 
   assert(nextToken.kind == TokenKind::Eof && "to see end of file");

@@ -86,7 +86,6 @@ diag(Error, expected, "expected {}");
 diag(Error, expected2, "expected {} or {}");
 diag(Error, expected3, "expected {}, {} or {}");
 diag(Error, expected4, "expected {}, {}, {} or {}");
-diag(Error, expectedTopLevel, "expected function, struct or trait declaration on the top level");
 diag(Error, expectedAtEnd, "expected {} at the end of {}");
 diag(Error, expectedBody, "expected {} body");
 
