@@ -4,7 +4,6 @@
 #include <functional>
 #include <memory>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "ast.h"
@@ -112,7 +111,7 @@ public:
         lexer(&lexer),
         nextToken(lexer.getNextToken()) {}
 
-  std::pair<ast::Context, bool> parseSourceFile();
+  std::unique_ptr<ast::SourceFile> parseSourceFile();
 };
 } // namespace yl
 

@@ -299,5 +299,10 @@ void TypeExtension::dump(size_t level) const {
   for (auto &&fn : functions)
     fn->dump(level + 1);
 }
+
+void SourceFile::dump() const {
+  for (auto &&node : nodes)
+    node->dump();
+}
 } // namespace ast
 } // namespace yl

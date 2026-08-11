@@ -110,22 +110,18 @@ int main(int argc, const char **argv) {
 
   Lexer lexer(sourceFile);
   Parser parser(reporter, lexer);
-  auto [ast, success] = parser.parseSourceFile();
+  std::unique_ptr<ast::SourceFile> ast = parser.parseSourceFile();
 
-  // FIXME: print nodes in declaration order
   if (options.astDump) {
-    for (auto &&decl : ast.decls)
-      decl->dump();
-    for (auto &&extension : ast.extensions)
-      extension->dump();
+    ast->dump();
     return 0;
   }
 
-  if (!success)
+  if (ast->isIncomplete)
     return 1;
 
   ConstExprEvaluator cee(true);
-  Sema sema(reporter, cee, ast);
+  Sema sema(reporter, cee, *ast);
   auto *resolvedCtx = sema.resolveAST();
 
   if (options.resDump) {

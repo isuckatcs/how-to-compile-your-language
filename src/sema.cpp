@@ -1738,19 +1738,20 @@ res::Context *Sema::resolveAST() {
   std::vector<std::pair<res::TypeExtension *, const ast::TypeExtension *>>
       resExtensions;
 
-  for (auto &&decl : ast->decls) {
+  for (auto &&node : ast->nodes) {
+    const ast::Decl *ad = dynamic_cast<const ast::Decl *>(node.get());
     res::Decl *rd = nullptr;
-    if (const auto *sd = dynamic_cast<const ast::StructDecl *>(decl.get()))
+    if (const auto *sd = dynamic_cast<const ast::StructDecl *>(node.get()))
       rd = resolveStructDecl(ctx, *sd);
 
-    if (const auto *td = dynamic_cast<const ast::TraitDecl *>(decl.get()))
+    if (const auto *td = dynamic_cast<const ast::TraitDecl *>(node.get()))
       rd = resolveTraitDecl(ctx, *td);
 
     if (!rd)
       continue;
 
     error |= !insertDeclToCurrentScope(rd);
-    resDecls.emplace_back(rd, decl.get());
+    resDecls.emplace_back(rd, ad);
   }
 
   for (auto &&[resDecl, astDecl] : resDecls) {
@@ -1772,10 +1773,14 @@ res::Context *Sema::resolveAST() {
 
   error |= hasSelfContainingStructs(ctx);
 
-  for (auto &&extension : ast->extensions) {
+  for (auto &&node : ast->nodes) {
+    auto *extension = dynamic_cast<const ast::TypeExtension *>(node.get());
+    if (!extension)
+      continue;
+
     if (auto *resExtension = resolveTypeExtension(ctx, *extension)) {
       ctx.getTU()->extensions.emplace_back(resExtension);
-      resExtensions.emplace_back(resExtension, extension.get());
+      resExtensions.emplace_back(resExtension, extension);
       continue;
     }
 
@@ -1795,13 +1800,22 @@ res::Context *Sema::resolveAST() {
   insertDeclToCurrentScope(builtinPrintln);
   ctx.getTU()->functions.emplace_back(builtinPrintln);
 
-  for (auto &&fn : ast->functions) {
-    auto *rf = resolveFunctionDecl(ctx, *fn);
-    error |= !insertDeclToCurrentScope(rf);
-    error |= hasBuiltinFunctionCollisions(rf);
-    resDecls.emplace_back(rf, fn);
-    ctx.getTU()->functions.emplace_back(rf);
+  bool hasMainFunction = false;
+
+  for (auto &&node : ast->nodes) {
+    if (auto *fn = dynamic_cast<const ast::FunctionDecl *>(node.get())) {
+      auto *rf = resolveFunctionDecl(ctx, *fn);
+      error |= !insertDeclToCurrentScope(rf);
+      error |= hasBuiltinFunctionCollisions(rf);
+      resDecls.emplace_back(rf, fn);
+      ctx.getTU()->functions.emplace_back(rf);
+
+      hasMainFunction |= fn->identifier == "main";
+    }
   }
+
+  if (!hasMainFunction)
+    return err::mainNotFound(ast->eofLoc).report(reporter);
 
   if (error)
     return nullptr;

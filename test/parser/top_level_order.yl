@@ -1,0 +1,19 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+struct S {}
+// CHECK: StructDecl 'S'
+
+trait A {}
+// CHECK-NEXT: TraitDecl 'A'
+
+fn foo() {}
+// CHECK-NEXT: FunctionDecl 'foo'
+// CHECK-NEXT:   Block
+
+extension S : A {}
+// CHECK-NEXT: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'S'
+// CHECK-NEXT:   UserDefinedType 'A'
+
+fn bar() {}
+// CHECK-NEXT: FunctionDecl 'bar'
+// CHECK-NEXT:   Block

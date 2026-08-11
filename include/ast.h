@@ -2,6 +2,7 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 
 #include <memory>
+#include <variant>
 #include <vector>
 
 #include "lexer.h"
@@ -19,7 +20,7 @@ struct Type {
   virtual void dump(size_t level = 0) const = 0;
 };
 
-struct BuiltinType : public Type {
+struct BuiltinType final : public Type {
   enum class Kind { Unit, Number, Bool, Self };
 
   Kind kind;
@@ -31,7 +32,7 @@ struct BuiltinType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct UserDefinedType : public Type {
+struct UserDefinedType final : public Type {
   std::string identifier;
   std::vector<std::unique_ptr<Type>> typeArguments;
 
@@ -56,7 +57,7 @@ struct RefModifier {
   void dump(size_t level = 0) const;
 };
 
-struct ArgumentType : public Type {
+struct ArgumentType final : public Type {
   std::unique_ptr<RefModifier> refModifier;
   std::unique_ptr<Type> type;
 
@@ -70,7 +71,7 @@ struct ArgumentType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct FunctionType : public Type {
+struct FunctionType final : public Type {
   std::vector<std::unique_ptr<ArgumentType>> args;
   std::unique_ptr<Type> ret;
 
@@ -84,7 +85,7 @@ struct FunctionType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct PointerType : public Type {
+struct PointerType final : public Type {
   std::unique_ptr<Type> pointeeType;
   bool isMut;
 
@@ -98,7 +99,7 @@ struct PointerType : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct AnyType : public Type {
+struct AnyType final : public Type {
   std::unique_ptr<UserDefinedType> type;
 
   AnyType(SourceLocation location, std::unique_ptr<UserDefinedType> type)
@@ -158,7 +159,7 @@ struct TraitConformance {
   void dump(size_t level = 0) const;
 };
 
-struct IfStmt : public Stmt {
+struct IfStmt final : public Stmt {
   std::unique_ptr<Expr> condition;
   std::unique_ptr<Block> trueBlock;
   std::unique_ptr<Block> falseBlock;
@@ -175,7 +176,7 @@ struct IfStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct WhileStmt : public Stmt {
+struct WhileStmt final : public Stmt {
   std::unique_ptr<Expr> condition;
   std::unique_ptr<Block> body;
 
@@ -189,7 +190,7 @@ struct WhileStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct ReturnStmt : public Stmt {
+struct ReturnStmt final : public Stmt {
   std::unique_ptr<Expr> expr;
 
   ReturnStmt(SourceLocation location, std::unique_ptr<Expr> expr = nullptr)
@@ -199,7 +200,7 @@ struct ReturnStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct FieldInitStmt : public Stmt {
+struct FieldInitStmt final : public Stmt {
   std::string identifier;
   std::unique_ptr<Expr> initializer;
 
@@ -213,7 +214,7 @@ struct FieldInitStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct NumberLiteral : public Expr {
+struct NumberLiteral final : public Expr {
   std::string value;
 
   NumberLiteral(SourceLocation location, std::string value)
@@ -223,7 +224,7 @@ struct NumberLiteral : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct BoolLiteral : public Expr {
+struct BoolLiteral final : public Expr {
   std::string value;
 
   BoolLiteral(SourceLocation location, std::string value)
@@ -233,14 +234,14 @@ struct BoolLiteral : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct UnitLiteral : public Expr {
+struct UnitLiteral final : public Expr {
   UnitLiteral(SourceLocation location)
       : Expr(location) {}
 
   void dump(size_t level = 0) const override;
 };
 
-struct CallExpr : public Expr {
+struct CallExpr final : public Expr {
   std::unique_ptr<Expr> callee;
   std::vector<std::unique_ptr<Expr>> arguments;
 
@@ -254,7 +255,7 @@ struct CallExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TypeArgumentList : public Expr {
+struct TypeArgumentList final : public Expr {
   std::vector<std::unique_ptr<Type>> args;
 
   TypeArgumentList(SourceLocation location,
@@ -265,7 +266,7 @@ struct TypeArgumentList : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct DeclRefExpr : public Expr {
+struct DeclRefExpr final : public Expr {
   std::string identifier;
   std::unique_ptr<TypeArgumentList> typeArgumentList;
 
@@ -279,7 +280,7 @@ struct DeclRefExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitSpecifier : public Expr {
+struct TraitSpecifier final : public Expr {
   std::unique_ptr<Type> type;
   std::unique_ptr<UserDefinedType> trait;
 
@@ -293,7 +294,7 @@ struct TraitSpecifier : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct PathExpr : public Expr {
+struct PathExpr final : public Expr {
   std::unique_ptr<TraitSpecifier> traitSpecifier;
   std::vector<std::unique_ptr<DeclRefExpr>> fragments;
 
@@ -306,7 +307,7 @@ struct PathExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct StructInstantiationExpr : public Expr {
+struct StructInstantiationExpr final : public Expr {
   std::unique_ptr<PathExpr> structRef;
   std::vector<std::unique_ptr<FieldInitStmt>> fieldInitializers;
 
@@ -321,7 +322,7 @@ struct StructInstantiationExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct MemberExpr : public Expr {
+struct MemberExpr final : public Expr {
   std::unique_ptr<Expr> base;
   std::unique_ptr<DeclRefExpr> member;
 
@@ -335,7 +336,7 @@ struct MemberExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct GroupingExpr : public Expr {
+struct GroupingExpr final : public Expr {
   std::unique_ptr<Expr> expr;
 
   GroupingExpr(SourceLocation location, std::unique_ptr<Expr> expr)
@@ -345,7 +346,7 @@ struct GroupingExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct BinaryOperator : public Expr {
+struct BinaryOperator final : public Expr {
   std::unique_ptr<Expr> lhs;
   std::unique_ptr<Expr> rhs;
   TokenKind op;
@@ -362,7 +363,7 @@ struct BinaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct UnaryOperator : public Expr {
+struct UnaryOperator final : public Expr {
   std::unique_ptr<Expr> operand;
   TokenKind op;
 
@@ -376,7 +377,7 @@ struct UnaryOperator : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TypeParamDecl : public Decl {
+struct TypeParamDecl final : public Decl {
   std::unique_ptr<TraitConformance> traitConformance;
 
   TypeParamDecl(SourceLocation location,
@@ -388,7 +389,7 @@ struct TypeParamDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct ParamDecl : public Decl {
+struct ParamDecl final : public Decl {
   std::unique_ptr<RefModifier> refModifier;
   std::unique_ptr<Type> type;
   bool isMutable;
@@ -406,7 +407,7 @@ struct ParamDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct VarDecl : public Decl {
+struct VarDecl final : public Decl {
   std::unique_ptr<Type> type;
   std::unique_ptr<Expr> initializer;
   bool isMutable;
@@ -424,7 +425,12 @@ struct VarDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct FunctionDecl : public Decl {
+struct TopLevelNode {
+  virtual void dump(size_t level = 0) const = 0;
+  virtual ~TopLevelNode() = default;
+};
+
+struct FunctionDecl final : public TopLevelNode, public Decl {
   std::unique_ptr<Type> type;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<ParamDecl>> params;
@@ -445,7 +451,7 @@ struct FunctionDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct FieldDecl : public Decl {
+struct FieldDecl final : public Decl {
   std::unique_ptr<Type> type;
 
   FieldDecl(SourceLocation location,
@@ -457,7 +463,7 @@ struct FieldDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct StructDecl : public Decl {
+struct StructDecl final : public TopLevelNode, public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FieldDecl>> fields;
 
@@ -472,7 +478,7 @@ struct StructDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitDecl : public Decl {
+struct TraitDecl final : public TopLevelNode, public Decl {
   std::unique_ptr<TraitConformance> traitConformance;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
@@ -490,7 +496,7 @@ struct TraitDecl : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct DeclStmt : public Stmt {
+struct DeclStmt final : public Stmt {
   std::unique_ptr<VarDecl> varDecl;
 
   DeclStmt(SourceLocation location, std::unique_ptr<VarDecl> varDecl)
@@ -500,7 +506,7 @@ struct DeclStmt : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct Assignment : public Stmt {
+struct Assignment final : public Stmt {
   std::unique_ptr<Expr> assignee;
   std::unique_ptr<Expr> expr;
 
@@ -514,7 +520,7 @@ struct Assignment : public Stmt {
   void dump(size_t level = 0) const override;
 };
 
-struct GCExpr : public Expr {
+struct GCExpr final : public Expr {
   std::unique_ptr<Expr> expr;
   bool isMut;
 
@@ -526,7 +532,7 @@ struct GCExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct LambdaExpr : public Expr {
+struct LambdaExpr final : public Expr {
   std::vector<std::unique_ptr<ParamDecl>> params;
   std::unique_ptr<Type> returnType;
   std::unique_ptr<Block> body;
@@ -543,7 +549,7 @@ struct LambdaExpr : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TypeExtension {
+struct TypeExtension final : public TopLevelNode {
   SourceLocation location;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
   std::unique_ptr<Type> type;
@@ -561,35 +567,15 @@ struct TypeExtension {
         trait(std::move(trait)),
         functions(std::move(functions)) {}
 
-  void dump(size_t level = 0) const;
+  void dump(size_t level = 0) const override;
 };
 
-struct Context {
-  std::vector<std::unique_ptr<ast::Decl>> decls;
-  std::vector<std::unique_ptr<ast::TypeExtension>> extensions;
+struct SourceFile {
+  std::vector<std::unique_ptr<ast::TopLevelNode>> nodes;
+  SourceLocation eofLoc;
+  bool isIncomplete = false;
 
-  std::vector<const TraitDecl *> traits;
-  std::vector<const StructDecl *> structs;
-  std::vector<const FunctionDecl *> functions;
-
-  void addTraitDecl(std::unique_ptr<TraitDecl> trait) {
-    traits.emplace_back(trait.get());
-    decls.emplace_back(std::move(trait));
-  }
-
-  void addStructDecl(std::unique_ptr<StructDecl> sd) {
-    structs.emplace_back(sd.get());
-    decls.emplace_back(std::move(sd));
-  }
-
-  void addFunctionDecl(std::unique_ptr<FunctionDecl> function) {
-    functions.emplace_back(function.get());
-    decls.emplace_back(std::move(function));
-  }
-
-  void addTypeExtension(std::unique_ptr<TypeExtension> typeExtension) {
-    extensions.emplace_back(std::move(typeExtension));
-  }
+  void dump() const;
 };
 } // namespace ast
 } // namespace yl

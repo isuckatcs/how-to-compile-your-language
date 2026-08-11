@@ -1164,28 +1164,28 @@ std::unique_ptr<ast::RefModifier> Parser::parseRefModifier() {
 
 // <sourceFile>
 //     ::= (<traitDecl> | <structDecl> | <functionDecl>)* EOF
-std::pair<ast::Context, bool> Parser::parseSourceFile() {
-  ast::Context ctx;
+std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
+  auto sourceFile = std::make_unique<ast::SourceFile>();
 
   while (nextToken.kind != TokenKind::Eof) {
     if (nextToken.kind == TokenKind::KwFn) {
       if (auto fn = parseFunctionDecl()) {
-        ctx.addFunctionDecl(std::move(fn));
+        sourceFile->nodes.emplace_back(std::move(fn));
         continue;
       }
     } else if (nextToken.kind == TokenKind::KwStruct) {
       if (auto st = parseStructDecl()) {
-        ctx.addStructDecl(std::move(st));
+        sourceFile->nodes.emplace_back(std::move(st));
         continue;
       }
     } else if (nextToken.kind == TokenKind::KwTrait) {
       if (auto trait = parseTraitDecl()) {
-        ctx.addTraitDecl(std::move(trait));
+        sourceFile->nodes.emplace_back(std::move(trait));
         continue;
       }
     } else if (nextToken.kind == TokenKind::KwExtension) {
       if (auto extension = parseTypeExtension()) {
-        ctx.addTypeExtension(std::move(extension));
+        sourceFile->nodes.emplace_back(std::move(extension));
         continue;
       }
     } else {
@@ -1199,15 +1199,8 @@ std::pair<ast::Context, bool> Parser::parseSourceFile() {
 
   assert(nextToken.kind == TokenKind::Eof && "to see end of file");
 
-  // Only the lexer and the parser has access to the tokens, so to report an
-  // error on the EOF token, we look for main() here.
-  bool hasMainFunction = false;
-  for (auto &&decl : ctx.functions)
-    hasMainFunction |= decl->identifier == "main";
-
-  if (!hasMainFunction && !incompleteAST)
-    err::mainNotFound(nextToken.location).report(reporter);
-
-  return {std::move(ctx), !incompleteAST && hasMainFunction};
+  sourceFile->eofLoc = nextToken.location;
+  sourceFile->isIncomplete = incompleteAST;
+  return sourceFile;
 }
 } // namespace yl

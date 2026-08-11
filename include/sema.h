@@ -16,7 +16,7 @@ class Sema {
 
   diag::DiagnosticReporter *reporter;
   ConstExprEvaluator *cee;
-  const ast::Context *ast;
+  const ast::SourceFile *ast;
 
   res::Context ctx;
 
@@ -241,7 +241,7 @@ class Sema {
 public:
   explicit Sema(diag::DiagnosticReporter &reporter,
                 ConstExprEvaluator &cee,
-                const ast::Context &ast)
+                const ast::SourceFile &ast)
       : reporter(&reporter),
         cee(&cee),
         ast(&ast) {}
