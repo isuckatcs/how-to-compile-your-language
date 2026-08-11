@@ -1199,7 +1199,7 @@ std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
                    TokenKind::KwExtension});
   }
 
-  assert(nextToken.kind == TokenKind::Eof && "to see end of file");
+  assert(nextToken.kind == TokenKind::Eof && "expected EOF");
 
   return std::make_unique<ast::SourceFile>(nextToken.location, std::move(nodes),
                                            !incompleteAST);
