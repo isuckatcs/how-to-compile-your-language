@@ -8,8 +8,29 @@
 
 ![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
 
-Build a compiler from scratch for _Your Language_, a language designed to demonstrate modern compiler techniques, including traits, generics, type inference, closures, garbage collection, and LLVM-based native code generation.
- 
+__Build a compiler from scratch for [_Your Language_](#your-language)__, a small programming language designed to explore how modern compilers work.
+
+### What You'll Learn
+
+- 🚀 [Native code generation with LLVM](#-native-code-generation)
+- 🧠 [Hindley–Milner type inference](#-hindley-milner-type-inference)
+- 🏷️ [Traits and type extensions](#️-traits-and-type-extensions)
+- ♻️ [Tracing garbage collection](#️-tracing-garbage-collection)
+- 📸 [Heap-allocated closures](#-heap-allocated-closures)
+- 🖨️ [Monomorphized generics](#️-monomorphized-generics)
+- 🗺️ [Virtual dispatch](#️-virtual-dispatch)
+- 🌊 [Data-flow analysis](#-data-flow-analysis)
+- 💻 [Compile time expression evaluation](#-compile-time-expression-evaluation)
+- 🔍 [Visualized internals](#-visualized-internals)
+
+📖 [Read the Guide](https://isuckatcs.github.io/how-to-compile-your-language/), or [Get Started](#getting-started)
+
+**🚧 The guide is currently being updated to match the main branch. 🚧**
+
+## Your Language
+
+A small example combining traits, type extensions, generics, closures, and type inference:
+
 ```
 trait Shape {
   fn area(self: &Self): number;
@@ -40,11 +61,11 @@ fn main() {
   println(areaSquared);
 }
 ```
-
-📖 Read how to do it at [isuckatcs.github.io/how-to-compile-your-language](https://isuckatcs.github.io/how-to-compile-your-language/).
-
-**🚧 The guide is currently being updated to match the main branch. 🚧**
-
+```
+$ compiler example.yl -o example
+$ ./example
+400
+```
 ## Getting Started
 
 _Your Language_ currently only supports POSIX systems. The steps below will get the compiler up and running on Ubuntu Linux*. Equivalent commands are available for other POSIX systems as well.
@@ -104,231 +125,241 @@ To run the tests, install the additional dependencies and run the `check` target
 
 \* Tested on Ubuntu 22.04.5 LTS
 
-## Features
-### Clean Syntax
+## Topics Covered
+### 🚀 Native Code Generation
 
-Unambiguous, modern and easy to parse syntax with elements inspired by C, Kotlin, Rust and Swift.
+__Run your program directly on your machine.__ The source file is first compiled to LLVM IR, which is then passed to the host-platform-specific LLVM backend to generate a native executable.
 
 ```
 fn main() {
-  println(0);
+  println(123);
 }
 ```
+```
+$ compiler main.yl -o main
+$ ./main
+123
+```
 
-### Rust Style Traits
+### 🧠 Hindley-Milner Type Inference
 
-Rust style trait system for constraining and extending the behavior of types. For heap allocated trait objects such as `*any A<number>`, member functions are dispatched dynamically with the help of a `vtable`.
+__Write generic code without annotating every type.__ The compiler infers types using a Hindley–Milner style type system and Algorithm J.
 
 ```
-trait A<T> {
-  fn foo(self: &Self);
+fn map<T, U>(value: T, transform: (T) -> U): U {
+  return transform(value);
 }
 
-trait B {}
+fn boolToNumber(b: bool): number {
+  if b { return 1; }
 
-extension<T : B> T : A<number> {
-  fn foo(self: &Self) {
-    println(123);
+  return 0;
+}
+
+fn main() {
+  println(map(true, boolToNumber));
+}
+```
+```
+$ compiler type_inference.yl -o type_inference
+$ ./type_inference
+1
+```
+
+### 🏷️ Traits and Type Extensions
+
+__Extend types without modifying their definitions.__ Traits provide shared behavior, while type extensions attach implementations to existing types.
+
+```
+trait Explorable {
+  fn explore(self: &Self, year: number);
+}
+
+struct Planet {}
+
+extension Planet : Explorable {
+  fn explore(self: &Self, year: number) {
+    println(year);
   }
 }
 
-extension number : B {}
+fn main() {
+  let mars = Planet {};
+  mars.explore(2148);
+}
+```
+```
+$ compiler traits_and_type_extensions.yl -o traits_and_type_extensions
+$ ./traits_and_type_extensions
+2148
+```
 
-fn wrapper(a: *any A<number>) {
-  a.foo();
+### ♻️ Tracing Garbage Collection
+
+__Allocate objects on the heap without manually managing their lifetime.__ A stop-the-world mark-and-sweep garbage collector, built on LLVM's shadow stack strategy, manages those allocations automatically.
+
+```
+struct Box<T> {
+  ptr: *T
 }
 
 fn main() {
-  123.foo();
+  let box = Box { ptr: gc 123 };
 
-  let n = gc 123;
-  wrapper(n);
+  gcCollect();
+
+  println(*box.ptr);
 }
 ```
-
-### Hindley-Milner Style Type System
-
-Simple Hindley-Milner style static type system currently supporting the `number`, `unit`, `function` and user-defined `struct` types with type inference capabilities. 
-
-The `number` type is implemented as a 64-bit floating point value.
-
+>💡 Use the `YL_GC_DUMP` environment variable to enable logging the actions the collector performs.
 ```
-fn foo<T>(x: (T) -> T, y: T): T {
-  return x(y);
-}
-
-fn bar<T>(x: T): T {
-  return x;
-}
-
-fn main() {
-  println(foo(bar, 0));
-}
-```
-
-### Heap Allocated Closures
-
-Heap allocated closures to support seamless function and lambda interchangeability.
-
-```
-fn returnCapturingLambda(): () -> number {
-  let x = 123;
-  return ->(){ return x; };
-}
-
-fn consumeFunction(f: () -> number) {
-  println(f());
-}
-
-fn main() {
-  consumeFunction(returnCapturingLambda());
-}
-```
-
-### Tracing Garbage Collection
-
-A stop-the-world mark-and-sweep garbage collector built on top of the LLVM shadow stack strategy to allow access to the heap.
-
-```
-struct S {
-  ptr: *number
-}
-
-fn main() {
-  mut s = gc mut S { ptr: gc 123 };
-  s.ptr = gc 456;
-
-  gcCollect(); // manual gc trigger point
-
-  println(*s.ptr);
-}
-// automatic gc trigger point
-```
-
-Defining the `YL_GC_DUMP` environment variable when running the compiled executable enables extensive garbage collector logging. This helps visualizing how the collector behaves for debugging and learning purposes.
-
-```
-$ compiler gc_example.yl -o gc_example
-$ YL_GC_DUMP=1 ./gc_example
+$ compiler gc.yl -o gc
+$ YL_GC_DUMP=1 ./gc
 [0] alloc (123.header) data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
-[0] alloc (S.header) data: (S.data) (8 B) offsets: {0 (nil)} {heap: 64 B, threshold: 96 B}
-[0] alloc (456.header) data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
-[0] mark (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 96 B, threshold: 96 B}
-[0] mark (456.header) data: (456.data) (8 B) {heap: 96 B, threshold: 96 B}
-[0] sweep (123.header) data: (123.data) (8 B) {heap: 64 B, threshold: 96 B}
-[0] sweep {heap: 64 B, threshold: 128 B}
-456
-[1] sweep (456.header) data: (456.data) (8 B) {heap: 32 B, threshold: 128 B}
-[1] sweep (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 0 B, threshold: 128 B}
+[0] mark (123.header) data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
+[0] sweep {heap: 32 B, threshold: 96 B}
+123
+[1] sweep (123.header) data: (123.data) (8 B) {heap: 0 B, threshold: 96 B}
 [1] sweep {heap: 0 B, threshold: 96 B}
 ```
-The GC log format is as follows.
-```
-[1] sweep (S.header) data: (S.data) (8 B) offsets: {0 (456.data)} {heap: 0 B, threshold: 128 B}
 
-
-- [1]: GC cycle, incremented after sweeping
-- sweep: operation the GC perfomed
-- (S.header): address of the header storing the data about the allocated memory block
-- (S.data): address of the data returned to the caller, this is the pointer value the program sees
-- (8 B): size of the object the caller allocated
-- {0 (456.data)}: optional list of offsets within (S.data) with a pointer to a heap allocated object
-- {heap: 0 B, threshold: 128 B}: total heap usage with the limit it must surpass to trigger a collection
-```
-
-### Generics
-
-Generic `struct`, and `function` types instantiated during LLVM IR generation with zero-sized values optimized away.
+<details>
+<summary>Understanding the GC log format</summary>
 
 ```
-struct S<T, U> {
-  x: T,
-  y: U,
-}
+[0] alloc (123.header) data: (123.data) (8 B) {heap: 32 B, threshold: 96 B}
 
-fn wrapper<T, U>(x: T, y: U): S<T, U> {
-  return S{ x: x, y: y };
+- [0]: GC cycle, incremented after sweeping
+- alloc: operation the GC performed
+- (123.header): address of the allocation header
+- (123.data): address of the storage returned to the program
+- (8 B): size of the requested storage
+- {heap: 32 B, threshold: 96 B}: total heap usage with the limit before the next cycle
+```
+</details>
+
+### 📸 Heap-Allocated Closures
+
+__Work with higher-order functions seamlessly.__ Heap-allocated closures allow functions and lambdas to be passed around interchangeably.
+
+```
+fn apply<T, U, V>(t: T, u: U, f: (T, U) -> V): V {
+  return f(t, u);
 }
 
 fn main() {
-  wrapper(0, unit);
+  let sum = apply(1, 2, ->(a, b) { 
+    return a + b; 
+  });
+
+  println(sum);
+}
+```
+```
+$ compiler heap_allocated_closures.yl -o heap_allocated_closures
+$ ./heap_allocated_closures
+5
+```
+
+### 🖨️ Monomorphized Generics
+
+__See how generics become concrete at compile time.__ In _Your Language_ generics are instantiated lazily during LLVM IR generation.
+
+```
+fn generic<T>() {}
+
+fn main() {
+  generic@<unit>();
+  generic@<number>();
+  generic@<() -> unit>();
+}
+```
+```
+$ compiler main.yl -llvm-dump
+
+define void @__builtin_main(ptr %closure) {
+entry:
+  call void @_Y7genericGuE(ptr null)
+  call void @_Y7genericGnE(ptr null)
+  call void @_Y7genericGFRuE(ptr null)
+  ret void
+}
+
+define void @_Y7genericGuE(ptr %closure) {
+entry:
+  ret void
+}
+
+define void @_Y7genericGnE(ptr %closure) {
+entry:
+  ret void
+}
+
+define void @_Y7genericGFRuE(ptr %closure) {
+entry:
+  ret void
 }
 ```
 
-### Lazy Initialization
+### 🗺️ Virtual Dispatch
 
-Data-flow analysis based support for detecting lazily initialized and uninitialized variables.
+__Call trait methods without knowing the concrete type.__ Associated functions on trait objects are looked up from a vtable when called.
+
+```
+trait Printable {
+  fn print(self: &Self);
+}
+
+extension number : Printable {
+  fn print(self: &Self) {
+    println(self);
+  }
+}
+
+fn virtualDispatch(p: &any Printable) {
+  p.print();
+}
+
+fn main() {
+  let n = 123;
+  virtualDispatch(n);
+}
+```
+```
+$ compiler virtual_dispatch.yl -o virtual_dispatch
+$ ./virtual_dispatch
+123
+```
+
+### 🌊 Data-Flow Analysis
+
+__Catch uninitialized variables before your program runs.__ Data-flow analysis tracks variable initialization across control-flow paths.
 
 ```
 fn dataFlowAnalysis(n: number) {
   let uninit;
 
   if n > 3 {
-    uninit = 1;
+    uninit = n;
   }
 
   println(uninit);
 }
+
+fn main() {
+  dataFlowAnalysis(1);
+}
 ```
 ```
-main.yl:8:11: error: 'uninit' is not initialized
+$ compiler data_flow_analysis.yl
+data_flow_analysis.yl:8:11: error: 'uninit' is not initialized
 8 |   println(uninit);
   |           ^
 ```
 
-### Smart Return Check
+### 💻 Compile-Time Expression Evaluation
 
-Flow-sensitive return value analysis made smarter with compile time expression evaluation.
-
-```
-fn maybeReturns(n: number): number {
-  if n > 2 {
-    return 1;
-  } else if n < -2 {
-    return -1;
-  }
-
-  // missing return 'else' branch
-}
-
-fn alwaysReturns(n: number): number {
-  if 0 && n > 2 {
-    // unreachable
-  } else {
-    return 0;
-  }
-}
-```
-```
-main.yl:1:1: error: expected function to return a value on every path
-1 | fn maybeReturns(n: number): number {
-  | ^
-```
-
-### Immutability
-
-Immutable and mutable variables declared with the `let` and `mut` keywords.
-
-```
-fn main() {
-  let immutable = 1;
-  mut mutable = 2;
-
-  while mutable > 2 {
-    immutable = 0;
-    mutable = mutable - 1;
-  }
-}
-```
-```
-main.yl:6:15: error: 'immutable' cannot be mutated
-6 |     immutable = 0;
-  |               ^
-```
-
-### Compile Time Expression Evaluation
-
-Expressions are evaluated by a tree-walk interpreter during compilation if possible.
+__Implement an interpreter inside the compiler.__ Expressions are evaluated by a tree-walk interpreter during compilation if possible.
 
 ```
 fn main() {
@@ -348,37 +379,23 @@ FunctionDecl @(main.addr) main {() -> unit}
       | value: 13
 ```
 
-### Native Code Generation
+### 🔍 Visualized Internals
 
-A source file is first compiled to LLVM IR, which is then passed to the host platform specific LLVM backend to generate a native executable.
-
+__See what the compiler sees.__ Dump the AST, resolved AST, CFG and the generated LLVM IR module on demand.
 ```
 fn main() {
-  println(1.23);
-}
-```
-```
-$ compiler main.yl -o main.out
-$ ./main.out 
-1.23
-```
-
-### Accessible Internals
-
-Capability to print the Abstract Syntax Tree before and after resolution, the Control-Flow Graph and the generated LLVM IR module.
-```
-fn main() {
-  println(1.23);
+  println(123);
 }
 ```
 ```
 $ compiler main.yl -ast-dump
 
-FunctionDecl: main
+FunctionDecl 'main'
   Block
-    CallExpr:
-      DeclRefExpr: println
-      NumberLiteral: '1.23'
+    CallExpr
+      PathExpr
+        DeclRefExpr 'println'
+      NumberLiteral '123'
 ```
 ```
 $ compiler main.yl -res-dump
@@ -387,34 +404,36 @@ FunctionDecl @(main.addr) main {() -> unit}
   Block
     CallExpr {unit}
       DeclRefExpr @(println.addr) println {(number) -> unit}
-      NumberLiteral '1.23' {number}
-      | value: 1.23
+      NumberLiteral '123' {number}
+      | value: 123
 ```
 ```
 $ compiler main.yl -cfg-dump
 
-main:
-[2 (entry)]
+fn main(...) {
+bb2:
   preds: 
   succs: 1 
 
-[1]
+bb1:
   preds: 2 
+  $1 = 123
+  $2 = println
+  $3 = $2($1)
   succs: 0 
-  1: 1.23
-  2: println
-  3: [1.2] ([1.1])
 
-[0 (exit)]
+bb0:
   preds: 1 
   succs: 
+}
 ```
 ```
 $ compiler main.yl -llvm-dump
 
-define void @__builtin_main() {
+define void @__builtin_main(ptr %closure) {
 entry:
-  call void @println(double 1.230000e+00)
+  call void @println(double 1.230000e+02, ptr null)
   ret void
 }
 ```
+> 📝 The `number` type in _Your Language_ is represented as a `double`.
