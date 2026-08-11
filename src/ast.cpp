@@ -8,7 +8,7 @@ namespace yl {
 namespace ast {
 void SourceFile::dump(size_t level) const {
   for (auto &&node : topLevel)
-    node->dump(level + 1);
+    node->dump(level);
 }
 
 void BuiltinType::dump(size_t level) const {
