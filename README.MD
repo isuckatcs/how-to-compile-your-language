@@ -47,33 +47,62 @@ fn main() {
 
 ## Getting Started
 
-This guide assumes that the project is being built on Linux* but equivalent steps can be performed on any other operating system.
+_Your Language_ currently only supports POSIX systems. The steps below will get the compiler up and running on Ubuntu Linux*. Equivalent commands are available for other POSIX systems as well.
 
-1. Install CMake 3.20 or newer
-   - `apt-get install cmake`
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/isuckatcs/how-to-compile-your-language.git
+   cd how-to-compile-your-language
+   ```
 
-2. Install LLVM and Clang
-   - The project was originally built for **LLVM 20.1.0**. Other versions are not guaranteed to work.
-   - `apt-get install llvm clang`
+2. Install CMake 3.20 or newer:
+   ```sh
+   sudo apt install cmake
+   ```
 
-3. Create a build directory and enter that directory
-   - `mkdir build && cd build`
+3. Install LLVM and Clang. For Ubuntu Linux it is recommended to use the [`llvm.sh`](https://apt.llvm.org/#llvmsh) script from [apt.llvm.org](https://apt.llvm.org).
+   ```sh
+   wget https://apt.llvm.org/llvm.sh
+   chmod +x llvm.sh
+   sudo ./llvm.sh 20
+   ```
+   > 📝 The project was originally built for **LLVM 20.1.0**. Other versions are not guaranteed to work.
 
-4. Configure CMake and build the project
-   - `cmake path/to/repo/root && cmake --build .`
+4. Create and enter the build directory:
+   ```sh
+   mkdir build
+   cd build
+   ```
 
-To run the tests, proceed with these following optional steps.
+5. Configure CMake and build the project:
+   ```sh
+   cmake ..
+   cmake --build .
+   ```
 
-5. Install Python 3.10 or newer
-   - `apt-get install python`
+6. Verify that the build was successful:
+   ```sh
+   ./bin/compiler -h
+   ```
 
-6. Install the required dependencies
-   - `pip install -r ./test/requirements.txt`
+To run the tests, install the additional dependencies and run the `check` target.
 
-7. Run the `check` target with CMake
-   - `cmake --build . --target check`
+1. Install Python 3.10 or newer:
+   ```sh
+   sudo apt install python3
+   ```
 
-\* tested on Ubuntu 22.04.3 LTS
+2. Install the required dependencies:
+   ```sh
+   python3 -m pip install -r ./test/requirements.txt
+   ```
+
+3. Run the `check` target with CMake:
+   ```sh
+   cmake --build . --target check
+   ```
+
+\* Tested on Ubuntu 22.04.5 LTS
 
 ## Features
 ### Clean Syntax
