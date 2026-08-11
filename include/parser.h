@@ -96,7 +96,7 @@ class Parser {
 
   std::unique_ptr<ast::TraitConformance> parseTraitConformance();
 
-  std::unique_ptr<ast::TopLevelNode> parseTopLevel();
+  std::unique_ptr<ast::Node> parseTopLevel();
 
   // helper methods
   template <typename T>

@@ -1162,7 +1162,7 @@ std::unique_ptr<ast::RefModifier> Parser::parseRefModifier() {
   return std::make_unique<ast::RefModifier>(ampLoc, isMut);
 }
 
-std::unique_ptr<ast::TopLevelNode> Parser::parseTopLevel() {
+std::unique_ptr<ast::Node> Parser::parseTopLevel() {
   if (nextToken.kind == TokenKind::KwTrait)
     return parseTraitDecl();
 
@@ -1187,7 +1187,7 @@ std::unique_ptr<ast::TopLevelNode> Parser::parseTopLevel() {
 //     ::= (<traitDecl> | <structDecl> | <functionDecl> | <typeExtension>)*
 //     EOF
 std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
-  std::vector<std::unique_ptr<ast::TopLevelNode>> nodes;
+  std::vector<std::unique_ptr<ast::Node>> nodes;
 
   while (nextToken.kind != TokenKind::Eof) {
     if (auto node = parseTopLevel()) {

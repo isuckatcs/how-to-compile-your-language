@@ -2,7 +2,6 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_AST_H
 
 #include <memory>
-#include <variant>
 #include <vector>
 
 #include "lexer.h"
@@ -10,14 +9,33 @@
 
 namespace yl {
 namespace ast {
-struct Type {
+struct Node {
   SourceLocation location;
 
-  Type(SourceLocation location)
+  explicit Node(SourceLocation location)
       : location(location) {}
-  virtual ~Type() = default;
 
+  virtual ~Node() = default;
   virtual void dump(size_t level = 0) const = 0;
+};
+
+struct SourceFile final : public Node {
+  std::vector<std::unique_ptr<ast::Node>> topLevel;
+  bool isComplete;
+
+  SourceFile(SourceLocation eofLocation,
+             std::vector<std::unique_ptr<ast::Node>> nodes,
+             bool isComplete)
+      : Node(eofLocation),
+        topLevel(std::move(nodes)),
+        isComplete(isComplete) {}
+
+  void dump(size_t level = 0) const override;
+};
+
+struct Type : public Node {
+  explicit Type(SourceLocation location)
+      : Node(location) {}
 };
 
 struct BuiltinType final : public Type {
@@ -46,15 +64,14 @@ struct UserDefinedType final : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct RefModifier {
-  SourceLocation location;
+struct RefModifier final : public Node {
   bool isMut;
 
   RefModifier(SourceLocation location, bool isMut)
-      : location(location),
+      : Node(location),
         isMut(isMut) {}
 
-  void dump(size_t level = 0) const;
+  void dump(size_t level = 0) const override;
 };
 
 struct ArgumentType final : public Type {
@@ -109,26 +126,17 @@ struct AnyType final : public Type {
   void dump(size_t level = 0) const override;
 };
 
-struct Decl {
-  SourceLocation location;
+struct Decl : public Node {
   std::string identifier;
 
   Decl(SourceLocation location, std::string identifier)
-      : location(location),
+      : Node(location),
         identifier(std::move(identifier)) {}
-  virtual ~Decl() = default;
-
-  virtual void dump(size_t level = 0) const = 0;
 };
 
-struct Stmt {
-  SourceLocation location;
-  Stmt(SourceLocation location)
-      : location(location) {}
-
-  virtual ~Stmt() = default;
-
-  virtual void dump(size_t level = 0) const = 0;
+struct Stmt : public Node {
+  explicit Stmt(SourceLocation location)
+      : Node(location) {}
 };
 
 struct Expr : public Stmt {
@@ -136,27 +144,25 @@ struct Expr : public Stmt {
       : Stmt(location) {}
 };
 
-struct Block {
-  SourceLocation location;
+struct Block final : public Node {
   std::vector<std::unique_ptr<Stmt>> statements;
 
   Block(SourceLocation location, std::vector<std::unique_ptr<Stmt>> statements)
-      : location(location),
+      : Node(location),
         statements(std::move(statements)) {}
 
-  void dump(size_t level = 0) const;
+  void dump(size_t level = 0) const override;
 };
 
-struct TraitConformance {
-  SourceLocation location;
+struct TraitConformance : public Node {
   std::vector<std::unique_ptr<UserDefinedType>> traits;
 
   TraitConformance(SourceLocation location,
                    std::vector<std::unique_ptr<UserDefinedType>> traits)
-      : location(std::move(location)),
+      : Node(std::move(location)),
         traits(std::move(traits)) {}
 
-  void dump(size_t level = 0) const;
+  void dump(size_t level = 0) const override;
 };
 
 struct IfStmt final : public Stmt {
@@ -425,12 +431,7 @@ struct VarDecl final : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct TopLevelNode {
-  virtual void dump(size_t level = 0) const = 0;
-  virtual ~TopLevelNode() = default;
-};
-
-struct FunctionDecl final : public TopLevelNode, public Decl {
+struct FunctionDecl final : public Decl {
   std::unique_ptr<Type> type;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<ParamDecl>> params;
@@ -463,7 +464,7 @@ struct FieldDecl final : public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct StructDecl final : public TopLevelNode, public Decl {
+struct StructDecl final : public Decl {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FieldDecl>> fields;
 
@@ -478,7 +479,7 @@ struct StructDecl final : public TopLevelNode, public Decl {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitDecl final : public TopLevelNode, public Decl {
+struct TraitDecl final : public Decl {
   std::unique_ptr<TraitConformance> traitConformance;
   std::vector<std::unique_ptr<TypeParamDecl>> typeParameters;
   std::vector<std::unique_ptr<FunctionDecl>> traitFunctions;
@@ -549,8 +550,7 @@ struct LambdaExpr final : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TypeExtension final : public TopLevelNode {
-  SourceLocation location;
+struct TypeExtension final : public Node {
   std::vector<std::unique_ptr<TypeParamDecl>> typeParams;
   std::unique_ptr<Type> type;
   std::unique_ptr<UserDefinedType> trait;
@@ -561,28 +561,13 @@ struct TypeExtension final : public TopLevelNode {
                 std::unique_ptr<Type> type,
                 std::unique_ptr<UserDefinedType> trait,
                 std::vector<std::unique_ptr<ast::FunctionDecl>> functions)
-      : location(location),
+      : Node(location),
         typeParams(std::move(typeParams)),
         type(std::move(type)),
         trait(std::move(trait)),
         functions(std::move(functions)) {}
 
   void dump(size_t level = 0) const override;
-};
-
-struct SourceFile {
-  SourceLocation eofLocation;
-  std::vector<std::unique_ptr<ast::TopLevelNode>> nodes;
-  bool isComplete;
-
-  SourceFile(SourceLocation eofLocation,
-             std::vector<std::unique_ptr<ast::TopLevelNode>> nodes,
-             bool isComplete)
-      : eofLocation(eofLocation),
-        nodes(std::move(nodes)),
-        isComplete(isComplete) {}
-
-  void dump() const;
 };
 } // namespace ast
 } // namespace yl

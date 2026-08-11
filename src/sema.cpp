@@ -1738,7 +1738,7 @@ res::Context *Sema::resolveAST() {
   std::vector<std::pair<res::TypeExtension *, const ast::TypeExtension *>>
       resExtensions;
 
-  for (auto &&node : ast->nodes) {
+  for (auto &&node : ast->topLevel) {
     const ast::Decl *ad = dynamic_cast<const ast::Decl *>(node.get());
     res::Decl *rd = nullptr;
     if (const auto *sd = dynamic_cast<const ast::StructDecl *>(node.get()))
@@ -1773,7 +1773,7 @@ res::Context *Sema::resolveAST() {
 
   error |= hasSelfContainingStructs(ctx);
 
-  for (auto &&node : ast->nodes) {
+  for (auto &&node : ast->topLevel) {
     auto *extension = dynamic_cast<const ast::TypeExtension *>(node.get());
     if (!extension)
       continue;
@@ -1802,7 +1802,7 @@ res::Context *Sema::resolveAST() {
 
   bool hasMainFunction = false;
 
-  for (auto &&node : ast->nodes) {
+  for (auto &&node : ast->topLevel) {
     if (auto *fn = dynamic_cast<const ast::FunctionDecl *>(node.get())) {
       auto *rf = resolveFunctionDecl(ctx, *fn);
       error |= !insertDeclToCurrentScope(rf);
@@ -1815,7 +1815,7 @@ res::Context *Sema::resolveAST() {
   }
 
   if (!hasMainFunction)
-    return err::mainNotFound(ast->eofLocation).report(reporter);
+    return err::mainNotFound(ast->location).report(reporter);
 
   if (error)
     return nullptr;

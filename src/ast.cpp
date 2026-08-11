@@ -6,6 +6,11 @@
 
 namespace yl {
 namespace ast {
+void SourceFile::dump(size_t level) const {
+  for (auto &&node : topLevel)
+    node->dump(level + 1);
+}
+
 void BuiltinType::dump(size_t level) const {
   std::cerr << indent(level) << "BuiltinType '";
   if (kind == Kind::Unit)
@@ -298,11 +303,6 @@ void TypeExtension::dump(size_t level) const {
 
   for (auto &&fn : functions)
     fn->dump(level + 1);
-}
-
-void SourceFile::dump() const {
-  for (auto &&node : nodes)
-    node->dump();
 }
 } // namespace ast
 } // namespace yl
