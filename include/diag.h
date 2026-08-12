@@ -187,6 +187,13 @@ diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be 
 // lambdas
 diag(Error, refParamCapture, "capturing '&' parameter in lambda is not allowed");
 diag(Error, lamdaSelfParam, "'self' in lambda parameter list is not allowed");
+
+// driver
+diag(Error, noSourceFile, "no source file specified");
+diag(Error, unexpectedExtension, "unexpected source file extension");
+diag(Error, failedToOpenFile, "failed to open '{}'");
+diag(Error, unexpectedArgument, "unexpected argument '{}'");
+diag(Error, unexpectedOption, "unexpected option '{}'");
 // clang-format on
 }; // namespace err
 

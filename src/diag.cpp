@@ -22,6 +22,9 @@ void DiagnosticConsumer::consume(Diagnostic diagnostic) {
   }
   std::cerr << diagnostic.message << '\n';
 
+  if (!file)
+    return;
+
   std::string_view bufferView = file->buffer;
   size_t pos = 0;
 

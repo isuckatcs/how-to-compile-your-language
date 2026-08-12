@@ -29,11 +29,6 @@ void displayHelp() {
             << "  -cfg-dump       print the control flow graph\n";
 }
 
-[[noreturn]] void error(std::string_view msg) {
-  std::cerr << "error: " << msg << '\n';
-  std::exit(1);
-}
-
 struct CompilerOptions {
   std::filesystem::path source;
   std::filesystem::path output;
@@ -45,7 +40,9 @@ struct CompilerOptions {
   bool cfgDump = false;
 };
 
-CompilerOptions parseArguments(int argc, const char **argv) {
+CompilerOptions parseArguments(int argc,
+                               const char **argv,
+                               diag::DiagnosticReporter *reporter) {
   CompilerOptions options;
 
   int idx = 1;
@@ -53,8 +50,10 @@ CompilerOptions parseArguments(int argc, const char **argv) {
     std::string_view arg = argv[idx];
 
     if (arg[0] != '-') {
-      if (!options.source.empty())
-        error("unexpected argument '" + std::string(arg) + '\'');
+      if (!options.source.empty()) {
+        err::unexpectedArgument().with(arg).report(reporter);
+        std::exit(1);
+      }
 
       options.source = arg;
     } else {
@@ -72,8 +71,10 @@ CompilerOptions parseArguments(int argc, const char **argv) {
         options.llvmDump = true;
       else if (arg == "-cfg-dump")
         options.cfgDump = true;
-      else
-        error("unexpected option '" + std::string(arg) + '\'');
+      else {
+        err::unexpectedOption().with(arg).report(reporter);
+        std::exit(1);
+      }
     }
 
     ++idx;
@@ -84,29 +85,35 @@ CompilerOptions parseArguments(int argc, const char **argv) {
 } // namespace
 
 int main(int argc, const char **argv) {
-  CompilerOptions options = parseArguments(argc, argv);
+  diag::DiagnosticConsumer consumer;
+  diag::DiagnosticReporter reporter(consumer);
+
+  CompilerOptions options = parseArguments(argc, argv, &reporter);
 
   if (options.displayHelp) {
     displayHelp();
     return 0;
   }
 
-  if (options.source.empty())
-    error("no source file specified");
+  if (options.source.empty()) {
+    err::noSourceFile().report(&reporter);
+    std::exit(1);
+  }
 
-  if (options.source.extension() != ".yl")
-    error("unexpected source file extension");
+  if (options.source.extension() != ".yl") {
+    err::unexpectedExtension().report(&reporter);
+    std::exit(1);
+  }
 
   std::ifstream file(options.source);
-  if (!file)
-    error("failed to open '" + options.source.string() + '\'');
+  if (!file) {
+    err::failedToOpenFile().with(options.source.string()).report(&reporter);
+    std::exit(1);
+  }
 
   std::stringstream buffer;
   buffer << file.rdbuf();
   SourceFile sourceFile{options.source.c_str(), buffer.str()};
-
-  diag::DiagnosticConsumer consumer;
-  diag::DiagnosticReporter reporter(consumer);
 
   Lexer lexer(sourceFile);
   Parser parser(reporter, lexer);
