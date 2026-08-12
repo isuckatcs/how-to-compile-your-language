@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "diag.h"
 #include "lexer.h"
 #include "res.h"
 #include "utils.h"
@@ -60,7 +61,7 @@ void Context::add(std::unique_ptr<TypeExtension> extension) {
   extensions.emplace_back(std::move(extension));
 }
 
-std::vector<std::string> Context::doUnify(
+std::vector<diag::DiagBuilder> Context::doUnify(
     Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
@@ -79,14 +80,13 @@ std::vector<std::string> Context::doUnify(
     return doUnify(t2, t1, pendingUnifications);
 
   if (!t1->isSameBase(t2))
-    return {"cannot unify '" + t1->getName() + "' with '" + t2->getName() +
-            "'"};
+    return {err::unificationError().with(t1->getName()).with(t2->getName())};
 
   for (size_t i = 0; i < t1->args.size(); ++i) {
     auto errs = doUnify(t1->args[i], t2->args[i], pendingUnifications);
     if (!errs.empty()) {
-      errs.emplace_back("cannot unify '" + t1->getName() + "' with '" +
-                        t2->getName() + "'");
+      errs.emplace_back(
+          err::unificationError().with(t1->getName()).with(t2->getName()));
       return errs;
     }
   }
@@ -144,9 +144,10 @@ bool Context::eq(Type *t1, Type *t2) const {
   return true;
 }
 
-std::vector<std::string> Context::unify(Type *t1, Type *t2, bool probeOnly) {
+std::vector<diag::DiagBuilder>
+Context::unify(Type *t1, Type *t2, bool probeOnly) {
   std::vector<UninferredType *> pendingUnifications;
-  std::vector<std::string> errors = doUnify(t1, t2, pendingUnifications);
+  auto errors = doUnify(t1, t2, pendingUnifications);
 
   if (errors.empty()) {
     for (auto &&u : pendingUnifications)
@@ -162,8 +163,8 @@ std::vector<std::string> Context::unify(Type *t1, Type *t2, bool probeOnly) {
   return errors;
 }
 
-std::vector<std::string> Context::solveConformance(Type *type,
-                                                   TraitType *requirement) {
+std::vector<diag::DiagBuilder>
+Context::solveConformance(Type *type, TraitType *requirement) {
   std::vector<TraitType *> candidates;
 
   if (auto *u = type->getAs<res::UninferredType>())
@@ -185,15 +186,17 @@ std::vector<std::string> Context::solveConformance(Type *type,
   }
 
   if (candidates.empty())
-    return {"cannot satisfy requirement '" + type->getName() + " : " +
-            requirement->getName() + "'"};
+    return {err::unsatisfiedRequirement()
+                .with(type->getName())
+                .with(requirement->getName())};
 
   if (candidates.size() > 1) {
-    std::vector<std::string> errors;
+    std::vector<diag::DiagBuilder> errors;
     for (auto &&candidate : candidates)
-      errors.emplace_back(
-          "'" + candidate->getName() + "' ambigously satisfies requirement '" +
-          type->getName() + " : " + requirement->getName() + "'");
+      errors.emplace_back(err::ambigousConformance()
+                              .with(candidate->getName())
+                              .with(type->getName())
+                              .with(requirement->getName()));
     return errors;
   }
 

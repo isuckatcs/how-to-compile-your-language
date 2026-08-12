@@ -561,12 +561,9 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
       varOrReturn(arg, resolveType(ctx, *args[i]));
       auto *expectedType = sub[gdc->typeParams[i]->getType()];
 
-      if (const auto &errs = ctx.unify(expectedType, arg); !errs.empty()) {
+      if (auto errs = ctx.unify(expectedType, arg); !errs.empty()) {
         for (auto &&err : errs)
-          err::inferenceError()
-              .at(args[i]->location)
-              .with(err)
-              .report(reporter);
+          err.at(args[i]->location).report(reporter);
 
         return nullptr;
       }
@@ -677,10 +674,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     if (auto errors = ctx.unify(actualType, expectedType); !errors.empty()) {
       for (auto &&error : errors)
-        err::inferenceError()
-            .at(argument->location)
-            .with(error)
-            .report(reporter);
+        error.at(argument->location).report(reporter);
       continue;
     }
 
@@ -744,12 +738,9 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     resolvedInitExpr = tryCoerce(resolvedInitExpr, fieldTy);
     res::Type *initTy = resolvedInitExpr->getType();
 
-    if (const auto &msg = ctx.unify(initTy, fieldTy); !msg.empty()) {
-      for (auto &&error : msg)
-        err::inferenceError()
-            .at(resolvedInitExpr->location)
-            .with(error)
-            .report(reporter);
+    if (auto errors = ctx.unify(initTy, fieldTy); !errors.empty()) {
+      for (auto &&error : errors)
+        error.at(resolvedInitExpr->location).report(reporter);
       error = true;
       continue;
     }
@@ -884,7 +875,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
 
   if (auto errors = ctx.unify(base->getType(), selfType); !errors.empty()) {
     for (auto &&error : errors)
-      err::inferenceError().at(base->location).with(error).report(reporter);
+      error.at(base->location).report(reporter);
     return nullptr;
   }
 
@@ -1146,9 +1137,9 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   rhs = tryCoerce(rhs, lhsTy);
   auto *rhsTy = rhs->getType();
 
-  if (const auto &errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
+  if (auto errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
-      err::inferenceError().at(rhs->location).with(error).report(reporter);
+      error.at(rhs->location).report(reporter);
 
     return err::incompatibleAssignment()
         .at(rhs->location)
@@ -1359,10 +1350,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
           continue;
 
         for (auto &&error : errors)
-          err::inferenceError()
-              .at(implFn->typeParams[i]->location)
-              .with(error)
-              .report(reporter);
+          error.at(implFn->typeParams[i]->location).report(reporter);
 
         err::stricterParamTy()
             .at(implFn->typeParams[i]->location)
@@ -2072,10 +2060,7 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
       trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
       if (auto errs = ctx.solveConformance(typeArg, trait); !errs.empty()) {
         for (auto &&error : errs)
-          err::inferenceError()
-              .at((*astIt)->location)
-              .with(error)
-              .report(reporter);
+          error.at((*astIt)->location).report(reporter);
 
         return nullptr;
       }

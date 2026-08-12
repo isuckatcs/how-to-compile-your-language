@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include "diag.h"
 #include "lexer.h"
 #include "utils.h"
 
@@ -78,7 +79,7 @@ class Context final {
 
   std::set<TypeExtension *> extensionStack;
 
-  std::vector<std::string> doUnify(
+  std::vector<diag::DiagBuilder> doUnify(
       Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
 
 public:
@@ -100,8 +101,10 @@ public:
   getExtensions(Type *type, TraitType *trait = nullptr, bool probeOnly = false);
 
   bool eq(Type *t1, Type *t2) const;
-  std::vector<std::string> unify(Type *t1, Type *t2, bool probeOnly = false);
-  std::vector<std::string> solveConformance(Type *type, TraitType *requirement);
+  std::vector<diag::DiagBuilder>
+  unify(Type *t1, Type *t2, bool probeOnly = false);
+  std::vector<diag::DiagBuilder> solveConformance(Type *type,
+                                                  TraitType *requirement);
 
   Type *instantiate(Type *t, Substitution sub);
   Substitution instantiate(Substitution s, Substitution sub);

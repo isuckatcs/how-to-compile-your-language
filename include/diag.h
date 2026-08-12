@@ -106,7 +106,9 @@ diag(Error, traitObjectMethodNotCalled, "expected to call member function on tra
 // types
 diag(Error, unknownType, "the type of '{}' is unknown");
 diag(Error, failedToResolveType, "failed to resolve type '{}'");
-diag(Error, inferenceError, "{}");
+diag(Error, unificationError, "cannot unify '{}' with '{}'")
+diag(Error, unsatisfiedRequirement, "cannot satisfy requirement '{} : {}'")
+diag(Error, ambigousConformance, "'{}' ambigously satisfies requirement '{} : {}'")
 diag(Error, annotationsNeeded, "explicit type annotations are needed to infer the type of '{}'");
 diag(Error, initTyMismatch, "an expression of type '{}' cannot be used to initialize a variable of type '{}'");
 diag(Error, incompatibleAssignment, "expected to assign '{}' but received '{}' instead");
