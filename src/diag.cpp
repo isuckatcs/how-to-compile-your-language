@@ -1,4 +1,3 @@
-#include <cassert>
 #include <cmath>
 #include <iostream>
 
@@ -9,9 +8,10 @@ namespace yl {
 namespace diag {
 void DiagnosticConsumer::consume(Diagnostic diagnostic) {
   const auto &[file, line, col] = diagnostic.location;
-  assert(file && line != 0 && col != 0);
 
-  std::cerr << file->path << ':' << line << ':' << col << ':';
+  if (file)
+    std::cerr << file->path << ':' << line << ':' << col << ':';
+
   switch (diagnostic.severity) {
   case Diagnostic::Severity::Error:
     std::cerr << " error: ";

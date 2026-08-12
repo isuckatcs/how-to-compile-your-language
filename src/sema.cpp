@@ -66,7 +66,10 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   bool declIsValue = decl->getAs<res::ValueDecl>() != nullptr;
 
   if (results.size() > 1 || resultIsValue == declIsValue) {
-    err::redeclaration(decl->location).with(decl->identifier).report(reporter);
+    err::redeclaration()
+        .at(decl->location)
+        .with(decl->identifier)
+        .report(reporter);
     return false;
   }
 
@@ -109,7 +112,8 @@ res::TypeDecl *Sema::resolveTypeSymbol(const ast::UserDefinedType *udt) {
     if (auto *td = d->getAs<res::TypeDecl>())
       return td;
 
-  return err::failedToResolveType(udt->location)
+  return err::failedToResolveType()
+      .at(udt->location)
       .with(udt->identifier)
       .report(reporter);
 }
@@ -131,7 +135,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     case ast::BuiltinType::Kind::Self:
       if (auto *selfType = scope->getSelfType())
         return selfType;
-      return err::selfTyNotAllowed(parsedType.location).report(reporter);
+      return err::selfTyNotAllowed().at(parsedType.location).report(reporter);
     }
   }
 
@@ -141,12 +145,14 @@ res::Type *Sema::resolveType(res::Context &ctx,
     bool isTraitDecl = decl->getAs<res::TraitDecl>();
 
     if (isTraitDecl && !expectTrait)
-      return err::rawTrait(udt->location)
+      return err::rawTrait()
+          .at(udt->location)
           .with(udt->identifier)
           .report(reporter);
 
     if (!isTraitDecl && expectTrait)
-      return err::notATrait(udt->location)
+      return err::notATrait()
+          .at(udt->location)
           .with(udt->identifier)
           .report(reporter);
 
@@ -213,7 +219,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *any = dynamic_cast<const ast::AnyType *>(&parsedType)) {
     if (!allowTraitObject)
-      return err::traitObjectNotPointee(any->location).report(reporter);
+      return err::traitObjectNotPointee().at(any->location).report(reporter);
 
     varOrReturn(type, resolveType(ctx, *any->type, false, true));
     auto *anyTraitType = type->getAs<res::AnyTraitType>();
@@ -224,7 +230,8 @@ res::Type *Sema::resolveType(res::Context &ctx,
             loc,
             anyTraitType->withSelfType(&ctx, res::UninferredType::create(ctx)),
             visited))
-      return err::traitNotTraitObjectCompatible(loc)
+      return err::traitNotTraitObjectCompatible()
+          .at(loc)
           .with(anyTraitType->getDecl()->identifier)
           .report(reporter);
 
@@ -245,13 +252,17 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
 
   auto *rhsTy = rhs->getType();
   if (rhsTy->getAs<res::UninferredType>())
-    return err::unaryOperandUnknown(rhs->location).report(reporter);
+    return err::unaryOperandUnknown().at(rhs->location).report(reporter);
 
   if (unary.op == TokenKind::Excl && !rhsTy->getAs<res::BuiltinBoolType>())
-    return err::expectedOperandTy(rhs->location).with("bool").report(reporter);
+    return err::expectedOperandTy()
+        .at(rhs->location)
+        .with("bool")
+        .report(reporter);
 
   if (unary.op == TokenKind::Minus && !rhsTy->getAs<res::BuiltinNumberType>())
-    return err::expectedOperandTy(rhs->location)
+    return err::expectedOperandTy()
+        .at(rhs->location)
         .with("number")
         .report(reporter);
 
@@ -259,14 +270,16 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
   if (unary.op == TokenKind::Asterisk) {
     auto *ptr = rhsTy->getAs<res::PointerType>();
     if (!ptr)
-      return err::expectedPointerOperand(rhs->location).report(reporter);
+      return err::expectedPointerOperand().at(rhs->location).report(reporter);
 
     kind =
         ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
     rhsTy = ptr->getPointeeType();
 
     if (rhsTy->getAs<res::AnyTraitType>())
-      return err::traitObjectPtrDereference(rhs->location).report(reporter);
+      return err::traitObjectPtrDereference()
+          .at(rhs->location)
+          .report(reporter);
   }
 
   auto *resolvedUnaryOp =
@@ -287,7 +300,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
 
   if (auto *uninferredLHS = lhsTy->getAs<res::UninferredType>();
       uninferredLHS || rhsTy->getAs<res::UninferredType>())
-    return err::binopOperandUnknown((uninferredLHS ? lhs : rhs)->location)
+    return err::binopOperandUnknown()
+        .at((uninferredLHS ? lhs : rhs)->location)
         .with(uninferredLHS ? "LHS" : "RHS")
         .report(reporter);
 
@@ -304,7 +318,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
       op == TokenKind::EqualEqual &&
       (rhsTy->getAs<res::StructType>() || rhsTy->getAs<res::TypeParamType>());
   if (typeError)
-    return err::binopIncompatibleOperands(loc)
+    return err::binopIncompatibleOperands()
+        .at(loc)
         .with(lhsTy->getName())
         .with(rhsTy->getName())
         .report(reporter);
@@ -378,13 +393,13 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
   if (auto *selfType = dre->sub.getSelfType();
       selfType && selfType->getAs<res::AnyTraitType>() &&
       !(modifiers & IsCallee))
-    return err::traitObjectMethodNotCalled(dre->location).report(reporter);
+    return err::traitObjectMethodNotCalled().at(dre->location).report(reporter);
 
   auto *refType = dre->getType()->getAs<res::RefType>();
 
   if (shouldCaptureInCurrentLambda(dre)) {
     if (refType)
-      return err::refParamCapture(dre->location).report(reporter);
+      return err::refParamCapture().at(dre->location).report(reporter);
 
     return captureInCurrentLambda(path, dre);
   }
@@ -412,7 +427,8 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     res::TraitType *trait = t->getAs<res::TraitType>();
 
     if (!ctx.solveConformance(type, trait).empty())
-      return err::traitNotImplemented(traitSpec->trait->location)
+      return err::traitNotImplemented()
+          .at(traitSpec->trait->location)
           .with(type->getName())
           .with(trait->getName())
           .report(reporter);
@@ -421,7 +437,8 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     candidates = lookupAssociatedDecls(fragment->identifier, type, trait);
 
     if (candidates.empty())
-      return err::memberLookupFailed(fragment->location)
+      return err::memberLookupFailed()
+          .at(fragment->location)
           .with(fragment->identifier)
           .with(trait->getName())
           .report(reporter);
@@ -446,14 +463,19 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       }
 
       if (!type)
-        return err::memberAccessInValue(fragment->location).report(reporter);
+        return err::memberAccessInValue()
+            .at(fragment->location)
+            .report(reporter);
 
       if (type->getAs<res::TraitType>())
-        return err::memberAccessInRawTrait(fragment->location).report(reporter);
+        return err::memberAccessInRawTrait()
+            .at(fragment->location)
+            .report(reporter);
 
       candidates = lookupAssociatedDecls(fragment->identifier, type);
       if (candidates.empty())
-        return err::memberLookupFailed(fragment->location)
+        return err::memberLookupFailed()
+            .at(fragment->location)
             .with(fragment->identifier)
             .with(type->getName())
             .report(reporter);
@@ -466,7 +488,7 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     if (fragment->identifier == selfTypeId) {
       auto *selfType = scope->getSelfType();
       if (!selfType)
-        return err::selfTyNotAllowed(fragment->location).report(reporter);
+        return err::selfTyNotAllowed().at(fragment->location).report(reporter);
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
         candidates.emplace_back(paramType->getDecl(), paramType->getSub());
@@ -482,7 +504,8 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
 
     auto symbolsInScope = scope->lookupSymbol(fragment->identifier);
     if (symbolsInScope.empty())
-      return err::missingSymbol(fragment->location)
+      return err::missingSymbol()
+          .at(fragment->location)
           .with(fragment->identifier)
           .report(reporter);
 
@@ -496,10 +519,11 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       expectedCandidates.emplace_back(std::move(candidate));
 
   if (expectedCandidates.empty())
-    return err::wrongDeclKind(fragments.back()->location).report(reporter);
+    return err::wrongDeclKind().at(fragments.back()->location).report(reporter);
 
   if (expectedCandidates.size() > 1 && fragments.size() > 1)
-    return err::ambigousAssociatedFn(fragments.back()->location)
+    return err::ambigousAssociatedFn()
+        .at(fragments.back()->location)
         .report(reporter);
 
   auto &&[decl, sub] = expectedCandidates.front();
@@ -524,7 +548,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
 
   if (auto *typeArgList = dre->typeArgumentList.get()) {
     if (!gdc || gdc->typeParams.empty())
-      return err::notGeneric(typeArgList->location)
+      return err::notGeneric()
+          .at(typeArgList->location)
           .with(decl->identifier)
           .report(reporter);
 
@@ -538,7 +563,10 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
 
       if (const auto &errs = ctx.unify(expectedType, arg); !errs.empty()) {
         for (auto &&err : errs)
-          err::inferenceError(args[i]->location).with(err).report(reporter);
+          err::inferenceError()
+              .at(args[i]->location)
+              .with(err)
+              .report(reporter);
 
         return nullptr;
       }
@@ -606,7 +634,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     auto *functionType = resCallee->getType()->getAs<res::FunctionType>();
     if (!functionType)
-      return err::invalidCallTy(callLoc)
+      return err::invalidCallTy()
+          .at(callLoc)
           .with(resCallee->getType()->getName())
           .report(reporter);
 
@@ -622,7 +651,8 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
   size_t sourceSpelledArgCnt = arguments.size();
 
   if ((sourceSpelledArgCnt + implicitArgCnt) != expectedArgCnt)
-    return err::wrongArgCount(callLoc)
+    return err::wrongArgCount()
+        .at(callLoc)
         .with(expectedArgCnt - implicitArgCnt)
         .with(sourceSpelledArgCnt)
         .report(reporter);
@@ -638,7 +668,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       continue;
 
     if (expectedType->getAs<res::RefType>() && !resolvedArgument->isLvalue()) {
-      err::rvalueRef(argument->location).report(reporter);
+      err::rvalueRef().at(argument->location).report(reporter);
       continue;
     }
 
@@ -647,7 +677,10 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
 
     if (auto errors = ctx.unify(actualType, expectedType); !errors.empty()) {
       for (auto &&error : errors)
-        err::inferenceError(argument->location).with(error).report(reporter);
+        err::inferenceError()
+            .at(argument->location)
+            .with(error)
+            .report(reporter);
       continue;
     }
 
@@ -683,14 +716,18 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     const SourceLocation &loc = initStmt->location;
 
     if (inits.count(id)) {
-      err::fieldAlreadyInitialized(loc).with(id).report(reporter);
+      err::fieldAlreadyInitialized().at(loc).with(id).report(reporter);
       error = true;
       continue;
     }
 
     res::FieldDecl *fieldDecl = fields[id];
     if (!fieldDecl) {
-      err::noFieldWithName(loc).with(sd->identifier).with(id).report(reporter);
+      err::noFieldWithName()
+          .at(loc)
+          .with(sd->identifier)
+          .with(id)
+          .report(reporter);
       error = true;
       continue;
     }
@@ -709,7 +746,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
     if (const auto &msg = ctx.unify(initTy, fieldTy); !msg.empty()) {
       for (auto &&error : msg)
-        err::inferenceError(resolvedInitExpr->location)
+        err::inferenceError()
+            .at(resolvedInitExpr->location)
             .with(error)
             .report(reporter);
       error = true;
@@ -722,7 +760,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 
   for (auto &&fieldDecl : sd->fields) {
     if (!inits.count(fieldDecl->identifier)) {
-      err::fieldNotInitialized(structInstantiation.location)
+      err::fieldNotInitialized()
+          .at(structInstantiation.location)
           .with(fieldDecl->identifier)
           .report(reporter);
       error = true;
@@ -773,7 +812,8 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   if (!asCall) {
     auto *structType = lookupType->getAs<res::StructType>();
     if (!structType)
-      return err::fieldLookupBaseInvalid(memberLoc)
+      return err::fieldLookupBaseInvalid()
+          .at(memberLoc)
           .with(memberId)
           .with(baseType->getName())
           .report(reporter);
@@ -789,16 +829,18 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
     candidates = lookupAssociatedDecls(member->identifier, basePtrType);
 
   if (candidates.size() > 1)
-    return err::ambigousAssociatedFn(member->location).report(reporter);
+    return err::ambigousAssociatedFn().at(member->location).report(reporter);
 
   if (candidates.empty()) {
     if (!asCall)
-      return err::fieldLookupFailed(memberLoc)
+      return err::fieldLookupFailed()
+          .at(memberLoc)
           .with(memberId)
           .with(lookupType->getName())
           .report(reporter);
 
-    return err::memberLookupFailed(member->location)
+    return err::memberLookupFailed()
+        .at(member->location)
         .with(member->identifier)
         .with(baseType->getName())
         .report(reporter);
@@ -809,7 +851,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
 
   if (!asCall) {
     if (decl->getAs<res::FunctionDecl>())
-      return err::expectedMethodCall(me.location).report(reporter);
+      return err::expectedMethodCall().at(me.location).report(reporter);
 
     if (basePtrType)
       base = insertUnaryDeref(ctx, base);
@@ -825,7 +867,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   assert(fnDecl && "expected function decl");
 
   if (fnDecl->params.empty() || fnDecl->params[0]->identifier != selfParamId)
-    return err::classMethodCallOnInstance(memberLoc).report(reporter);
+    return err::classMethodCallOnInstance().at(memberLoc).report(reporter);
 
   if (!base->isLvalue()) {
     auto *mte =
@@ -842,7 +884,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
 
   if (auto errors = ctx.unify(base->getType(), selfType); !errors.empty()) {
     for (auto &&error : errors)
-      err::inferenceError(base->location).with(error).report(reporter);
+      err::inferenceError().at(base->location).with(error).report(reporter);
     return nullptr;
   }
 
@@ -882,12 +924,13 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
     res::Type *paramType = param->getType();
 
     if (paramType && paramType->getAs<res::UninferredType>())
-      paramType = err::annotationsNeeded(astParam->location)
+      paramType = err::annotationsNeeded()
+                      .at(astParam->location)
                       .with(astParam->identifier)
                       .report(reporter);
 
     if (param->identifier == selfParamId)
-      paramType = err::lamdaSelfParam(astParam->location).report(reporter);
+      paramType = err::lamdaSelfParam().at(astParam->location).report(reporter);
 
     if (!insertDeclToCurrentScope(param) || !paramType)
       continue;
@@ -1053,7 +1096,7 @@ res::IfStmt *Sema::resolveIfStmt(res::Context &ctx, const ast::IfStmt &ifStmt) {
   varOrReturn(cond, resolveExpr(ctx, *ifStmt.condition,
                                 res::BuiltinBoolType::create(ctx)));
   if (!ctx.unify(cond->getType(), res::BuiltinBoolType::create(ctx)).empty())
-    return err::expectedBoolCondition(cond->location).report(reporter);
+    return err::expectedBoolCondition().at(cond->location).report(reporter);
 
   varOrReturn(trueBlock, resolveBlock(ctx, *ifStmt.trueBlock));
 
@@ -1073,7 +1116,7 @@ res::WhileStmt *Sema::resolveWhileStmt(res::Context &ctx,
   varOrReturn(cond, resolveExpr(ctx, *whileStmt.condition,
                                 res::BuiltinBoolType::create(ctx)));
   if (!ctx.unify(cond->getType(), res::BuiltinBoolType::create(ctx)).empty())
-    return err::expectedBoolCondition(cond->location).report(reporter);
+    return err::expectedBoolCondition().at(cond->location).report(reporter);
 
   varOrReturn(body, resolveBlock(ctx, *whileStmt.body));
 
@@ -1097,7 +1140,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   varOrReturn(rhs, resolveExpr(ctx, *assignment.expr, lhs->getType()));
 
   if (!lhs->isLvalue())
-    return err::rvalueAssignment(lhs->location).report(reporter);
+    return err::rvalueAssignment().at(lhs->location).report(reporter);
   auto *lhsTy = lhs->getType();
 
   rhs = tryCoerce(rhs, lhsTy);
@@ -1105,9 +1148,10 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
   if (const auto &errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
     for (auto &&error : errors)
-      err::inferenceError(rhs->location).with(error).report(reporter);
+      err::inferenceError().at(rhs->location).with(error).report(reporter);
 
-    return err::incompatibleAssignment(rhs->location)
+    return err::incompatibleAssignment()
+        .at(rhs->location)
         .with(lhsTy->getName())
         .with(rhsTy->getName())
         .report(reporter);
@@ -1124,7 +1168,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   auto *fnTy = functionInfo->function->getType()->getAs<res::FunctionType>();
   auto *retTy = fnTy->getReturnType();
   if (!retTy->getAs<res::BuiltinUnitType>() && !returnStmt.expr)
-    return err::noReturnValue(returnStmt.location).report(reporter);
+    return err::noReturnValue().at(returnStmt.location).report(reporter);
 
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
@@ -1136,7 +1180,8 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     res::Type *exprTy = expr->getType();
 
     if (!ctx.unify(retTy, exprTy).empty())
-      return err::invalidReturnValue(expr->location)
+      return err::invalidReturnValue()
+          .at(expr->location)
           .with(exprTy->getName())
           .with(retTy->getName())
           .report(reporter);
@@ -1218,7 +1263,7 @@ res::Block *Sema::resolveBlock(res::Context &ctx, const ast::Block &block) {
       continue;
 
     if (reportUnreachableCount == 1) {
-      wrn::unreachableStmt(stmt->location).report(reporter);
+      wrn::unreachableStmt().at(stmt->location).report(reporter);
       ++reportUnreachableCount;
     }
 
@@ -1251,7 +1296,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
   }
 
   if (!trait && type->getAs<res::TypeParamType>())
-    return err::universalTypeExtension(extension.type->location)
+    return err::universalTypeExtension()
+        .at(extension.type->location)
         .report(reporter);
 
   auto *resExtension = res::TypeExtension::create(
@@ -1261,7 +1307,10 @@ Sema::resolveTypeExtension(res::Context &ctx,
   for (auto &&fn : extension.functions) {
     if (!trait) {
       if (!lookupAssociatedDecls(fn->identifier, type).empty()) {
-        err::redeclaration(fn->location).with(fn->identifier).report(reporter);
+        err::redeclaration()
+            .at(fn->location)
+            .with(fn->identifier)
+            .report(reporter);
         continue;
       }
 
@@ -1275,7 +1324,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
         trait->getDecl()->lookupFunction(fn->identifier);
 
     if (!traitFn) {
-      err::memberFnLookupFailed(fn->location)
+      err::memberFnLookupFailed()
+          .at(fn->location)
           .with(fn->identifier)
           .with(trait->getDecl()->identifier)
           .report(reporter);
@@ -1309,11 +1359,13 @@ Sema::resolveTypeExtension(res::Context &ctx,
           continue;
 
         for (auto &&error : errors)
-          err::inferenceError(implFn->typeParams[i]->location)
+          err::inferenceError()
+              .at(implFn->typeParams[i]->location)
               .with(error)
               .report(reporter);
 
-        err::stricterParamTy(implFn->typeParams[i]->location)
+        err::stricterParamTy()
+            .at(implFn->typeParams[i]->location)
             .with(traitParamTy->getName())
             .with(implParamTy->getName())
             .report(reporter);
@@ -1330,7 +1382,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
     res::Type *actualType = implFn->getType();
 
     if (!ctx.unify(expectedType, actualType).empty()) {
-      err::fnSignatureMismatch(implFn->location)
+      err::fnSignatureMismatch()
+          .at(implFn->location)
           .with(expectedType->getName())
           .with(actualType->getName())
           .report(reporter);
@@ -1358,7 +1411,8 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
       if (conflict == extension)
         break;
 
-      err::conflictingExtension(extension->location)
+      err::conflictingExtension()
+          .at(extension->location)
           .with(type->getName())
           .with(trait->getName())
           .with(conflict->type->getName())
@@ -1371,7 +1425,8 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
       if (!ctx.getExtensions(type, requirement).empty())
         continue;
 
-      err::missingRequirement(extension->location)
+      err::missingRequirement()
+          .at(extension->location)
           .with(type->getName())
           .with(trait->getName())
           .with(type->getName())
@@ -1402,7 +1457,8 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     auto *initTy = init->getType();
 
     if (!ctx.unify(declTy, initTy).empty())
-      return err::initTyMismatch(init->location)
+      return err::initTyMismatch()
+          .at(init->location)
           .with(initTy->getName())
           .with(declTy->getName())
           .report(reporter);
@@ -1422,7 +1478,8 @@ bool Sema::checkTypeParameterCount(SourceLocation loc,
                                    size_t received,
                                    size_t expected) const {
   if (received != expected) {
-    err::typeArgCntMismatch(loc).with(expected).with(received).report(reporter);
+    err::typeArgCntMismatch().at(loc).with(expected).with(received).report(
+        reporter);
     return false;
   }
 
@@ -1470,7 +1527,8 @@ bool Sema::resolveGenericParamsInCurrentScope(
 
     for (auto &&decl : scope->getParent()->lookupSymbol(resParam->identifier)) {
       if (decl->getAs<res::TypeParamDecl>()) {
-        err::typeParamShadowed(resParam->location)
+        err::typeParamShadowed()
+            .at(resParam->location)
             .with(resParam->identifier)
             .report(reporter);
         error = true;
@@ -1490,7 +1548,8 @@ bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
     if (!fn->mustImplement || extension->getFunction(fn->identifier))
       continue;
 
-    err::missingTraitFn(fn->location)
+    err::missingTraitFn()
+        .at(fn->location)
         .with(extension->type->getName())
         .with(fn->identifier)
         .with(extension->trait->getName())
@@ -1591,7 +1650,7 @@ res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
 
     if (auto *refType = paramType->getAs<res::RefType>()) {
       if (isMut)
-        paramType = err::mutRefParameter(param->location).report(reporter);
+        paramType = err::mutRefParameter().at(param->location).report(reporter);
 
       isMut = refType->isMutable();
     }
@@ -1815,7 +1874,7 @@ res::Context *Sema::resolveAST() {
   }
 
   if (!hasMainFunction)
-    return err::mainNotFound(ast->location).report(reporter);
+    return err::mainNotFound().at(ast->location).report(reporter);
 
   if (error)
     return nullptr;
@@ -1856,23 +1915,23 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
              ->getAs<res::FunctionType>()
              ->getReturnType()
              ->getAs<res::BuiltinUnitType>()) {
-      err::wrongMainReturnTy(fnDecl->location).report(reporter);
+      err::wrongMainReturnTy().at(fnDecl->location).report(reporter);
       return true;
     }
 
     if (!fnDecl->params.empty()) {
-      err::wrongMainArgCount(fnDecl->location).report(reporter);
+      err::wrongMainArgCount().at(fnDecl->location).report(reporter);
       return true;
     }
 
     if (!fnDecl->typeParams.empty()) {
-      err::mainIsGeneric(fnDecl->location).report(reporter);
+      err::mainIsGeneric().at(fnDecl->location).report(reporter);
       return true;
     }
   }
 
   if (fnDecl->identifier == "printf") {
-    err::reservedPrintf(fnDecl->location).report(reporter);
+    err::reservedPrintf().at(fnDecl->location).report(reporter);
     return true;
   }
 
@@ -1885,12 +1944,12 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
 
   res::Type *selfType = scope->getSelfType();
   if (!selfType) {
-    err::selfParamNotAllowed(param->location).report(reporter);
+    err::selfParamNotAllowed().at(param->location).report(reporter);
     return false;
   }
 
   if (idx != 0) {
-    err::selfWrongPosition(param->location).report(reporter);
+    err::selfWrongPosition().at(param->location).report(reporter);
     return false;
   }
 
@@ -1899,7 +1958,7 @@ bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
 
   auto *refType = param->getType()->getAs<res::RefType>();
   if (!refType || !ctx.unify(refType->getReferencedType(), selfType).empty()) {
-    err::selfWrongType(param->location).report(reporter);
+    err::selfWrongType().at(param->location).report(reporter);
     return false;
   }
 
@@ -1920,7 +1979,8 @@ bool Sema::isSelfContainingTrait(res::TraitDecl *trait) {
 
     for (auto &&requirement : conformance->traits)
       if (stack.emplace(requirement->getDecl()) == trait) {
-        err::selfRequiringTrait(trait->location)
+        err::selfRequiringTrait()
+            .at(trait->location)
             .with(trait->identifier)
             .report(reporter);
         return true;
@@ -1962,7 +2022,8 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   }
 
   for (auto &&sd : selfContaining)
-    err::selfContainingStruct(sd->location)
+    err::selfContainingStruct()
+        .at(sd->location)
         .with(sd->identifier)
         .report(reporter);
 
@@ -2011,7 +2072,10 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
       trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
       if (auto errs = ctx.solveConformance(typeArg, trait); !errs.empty()) {
         for (auto &&error : errs)
-          err::inferenceError((*astIt)->location).with(error).report(reporter);
+          err::inferenceError()
+              .at((*astIt)->location)
+              .with(error)
+              .report(reporter);
 
         return nullptr;
       }
@@ -2034,7 +2098,8 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     SourceLocation fnLoc = fn->location;
 
     if (fn->typeParams.size() > 0) {
-      err::traitObjectTemplateMemberFn(fnLoc)
+      err::traitObjectTemplateMemberFn()
+          .at(fnLoc)
           .with(trait->getName())
           .report(reporter);
       error = true;
@@ -2042,7 +2107,8 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     }
 
     if (fn->params.empty() || fn->params[0]->identifier != selfParamId) {
-      err::traitObjectStaticMemberFn(fnLoc)
+      err::traitObjectStaticMemberFn()
+          .at(fnLoc)
           .with(trait->getName())
           .report(reporter);
       error = true;
@@ -2059,7 +2125,8 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
       res::Type *paramType = param->getType();
 
       if (!ctx.unify(paramType, ctx.instantiate(paramType, testSub)).empty()) {
-        err::traitObjectSelfParam(param->location)
+        err::traitObjectSelfParam()
+            .at(param->location)
             .with(trait->getName())
             .report(reporter);
         error = true;
@@ -2070,14 +2137,18 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     res::Type *retType =
         fn->getType()->getAs<res::FunctionType>()->getReturnType();
     if (!ctx.unify(retType, ctx.instantiate(retType, testSub)).empty()) {
-      err::traitObjectSelfReturn(fnLoc).with(trait->getName()).report(reporter);
+      err::traitObjectSelfReturn()
+          .at(fnLoc)
+          .with(trait->getName())
+          .report(reporter);
       error = true;
     }
   }
 
   for (auto &&parentTrait : ctx.getDirectConformance(trait))
     if (!checkVtableCompatibility(loc, parentTrait, visited)) {
-      err::superTraitNotTraitObjectCompatible(loc)
+      err::superTraitNotTraitObjectCompatible()
+          .at(loc)
           .with(parentTrait->getName())
           .with(trait->getName())
           .report(reporter);
@@ -2109,7 +2180,8 @@ bool Sema::checkDeclRefTypes() {
 
     for (auto &&tp : gdc->typeParams) {
       if (dre->sub[tp->getType()]->getAs<res::UninferredType>()) {
-        err::annotationsNeeded(dre->location)
+        err::annotationsNeeded()
+            .at(dre->location)
             .with(dre->decl->identifier)
             .report(reporter);
         error = true;
@@ -2159,8 +2231,10 @@ bool Sema::checkReturnOnAllPaths(const CFG &cfg) {
 
   if (exitReached || returnCount == 0) {
     (returnCount > 0
-         ? err::expectedReturnValueOnEveryPath(fn->location).report(reporter)
-         : err::expectedReturnValue(fn->location).report(reporter));
+         ? err::expectedReturnValueOnEveryPath()
+               .at(fn->location)
+               .report(reporter)
+         : err::expectedReturnValue().at(fn->location).report(reporter));
     return false;
   }
 
@@ -2207,7 +2281,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 
           if (decl->getType()->getAs<res::UninferredType>())
             errors.emplace_back(
-                err::unknownType(decl->location).with(decl->identifier));
+                err::unknownType().at(decl->location).with(decl->identifier));
 
           continue;
         }
@@ -2222,7 +2296,8 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
           }
 
           if (!assignee->isMutable())
-            errors.emplace_back(err::immutableAssignment(assignment->location));
+            errors.emplace_back(
+                err::immutableAssignment().at(assignment->location));
 
           continue;
         }
@@ -2231,7 +2306,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
           auto *decl = dre->decl->getAs<res::VarDecl>();
           if (decl && state[decl] != State::Assigned)
             errors.emplace_back(
-                err::notInitialized(dre->location).with(decl->identifier));
+                err::notInitialized().at(dre->location).with(decl->identifier));
 
           continue;
         }

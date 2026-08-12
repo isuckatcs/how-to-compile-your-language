@@ -40,12 +40,14 @@ class DiagBuilder {
   std::vector<std::string> args;
 
 public:
-  DiagBuilder(Diagnostic::Severity severity,
-              SourceLocation location,
-              std::string_view format)
+  DiagBuilder(Diagnostic::Severity severity, std::string_view format)
       : severity(severity),
-        location(location),
         format(std::move(format)) {}
+
+  DiagBuilder &at(SourceLocation location) {
+    this->location = location;
+    return *this;
+  }
 
   template <typename T> DiagBuilder &with(T t) {
     std::stringstream ss;
@@ -73,9 +75,8 @@ public:
 };
 
 #define diag(severity, name, format)                                           \
-  inline diag::DiagBuilder name(SourceLocation loc) {                          \
-    return diag::DiagBuilder(diag::Diagnostic::Severity::severity, loc,        \
-                             format);                                          \
+  inline diag::DiagBuilder name() {                                            \
+    return diag::DiagBuilder(diag::Diagnostic::Severity::severity, format);    \
   }
 } // namespace diag
 

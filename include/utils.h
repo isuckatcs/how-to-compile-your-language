@@ -16,9 +16,9 @@ struct SourceFile {
 };
 
 struct SourceLocation {
-  const SourceFile *file;
-  int line;
-  int col;
+  const SourceFile *file = nullptr;
+  int line = 0;
+  int col = 0;
 };
 
 inline std::string indent(size_t level) { return std::string(level * 2, ' '); }
