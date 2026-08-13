@@ -17,11 +17,15 @@
     |   'p' <type>
     |   'm' <type>
     |   <structType>
+    |   <anyTraitType>
     |   <traitType>
     |   <functionType>
 
 <structType>
     ::= 'S' <identifier> <genericArgs>?
+
+<anyTraitType>
+    ::= 'A' <identifier> <genericArgs>?
 
 <traitType>
     ::= 'T' <identifier> <genericArgs>?

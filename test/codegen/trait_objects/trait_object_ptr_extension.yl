@@ -1,0 +1,24 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait Foo<T, U> {
+  fn foo(self: &Self): number;
+}
+
+extension number : Foo<unit, unit> {
+  fn foo(self: &Self): number {
+    return self;
+  }
+}
+
+extension *any Foo<unit, unit> {
+  fn bar(self: &Self) {
+    println(self.foo());
+  }
+}
+
+fn main() {
+  let x: *any Foo<unit, unit> = gc 123;
+  x.bar();
+  // CHECK: call void @_YpA3FooGuuE3bar(ptr %x, ptr null)
+}

@@ -39,6 +39,15 @@ struct Mangling {
       return mangledName.str();
     }
 
+    if (const auto *a = type->getAs<res::AnyTraitType>()) {
+      const auto &id = a->getDecl()->identifier;
+
+      std::stringstream mangledName;
+      mangledName << 'A' << id.size() << id
+                  << mangleGenericArgs(a->getTypeArgs());
+      return mangledName.str();
+    }
+
     if (const auto *tr = type->getAs<res::TraitType>()) {
       const auto &id = tr->getDecl()->identifier;
 
