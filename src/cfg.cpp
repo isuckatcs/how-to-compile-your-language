@@ -64,7 +64,7 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     std::cerr << value[stmt] << " = ";
   }
 
-  if (auto *unit = dynamic_cast<const res::UnitLiteral *>(stmt)) {
+  if (dynamic_cast<const res::UnitLiteral *>(stmt)) {
     std::cerr << "unit";
     return;
   }
