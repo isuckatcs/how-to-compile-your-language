@@ -165,9 +165,9 @@ res::Type *Sema::resolveType(res::Context &ctx,
     int offset = isTraitDecl ? 1 : 0;
     const auto &typeParams = gdc->typeParams;
 
-    varOrReturn(res, checkTypeParameterCount(udt->location,
-                                             udt->typeArguments.size(),
-                                             typeParams.size() - offset));
+    if (!checkTypeParameterCount(udt->location, udt->typeArguments.size(),
+                                 typeParams.size() - offset))
+      return nullptr;
 
     std::vector<res::Type *> resolvedTypeArgs;
     for (auto &&astArg : udt->typeArguments)
@@ -552,8 +552,9 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
           .report(reporter);
 
     const auto &args = typeArgList->args;
-    varOrReturn(res, checkTypeParameterCount(typeArgList->location, args.size(),
-                                             gdc->typeParams.size()));
+    if (!checkTypeParameterCount(typeArgList->location, args.size(),
+                                 gdc->typeParams.size()))
+      return nullptr;
 
     for (size_t i = 0; i < args.size(); ++i) {
       varOrReturn(arg, resolveType(ctx, *args[i]));
