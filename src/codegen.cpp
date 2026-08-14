@@ -526,7 +526,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *boolLiteral = dynamic_cast<const res::BoolLiteral *>(&expr))
     return builder.getInt1(boolLiteral->value);
 
-  if (auto *unit = dynamic_cast<const res::UnitLiteral *>(&expr))
+  if (dynamic_cast<const res::UnitLiteral *>(&expr))
     return nullptr;
 
   if (auto *constantValue = generateConstantValue(expr.getConstantValue()))
@@ -866,7 +866,7 @@ Codegen::storeValue(llvm::Value *val, llvm::Value *ptr, llvm::Type *type) {
 }
 
 void Codegen::breakIntoBB(llvm::BasicBlock *targetBB) {
-  if (llvm::BasicBlock *currentBB = builder.GetInsertBlock())
+  if (builder.GetInsertBlock())
     builder.CreateBr(targetBB);
 
   builder.ClearInsertionPoint();
