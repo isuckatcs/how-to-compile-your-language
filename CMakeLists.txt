@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.2)
 project(how-to-compile-your-language)
 
 find_package(LLVM 20.1 REQUIRED CONFIG)
-include_directories(include "${LLVM_INCLUDE_DIR}")
+include_directories(include)
+include_directories(SYSTEM "${LLVM_INCLUDE_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
