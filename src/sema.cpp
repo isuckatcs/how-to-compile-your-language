@@ -1917,11 +1917,6 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
     }
   }
 
-  if (fnDecl->identifier == "printf") {
-    err::reservedPrintf().at(fnDecl->location).report(reporter);
-    return true;
-  }
-
   return false;
 }
 

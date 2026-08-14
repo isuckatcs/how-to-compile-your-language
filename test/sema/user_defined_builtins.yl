@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+
+// CHECK: FunctionDecl @({{.*}}) printf {() -> unit}
+fn printf() {}
+
+// CHECK: FunctionDecl @({{.*}}) gcAlloc {() -> unit}
+fn gcAlloc() {}
+
+// CHECK: FunctionDecl @({{.*}}) gcMark {() -> unit}
+fn gcMark() {}
+
+// CHECK: FunctionDecl @({{.*}}) gcSweep {() -> unit}
+fn gcSweep() {}
+
+fn main() {}

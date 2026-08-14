@@ -1,0 +1,32 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '0\n1\n2\n3\n'
+fn printf() {
+  println(0);
+}
+
+fn gcAlloc() {
+  println(1);
+}
+
+fn gcMark() {
+  println(2);
+}
+
+fn gcSweep() {
+  println(3);
+}
+
+fn main() {
+  printf();
+  // CHECK:   call void @_Y6printf(ptr null)
+  
+  gcAlloc();
+  // CHECK-NEXT:   call void @_Y7gcAlloc(ptr null)
+  
+  gcMark();
+  // CHECK-NEXT:   call void @_Y6gcMark(ptr null)
+  
+  gcSweep();
+  // CHECK-NEXT:   call void @_Y7gcSweep(ptr null)
+}
