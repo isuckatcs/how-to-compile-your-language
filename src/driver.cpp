@@ -82,6 +82,15 @@ CompilerOptions parseArguments(int argc,
 
   return options;
 }
+
+std::filesystem::path getLibDirPath(const char *argv0) {
+  void *address = (void *)getLibDirPath;
+  std::string exe = llvm::sys::fs::getMainExecutable(argv0, address);
+
+  auto exeDir = std::filesystem::weakly_canonical(exe).parent_path();
+  return exeDir.parent_path().append("lib");
+}
+
 } // namespace
 
 int main(int argc, const char **argv) {
@@ -175,12 +184,9 @@ int main(int argc, const char **argv) {
   llvm::raw_fd_ostream f(llvmIRPath, errorCode);
   llvmIR->print(f, nullptr);
 
-  std::string exe = llvm::sys::fs::getMainExecutable(argv[0], (void *)&main);
-  auto exeDir = std::filesystem::weakly_canonical(exe).parent_path();
-  auto libDir = exeDir.parent_path().append("lib");
-
   std::stringstream command;
-  command << "clang-20 " << llvmIRPath << " -L" << libDir << " -lyl_runtime";
+  command << "clang-20 " << llvmIRPath << " -L" << getLibDirPath(argv[0])
+          << " -lyl_runtime";
   if (!options.output.empty())
     command << " -o " << options.output;
 
