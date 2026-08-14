@@ -757,10 +757,7 @@ void CallExpr::dump(size_t level) const {
 }
 
 MemberExpr::MemberExpr(SourceLocation location, Expr *base, DeclRefExpr *member)
-    // FIXME: should just propagate the base kind?
-    : Expr(location,
-           !base->isLvalue() ? Expr::ValueCategory::MutLvalue
-                             : base->valueCategory),
+    : Expr(location, base->valueCategory),
       base(base),
       member(member) {}
 

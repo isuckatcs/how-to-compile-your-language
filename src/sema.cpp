@@ -789,6 +789,12 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
                                    bool asCall) {
   WithModifiersRAII mods(this, asCall ? AddressTaken : 0);
   varOrReturn(base, resolveExpr(ctx, *me.base));
+  if (!base->isLvalue()) {
+    auto *mte =
+        res::MaterializeTemporaryExpr::create(ctx, base->location, base);
+    mte->setType(base->getType());
+    base = mte;
+  }
 
   auto *baseType = base->getType();
   auto *basePtrType = baseType->getAs<res::PointerType>();
@@ -859,13 +865,6 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
 
   if (fnDecl->params.empty() || fnDecl->params[0]->identifier != selfParamId)
     return err::classMethodCallOnInstance().at(memberLoc).report(reporter);
-
-  if (!base->isLvalue()) {
-    auto *mte =
-        res::MaterializeTemporaryExpr::create(ctx, base->location, base);
-    mte->setType(base->getType());
-    base = mte;
-  }
 
   auto *call = res::CallExpr::create(ctx, me.location, dre);
   call->setType(functionType->getReturnType());
