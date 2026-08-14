@@ -18,10 +18,11 @@ struct CFG {
   std::vector<BasicBlock> basicBlocks;
   int entry = -1;
   int exit = -1;
+  int nextBlockId = 0;
 
   int insertNewBlock() {
     basicBlocks.emplace_back();
-    return basicBlocks.size() - 1;
+    return nextBlockId++;
   };
 
   int insertNewBlockBefore(int before, bool reachable) {

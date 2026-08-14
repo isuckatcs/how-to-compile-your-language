@@ -82,7 +82,7 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
   if (auto *callExpr = dynamic_cast<const res::CallExpr *>(stmt)) {
     dumpStmt(callExpr->callee);
     std::cerr << '(';
-    for (int i = 0; i < callExpr->arguments.size(); ++i) {
+    for (size_t i = 0; i < callExpr->arguments.size(); ++i) {
       dumpStmt(callExpr->arguments[i]);
 
       if (i != callExpr->arguments.size() - 1)
@@ -132,7 +132,7 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
 
   if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(stmt)) {
     std::cerr << "->[";
-    for (int i = 0; i < lambda->fieldInits.size(); ++i) {
+    for (size_t i = 0; i < lambda->fieldInits.size(); ++i) {
       dumpStmt(lambda->fieldInits[i]);
 
       if (i != lambda->fieldInits.size() - 1)
@@ -145,26 +145,27 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
 void CFG::dump() const {
   std::cerr << "fn " << fn->identifier << "(...) {\n";
 
-  for (int i = basicBlocks.size() - 1; i >= 0; --i) {
-    std::cerr << "bb" << i << ":\n";
+  for (size_t i = 0; i < basicBlocks.size(); ++i) {
+    size_t bb = basicBlocks.size() - 1 - i;
+    std::cerr << "bb" << bb << ":\n";
 
     std::cerr << "  preds: ";
-    for (auto &&[id, reachable] : basicBlocks[i].predecessors)
+    for (auto &&[id, reachable] : basicBlocks[bb].predecessors)
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
-    const auto &statements = basicBlocks[i].statements;
+    const auto &statements = basicBlocks[bb].statements;
     for (auto it = statements.rbegin(); it != statements.rend(); ++it) {
       dumpStmt(*it, true);
       std::cerr << '\n';
     }
 
     std::cerr << "  succs: ";
-    for (auto &&[id, reachable] : basicBlocks[i].successors)
+    for (auto &&[id, reachable] : basicBlocks[bb].successors)
       std::cerr << id << ((reachable) ? " " : "(U) ");
     std::cerr << '\n';
 
-    if (i > 0)
+    if (bb > 0)
       std::cerr << '\n';
   }
   std::cerr << "}\n";
