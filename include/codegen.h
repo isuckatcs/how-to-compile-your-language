@@ -111,7 +111,7 @@ class Codegen {
 
   llvm::StructType *generateStructType(const res::StructType *structType);
 
-  void generateBuiltinGCCollectBody(const res::FunctionDecl &gcCollect);
+  void generateBuiltinGCCollectBody();
   void generateBuiltinPrintlnBody(const res::FunctionDecl &println);
   void generateMainWrapper();
 

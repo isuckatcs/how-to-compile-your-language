@@ -402,7 +402,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
 
     // Note: none of the initializers can trigger the GC.
     std::map<const res::FieldDecl *, llvm::Value *> fieldInits;
-    for (int i = 0; i < fieldDecls.size(); ++i)
+    for (size_t i = 0; i < fieldDecls.size(); ++i)
       fieldInits[fieldDecls[i]] =
           generateExprAndLoadValue(*lambdaExpr.fieldInits[i]);
 
@@ -997,7 +997,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
                                       const res::Expr *resVal) {
   if (!val || llvm::isa<llvm::Function>(val) ||
       dynamic_cast<const res::ImplicitDerefExpr *>(resVal) ||
-      resVal->isLvalue() && !resVal->isMutable())
+      (resVal->isLvalue() && !resVal->isMutable()))
     return;
 
   res::Type *type = getMonoType(resVal->getType());
@@ -1216,7 +1216,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   function->getArg(function->arg_size() - 1)->setName("closure");
 
   if (functionDecl->identifier == "gcCollect")
-    generateBuiltinGCCollectBody(*functionDecl);
+    generateBuiltinGCCollectBody();
   else if (functionDecl->identifier == "println")
     generateBuiltinPrintlnBody(*functionDecl);
   else
@@ -1240,7 +1240,7 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
     builder.CreateRet(loadValue(retVal, returnTy));
 }
 
-void Codegen::generateBuiltinGCCollectBody(const res::FunctionDecl &gcCollect) {
+void Codegen::generateBuiltinGCCollectBody() {
   builder.CreateCall(getOrInsertGCMark());
   builder.CreateCall(getOrInsertGCSweep());
 }
