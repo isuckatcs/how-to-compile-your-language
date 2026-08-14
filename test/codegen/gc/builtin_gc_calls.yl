@@ -1,7 +1,7 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 
-// CHECK: define void @gcCollect(ptr %closure) {
+// CHECK: define void @_Y9gcCollect(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @gcMark()
 // CHECK-NEXT:   call void @gcSweep()
@@ -16,7 +16,7 @@ fn main() {
   // CHECK: %1 = call ptr @gcAlloc(i32 0, ptr null)
   
   gcCollect();
-  // CHECK: call void @gcCollect(ptr null)
+  // CHECK: call void @_Y9gcCollect(ptr null)
 }
 
 // CHECK: declare void @gcMark()

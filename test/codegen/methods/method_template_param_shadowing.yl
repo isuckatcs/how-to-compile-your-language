@@ -16,7 +16,7 @@ fn main() {
 
   println(s.foo(2));
   // CHECK: %1 = call double @_YS1SGnE3foo(ptr %s, double 2.000000e+00, ptr null)
-  // CHECK-NEXT: call void @println(double %1, ptr null)
+  // CHECK-NEXT: call void @_Y7println(double %1, ptr null)
 }
 
 // CHECK: define double @_YS1SGnE3foo(ptr %self, double %x, ptr %closure) {

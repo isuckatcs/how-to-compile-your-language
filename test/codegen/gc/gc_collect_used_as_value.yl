@@ -4,7 +4,7 @@
 fn main() {
   let collect = gcCollect;
   // CHECK: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %collect, i32 0, i32 0
-  // CHECK-NEXT: store ptr @gcCollect, ptr %0, align 8
+  // CHECK-NEXT: store ptr @_Y9gcCollect, ptr %0, align 8
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %collect, i32 0, i32 1
   // CHECK-NEXT: store ptr null, ptr %1, align 8
 

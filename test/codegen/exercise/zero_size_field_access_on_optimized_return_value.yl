@@ -16,6 +16,6 @@ fn main() {
   // CHECK: %0 = alloca [0 x i8], align 1
 
   bar(foo().x);
-  // CHECK-NEXT: call void @foo(ptr null)
-  // CHECK-NEXT: call void @bar(ptr %0, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr null)
+  // CHECK-NEXT: call void @_Y3bar(ptr %0, ptr null)
 }

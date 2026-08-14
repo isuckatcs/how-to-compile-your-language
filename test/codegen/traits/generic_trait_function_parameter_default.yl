@@ -7,7 +7,7 @@ trait A<T> {
   }
   // CHECK: define void @_YT1AGS1SnE3foo(ptr %self, double %x, ptr %closure) {
   // CHECK-NEXT: entry:
-  // CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+  // CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 }

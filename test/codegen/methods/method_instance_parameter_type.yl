@@ -13,7 +13,7 @@ fn main() {
   let s = S@<S<number>>{};
   s.foo(S{}, S{});
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %s = alloca {}, align 8
 // CHECK-NEXT:   call void @_YS1SGS1SGnEE3foo(ptr %s, ptr null)
@@ -22,6 +22,6 @@ fn main() {
 
 // CHECK: define void @_YS1SGS1SGnEE3foo(ptr %self, ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

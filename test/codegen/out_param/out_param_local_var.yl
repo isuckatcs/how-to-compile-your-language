@@ -4,7 +4,7 @@
 fn bar(x: &mut number) {
   x = 10;
 }
-// CHECK: define void @bar(ptr %x, ptr %closure) {
+// CHECK: define void @_Y3bar(ptr %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   store double 1.000000e+01, ptr %x, align 8
 // CHECK-NEXT:   ret void
@@ -18,7 +18,7 @@ fn main() {
   println(x);
 
   bar(x);
-  // CHECK: call void @bar(ptr %x, ptr null)
+  // CHECK: call void @_Y3bar(ptr %x, ptr null)
 
   println(x);
 }

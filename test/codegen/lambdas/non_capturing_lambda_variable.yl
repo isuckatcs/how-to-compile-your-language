@@ -8,7 +8,7 @@ struct S {
 }
 
 fn main() {
-// CHECK: define void @__builtin_main(ptr %closure) gc "shadow-stack" {
+// CHECK: define void @_Y4main(ptr %closure) gc "shadow-stack" {
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %l = alloca { ptr, ptr }, align 8
 
@@ -18,7 +18,7 @@ fn main() {
   let u = unit;
 
   let s = S { x: unit, y: unit, z: println(123) };
-  // CHECK-NEXT: call void @println(double 1.230000e+02, ptr null)
+  // CHECK-NEXT: call void @_Y7println(double 1.230000e+02, ptr null)
 
   let l = ->() {
     let capture1 = u;
@@ -44,6 +44,6 @@ fn main() {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr {}, ptr %closure, i64 1
 // CHECK-NEXT:   %1 = getelementptr {}, ptr %closure, i64 1
-// CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

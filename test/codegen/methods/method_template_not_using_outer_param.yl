@@ -21,7 +21,7 @@ extension<T> S<T> {
 fn main() {
   S::foo(unit, 456);
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_YS1SGuE3fooGnE(double 4.560000e+02, ptr null)
 // CHECK-NEXT:   ret void
@@ -66,7 +66,7 @@ fn main() {
 // CHECK: define double @_YS1SGuE3barGnE(double %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
-// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   store double %y, ptr %retval, align 8
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 

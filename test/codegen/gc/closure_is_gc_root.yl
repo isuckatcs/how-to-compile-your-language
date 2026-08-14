@@ -28,7 +28,7 @@ fn passLambdaParam() {
   // CHECK-NEXT: call void @llvm.gcroot(ptr %struct.arg.tmp, ptr @function.offsets)
 
   takeLambdaParam(->(x) { return x; });
-  // CHECK: call void @takeLambdaParam(ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+  // CHECK: call void @_Y15takeLambdaParam(ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 }
 
 fn main() {

@@ -15,7 +15,7 @@ struct S2 {
 fn foo(s: S): S {
   return s;
 }
-// CHECK: define void @foo(ptr %closure) {
+// CHECK: define void @_Y3foo(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   br label %return
 // CHECK-NEXT: 
@@ -30,11 +30,11 @@ fn main() {
     z: println(3) 
   };
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
-// CHECK-NEXT:   call void @println(double 1.000000e+00, ptr null)
-// CHECK-NEXT:   call void @println(double 2.000000e+00, ptr null)
-// CHECK-NEXT:   call void @println(double 3.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 0.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 2.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 3.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

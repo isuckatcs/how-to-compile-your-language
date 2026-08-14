@@ -18,5 +18,5 @@ fn main() {
   foo(s.z.x);
   // CHECK: %3 = getelementptr inbounds nuw { double, { double } }, ptr %s, i32 0, i32 1
   // CHECK-NEXT: %4 = getelementptr { double }, ptr %3, i64 1
-  // CHECK-NEXT: call void @foo(ptr %4, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr %4, ptr null)
 }

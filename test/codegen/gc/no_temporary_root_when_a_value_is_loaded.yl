@@ -12,10 +12,10 @@ fn foo(n: number): S {
 fn main() {
   println(*foo(123).p);
   // CHECK: %struct.ret.tmp = alloca { ptr }, align 8
-  // CHECK-NEXT: call void @foo(ptr sret({ ptr }) %struct.ret.tmp, double 1.230000e+02, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr sret({ ptr }) %struct.ret.tmp, double 1.230000e+02, ptr null)
   // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr }, ptr %struct.ret.tmp, i32 0, i32 0
   // CHECK-NEXT: %1 = load ptr, ptr %0, align 8
   // CHECK-NEXT: %2 = load double, ptr %1, align 8
-  // CHECK-NEXT: call void @println(double %2, ptr null)
+  // CHECK-NEXT: call void @_Y7println(double %2, ptr null)
   // CHECK-NEXT: ret void
 }

@@ -17,12 +17,12 @@ fn main() {
 
   consume(u, s);
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %u = alloca [0 x i8], align 1
 // CHECK-NEXT:   %s = alloca {}, align 8
-// CHECK-NEXT:   call void @foo(ptr null)
-// CHECK-NEXT:   call void @bar(ptr null)
-// CHECK-NEXT:   call void @consume(ptr %u, ptr %s, ptr null)
+// CHECK-NEXT:   call void @_Y3foo(ptr null)
+// CHECK-NEXT:   call void @_Y3bar(ptr null)
+// CHECK-NEXT:   call void @_Y7consume(ptr %u, ptr %s, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

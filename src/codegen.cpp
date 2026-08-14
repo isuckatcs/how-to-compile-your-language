@@ -77,12 +77,10 @@ struct Mangling {
     std::stringstream mangledName;
 
     const auto &identifier = fn->identifier;
-    if (!fn->typeParams.empty() || parentMonoType) {
-      mangledName << '_' << 'Y';
-      if (parentMonoType)
-        mangledName << mangleMonoType(parentMonoType);
-      mangledName << identifier.size();
-    }
+    mangledName << '_' << 'Y';
+    if (parentMonoType)
+      mangledName << mangleMonoType(parentMonoType);
+    mangledName << identifier.size();
 
     std::vector<res::Type *> typeArgs;
     for (auto &&tp : fn->typeParams)
@@ -1258,8 +1256,7 @@ void Codegen::generateBuiltinPrintlnBody(const res::FunctionDecl &println) {
 }
 
 void Codegen::generateMainWrapper() {
-  auto *builtinMain = module.getFunction("main");
-  builtinMain->setName("__builtin_main");
+  auto *builtinMain = module.getFunction("_Y4main");
 
   auto *main = llvm::Function::Create(
       llvm::FunctionType::get(builder.getInt32Ty(), {}, false),
@@ -1270,7 +1267,7 @@ void Codegen::generateMainWrapper() {
 
   llvm::Value *nullPtr = llvm::ConstantPointerNull::get(builder.getPtrTy());
   builder.CreateCall(builtinMain, {nullPtr});
-  builder.CreateCall(module.getFunction("gcCollect"), {nullPtr});
+  builder.CreateCall(module.getFunction("_Y9gcCollect"), {nullPtr});
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 

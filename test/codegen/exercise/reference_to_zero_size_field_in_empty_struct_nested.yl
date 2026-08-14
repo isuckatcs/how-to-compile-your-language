@@ -22,5 +22,5 @@ fn main() {
   // CHECK-NEXT: %1 = getelementptr {}, ptr %0, i64 1
   // CHECK-NEXT: %2 = getelementptr {}, ptr %s, i64 1
   // CHECK-NEXT: %3 = getelementptr {}, ptr %2, i64 1
-  // CHECK-NEXT: call void @foo(ptr %1, ptr %3, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr %1, ptr %3, ptr null)
 }

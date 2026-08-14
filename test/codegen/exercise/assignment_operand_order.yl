@@ -18,11 +18,11 @@ fn lhs(): S {
 fn main(): unit {
   lhs().x = rhs();
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
-// CHECK-NEXT:   %0 = call double @rhs(ptr null)
-// CHECK-NEXT:   call void @lhs(ptr sret({ double }) %struct.ret.tmp, ptr null)
+// CHECK-NEXT:   %0 = call double @_Y3rhs(ptr null)
+// CHECK-NEXT:   call void @_Y3lhs(ptr sret({ double }) %struct.ret.tmp, ptr null)
 // CHECK-NEXT:   %1 = getelementptr inbounds nuw { double }, ptr %struct.ret.tmp, i32 0, i32 0
 // CHECK-NEXT:   store double %0, ptr %1, align 8
 // CHECK-NEXT:   ret void

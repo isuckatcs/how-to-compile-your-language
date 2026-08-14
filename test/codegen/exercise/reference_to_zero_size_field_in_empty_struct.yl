@@ -15,5 +15,5 @@ fn main() {
   foo(s.x, s.y);
   // CHECK-NEXT: %0 = getelementptr {}, ptr %s, i64 1
   // CHECK-NEXT: %1 = getelementptr {}, ptr %s, i64 1
-  // CHECK-NEXT: call void @foo(ptr %0, ptr %1, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr %0, ptr %1, ptr null)
 }

@@ -2,7 +2,7 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 fn foo(out: &mut bool, in: bool): bool {
-// CHECK: define zeroext i1 @foo(ptr %out, i1 zeroext %in, ptr %closure) {
+// CHECK: define zeroext i1 @_Y3foo(ptr %out, i1 zeroext %in, ptr %closure) {
 // CHECK-NEXT: entry:
 
   // CHECK-NEXT: %retval = alloca i8, align 1
@@ -39,7 +39,7 @@ fn foo(out: &mut bool, in: bool): bool {
 }
 
 fn main() {
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 
   // CHECK-NEXT: %out = alloca i8, align 1
@@ -51,7 +51,7 @@ fn main() {
 
 
   let res = foo(out, b);
-  // CHECK-NEXT: %0 = call zeroext i1 @foo(ptr %out, i1 zeroext false, ptr null)
+  // CHECK-NEXT: %0 = call zeroext i1 @_Y3foo(ptr %out, i1 zeroext false, ptr null)
   // CHECK-NEXT: %1 = zext i1 %0 to i8
   // CHECK-NEXT: store i8 %1, ptr %res, align 1
 

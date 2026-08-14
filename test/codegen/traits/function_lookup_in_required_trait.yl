@@ -37,7 +37,7 @@ fn bar<T : A>(mut t : T) {
 // CHECK-NEXT:   call void @_YT1BGS1SE3foo(ptr %t, ptr null)
 // CHECK-NEXT:   call void @_YT1BGS1SE3foo(ptr %t, ptr null)
 // CHECK-NEXT:   %0 = call double @_YT1AGS1SE4getX(ptr %t, ptr null)
-// CHECK-NEXT:   call void @println(double %0, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double %0, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 

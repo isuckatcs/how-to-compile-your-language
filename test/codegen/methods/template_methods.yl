@@ -25,7 +25,7 @@ fn main() {
 
   S2@<number>::foo(unit);
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %s = alloca {}, align 8
 // CHECK-NEXT:   call void @_YS1S3fooGuE(ptr %s, ptr null)
@@ -36,18 +36,18 @@ fn main() {
 
 // CHECK: define void @_YS1S3fooGuE(ptr %self, ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 0.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 // CHECK: define void @_YS2S2GuE3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
 // CHECK: define void @_YS2S2GnE3fooGuE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.000000e+00, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.000000e+00, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

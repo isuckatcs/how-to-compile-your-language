@@ -9,10 +9,10 @@ fn main() {
   let x = 123;
   foo(x);
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %x = alloca double, align 8
 // CHECK-NEXT:   store double 1.230000e+02, ptr %x, align 8
-// CHECK-NEXT:   call void @foo(ptr %x, ptr null)
+// CHECK-NEXT:   call void @_Y3foo(ptr %x, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

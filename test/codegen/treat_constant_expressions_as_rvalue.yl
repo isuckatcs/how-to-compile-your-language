@@ -5,8 +5,8 @@ fn main() {
   let x = 123.456;
   println(x);
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.234560e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.234560e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

@@ -10,12 +10,12 @@ fn bar(y: number) {
   // CHECK-NEXT: store double %y, ptr %y1, align 8
 
   foo(y);
-  // CHECK-NEXT: call void @foo(ptr %y1, ptr null)
+  // CHECK-NEXT: call void @_Y3foo(ptr %y1, ptr null)
 
   println(y * 2);
   // CHECK-NEXT: %0 = load double, ptr %y1, align 8
   // CHECK-NEXT: %1 = fmul double %0, 2.000000e+00
-  // CHECK-NEXT: call void @println(double %1, ptr null)
+  // CHECK-NEXT: call void @_Y7println(double %1, ptr null)
 }
 
 fn main() {

@@ -14,7 +14,7 @@ fn foo(mut x: number): number {
 
     return 5.2;
 }
-// CHECK: define double @foo(double %x, ptr %closure) {
+// CHECK: define double @_Y3foo(double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %x1 = alloca double, align 8

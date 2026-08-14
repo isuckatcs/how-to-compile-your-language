@@ -3,7 +3,7 @@
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
 
 fn pred(n: number): bool {
-// CHECK: define zeroext i1 @pred(double %n, ptr %closure) {
+// CHECK: define zeroext i1 @_Y4pred(double %n, ptr %closure) {
 // CHECK-NEXT: entry:
 
   // CHECK-NEXT:   %retval = alloca i8, align 1
@@ -38,7 +38,7 @@ fn pred(n: number): bool {
 }
 
 fn main() {
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 
   mut n = 1;
@@ -58,7 +58,7 @@ fn main() {
 
     n = n - 1;
     cond = pred(n);
-    // CHECK: %5 = call zeroext i1 @pred(double %4, ptr null)
+    // CHECK: %5 = call zeroext i1 @_Y4pred(double %4, ptr null)
     // CHECK-NEXT: %6 = zext i1 %5 to i8
     // CHECK-NEXT: store i8 %6, ptr %cond, align 1
   }

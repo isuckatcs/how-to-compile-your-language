@@ -17,7 +17,7 @@ extension S {
   // CHECK: define void @_YS1S6create(ptr sret({ double }) %ret, ptr %closure) {
   // CHECK-NEXT: entry:
   // CHECK-NEXT:   %S.tmp = alloca { double }, align 8
-  // CHECK-NEXT:   call void @println(double 0.000000e+00, ptr null)
+  // CHECK-NEXT:   call void @_Y7println(double 0.000000e+00, ptr null)
   // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
   // CHECK-NEXT:   store double 1.000000e+00, ptr %0, align 8
   // CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %S.tmp, i64 8, i1 false)
@@ -46,7 +46,7 @@ fn main() {
   let s = S::create();
   s.foo();
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %struct.ret.tmp = alloca { double }, align 8
 // CHECK-NEXT:   %s = alloca { double }, align 8

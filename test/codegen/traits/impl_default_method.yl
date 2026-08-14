@@ -23,7 +23,7 @@ extension S2 : A {
   }
   // CHECK: define void @_YT1AGS2S2E3foo(ptr %closure) {
   // CHECK-NEXT: entry:
-  // CHECK-NEXT:   call void @println(double 4.560000e+02, ptr null)
+  // CHECK-NEXT:   call void @_Y7println(double 4.560000e+02, ptr null)
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
 }
@@ -36,7 +36,7 @@ fn main() {
   traitFnDispatch@<S>();
   traitFnDispatch@<S2>();
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_Y15traitFnDispatchGS1SE(ptr null)
 // CHECK-NEXT:   call void @_Y15traitFnDispatchGS2S2E(ptr null)
@@ -69,6 +69,6 @@ fn main() {
 
 // CHECK: define void @_YT1AGS1SE3foo(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }

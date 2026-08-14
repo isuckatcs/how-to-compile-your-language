@@ -16,7 +16,7 @@ extension<T> S<T> {
 fn main() {
   S@<number>::foo@<unit>();
 }
-// CHECK: define void @__builtin_main(ptr %closure) {
+// CHECK: define void @_Y4main(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_YS1SGnE3fooGuE(ptr null)
 // CHECK-NEXT:   ret void
@@ -30,6 +30,6 @@ fn main() {
 
 // CHECK: define void @_Y3fooGnE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @println(double 1.230000e+02, ptr null)
+// CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
