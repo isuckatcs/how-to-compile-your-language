@@ -493,9 +493,9 @@ struct TraitDecl final : public Decl {
             std::vector<std::unique_ptr<TypeParamDecl>> typeParameters,
             std::vector<std::unique_ptr<FunctionDecl>> traitFunctions)
       : Decl(std::move(location), std::move(identifier)),
+        traitConformance(std::move(traitConformance)),
         typeParameters(std::move(typeParameters)),
-        traitFunctions(std::move(traitFunctions)),
-        traitConformance(std::move(traitConformance)) {}
+        traitFunctions(std::move(traitFunctions)) {}
 
   void dump(size_t level = 0) const override;
 };
