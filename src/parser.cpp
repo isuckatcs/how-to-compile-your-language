@@ -31,11 +31,6 @@ constexpr int getTokPrecedence(TokenKind tok) {
   }
 }
 
-constexpr bool isTopLevelToken(TokenKind tok) {
-  return tok == TokenKind::Eof || tok == TokenKind::KwFn ||
-         tok == TokenKind::KwStruct || tok == TokenKind::KwTrait;
-}
-
 const std::unordered_map<TokenKind, ast::BuiltinType::Kind> builtinTyTokens = {
     {TokenKind::KwUnit, ast::BuiltinType::Kind::Unit},
     {TokenKind::KwSelf, ast::BuiltinType::Kind::Self},
@@ -45,12 +40,9 @@ const std::unordered_map<TokenKind, ast::BuiltinType::Kind> builtinTyTokens = {
 }; // namespace
 
 // Synchronization points:
-// - start of a function decl
-// - start of a struct decl
-// - start of a trait decl
+// - top level tokens
 // - end of the current block
 // - ';'
-// - EOF
 void Parser::synchronize() {
   incompleteAST = true;
 
@@ -73,7 +65,7 @@ void Parser::synchronize() {
     } else if (kind == TokenKind::Semi && braces == 0) {
       eatNextToken(); // eat ';'
       break;
-    } else if (isTopLevelToken(kind))
+    } else if (topLevelTokens.count(kind))
       break;
 
     eatNextToken();
@@ -473,7 +465,7 @@ std::unique_ptr<ast::Block> Parser::parseBlock() {
     if (nextToken.kind == TokenKind::Rbrace)
       break;
 
-    if (isTopLevelToken(nextToken.kind))
+    if (topLevelTokens.count(nextToken.kind))
       return err::expectedAtEnd()
           .at(nextToken.location)
           .with("'}'")
@@ -1225,8 +1217,7 @@ std::unique_ptr<ast::SourceFile> Parser::parseSourceFile() {
       continue;
     }
 
-    synchronizeOn({TokenKind::KwFn, TokenKind::KwStruct, TokenKind::KwTrait,
-                   TokenKind::KwExtension});
+    synchronizeOn(topLevelTokens);
   }
 
   assert(nextToken.kind == TokenKind::Eof && "expected EOF");

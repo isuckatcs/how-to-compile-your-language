@@ -1,0 +1,18 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn foo() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected ';' at the end of expression
+  int x ...
+
+// CHECK: [[# @LINE + 1 ]]:1: error: expected '}' at the end of block
+extension A : B {
+  fn bar() {}
+}
+// CHECK: TypeExtension
+// CHECK-NEXT:   UserDefinedType 'A'
+// CHECK-NEXT:   UserDefinedType 'B'
+// CHECK-NEXT:   FunctionDecl 'bar'
+// CHECK-NEXT:     Block
+
+fn baz() {}
+// CHECK-NEXT: FunctionDecl 'baz'
+// CHECK-NEXT:   Block
