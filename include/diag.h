@@ -181,9 +181,6 @@ diag(Error, wrongMainArgCount, "'main' function is expected to take no arguments
 diag(Error, mainIsGeneric, "'main' function cannot be generic");
 diag(Error, mainNotFound, "'main' function not found");
 
-// builtins
-diag(Error, reservedPrintf, "'printf' is a reserved function name and cannot be used for user-defined functions");
-
 // lambdas
 diag(Error, refParamCapture, "capturing '&' parameter in lambda is not allowed");
 diag(Error, lamdaSelfParam, "'self' in lambda parameter list is not allowed");
