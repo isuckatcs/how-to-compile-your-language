@@ -711,8 +711,8 @@ private:
 };
 
 struct LambdaExpr final : public Creatable<LambdaExpr>, public Expr {
-  res::StructDecl *closure;
   std::vector<res::Expr *> fieldInits;
+  res::StructDecl *closure;
   res::TypeExtension *ext;
 
   res::FunctionDecl *getFunction() const { return ext->functions[0]; }

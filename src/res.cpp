@@ -25,16 +25,16 @@ void Substitution::dump() const {
 
 void TranslationUnit::dump(size_t level) const {
   for (auto &&trait : traits)
-    trait->dump(0);
+    trait->dump(level);
 
   for (auto &&s : structs)
-    s->dump(0);
+    s->dump(level);
 
   for (auto &&extension : extensions)
-    extension->dump(0);
+    extension->dump(level);
 
   for (auto &&fn : functions)
-    fn->dump(0);
+    fn->dump(level);
 }
 
 void Context::add(std::unique_ptr<Stmt> stmt) {
@@ -137,7 +137,7 @@ bool Context::eq(Type *t1, Type *t2) const {
   if (!t1->isSameBase(t2))
     return false;
 
-  for (int i = 0; i < t1->args.size(); ++i)
+  for (size_t i = 0; i < t1->args.size(); ++i)
     if (!eq(t1->args[i], t2->args[i]))
       return false;
 
@@ -388,7 +388,7 @@ FunctionType::FunctionType(std::vector<Type *> args, Type *ret)
 std::string FunctionType::getName() const {
   std::stringstream ss;
   ss << '(';
-  for (int i = 0; i < args.size() - 1; ++i) {
+  for (size_t i = 0; i < args.size() - 1; ++i) {
     ss << args[i]->getRootType()->getName();
 
     if (i < args.size() - 2)
@@ -414,7 +414,7 @@ std::string TraitType::getName() const {
 
   if (args.size() > 1) {
     ss << '<';
-    for (int i = 1; i < args.size(); ++i) {
+    for (size_t i = 1; i < args.size(); ++i) {
       ss << args[i]->getName();
 
       if (i < args.size() - 1)
@@ -429,7 +429,7 @@ std::string TraitType::getName() const {
 Substitution TraitType::getSub() const {
   Substitution res;
 
-  for (int i = 0; i < args.size(); ++i)
+  for (size_t i = 0; i < args.size(); ++i)
     res[getDecl()->typeParams[i]->getType()] = args[i];
 
   return res;
@@ -455,7 +455,7 @@ StructType::StructType(StructDecl *decl, std::vector<Type *> typeArgs)
 Substitution StructType::getSub() const {
   Substitution res;
 
-  for (int i = 0; i < args.size(); ++i)
+  for (size_t i = 0; i < args.size(); ++i)
     res[getDecl()->typeParams[i]->getType()] = args[i];
 
   return res;
@@ -467,7 +467,7 @@ AnyTraitType::AnyTraitType(TraitDecl *decl, std::vector<Type *> args)
 Substitution AnyTraitType::getSub() const {
   Substitution res;
 
-  for (int i = 0; i < args.size(); ++i)
+  for (size_t i = 0; i < args.size(); ++i)
     res[getDecl()->typeParams[i + 1]->getType()] = args[i];
 
   return res;
@@ -894,9 +894,9 @@ LambdaExpr::LambdaExpr(SourceLocation location,
                        res::TypeExtension *ext,
                        std::vector<res::Expr *> fieldInits)
     : Expr(location, Expr::Kind::Rvalue),
+      fieldInits(std::move(fieldInits)),
       closure(closure),
-      ext(ext),
-      fieldInits(std::move(fieldInits)) {}
+      ext(ext) {}
 
 void LambdaExpr::dump(size_t level) const {
   std::cerr << indent(level) << "LambdaExpr"
