@@ -181,17 +181,19 @@ res::Type *Sema::resolveType(res::Context &ctx,
       auto *td = decl->getAs<res::TraitDecl>();
       if (!traitSelfType)
         return validatedUserDefinedType(
-            udt,
+            ctx, udt,
             res::AnyTraitType::create(ctx, td, std::move(resolvedTypeArgs)));
 
       resolvedTypeArgs.emplace(resolvedTypeArgs.begin(), traitSelfType);
       return validatedUserDefinedType(
-          udt, res::TraitType::create(ctx, td, std::move(resolvedTypeArgs)));
+          ctx, udt,
+          res::TraitType::create(ctx, td, std::move(resolvedTypeArgs)));
     }
 
     return validatedUserDefinedType(
-        udt, res::StructType::create(ctx, decl->getAs<res::StructDecl>(),
-                                     std::move(resolvedTypeArgs)));
+        ctx, udt,
+        res::StructType::create(ctx, decl->getAs<res::StructDecl>(),
+                                std::move(resolvedTypeArgs)));
   }
 
   if (const auto *arg = dynamic_cast<const ast::ArgumentType *>(&parsedType)) {
@@ -227,7 +229,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
     SourceLocation loc = any->type->location;
     std::set<std::string> visited;
     if (!checkVtableCompatibility(
-            loc,
+            ctx, loc,
             anyTraitType->withSelfType(&ctx, res::UninferredType::create(ctx)),
             visited))
       return err::traitNotTraitObjectCompatible()
@@ -344,7 +346,8 @@ bool Sema::shouldCaptureInCurrentLambda(res::DeclRefExpr *dre) {
   return !r.empty() && decl == r.front();
 }
 
-res::MemberExpr *Sema::captureInCurrentLambda(const ast::PathExpr &path,
+res::MemberExpr *Sema::captureInCurrentLambda(res::Context &ctx,
+                                              const ast::PathExpr &path,
                                               res::DeclRefExpr *dre) {
   const std::string &id = dre->decl->identifier;
 
@@ -399,7 +402,7 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
     if (refType)
       return err::refParamCapture().at(dre->location).report(reporter);
 
-    return captureInCurrentLambda(path, dre);
+    return captureInCurrentLambda(ctx, path, dre);
   }
 
   if (refType && (!typeHint || !typeHint->getAs<res::RefType>())) {
@@ -432,7 +435,7 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
           .report(reporter);
 
     const ast::DeclRefExpr *fragment = fragments[idx].get();
-    candidates = lookupAssociatedDecls(fragment->identifier, type, trait);
+    candidates = lookupAssociatedDecls(ctx, fragment->identifier, type, trait);
 
     if (candidates.empty())
       return err::memberLookupFailed()
@@ -470,7 +473,7 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
             .at(fragment->location)
             .report(reporter);
 
-      candidates = lookupAssociatedDecls(fragment->identifier, type);
+      candidates = lookupAssociatedDecls(ctx, fragment->identifier, type);
       if (candidates.empty())
         return err::memberLookupFailed()
             .at(fragment->location)
@@ -580,7 +583,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
 }
 
 std::vector<std::pair<res::Decl *, res::Substitution>>
-Sema::lookupAssociatedDecls(std::string identifier,
+Sema::lookupAssociatedDecls(res::Context &ctx,
+                            std::string identifier,
                             res::Type *type,
                             res::TraitType *trait) {
   std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
@@ -669,7 +673,7 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       continue;
     }
 
-    resolvedArgument = tryCoerce(resolvedArgument, expectedType);
+    resolvedArgument = tryCoerce(ctx, resolvedArgument, expectedType);
     res::Type *actualType = resolvedArgument->getType();
 
     if (auto errors = ctx.unify(actualType, expectedType); !errors.empty()) {
@@ -735,7 +739,7 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    resolvedInitExpr = tryCoerce(resolvedInitExpr, fieldTy);
+    resolvedInitExpr = tryCoerce(ctx, resolvedInitExpr, fieldTy);
     res::Type *initTy = resolvedInitExpr->getType();
 
     if (auto errors = ctx.unify(initTy, fieldTy); !errors.empty()) {
@@ -821,10 +825,10 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   }
 
   if (candidates.empty())
-    candidates = lookupAssociatedDecls(member->identifier, lookupType);
+    candidates = lookupAssociatedDecls(ctx, member->identifier, lookupType);
 
   if (candidates.empty() && basePtrType)
-    candidates = lookupAssociatedDecls(member->identifier, basePtrType);
+    candidates = lookupAssociatedDecls(ctx, member->identifier, basePtrType);
 
   if (candidates.size() > 1)
     return err::ambigousAssociatedFn().at(member->location).report(reporter);
@@ -871,7 +875,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   call->setType(functionType->getReturnType());
 
   auto *selfType = functionType->getArgs()[0];
-  base = tryCoerce(base, selfType);
+  base = tryCoerce(ctx, base, selfType);
 
   if (auto errors = ctx.unify(base->getType(), selfType); !errors.empty()) {
     for (auto &&error : errors)
@@ -1001,7 +1005,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-bool Sema::isTraitObjectOf(res::Type *type, res::Type *any) {
+bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
   auto *anyType = any->getAs<res::AnyTraitType>();
   if (!anyType || type->getAs<res::AnyTraitType>())
     return false;
@@ -1009,7 +1013,7 @@ bool Sema::isTraitObjectOf(res::Type *type, res::Type *any) {
   return ctx.solveConformance(type, anyType->withSelfType(&ctx, type)).empty();
 }
 
-res::Expr *Sema::tryCoerce(res::Expr *expr, res::Type *to) {
+res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
   res::Type *from = expr->getType();
 
   // * -> *any
@@ -1019,7 +1023,8 @@ res::Expr *Sema::tryCoerce(res::Expr *expr, res::Type *to) {
         fromPtr->isMutable() != toPtr->isMutable())
       return expr;
 
-    if (isTraitObjectOf(fromPtr->getPointeeType(), toPtr->getPointeeType())) {
+    if (isTraitObjectOf(ctx, fromPtr->getPointeeType(),
+                        toPtr->getPointeeType())) {
       expr = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
       expr->setType(to);
     }
@@ -1036,7 +1041,7 @@ res::Expr *Sema::tryCoerce(res::Expr *expr, res::Type *to) {
   // val -> &
   res::Type *toReferencedType = toRef->getReferencedType();
   if (ctx.unify(from, toReferencedType).empty() ||
-      isTraitObjectOf(from, toReferencedType)) {
+      isTraitObjectOf(ctx, from, toReferencedType)) {
     coerced = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
     coerced->setType(res::RefType::create(ctx, from, toRef->isMutable()));
   }
@@ -1052,7 +1057,7 @@ res::Expr *Sema::tryCoerce(res::Expr *expr, res::Type *to) {
   if (!fromRef || ctx.unify(fromRef, toRef).empty())
     return coerced;
 
-  if (isTraitObjectOf(fromRef->getReferencedType(),
+  if (isTraitObjectOf(ctx, fromRef->getReferencedType(),
                       toRef->getReferencedType())) {
     expr = res::TraitObjectPromoExpr::create(ctx, expr->location, coerced);
     expr->setType(to);
@@ -1134,7 +1139,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment().at(lhs->location).report(reporter);
   auto *lhsTy = lhs->getType();
 
-  rhs = tryCoerce(rhs, lhsTy);
+  rhs = tryCoerce(ctx, rhs, lhsTy);
   auto *rhsTy = rhs->getType();
 
   if (auto errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
@@ -1167,7 +1172,7 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    expr = tryCoerce(expr, retTy);
+    expr = tryCoerce(ctx, expr, retTy);
     res::Type *exprTy = expr->getType();
 
     if (!ctx.unify(retTy, exprTy).empty())
@@ -1297,7 +1302,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
   EnterNewScopeRAII extensionScope(this, resExtension);
   for (auto &&fn : extension.functions) {
     if (!trait) {
-      if (!lookupAssociatedDecls(fn->identifier, type).empty()) {
+      if (!lookupAssociatedDecls(ctx, fn->identifier, type).empty()) {
         err::redeclaration()
             .at(fn->location)
             .with(fn->identifier)
@@ -1441,7 +1446,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
 
-    init = tryCoerce(init, declTy);
+    init = tryCoerce(ctx, init, declTy);
     auto *initTy = init->getType();
 
     if (!ctx.unify(declTy, initTy).empty())
@@ -1564,7 +1569,7 @@ res::FunctionDecl *Sema::resolveFunctionDecl(res::Context &ctx,
     res::Type *paramType = resolvedParam->getType();
 
     bool error = !paramType;
-    error |= !checkSelfParameter(resolvedParam, resolvedParams.size());
+    error |= !checkSelfParameter(ctx, resolvedParam, resolvedParams.size());
     error |= !insertDeclToCurrentScope(resolvedParam);
 
     if (!error) {
@@ -1776,8 +1781,10 @@ bool Sema::resolveStructBody(res::Context &ctx,
   return structDecl.fields.size() == astDecl.fields.size();
 }
 
-res::Context *Sema::resolveAST() {
-  EnterNewScopeRAII globalScope(this, ctx.getTU());
+std::unique_ptr<res::Context> Sema::resolveAST() {
+  auto ctx = std::make_unique<res::Context>();
+
+  EnterNewScopeRAII globalScope(this, ctx->getTU());
   bool error = false;
 
   std::vector<std::pair<res::Decl *, const ast::Decl *>> resDecls;
@@ -1788,10 +1795,10 @@ res::Context *Sema::resolveAST() {
     const ast::Decl *ad = dynamic_cast<const ast::Decl *>(node.get());
     res::Decl *rd = nullptr;
     if (const auto *sd = dynamic_cast<const ast::StructDecl *>(node.get()))
-      rd = resolveStructDecl(ctx, *sd);
+      rd = resolveStructDecl(*ctx, *sd);
 
     if (const auto *td = dynamic_cast<const ast::TraitDecl *>(node.get()))
-      rd = resolveTraitDecl(ctx, *td);
+      rd = resolveTraitDecl(*ctx, *td);
 
     if (!rd)
       continue;
@@ -1802,30 +1809,30 @@ res::Context *Sema::resolveAST() {
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *resSD = resDecl->getAs<res::StructDecl>()) {
-      ctx.getTU()->structs.emplace_back(resSD);
+      ctx->getTU()->structs.emplace_back(resSD);
       error |= !resolveStructBody(
-          ctx, *resSD, *static_cast<const ast::StructDecl *>(astDecl));
+          *ctx, *resSD, *static_cast<const ast::StructDecl *>(astDecl));
     }
 
     if (auto *resTD = resDecl->getAs<res::TraitDecl>()) {
-      ctx.getTU()->traits.emplace_back(resTD);
-      error |= !resolveTraitBody(ctx, *resTD,
+      ctx->getTU()->traits.emplace_back(resTD);
+      error |= !resolveTraitBody(*ctx, *resTD,
                                  *static_cast<const ast::TraitDecl *>(astDecl));
     }
   }
 
-  for (auto &&trait : ctx.getTU()->traits)
+  for (auto &&trait : ctx->getTU()->traits)
     error |= isSelfContainingTrait(trait);
 
-  error |= hasSelfContainingStructs(ctx);
+  error |= hasSelfContainingStructs(*ctx);
 
   for (auto &&node : ast->topLevel) {
     auto *extension = dynamic_cast<const ast::TypeExtension *>(node.get());
     if (!extension)
       continue;
 
-    if (auto *resExtension = resolveTypeExtension(ctx, *extension)) {
-      ctx.getTU()->extensions.emplace_back(resExtension);
+    if (auto *resExtension = resolveTypeExtension(*ctx, *extension)) {
+      ctx->getTU()->extensions.emplace_back(resExtension);
       resExtensions.emplace_back(resExtension, extension);
       continue;
     }
@@ -1834,27 +1841,27 @@ res::Context *Sema::resolveAST() {
   }
 
   for (auto &&[resExtension, extension] : resExtensions)
-    error |= !resolveExtensionBody(ctx, resExtension, *extension);
+    error |= !resolveExtensionBody(*ctx, resExtension, *extension);
 
-  error |= !checkDelayedUserDefinedTypes();
+  error |= !checkDelayedUserDefinedTypes(*ctx);
 
-  auto *builtinGCCollect = createBuiltinGCCollect(ctx);
+  auto *builtinGCCollect = createBuiltinGCCollect(*ctx);
   insertDeclToCurrentScope(builtinGCCollect);
-  ctx.getTU()->functions.emplace_back(builtinGCCollect);
+  ctx->getTU()->functions.emplace_back(builtinGCCollect);
 
-  auto *builtinPrintln = createBuiltinPrintln(ctx);
+  auto *builtinPrintln = createBuiltinPrintln(*ctx);
   insertDeclToCurrentScope(builtinPrintln);
-  ctx.getTU()->functions.emplace_back(builtinPrintln);
+  ctx->getTU()->functions.emplace_back(builtinPrintln);
 
   bool hasMainFunction = false;
 
   for (auto &&node : ast->topLevel) {
     if (auto *fn = dynamic_cast<const ast::FunctionDecl *>(node.get())) {
-      auto *rf = resolveFunctionDecl(ctx, *fn);
+      auto *rf = resolveFunctionDecl(*ctx, *fn);
       error |= !insertDeclToCurrentScope(rf);
       error |= hasBuiltinFunctionCollisions(rf);
       resDecls.emplace_back(rf, fn);
-      ctx.getTU()->functions.emplace_back(rf);
+      ctx->getTU()->functions.emplace_back(rf);
 
       hasMainFunction |= fn->identifier == "main";
     }
@@ -1873,24 +1880,24 @@ res::Context *Sema::resolveAST() {
 
     EnterNewScopeRAII extensionScope(this);
     for (size_t i = 0; i < astExt->functions.size(); ++i)
-      error |= !resolveFunctionBody(ctx, *astExt->functions[i],
+      error |= !resolveFunctionBody(*ctx, *astExt->functions[i],
                                     resExt->functions[i]);
   }
 
   for (auto &&[resDecl, astDecl] : resDecls) {
     if (auto *rt = resDecl->getAs<res::TraitDecl>())
       error |= !resolveTraitFunctionBodies(
-          ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
+          *ctx, *rt, *static_cast<const ast::TraitDecl *>(astDecl));
 
     if (auto *resFN = resDecl->getAs<res::FunctionDecl>())
       error |= !resolveFunctionBody(
-          ctx, *static_cast<const ast::FunctionDecl *>(astDecl), resFN);
+          *ctx, *static_cast<const ast::FunctionDecl *>(astDecl), resFN);
   }
 
   if (error)
     return nullptr;
 
-  return &ctx;
+  return ctx;
 }
 
 bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
@@ -1920,7 +1927,9 @@ bool Sema::hasBuiltinFunctionCollisions(const res::FunctionDecl *fnDecl) {
   return false;
 }
 
-bool Sema::checkSelfParameter(res::ParamDecl *param, size_t idx) {
+bool Sema::checkSelfParameter(res::Context &ctx,
+                              res::ParamDecl *param,
+                              size_t idx) {
   if (param->identifier != selfParamId)
     return true;
 
@@ -2012,17 +2021,18 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   return !selfContaining.empty();
 }
 
-bool Sema::checkDelayedUserDefinedTypes() {
+bool Sema::checkDelayedUserDefinedTypes(res::Context &ctx) {
   shouldDelayUserDefinedTypeChecking = false;
 
   bool error = false;
   for (auto &&[ast, res] : delayedTypeChecks)
-    error |= !validatedUserDefinedType(ast, res);
+    error |= !validatedUserDefinedType(ctx, ast, res);
 
   return !error;
 }
 
-res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
+res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
+                                          const ast::UserDefinedType *astDecl,
                                           res::Type *type) {
   if (shouldDelayUserDefinedTypeChecking) {
     delayedTypeChecks[astDecl] = type;
@@ -2066,7 +2076,8 @@ res::Type *Sema::validatedUserDefinedType(const ast::UserDefinedType *astDecl,
   return type;
 }
 
-bool Sema::checkVtableCompatibility(SourceLocation loc,
+bool Sema::checkVtableCompatibility(res::Context &ctx,
+                                    SourceLocation loc,
                                     res::TraitType *trait,
                                     std::set<std::string> &visited) {
   if (!visited.emplace(trait->getName()).second)
@@ -2124,7 +2135,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
   }
 
   for (auto &&parentTrait : ctx.getDirectConformance(trait))
-    if (!checkVtableCompatibility(loc, parentTrait, visited)) {
+    if (!checkVtableCompatibility(ctx, loc, parentTrait, visited)) {
       err::superTraitNotTraitObjectCompatible()
           .at(loc)
           .with(parentTrait->getName())

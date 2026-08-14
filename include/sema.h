@@ -18,8 +18,6 @@ class Sema {
   ConstExprEvaluator *cee;
   const ast::SourceFile *ast;
 
-  res::Context ctx;
-
   class Scope {
     Scope *parent;
     res::GenericDeclContext *ctx;
@@ -128,8 +126,11 @@ class Sema {
                                        res::Decl *decl,
                                        res::Substitution sub = {});
 
-  std::vector<std::pair<res::Decl *, res::Substitution>> lookupAssociatedDecls(
-      std::string identifier, res::Type *type, res::TraitType *trait = nullptr);
+  std::vector<std::pair<res::Decl *, res::Substitution>>
+  lookupAssociatedDecls(res::Context &ctx,
+                        std::string identifier,
+                        res::Type *type,
+                        res::TraitType *trait = nullptr);
 
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);
@@ -144,7 +145,8 @@ class Sema {
   res::GCExpr *resolveGCExpr(res::Context &ctx, const ast::GCExpr &gc);
 
   bool shouldCaptureInCurrentLambda(res::DeclRefExpr *dre);
-  res::MemberExpr *captureInCurrentLambda(const ast::PathExpr &path,
+  res::MemberExpr *captureInCurrentLambda(res::Context &ctx,
+                                          const ast::PathExpr &path,
                                           res::DeclRefExpr *dre);
   res::LambdaExpr *resolveLambdaExpr(res::Context &ctx,
                                      const ast::LambdaExpr &lambda,
@@ -198,8 +200,8 @@ class Sema {
                                size_t received,
                                size_t expected) const;
 
-  bool isTraitObjectOf(res::Type *type, res::Type *any);
-  res::Expr *tryCoerce(res::Expr *expr, res::Type *to);
+  bool isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any);
+  res::Expr *tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to);
 
   std::vector<res::TypeParamDecl *> resolveTypeParamsWithoutBounds(
       res::Context &ctx,
@@ -221,13 +223,15 @@ class Sema {
   res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 
   bool hasBuiltinFunctionCollisions(const res::FunctionDecl *fn);
-  bool checkSelfParameter(res::ParamDecl *param, size_t idx);
+  bool checkSelfParameter(res::Context &ctx, res::ParamDecl *param, size_t idx);
   bool isSelfContainingTrait(res::TraitDecl *trait);
   bool hasSelfContainingStructs(res::Context &ctx);
-  bool checkDelayedUserDefinedTypes();
-  res::Type *validatedUserDefinedType(const ast::UserDefinedType *astDecl,
+  bool checkDelayedUserDefinedTypes(res::Context &ctx);
+  res::Type *validatedUserDefinedType(res::Context &ctx,
+                                      const ast::UserDefinedType *astDecl,
                                       res::Type *type);
-  bool checkVtableCompatibility(SourceLocation loc,
+  bool checkVtableCompatibility(res::Context &ctx,
+                                SourceLocation loc,
                                 res::TraitType *trait,
                                 std::set<std::string> &visited);
 
@@ -245,7 +249,7 @@ public:
         cee(&cee),
         ast(&ast) {}
 
-  res::Context *resolveAST();
+  std::unique_ptr<res::Context> resolveAST();
 };
 } // namespace yl
 

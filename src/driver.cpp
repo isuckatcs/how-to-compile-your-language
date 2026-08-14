@@ -138,7 +138,7 @@ int main(int argc, const char **argv) {
 
   ConstExprEvaluator cee(true);
   Sema sema(reporter, cee, *ast);
-  auto *resolvedCtx = sema.resolveAST();
+  std::unique_ptr<res::Context> resolvedCtx = sema.resolveAST();
 
   if (options.resDump) {
     if (resolvedCtx)
