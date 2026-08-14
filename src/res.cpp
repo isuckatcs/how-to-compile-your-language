@@ -695,7 +695,7 @@ void TypeParamDecl::dump(size_t level) const {
 }
 
 NumberLiteral::NumberLiteral(SourceLocation location, double value)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       value(value) {}
 
 void NumberLiteral::dump(size_t level) const {
@@ -707,7 +707,7 @@ void NumberLiteral::dump(size_t level) const {
 }
 
 BoolLiteral::BoolLiteral(SourceLocation location, bool value)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       value(value) {}
 
 void BoolLiteral::dump(size_t level) const {
@@ -719,7 +719,7 @@ void BoolLiteral::dump(size_t level) const {
 }
 
 UnitLiteral::UnitLiteral(SourceLocation location)
-    : Expr(location, Expr::Kind::Rvalue) {}
+    : Expr(location, Expr::ValueCategory::Rvalue) {}
 
 void UnitLiteral::dump(size_t level) const {
   std::cerr << indent(level) << "UnitLiteral {" << getType()->getName() << '}'
@@ -728,9 +728,9 @@ void UnitLiteral::dump(size_t level) const {
 
 DeclRefExpr::DeclRefExpr(SourceLocation loc,
                          Decl *d,
-                         Expr::Kind kind,
+                         Expr::ValueCategory valueCategory,
                          Substitution sub)
-    : Expr(loc, kind),
+    : Expr(loc, valueCategory),
       decl(d),
       sub(sub) {}
 
@@ -743,7 +743,7 @@ void DeclRefExpr::dump(size_t level) const {
 }
 
 CallExpr::CallExpr(SourceLocation location, Expr *callee)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       callee(callee){};
 
 void CallExpr::dump(size_t level) const {
@@ -757,7 +757,10 @@ void CallExpr::dump(size_t level) const {
 }
 
 MemberExpr::MemberExpr(SourceLocation location, Expr *base, DeclRefExpr *member)
-    : Expr(location, !base->isLvalue() ? Expr::Kind::MutLvalue : base->kind),
+    // FIXME: should just propagate the base kind?
+    : Expr(location,
+           !base->isLvalue() ? Expr::ValueCategory::MutLvalue
+                             : base->valueCategory),
       base(base),
       member(member) {}
 
@@ -773,7 +776,7 @@ BinaryOperator::BinaryOperator(SourceLocation loc,
                                TokenKind op,
                                Expr *lhs,
                                Expr *rhs)
-    : Expr(loc, Expr::Kind::Rvalue),
+    : Expr(loc, Expr::ValueCategory::Rvalue),
       op(op),
       lhs(lhs),
       rhs(rhs) {}
@@ -792,8 +795,8 @@ void BinaryOperator::dump(size_t level) const {
 UnaryOperator::UnaryOperator(SourceLocation loc,
                              TokenKind op,
                              Expr *e,
-                             Expr::Kind kind)
-    : Expr(loc, kind),
+                             Expr::ValueCategory valueCategory)
+    : Expr(loc, valueCategory),
       op(op),
       operand(e) {}
 
@@ -854,7 +857,7 @@ void FieldInitStmt::dump(size_t level) const {
 
 StructInstantiationExpr::StructInstantiationExpr(
     SourceLocation loc, DeclRefExpr *dre, std::vector<FieldInitStmt *> inits)
-    : Expr(loc, Expr::Kind::Rvalue),
+    : Expr(loc, Expr::ValueCategory::Rvalue),
       structPath(dre),
       fieldInitializers(std::move(inits)) {}
 
@@ -869,7 +872,7 @@ void StructInstantiationExpr::dump(size_t level) const {
 }
 
 ImplicitDerefExpr::ImplicitDerefExpr(SourceLocation location, DeclRefExpr *dre)
-    : Expr(location, dre->kind),
+    : Expr(location, dre->valueCategory),
       dre(dre) {}
 
 void ImplicitDerefExpr::dump(size_t level) const {
@@ -880,7 +883,7 @@ void ImplicitDerefExpr::dump(size_t level) const {
 }
 
 GCExpr::GCExpr(SourceLocation location, Expr *expr)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       expr(expr) {}
 
 void GCExpr::dump(size_t level) const {
@@ -894,7 +897,7 @@ LambdaExpr::LambdaExpr(SourceLocation location,
                        res::StructDecl *closure,
                        res::TypeExtension *ext,
                        std::vector<res::Expr *> fieldInits)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       fieldInits(std::move(fieldInits)),
       closure(closure),
       ext(ext) {}
@@ -912,7 +915,7 @@ void LambdaExpr::dump(size_t level) const {
 
 ImplicitPtrToRefDecay::ImplicitPtrToRefDecay(SourceLocation location,
                                              res::Expr *expr)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       expr(expr) {}
 
 void ImplicitPtrToRefDecay::dump(size_t level) const {
@@ -923,7 +926,7 @@ void ImplicitPtrToRefDecay::dump(size_t level) const {
 }
 
 ImplicitAsRefExpr::ImplicitAsRefExpr(SourceLocation location, res::Expr *expr)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       expr(expr) {}
 
 void ImplicitAsRefExpr::dump(size_t level) const {
@@ -935,7 +938,7 @@ void ImplicitAsRefExpr::dump(size_t level) const {
 
 MaterializeTemporaryExpr::MaterializeTemporaryExpr(SourceLocation location,
                                                    res::Expr *expr)
-    : Expr(location, Expr::Kind::MutLvalue),
+    : Expr(location, Expr::ValueCategory::MutLvalue),
       expr(expr) {}
 
 void MaterializeTemporaryExpr::dump(size_t level) const {
@@ -947,7 +950,7 @@ void MaterializeTemporaryExpr::dump(size_t level) const {
 
 TraitObjectPromoExpr::TraitObjectPromoExpr(SourceLocation location,
                                            res::Expr *expr)
-    : Expr(location, Expr::Kind::Rvalue),
+    : Expr(location, Expr::ValueCategory::Rvalue),
       expr(expr) {}
 
 void TraitObjectPromoExpr::dump(size_t level) const {

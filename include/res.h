@@ -182,22 +182,22 @@ protected:
 };
 
 struct Expr : public TypedNode, public Stmt {
-  enum class Kind { Rvalue, MutLvalue, Lvalue };
+  enum class ValueCategory { Rvalue, MutLvalue, Lvalue };
 
-  Kind kind;
+  ValueCategory valueCategory;
   ConstVal constVal;
 
-  bool isLvalue() const { return kind != Kind::Rvalue; }
-  bool isMutable() const { return kind == Kind::MutLvalue; }
+  bool isLvalue() const { return valueCategory != ValueCategory::Rvalue; }
+  bool isMutable() const { return valueCategory == ValueCategory::MutLvalue; }
 
   bool hasConstantValue() const { return constVal.isKnown(); }
   ConstVal getConstantValue() const { return constVal; }
   void setConstantValue(ConstVal val) { constVal = val; }
 
 protected:
-  Expr(SourceLocation location, Kind kind)
+  Expr(SourceLocation location, ValueCategory valueCategory)
       : Stmt(location),
-        kind(kind) {}
+        valueCategory(valueCategory) {}
 };
 
 struct Decl : public TypedNode {
@@ -594,7 +594,10 @@ struct DeclRefExpr final : public Creatable<DeclRefExpr>, public Expr {
   void dump(size_t level = 0) const override;
 
 private:
-  DeclRefExpr(SourceLocation loc, Decl *d, Expr::Kind kind, Substitution sub);
+  DeclRefExpr(SourceLocation loc,
+              Decl *d,
+              Expr::ValueCategory valueCategory,
+              Substitution sub);
   friend Creatable<DeclRefExpr>;
 };
 
@@ -628,7 +631,10 @@ struct UnaryOperator final : public Creatable<UnaryOperator>, public Expr {
   void dump(size_t level = 0) const override;
 
 private:
-  UnaryOperator(SourceLocation loc, TokenKind op, Expr *e, Expr::Kind kind);
+  UnaryOperator(SourceLocation loc,
+                TokenKind op,
+                Expr *e,
+                Expr::ValueCategory valueCategory);
   friend Creatable<UnaryOperator>;
 };
 

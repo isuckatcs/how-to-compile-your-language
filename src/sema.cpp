@@ -266,14 +266,14 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
         .with("number")
         .report(reporter);
 
-  res::Expr::Kind kind = res::Expr::Kind::Rvalue;
+  res::Expr::ValueCategory valueCategory = res::Expr::ValueCategory::Rvalue;
   if (unary.op == TokenKind::Asterisk) {
     auto *ptr = rhsTy->getAs<res::PointerType>();
     if (!ptr)
       return err::expectedPointerOperand().at(rhs->location).report(reporter);
 
-    kind =
-        ptr->isMutable() ? res::Expr::Kind::MutLvalue : res::Expr::Kind::Lvalue;
+    valueCategory = ptr->isMutable() ? res::Expr::ValueCategory::MutLvalue
+                                     : res::Expr::ValueCategory::Lvalue;
     rhsTy = ptr->getPointeeType();
 
     if (rhsTy->getAs<res::AnyTraitType>())
@@ -282,8 +282,8 @@ Sema::resolveUnaryOperator(res::Context &ctx, const ast::UnaryOperator &unary) {
           .report(reporter);
   }
 
-  auto *resolvedUnaryOp =
-      res::UnaryOperator::create(ctx, unary.location, unary.op, rhs, kind);
+  auto *resolvedUnaryOp = res::UnaryOperator::create(
+      ctx, unary.location, unary.op, rhs, valueCategory);
   resolvedUnaryOp->setType(rhsTy);
 
   return resolvedUnaryOp;
@@ -364,7 +364,7 @@ res::MemberExpr *Sema::captureInCurrentLambda(const ast::PathExpr &path,
 
   res::ParamDecl *closureParam = lambda->getFunction()->params.back();
   auto emptySub = res::Substitution{};
-  auto lvalueKind = res::Expr::Kind::Lvalue;
+  auto lvalueKind = res::Expr::ValueCategory::Lvalue;
 
   res::Expr *closure =
       res::DeclRefExpr::create(ctx, dreLoc, closureParam, lvalueKind, emptySub);
@@ -533,11 +533,11 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
                                            res::Decl *decl,
                                            res::Substitution sub) {
   auto *valueDecl = decl->getAs<res::ValueDecl>();
-  res::Expr::Kind kind = res::Expr::Kind::Lvalue;
+  res::Expr::ValueCategory valueCategory = res::Expr::ValueCategory::Lvalue;
   if (!valueDecl || decl->getAs<res::FunctionDecl>())
-    kind = res::Expr::Kind::Rvalue;
+    valueCategory = res::Expr::ValueCategory::Rvalue;
   else if (valueDecl->isMutable)
-    kind = res::Expr::Kind::MutLvalue;
+    valueCategory = res::Expr::ValueCategory::MutLvalue;
 
   auto *gdc = decl->getAs<res::GenericDeclContext>();
   if (gdc)
@@ -568,7 +568,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     }
   }
 
-  auto *resDre = res::DeclRefExpr::create(ctx, dre->location, decl, kind, sub);
+  auto *resDre =
+      res::DeclRefExpr::create(ctx, dre->location, decl, valueCategory, sub);
   resDre->setType(ctx.instantiate(decl->getType(), sub));
 
   if (modifiers & AddressTaken)
@@ -773,11 +774,12 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
 res::UnaryOperator *Sema::insertUnaryDeref(res::Context &ctx, res::Expr *val) {
   res::PointerType *ptrType = val->getType()->getAs<res::PointerType>();
 
-  res::Expr::Kind kind = ptrType->isMutable() ? res::Expr::Kind::MutLvalue
-                                              : res::Expr::Kind::Lvalue;
+  res::Expr::ValueCategory valueCategory =
+      ptrType->isMutable() ? res::Expr::ValueCategory::MutLvalue
+                           : res::Expr::ValueCategory::Lvalue;
 
   auto *uo = res::UnaryOperator::create(ctx, val->location, TokenKind::Asterisk,
-                                        val, kind);
+                                        val, valueCategory);
   uo->setType(ptrType->getPointeeType());
   return uo;
 }
