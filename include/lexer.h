@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "utils.h"
 
@@ -87,6 +88,10 @@ const std::unordered_map<std::string_view, TokenKind> keywords = {
     {"false", TokenKind::KwFalse},
     {"gc", TokenKind::KwGC},
     {"any", TokenKind::KwAny}};
+
+const std::unordered_set<TokenKind> topLevelTokens = {
+    TokenKind::KwTrait, TokenKind::KwStruct, TokenKind::KwFn,
+    TokenKind::KwExtension, TokenKind::Eof};
 
 struct Token {
   SourceLocation location;
