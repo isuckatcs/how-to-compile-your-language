@@ -289,14 +289,14 @@ struct DeclRefExpr final : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitSpecifier final : public Expr {
+struct TraitSpecifier final : public Node {
   const std::unique_ptr<Type> type;
   const std::unique_ptr<UserDefinedType> trait;
 
   TraitSpecifier(SourceLocation location,
                  std::unique_ptr<Type> type,
                  std::unique_ptr<UserDefinedType> trait)
-      : Expr(location),
+      : Node(location),
         type(std::move(type)),
         trait(std::move(trait)) {}
 
