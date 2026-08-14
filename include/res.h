@@ -106,8 +106,8 @@ public:
   std::vector<diag::DiagBuilder> solveConformance(Type *type,
                                                   TraitType *requirement);
 
-  Type *instantiate(Type *t, Substitution sub);
-  Substitution instantiate(Substitution s, Substitution sub);
+  Type *instantiate(Type *t, const Substitution &sub);
+  Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
 
@@ -116,7 +116,7 @@ public:
 };
 
 template <typename T> struct Creatable {
-  template <typename... Args> static T *create(Context &c, Args... args) {
+  template <typename... Args> static T *create(Context &c, Args &&...args) {
     T *t = new T(std::forward<Args>(args)...);
     c.add(std::unique_ptr<T>(t));
     return t;

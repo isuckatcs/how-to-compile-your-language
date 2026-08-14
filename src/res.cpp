@@ -204,7 +204,7 @@ Context::solveConformance(Type *type, TraitType *requirement) {
   return {};
 }
 
-Type *Context::instantiate(Type *t, Substitution sub) {
+Type *Context::instantiate(Type *t, const Substitution &sub) {
   for (auto &&[from, to] : sub)
     if (eq(from->getRootType(), t->getRootType()))
       return to;
@@ -228,7 +228,8 @@ Type *Context::instantiate(Type *t, Substitution sub) {
   return t;
 }
 
-Substitution Context::instantiate(Substitution s, Substitution sub) {
+Substitution Context::instantiate(const Substitution &s,
+                                  const Substitution &sub) {
   Substitution res;
 
   for (auto &&[from, to] : s)
