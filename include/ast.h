@@ -264,12 +264,12 @@ struct CallExpr final : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TypeArgumentList final : public Expr {
+struct TypeArgumentList final : public Node {
   const std::vector<std::unique_ptr<Type>> args;
 
   TypeArgumentList(SourceLocation location,
                    std::vector<std::unique_ptr<Type>> args)
-      : Expr(location),
+      : Node(location),
         args(std::move(args)) {}
 
   void dump(size_t level = 0) const override;
