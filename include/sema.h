@@ -214,8 +214,7 @@ class Sema {
                           const ast::TraitConformance &conformance,
                           res::Type *type);
   bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
-  bool implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                            res::TypeExtension *extension);
+  bool implementsAllNecessaryTraitFunctions(res::TypeExtension *extension);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
@@ -225,7 +224,7 @@ class Sema {
   bool checkSelfParameter(res::ParamDecl *param, size_t idx);
   bool isSelfContainingTrait(res::TraitDecl *trait);
   bool hasSelfContainingStructs(res::Context &ctx);
-  bool checkDelayedUserDefinedTypes(res::Context &ctx);
+  bool checkDelayedUserDefinedTypes();
   res::Type *validatedUserDefinedType(const ast::UserDefinedType *astDecl,
                                       res::Type *type);
   bool checkVtableCompatibility(SourceLocation loc,

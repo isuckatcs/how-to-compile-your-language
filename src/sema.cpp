@@ -388,8 +388,6 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
                                  res::Type *typeHint) {
   varOrReturn(dre, resolvePathDeclRef<res::ValueDecl>(ctx, path));
 
-  const res::Decl *decl = dre->decl;
-
   if (auto *selfType = dre->sub.getSelfType();
       selfType && selfType->getAs<res::AnyTraitType>() &&
       !(modifiers & IsCallee))
@@ -417,7 +415,7 @@ template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
                                            const ast::PathExpr &pathExpr) {
   const auto &fragments = pathExpr.fragments;
-  int idx = 0;
+  size_t idx = 0;
 
   std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
 
@@ -557,7 +555,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
     varOrReturn(res, checkTypeParameterCount(typeArgList->location, args.size(),
                                              gdc->typeParams.size()));
 
-    for (int i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
       varOrReturn(arg, resolveType(ctx, *args[i]));
       auto *expectedType = sub[gdc->typeParams[i]->getType()];
 
@@ -907,7 +905,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   std::vector<res::ParamDecl *> params = {};
 
   EnterNewScopeRAII paramScope(this);
-  for (int i = 0; i < lambdaExpr.params.size(); ++i) {
+  for (size_t i = 0; i < lambdaExpr.params.size(); ++i) {
     const ast::ParamDecl *astParam = lambdaExpr.params[i].get();
     res::Type *paramHint = i < paramHints.size() ? paramHints[i] : nullptr;
 
@@ -1028,7 +1026,7 @@ res::Expr *Sema::tryCoerce(res::Expr *expr, res::Type *to) {
   }
 
   auto *toRef = to->getAs<res::RefType>();
-  if (!toRef || !expr->isMutable() && toRef->isMutable())
+  if (!toRef || (!expr->isMutable() && toRef->isMutable()))
     return expr;
 
   res::Expr *coerced = expr;
@@ -1423,7 +1421,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
       error = true;
     }
 
-    error |= !implementsAllNecessaryTraitFunctions(ctx, extension);
+    error |= !implementsAllNecessaryTraitFunctions(extension);
   }
 
   error |= extension->functions.size() != astExtension.functions.size();
@@ -1528,8 +1526,7 @@ bool Sema::resolveGenericParamsInCurrentScope(
   return !error;
 }
 
-bool Sema::implementsAllNecessaryTraitFunctions(res::Context &ctx,
-                                                res::TypeExtension *extension) {
+bool Sema::implementsAllNecessaryTraitFunctions(res::TypeExtension *extension) {
   bool error = false;
 
   for (auto &&fn : extension->trait->getDecl()->functions) {
@@ -1837,7 +1834,7 @@ res::Context *Sema::resolveAST() {
   for (auto &&[resExtension, extension] : resExtensions)
     error |= !resolveExtensionBody(ctx, resExtension, *extension);
 
-  error |= !checkDelayedUserDefinedTypes(ctx);
+  error |= !checkDelayedUserDefinedTypes();
 
   auto *builtinGCCollect = createBuiltinGCCollect(ctx);
   insertDeclToCurrentScope(builtinGCCollect);
@@ -1873,7 +1870,7 @@ res::Context *Sema::resolveAST() {
       insertDeclToCurrentScope(tp);
 
     EnterNewScopeRAII extensionScope(this);
-    for (int i = 0; i < astExt->functions.size(); ++i)
+    for (size_t i = 0; i < astExt->functions.size(); ++i)
       error |= !resolveFunctionBody(ctx, *astExt->functions[i],
                                     resExt->functions[i]);
   }
@@ -2018,7 +2015,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   return !selfContaining.empty();
 }
 
-bool Sema::checkDelayedUserDefinedTypes(res::Context &ctx) {
+bool Sema::checkDelayedUserDefinedTypes() {
   shouldDelayUserDefinedTypeChecking = false;
 
   bool error = false;
@@ -2104,8 +2101,7 @@ bool Sema::checkVtableCompatibility(SourceLocation loc,
     res::Substitution testSub;
     testSub[selfTPType] = res::BuiltinUnitType::create(ctx);
 
-    auto *fnType = fn->getType()->getAs<res::FunctionType>();
-    for (int i = 1; i < fn->params.size(); ++i) {
+    for (size_t i = 1; i < fn->params.size(); ++i) {
       const auto &param = fn->params[i];
       res::Type *paramType = param->getType();
 
