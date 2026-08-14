@@ -2249,6 +2249,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 
   bool changed = true;
   while (changed) {
+    changed = false;
     errors.clear();
 
     for (int bb = cfg.entry; bb != cfg.exit; --bb) {
@@ -2297,7 +2298,7 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
         }
       }
 
-      changed = lattices[bb] != state;
+      changed |= lattices[bb] != state;
       lattices[bb] = state;
     }
   }

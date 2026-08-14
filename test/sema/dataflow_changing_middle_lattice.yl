@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let x;
+
+  while true {
+    while true {
+      // CHECK: [[# @LINE + 1 ]]:9: error: cannot assign to immutable value
+      x = 1;
+    }
+  }
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: cannot assign to immutable value
+  x = 1;
+}
