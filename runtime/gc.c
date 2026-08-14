@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef uint8_t byte;
+
 struct Metadata {
   const int32_t size;
   const int32_t offsetCnt;
@@ -26,7 +28,7 @@ struct FrameInfo {
 struct ShadowStackFrame {
   struct ShadowStackFrame *parent;
   struct FrameInfo *frameInfo;
-  void *roots[];
+  byte *roots[];
 };
 
 struct ShadowStackFrame *llvm_gc_root_chain;
@@ -60,8 +62,8 @@ static void gcLog(enum Phase phase, struct AllocHeader *block) {
   }
 
   if (block) {
-    void *data = (void *)block + sizeof(struct AllocHeader);
-    printf(" %p data: %p (%d B)", block, data, block->size);
+    byte *data = (byte *)(block + 1);
+    printf(" %p data: %p (%d B)", (void *)block, (void *)data, block->size);
 
     if (block->metadata) {
       printf(" offsets:");
@@ -75,24 +77,31 @@ static void gcLog(enum Phase phase, struct AllocHeader *block) {
   printf(" {heap: %ld B, threshold: %ld B}\n", heapSize, threshold);
 }
 
-static void mark(void *root);
+static void mark(byte *root);
 
-static void markChildren(void *root, const struct Metadata *metadata) {
-  if (!metadata)
+static void markChildren(byte *rootAddr, const struct Metadata *meta) {
+  //
+  //    v rootAddr   offsets = [8, 16]
+  //     --------------------------
+  //    | double | byte * | byte * |
+  //     --------------------------
+  //    0        8        16       24
+  //
+  if (!meta)
     return;
 
-  for (int i = 0; i < metadata->offsetCnt; ++i)
-    mark(*(void **)(root + metadata->offsets[i]));
+  for (int i = 0; i < meta->offsetCnt; ++i)
+    mark(*(byte **)(rootAddr + meta->offsets[i]));
 }
 
 // Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
 // in the `gc-lowering` pass, and pointers inside allocated objects are also
 // `null` initially because `calloc()` is used.
-static void mark(void *root) {
+static void mark(byte *root) {
   if (!root)
     return;
 
-  struct AllocHeader *header = root - sizeof(struct AllocHeader);
+  struct AllocHeader *header = (struct AllocHeader *)root - 1;
   if (header->marked)
     return;
 
@@ -107,17 +116,38 @@ void gcMark() {
   while (currentFrame) {
     const struct FrameInfo *frameInfo = currentFrame->frameInfo;
     int32_t i = 0;
-    void *rootPtr = currentFrame->roots;
+    byte **rootPtr = currentFrame->roots;
 
+    // These are composite roots with at least 1 field directly pointing to an
+    // allocated block.
+    //
+    //    v rootPtr                v nextRootAddr
+    //     -------------------------------------------
+    //    | double | byte * | bool | byte * |   ...
+    //     -------------------------------------------
+    //    ^~~~~~~ meta->size ~~~~~~^
+    //
     while (i < frameInfo->metaCnt) {
-      markChildren(rootPtr, frameInfo->metas[i]);
-      rootPtr += frameInfo->metas[i]->size;
+      byte *rootAddr = (byte *)rootPtr;
+      const struct Metadata *meta = frameInfo->metas[i];
+
+      markChildren(rootAddr, meta);
+
+      byte *nextRootAddr = rootAddr + meta->size;
+      rootPtr = (byte **)(nextRootAddr);
       ++i;
     }
 
+    // These roots are direct pointers to allocated blocks.
+    //
+    //    ---------------------------
+    //       ...   | byte * | byte * |
+    //    ---------------------------
+    //             ^ rootPtr
+    //
     while (i < frameInfo->rootCnt) {
-      mark(*(void **)rootPtr);
-      rootPtr += sizeof(void *);
+      mark(*rootPtr);
+      ++rootPtr;
       ++i;
     }
 
@@ -153,23 +183,22 @@ void gcSweep() {
 }
 
 void *gcAlloc(int32_t size, const struct Metadata *metadata) {
-  size_t offset = sizeof(struct AllocHeader);
-  void *ptr = calloc(1, offset + size);
+  size_t blockSize = sizeof(struct AllocHeader) + size;
 
-  struct AllocHeader *header = (struct AllocHeader *)ptr;
-  header->metadata = metadata;
-  header->size = size;
-  header->next = allocatedBlocks;
+  struct AllocHeader *block = calloc(1, blockSize);
+  block->metadata = metadata;
+  block->size = size;
+  block->next = allocatedBlocks;
 
-  heapSize += size + sizeof(struct AllocHeader);
-  allocatedBlocks = header;
-  gcLog(ALLOC, header);
+  heapSize += blockSize;
+  allocatedBlocks = block;
+  gcLog(ALLOC, block);
 
   if (heapSize > threshold) {
-    mark(ptr + offset);
+    mark((byte *)(block + 1));
     gcMark();
     gcSweep();
   }
 
-  return ptr + offset;
+  return block + 1;
 }
