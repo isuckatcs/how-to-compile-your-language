@@ -154,7 +154,7 @@ protected:
        std::variant<void *, size_t> metadata = nullptr,
        std::vector<Type *> args = {});
 
-  bool isSameBase(Type *other) const;
+  bool isSameKind(Type *other) const;
 
   friend Context;
 };

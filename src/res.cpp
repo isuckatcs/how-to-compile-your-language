@@ -80,7 +80,7 @@ std::vector<diag::DiagBuilder> Context::doUnify(
   if (t2->getAs<UninferredType>())
     return doUnify(t2, t1, pendingUnifications);
 
-  if (!t1->isSameBase(t2))
+  if (!t1->isSameKind(t2))
     return {err::unificationError().with(t1->getName()).with(t2->getName())};
 
   for (size_t i = 0; i < t1->args.size(); ++i) {
@@ -135,7 +135,7 @@ bool Context::eq(Type *t1, Type *t2) const {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
 
-  if (!t1->isSameBase(t2))
+  if (!t1->isSameKind(t2))
     return false;
 
   for (size_t i = 0; i < t1->args.size(); ++i)
@@ -367,9 +367,8 @@ std::string Type::getName() const {
   return ss.str();
 }
 
-bool Type::isSameBase(Type *other) const {
-  return baseName == other->baseName && args.size() == other->args.size() &&
-         metadata == other->metadata;
+bool Type::isSameKind(Type *other) const {
+  return typeid(*this) == typeid(*other) && metadata == other->metadata;
 }
 
 UninferredType::UninferredType()
@@ -401,6 +400,7 @@ TypeParamType::TypeParamType(TypeParamDecl *decl)
 
 FunctionType::FunctionType(std::vector<Type *> args, Type *ret)
     : Type("fn", nullptr, std::move(args)) {
+  this->metadata = this->args.size();
   this->args.emplace_back(ret);
 }
 
