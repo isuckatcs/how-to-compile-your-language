@@ -115,6 +115,7 @@ diag(Error, incompatibleAssignment, "expected to assign '{}' but received '{}' i
 diag(Error, invalidReturnValue, "cannot return '{}' from a function returning '{}'");
 diag(Error, expectedOperandTy, "expected '{}' operand");
 diag(Error, expectedPointerOperand, "only pointer operands can be dereferenced");
+diag(Error, memberBaseUnknown, "type of base expression is unknown");
 diag(Error, unaryOperandUnknown, "type of operand to unary operator is unknown");
 diag(Error, binopOperandUnknown, "type of {} to binary operator is unknown");
 diag(Error, binopIncompatibleOperands, "incompatible operands to binary operator ('{}' and '{}')");

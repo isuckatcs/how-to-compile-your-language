@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+extension number {
+  fn foo(self: &Self) {}
+}
+
+fn main() {
+  let x;
+
+  // CHECK: [[# @LINE + 1 ]]:3: error: type of base expression is unknown
+  x.foo;
+}

@@ -794,6 +794,9 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
                                    bool asCall) {
   WithModifiersRAII mods(this, asCall ? AddressTaken : 0);
   varOrReturn(base, resolveExpr(ctx, *me.base));
+  if (base->getType()->getAs<res::UninferredType>())
+    return err::memberBaseUnknown().at(base->location).report(reporter);
+
   if (!base->isLvalue()) {
     auto *mte =
         res::MaterializeTemporaryExpr::create(ctx, base->location, base);
