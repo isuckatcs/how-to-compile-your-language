@@ -81,6 +81,8 @@ class Context final {
 
   std::vector<diag::DiagBuilder> doUnify(
       Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
+  std::vector<diag::DiagBuilder> doUnifyAndSolveConformance(
+      Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
 
 public:
   Context()
@@ -101,8 +103,8 @@ public:
   getExtensions(Type *type, TraitType *trait = nullptr);
 
   bool eq(Type *t1, Type *t2) const;
-  std::vector<diag::DiagBuilder>
-  unify(Type *t1, Type *t2, bool probeOnly = false);
+  std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
+  std::vector<diag::DiagBuilder> probe(Type *t1, Type *t2);
   std::vector<diag::DiagBuilder> solveConformance(Type *type,
                                                   TraitType *requirement);
 
