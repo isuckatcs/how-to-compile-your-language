@@ -3,7 +3,7 @@ fn main(): unit {
   mut x = ((((((1))))));
   (((((((((x))))))))) = 1;
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

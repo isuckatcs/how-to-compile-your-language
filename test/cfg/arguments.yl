@@ -4,7 +4,7 @@ fn foo(x: number, y: number): unit{}
 fn main(): unit {
     foo(1.0 + 2.0, 3.0 + 4.0);
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

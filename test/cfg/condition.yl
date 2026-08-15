@@ -3,7 +3,7 @@ fn main(): unit {
     true || false;
     1.0;
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -25,7 +25,7 @@ fn and(): unit {
     true && false;
     1.0;
 }
-// CHECK: fn and(...) {
+// CHECK: fn and({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -47,7 +47,7 @@ fn multipleOr(): unit {
     true || false || true;
     1.0;
 }
-// CHECK: fn multipleOr(...) {
+// CHECK: fn multipleOr({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -71,7 +71,7 @@ fn multipleAnd(): unit {
     true && false && true;
     1.0;
 }
-// CHECK: fn multipleAnd(...) {
+// CHECK: fn multipleAnd({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -95,7 +95,7 @@ fn andOr(): unit {
     true && false || true;
     1.0;
 }
-// CHECK: fn andOr(...) {
+// CHECK: fn andOr({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -119,7 +119,7 @@ fn orAnd(): unit {
     true || false && true;
     1.0;
 }
-// CHECK: fn orAnd(...) {
+// CHECK: fn orAnd({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

@@ -7,7 +7,7 @@ fn main(): unit {
 
     1.0;
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -50,7 +50,7 @@ fn orCondition(): unit {
 
     1;
 }
-// CHECK: fn orCondition(...) {
+// CHECK: fn orCondition({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -97,7 +97,7 @@ fn andCondition(): unit {
 
     1;
 }
-// CHECK: fn andCondition(...) {
+// CHECK: fn andCondition({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -147,7 +147,7 @@ fn nestedLoops(): unit {
 
     1.0;
 }
-// CHECK: fn nestedLoops(...) {
+// CHECK: fn nestedLoops({{.*}}) {
 // CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -213,7 +213,7 @@ fn returnMidloop(): unit {
 
     1.0;
 }
-// CHECK: fn returnMidloop(...) {
+// CHECK: fn returnMidloop({{.*}}) {
 // CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -271,7 +271,7 @@ fn whileOnly(): unit {
 
     }
 }
-// CHECK: fn whileOnly(...) {
+// CHECK: fn whileOnly({{.*}}) {
 // CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 2 
@@ -298,7 +298,7 @@ fn whileAfterReturn(): unit {
     while true {}
     1;
 }
-// CHECK: fn whileAfterReturn(...) {
+// CHECK: fn whileAfterReturn({{.*}}) {
 // CHECK-NEXT: bb5:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 4 
@@ -337,7 +337,7 @@ fn whileAfterIf(): unit {
     while true {}
     1;
 }
-// CHECK: fn whileAfterIf(...) {
+// CHECK: fn whileAfterIf({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -378,7 +378,7 @@ fn whileAfterWhile(): unit {
     while true {}
     1;
 }
-// CHECK: fn whileAfterWhile(...) {
+// CHECK: fn whileAfterWhile({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 

@@ -2,7 +2,7 @@
 fn main(): unit {
     if true {}
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 
@@ -22,7 +22,7 @@ fn body(): unit {
         1.0;
     }
 }
-// CHECK: fn body(...) {
+// CHECK: fn body({{.*}}) {
 // CHECK-NEXT: bb3:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 2 
@@ -50,7 +50,7 @@ fn additionalBlockAfterIf(): unit {
 
     2.0;
 }
-// CHECK: fn additionalBlockAfterIf(...) {
+// CHECK: fn additionalBlockAfterIf({{.*}}) {
 // CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -89,7 +89,7 @@ fn multipleBranches(): unit {
 
     1;
 }
-// CHECK: fn multipleBranches(...) {
+// CHECK: fn multipleBranches({{.*}}) {
 // CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 
@@ -153,7 +153,7 @@ fn nestedIfStatements(): unit {
 
     1;
 }
-// CHECK: fn nestedIfStatements(...) {
+// CHECK: fn nestedIfStatements({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -198,7 +198,7 @@ fn orCondition(): unit {
 
     1.0;
 }
-// CHECK: fn orCondition(...) {
+// CHECK: fn orCondition({{.*}}) {
 // CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -237,7 +237,7 @@ fn andCondition(): unit {
 
     1.0;
 }
-// CHECK: fn andCondition(...) {
+// CHECK: fn andCondition({{.*}}) {
 // CHECK-NEXT: bb4:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 3 
@@ -275,7 +275,7 @@ fn ifWhileFirstStmt(p: bool): unit {
         while p {}
     }
 }
-// CHECK: fn ifWhileFirstStmt(...) {
+// CHECK: fn ifWhileFirstStmt({{.*}}) {
 // CHECK-NEXT: bb6:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 5 
@@ -320,7 +320,7 @@ fn nestedInLoopConditionalOps(): unit {
         while true {}
     }
 }
-// CHECK: fn nestedInLoopConditionalOps(...) {
+// CHECK: fn nestedInLoopConditionalOps({{.*}}) {
 // CHECK-NEXT: bb9:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 8 

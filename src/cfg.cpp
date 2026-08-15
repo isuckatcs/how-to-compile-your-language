@@ -143,7 +143,13 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
 }
 
 void CFG::dump() const {
-  std::cerr << "fn " << fn->identifier << "(...) {\n";
+  std::cerr << "fn " << fn->identifier << '(';
+
+  const auto &[file, line, col] = fn->location;
+  if (file)
+    std::cerr << file->path << ':' << line << ':' << col;
+
+  std::cerr << ") {\n";
 
   for (size_t i = 0; i < basicBlocks.size(); ++i) {
     size_t bb = basicBlocks.size() - 1 - i;
@@ -332,6 +338,9 @@ int CFGBuilder::insertBlock(const res::Block &block, int succ) {
 CFG CFGBuilder::build(const res::FunctionDecl &fn) {
   cfg = {};
   cfg.fn = &fn;
+
+  if (!fn.body)
+    return cfg;
 
   cfg.exit = cfg.insertNewBlock();
   int body = insertBlock(*fn.body, cfg.exit);

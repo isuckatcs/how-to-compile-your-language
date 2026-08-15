@@ -13,7 +13,7 @@ fn main(): unit {
   let s = S { s2: S2 { y : 1 }, x: 0, y: 2 };
   let s2 = S { x: 3, s2: S2 { y : 4 }, y: 5 };
 }
-// CHECK: fn main(...) {
+// CHECK: fn main({{.*}}) {
 // CHECK-NEXT: bb2:
 // CHECK-NEXT:   preds: 
 // CHECK-NEXT:   succs: 1 

@@ -90,7 +90,6 @@ std::filesystem::path getLibDirPath(const char *argv0) {
   auto exeDir = std::filesystem::weakly_canonical(exe).parent_path();
   return exeDir.parent_path().append("lib");
 }
-
 } // namespace
 
 int main(int argc, const char **argv) {
@@ -148,15 +147,8 @@ int main(int argc, const char **argv) {
   }
 
   if (options.cfgDump) {
-    if (resolvedCtx) {
-      const auto &fns = resolvedCtx->getTU()->functions;
-      for (auto &&fn : fns) {
-        CFGBuilder().build(*fn).dump();
-
-        if (fn != fns.back())
-          std::cerr << '\n';
-      }
-    }
+    if (resolvedCtx)
+      resolvedCtx->dumpEveryFunctionCFG();
     return 0;
   }
 

@@ -113,6 +113,8 @@ public:
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);
+
+  void dumpEveryFunctionCFG() const;
 };
 
 template <typename T> struct Creatable {

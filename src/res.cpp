@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "cfg.h"
 #include "diag.h"
 #include "lexer.h"
 #include "res.h"
@@ -298,6 +299,23 @@ std::vector<TraitType *> Context::getEveryConformance(Type *type) {
   }
 
   return result;
+}
+
+void Context::dumpEveryFunctionCFG() const {
+  CFGBuilder builder;
+
+  std::vector<CFG> cfgs;
+
+  for (auto &&decl : decls)
+    if (auto *fn = decl->getAs<res::FunctionDecl>())
+      cfgs.emplace_back(builder.build(*fn));
+
+  for (size_t i = 0; i < cfgs.size(); ++i) {
+    cfgs[i].dump();
+
+    if (i != cfgs.size() - 1)
+      std::cerr << '\n';
+  }
 }
 
 std::string ConstVal::asString() const {
