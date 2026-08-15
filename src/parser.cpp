@@ -8,8 +8,7 @@
     return err.report(reporter);
 
 namespace yl {
-namespace {
-constexpr int getTokPrecedence(TokenKind tok) {
+int Parser::getTokPrecedence(TokenKind tok) {
   switch (tok) {
   case TokenKind::Asterisk:
   case TokenKind::Slash:
@@ -30,14 +29,6 @@ constexpr int getTokPrecedence(TokenKind tok) {
     return -1;
   }
 }
-
-const std::unordered_map<TokenKind, ast::BuiltinType::Kind> builtinTyTokens = {
-    {TokenKind::KwUnit, ast::BuiltinType::Kind::Unit},
-    {TokenKind::KwSelf, ast::BuiltinType::Kind::Self},
-    {TokenKind::KwBool, ast::BuiltinType::Kind::Bool},
-    {TokenKind::KwNumber, ast::BuiltinType::Kind::Number},
-};
-}; // namespace
 
 // Synchronization points:
 // - top level tokens
@@ -1077,10 +1068,28 @@ std::unique_ptr<ast::Type> Parser::parseType() {
   SourceLocation location = nextToken.location;
   TokenKind kind = nextToken.kind;
 
-  if (builtinTyTokens.count(kind)) {
-    eatNextToken(); // eat 'number' | 'bool' | 'unit' | 'Self'
+  if (kind == TokenKind::KwNumber) {
+    eatNextToken(); // eat 'number'
     return std::make_unique<ast::BuiltinType>(location,
-                                              builtinTyTokens.at(kind));
+                                              ast::BuiltinType::Kind::Number);
+  }
+
+  if (kind == TokenKind::KwBool) {
+    eatNextToken(); // eat 'bool'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Bool);
+  }
+
+  if (kind == TokenKind::KwUnit) {
+    eatNextToken(); // eat 'unit'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Unit);
+  }
+
+  if (kind == TokenKind::KwSelf) {
+    eatNextToken(); // eat 'Self'
+    return std::make_unique<ast::BuiltinType>(location,
+                                              ast::BuiltinType::Kind::Self);
   }
 
   if (kind == TokenKind::Identifier)

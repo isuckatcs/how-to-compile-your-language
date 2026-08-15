@@ -107,6 +107,8 @@ class Parser {
   parseTypeParamList();
   std::unique_ptr<std::vector<std::unique_ptr<ast::Type>>> parseTypeList();
 
+  int getTokPrecedence(TokenKind tok);
+
 public:
   Parser(diag::DiagnosticReporter &reporter, Lexer &lexer)
       : reporter(&reporter),
