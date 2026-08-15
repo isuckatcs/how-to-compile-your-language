@@ -7,7 +7,6 @@
 #include <sstream>
 #include <string>
 
-#include "cfg.h"
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
