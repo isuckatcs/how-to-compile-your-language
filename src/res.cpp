@@ -96,7 +96,7 @@ std::vector<diag::DiagBuilder> Context::doUnify(
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getEveryExtension(Type *type, bool probeOnly) {
+Context::getEveryExtension(Type *type) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&extension : extensions) {
@@ -106,7 +106,8 @@ Context::getEveryExtension(Type *type, bool probeOnly) {
     EnterExtensionRAII enterThisExtension(this, extension.get());
 
     Substitution sub = getUninferredInstantiation(extension.get());
-    if (unify(type, instantiate(extension->type, sub), probeOnly).empty())
+    // FIXME: this should ignore conformance solving
+    if (unify(type, instantiate(extension->type, sub), true).empty())
       matches.emplace_back(extension.get(), sub);
   }
 
@@ -114,7 +115,7 @@ Context::getEveryExtension(Type *type, bool probeOnly) {
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
+Context::getExtensions(Type *type, TraitType *trait) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&[extension, sub] : getEveryExtension(type)) {
@@ -124,7 +125,7 @@ Context::getExtensions(Type *type, TraitType *trait, bool probeOnly) {
     }
 
     if (extension->trait && trait)
-      if (unify(trait, instantiate(extension->trait, sub), probeOnly).empty())
+      if (unify(trait, instantiate(extension->trait, sub), true).empty())
         matches.emplace_back(extension, sub);
   }
 
@@ -180,7 +181,7 @@ Context::solveConformance(Type *type, TraitType *requirement) {
   }
 
   if (candidates.empty()) {
-    auto extensions = getExtensions(type->getRootType(), requirement, true);
+    auto extensions = getExtensions(type->getRootType(), requirement);
     for (auto &&[extension, sub] : extensions)
       candidates.emplace_back(
           instantiate(extension->trait, sub)->getAs<res::TraitType>());

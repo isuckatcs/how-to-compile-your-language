@@ -1279,6 +1279,8 @@ llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
   assert(extensions.size() == 1 && "failed to find extension");
   const auto &[extension, extensionSub] = extensions[0];
 
+  resCtx->unify(trait, resCtx->instantiate(extension->trait, extensionSub));
+
   auto *extensionFn = extension->getFunction(fn->identifier);
   if (!extensionFn)
     return nullptr;

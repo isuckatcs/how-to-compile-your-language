@@ -126,7 +126,13 @@ class Sema {
                                        res::Decl *decl,
                                        res::Substitution sub = {});
 
-  std::vector<std::pair<res::Decl *, res::Substitution>>
+  struct AssociatedLookupResult {
+    res::Type *type;
+    res::Decl *decl;
+    res::Substitution sub;
+  };
+
+  std::vector<AssociatedLookupResult>
   lookupAssociatedDecls(res::Context &ctx,
                         std::string identifier,
                         res::Type *type,

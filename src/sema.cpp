@@ -417,10 +417,11 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
 template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
                                            const ast::PathExpr &pathExpr) {
+  std::vector<res::DeclRefExpr *> resFragments;
   const auto &fragments = pathExpr.fragments;
   size_t idx = 0;
 
-  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
+  std::vector<AssociatedLookupResult> candidates;
 
   if (auto *traitSpec = pathExpr.traitSpecifier.get()) {
     varOrReturn(type, resolveType(ctx, *traitSpec->type, true));
@@ -454,10 +455,14 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
 
       res::Type *type = nullptr;
       for (auto &&candidate : candidates) {
-        if (candidate.first->getAs<res::TypeDecl>()) {
-          varOrReturn(dre,
-                      resolveDeclRefExpr(ctx, fragments[idx - 1].get(),
-                                         candidate.first, candidate.second));
+        if (candidate.decl->getAs<res::TypeDecl>()) {
+          varOrReturn(dre, resolveDeclRefExpr(ctx, fragments[idx - 1].get(),
+                                              candidate.decl, candidate.sub));
+
+          if (candidate.type && !resFragments.empty())
+            ctx.unify(candidate.type, resFragments.back()->getType());
+
+          resFragments.emplace_back(dre);
           type = dre->getType();
           break;
         }
@@ -492,14 +497,16 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
         return err::selfTyNotAllowed().at(fragment->location).report(reporter);
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
-        candidates.emplace_back(paramType->getDecl(), paramType->getSub());
+        candidates.push_back(
+            {nullptr, paramType->getDecl(), paramType->getSub()});
         continue;
       }
 
       auto *structType = selfType->getAs<res::StructType>();
       assert(structType && "unexpect self type");
 
-      candidates.emplace_back(structType->getDecl(), structType->getSub());
+      candidates.push_back(
+          {nullptr, structType->getDecl(), structType->getSub()});
       continue;
     }
 
@@ -511,12 +518,12 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
           .report(reporter);
 
     for (auto &&symbol : symbolsInScope)
-      candidates.emplace_back(symbol, res::Substitution{});
+      candidates.push_back({nullptr, symbol, res::Substitution{}});
   }
 
-  std::vector<std::pair<res::Decl *, res::Substitution>> expectedCandidates;
+  std::vector<AssociatedLookupResult> expectedCandidates;
   for (auto &&candidate : candidates)
-    if (dynamic_cast<ExpectedDecl *>(candidate.first))
+    if (dynamic_cast<ExpectedDecl *>(candidate.decl))
       expectedCandidates.emplace_back(std::move(candidate));
 
   if (expectedCandidates.empty())
@@ -527,7 +534,11 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
         .at(fragments.back()->location)
         .report(reporter);
 
-  auto &&[decl, sub] = expectedCandidates.front();
+  auto &&[type, decl, sub] = expectedCandidates.front();
+
+  if (type && !resFragments.empty())
+    ctx.unify(type, resFragments.back()->getType());
+
   return resolveDeclRefExpr(ctx, fragments.back().get(), decl, sub);
 }
 
@@ -582,30 +593,30 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   return functionInfo->declReferences.emplace_back(resDre);
 }
 
-std::vector<std::pair<res::Decl *, res::Substitution>>
+std::vector<Sema::AssociatedLookupResult>
 Sema::lookupAssociatedDecls(res::Context &ctx,
                             std::string identifier,
                             res::Type *type,
                             res::TraitType *trait) {
-  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
+  std::vector<AssociatedLookupResult> candidates;
 
   if (trait) {
     if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-      candidates.emplace_back(decl, trait->getSub());
+      candidates.push_back({type, decl, trait->getSub()});
 
     return candidates;
   }
 
   for (auto &&trait : ctx.getEveryConformance(type))
     if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-      candidates.emplace_back(decl, trait->getSub());
+      candidates.push_back({type, decl, trait->getSub()});
 
   if (!candidates.empty())
     return candidates;
 
   for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
     if (auto *decl = extension->getFunction(identifier))
-      candidates.emplace_back(decl, sub);
+      candidates.push_back({ctx.instantiate(extension->type, sub), decl, sub});
 
   if (!candidates.empty())
     return candidates;
@@ -613,7 +624,8 @@ Sema::lookupAssociatedDecls(res::Context &ctx,
   for (auto &&[extension, sub] : ctx.getEveryExtension(type))
     if (auto *trait = extension->trait)
       if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-        candidates.emplace_back(decl, ctx.instantiate(trait->getSub(), sub));
+        candidates.push_back({ctx.instantiate(extension->type, sub), decl,
+                              ctx.instantiate(trait->getSub(), sub)});
 
   return candidates;
 }
@@ -812,7 +824,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   const SourceLocation &memberLoc = member->location;
   std::string memberId = member->identifier;
 
-  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
+  std::vector<AssociatedLookupResult> candidates;
 
   if (!asCall) {
     auto *structType = lookupType->getAs<res::StructType>();
@@ -824,7 +836,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
           .report(reporter);
 
     if (auto *field = structType->getDecl()->lookupField(memberId))
-      candidates.emplace_back(field, structType->getSub());
+      candidates.push_back({structType, field, structType->getSub()});
   }
 
   if (candidates.empty())
@@ -851,7 +863,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
         .report(reporter);
   }
 
-  auto &&[decl, sub] = candidates.back();
+  auto &&[type, decl, sub] = candidates.back();
   varOrReturn(dre, resolveDeclRefExpr(ctx, member, decl, sub));
 
   if (!asCall) {

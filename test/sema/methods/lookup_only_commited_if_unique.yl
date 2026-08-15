@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {}
+
+extension S<number> {
+  fn foo<T>(self: &Self, x: T) {}
+}
+
+extension S<bool> {
+  fn foo<T>(self: &Self, x: T) {}
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:14: error: ambigous associated function reference
+  let x = S::foo;
+}
