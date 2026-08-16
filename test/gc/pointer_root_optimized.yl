@@ -52,7 +52,7 @@ fn main() {
   let s = foo();
 
   println(*s.w.w.w);
-  // CHECK: 123
+  // CHECK: {{^123$}}
 
   gcCollect();
   // CHECK-NEXT: [1] mark {{.*}} data: {{.*}} (32 B) offsets: {8 {{.*}}} {24 {{.*}}} {heap: 200 B, threshold: 288 B}

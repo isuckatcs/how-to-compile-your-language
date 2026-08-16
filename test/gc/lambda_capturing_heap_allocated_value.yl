@@ -17,7 +17,7 @@ fn main() {
   // CHECK-NEXT: [0] sweep {heap: 64 B, threshold: 128 B}
 
   println(generator());
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
 }
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 32 B, threshold: 128 B}
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 128 B}

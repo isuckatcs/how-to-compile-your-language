@@ -18,7 +18,7 @@ fn main() {
   // CHECK-NEXT: [0] sweep {heap: 32 B, threshold: 96 B}
 
   println(*x.y);
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
 
   x = foo(456);
   // CHECK-NEXT: [1] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
@@ -29,7 +29,7 @@ fn main() {
   // CHECK-NEXT: [1] sweep {heap: 32 B, threshold: 96 B}
   
   println(*x.y);
-  // CHECK-NEXT: 456
+  // CHECK-NEXT: {{^456$}}
 
   x.y = gc 789;
   // CHECK-NEXT: [2] alloc {{.*}} data: {{.*}} (8 B) {heap: 64 B, threshold: 96 B}
@@ -40,7 +40,7 @@ fn main() {
   // CHECK-NEXT: [2] sweep {heap: 32 B, threshold: 96 B}
 
   println(*x.y);
-  // CHECK-NEXT: 789
+  // CHECK-NEXT: {{^789$}}
 }
 // CHECK-NEXT: [3] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
 // CHECK-NEXT: [3] sweep {heap: 0 B, threshold: 96 B}

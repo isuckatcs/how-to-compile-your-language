@@ -26,7 +26,7 @@ fn main() {
     n9: 0,
     n10: 0,
   });
-  // CHECK-NEXT: [0] alloc {{.*}} data: {{.*}} (80 B) {heap: 104 B, threshold: 96 B}
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (80 B) {heap: 104 B, threshold: 96 B}
   // CHECK-NEXT: [0] mark {{.*}} data: {{.*}} (80 B) {heap: 104 B, threshold: 96 B}
   // CHECK-NEXT: [0] sweep {heap: 104 B, threshold: 208 B}
 

@@ -22,5 +22,5 @@ fn main() {
   // CHECK-NEXT: [0] sweep {heap: 96 B, threshold: 192 B}
 
   println(**p);
-  // CHECK-NEXT: 456
+  // CHECK-NEXT: {{^456$}}
 }

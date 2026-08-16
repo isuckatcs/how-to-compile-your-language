@@ -29,7 +29,7 @@ fn main() {
   }
 
   println(0);
-  // CHECK-NEXT: 0
+  // CHECK-NEXT: {{^0$}}
 }
 // CHECK-NEXT: [5] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
 // CHECK-NEXT: [5] sweep {heap: 0 B, threshold: 96 B}

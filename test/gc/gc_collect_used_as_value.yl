@@ -10,6 +10,6 @@ fn main() {
   // CHECK-NEXT: [0] sweep {heap: 0 B, threshold: 96 B}
 
   println(n);
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
 }
 // CHECK-NEXT: [1] sweep {heap: 0 B, threshold: 96 B}

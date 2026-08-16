@@ -9,7 +9,7 @@ fn main() {
   foo();
 
   println(123);
-  // CHECK: 123
+  // CHECK: {{^123$}}
 
   gcCollect();
   // CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}

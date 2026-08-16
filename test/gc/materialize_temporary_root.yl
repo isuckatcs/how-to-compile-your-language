@@ -16,7 +16,7 @@ extension number : A {
     // CHECK-NEXT: [0] sweep {heap: 32 B, threshold: 96 B}
 
     println(self);
-    // CHECK-NEXT: 123
+    // CHECK-NEXT: {{^123$}}
   }
 }
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}

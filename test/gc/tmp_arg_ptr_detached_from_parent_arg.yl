@@ -23,7 +23,7 @@ fn mutator(s: &mut S) {
 
 fn caller(s: S, u: unit) {
   println(*s.ptr);
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
 }
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 128 B}
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 128 B}

@@ -28,10 +28,10 @@ fn main() {
   mut s = gc S{ x: 123 };
 
   (*s).foo(foo(s));
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
   
   println(s.x);
-  // CHECK-NEXT: 456
+  // CHECK-NEXT: {{^456$}}
 }
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 128 B}
 // CHECK-NEXT: [1] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 128 B}

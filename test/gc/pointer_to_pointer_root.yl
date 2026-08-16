@@ -13,5 +13,5 @@ fn main() {
   // CHECK-NEXT: [0] sweep {heap: 64 B, threshold: 128 B}
 
   println(**x);
-  // CHECK-NEXT: 123
+  // CHECK-NEXT: {{^123$}}
 }

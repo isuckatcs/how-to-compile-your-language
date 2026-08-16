@@ -69,5 +69,5 @@ fn main() {
   // CHECK-NEXT: [2] sweep {heap: 336 B, threshold: 672 B}
 
   println(0);
-  // CHECK-NEXT: 0
+  // CHECK-NEXT: {{^0$}}
 }
