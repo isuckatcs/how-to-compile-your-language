@@ -100,10 +100,22 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
   auto errors = doUnify(t1, t2, pendingUnifications);
 
   if (errors.empty()) {
-    for (auto &&u : pendingUnifications)
-      for (auto &&obligation : u->obligations)
-        for (auto &&error : solveConformance(u->getRootType(), obligation))
-          errors.emplace_back(error);
+    for (auto &&u : pendingUnifications) {
+      if (u->getRootType()->getAs<res::UninferredType>())
+        continue;
+
+      for (auto &&obligation : obligations) {
+        auto &&[type, trait] = obligation;
+
+        if (eq(type, u)) {
+          if (!visitedObligations.emplace(&obligation).second)
+            continue;
+
+          for (auto &&error : solveConformance(u, trait))
+            errors.emplace_back(error);
+        }
+      }
+    }
   }
 
   return errors;
@@ -179,9 +191,9 @@ Context::solveConformance(Type *type, TraitType *requirement) {
   std::vector<TraitType *> candidates;
 
   if (auto *u = type->getAs<res::UninferredType>())
-    for (auto &&o : u->obligations)
-      if (probe(o, requirement).empty())
-        candidates.emplace_back(o);
+    for (auto &&[type, trait] : obligations)
+      if (eq(type, u) && probe(trait, requirement).empty())
+        candidates.emplace_back(trait);
 
   if (candidates.empty()) {
     for (auto &&trait : getEveryConformance(type))
@@ -258,8 +270,8 @@ Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {
     sub[tpType] = probeType;
 
     for (auto &&trait : getDirectConformance(tpType))
-      probeType->addObligation(
-          instantiate(trait, sub)->getAs<res::TraitType>());
+      addObligation(probeType,
+                    instantiate(trait, sub)->getAs<res::TraitType>());
   }
 
   return sub;
@@ -309,6 +321,10 @@ std::vector<TraitType *> Context::getEveryConformance(Type *type) {
   }
 
   return result;
+}
+
+void Context::addObligation(res::UninferredType *type, res::TraitType *trait) {
+  obligations.emplace_back(type, trait);
 }
 
 void Context::dumpEveryFunctionCFG() const {

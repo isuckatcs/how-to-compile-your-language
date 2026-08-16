@@ -1168,6 +1168,18 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
         .report(reporter);
   }
 
+  if (auto *fnType = lhsTy->getAs<res::FunctionType>()) {
+    auto *retTypeUninferred =
+        fnType->getReturnType()->getAs<res::UninferredType>();
+
+    for (auto &&argType : fnType->getArgs())
+      if (retTypeUninferred || argType->getAs<res::UninferredType>())
+        return err::unknownFunctionAssignment()
+            .at(lhs->location)
+            .with(lhsTy->getName())
+            .report(reporter);
+  }
+
   rhs->setConstantValue(cee->evaluate(*rhs));
   return res::Assignment::create(ctx, assignment.location, lhs, rhs);
 }
@@ -1317,7 +1329,10 @@ Sema::resolveTypeExtension(res::Context &ctx,
   EnterNewScopeRAII extensionScope(this, resExtension);
   for (auto &&fn : extension.functions) {
     if (!trait) {
-      if (!lookupAssociatedDecls(ctx, fn->identifier, type).empty()) {
+      res::Substitution testSub = ctx.getUninferredInstantiation(resExtension);
+      if (!lookupAssociatedDecls(ctx, fn->identifier,
+                                 ctx.instantiate(type, testSub))
+               .empty()) {
         err::redeclaration()
             .at(fn->location)
             .with(fn->identifier)

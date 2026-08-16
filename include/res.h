@@ -1,6 +1,7 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 
+#include <list>
 #include <memory>
 #include <set>
 #include <utility>
@@ -77,6 +78,10 @@ class Context final {
     ~EnterExtensionRAII() { c->extensionStack.erase(e); }
   };
 
+  std::list<std::pair<res::UninferredType *, res::TraitType *>> obligations;
+  std::set<std::pair<res::UninferredType *, res::TraitType *> *>
+      visitedObligations;
+
   std::set<TypeExtension *> extensionStack;
 
   std::vector<diag::DiagBuilder> doUnify(
@@ -115,6 +120,8 @@ public:
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);
+
+  void addObligation(res::UninferredType *type, res::TraitType *trait);
 
   void dumpEveryFunctionCFG() const;
 };
@@ -467,12 +474,9 @@ struct UninferredType final : public Creatable<UninferredType>, public Type {
   Type *getRootType() override;
   std::string getName() const override;
 
-  void addObligation(TraitType *trait) { obligations.emplace_back(trait); }
-
 private:
   inline static size_t nextId = 0;
 
-  std::vector<TraitType *> obligations;
   Type *parent = nullptr;
 
   UninferredType();

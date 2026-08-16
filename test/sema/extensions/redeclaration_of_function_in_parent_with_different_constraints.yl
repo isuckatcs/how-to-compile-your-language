@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B {}
+
+struct S<T> {}
+
+extension<T : A> S<T> {
+  fn foo(t: T) {}
+}
+
+extension<T : B> S<T> {
+  // CHECK: [[# @LINE + 1 ]]:6: error: redeclaration of 'foo'
+  fn foo(t: T) {}
+}
+
+fn main() {}

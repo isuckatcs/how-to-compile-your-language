@@ -108,6 +108,7 @@ diag(Error, unknownType, "the type of '{}' is unknown");
 diag(Error, failedToResolveType, "failed to resolve type '{}'");
 diag(Error, unificationError, "cannot unify '{}' with '{}'")
 diag(Error, unsatisfiedRequirement, "cannot satisfy requirement '{} : {}'")
+diag(Error, unknownFunctionAssignment, "unknown function type '{}' on the lhs of assignment");
 diag(Error, ambigousConformance, "'{}' ambigously satisfies requirement '{} : {}'")
 diag(Error, annotationsNeeded, "explicit type annotations are needed to infer the type of '{}'");
 diag(Error, initTyMismatch, "an expression of type '{}' cannot be used to initialize a variable of type '{}'");
