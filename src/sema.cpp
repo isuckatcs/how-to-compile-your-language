@@ -1987,12 +1987,16 @@ bool Sema::checkSelfParameter(res::Context &ctx,
 }
 
 bool Sema::isSelfContainingTrait(res::TraitDecl *trait) {
+  std::set<res::TraitDecl *> visited;
   std::stack<res::TraitDecl *> stack;
 
   stack.emplace(trait);
   while (!stack.empty()) {
     res::TraitDecl *decl = stack.top();
     stack.pop();
+
+    if (!visited.emplace(decl).second)
+      continue;
 
     auto *conformance = decl->conformance;
     if (!conformance)
