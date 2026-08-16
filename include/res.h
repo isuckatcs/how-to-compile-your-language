@@ -1,7 +1,6 @@
 #ifndef HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 
-#include <list>
 #include <memory>
 #include <set>
 #include <utility>
