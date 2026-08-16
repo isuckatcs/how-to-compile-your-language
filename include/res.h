@@ -64,6 +64,9 @@ class Context final {
   std::vector<std::unique_ptr<TypeExtension>> extensions;
   std::unique_ptr<TranslationUnit> translationUnit;
 
+  std::unordered_map<res::UninferredType *, std::vector<res::TraitType *>>
+      obligations;
+
   class EnterExtensionRAII {
     Context *c;
     res::TypeExtension *e;
@@ -77,10 +80,6 @@ class Context final {
 
     ~EnterExtensionRAII() { c->extensionStack.erase(e); }
   };
-
-  std::list<std::pair<res::UninferredType *, res::TraitType *>> obligations;
-  std::set<std::pair<res::UninferredType *, res::TraitType *> *>
-      visitedObligations;
 
   std::set<TypeExtension *> extensionStack;
 

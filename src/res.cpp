@@ -99,23 +99,16 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
     Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
   auto errors = doUnify(t1, t2, pendingUnifications);
 
-  if (errors.empty()) {
-    for (auto &&u : pendingUnifications) {
-      if (u->getRootType()->getAs<res::UninferredType>())
-        continue;
-
-      for (auto &&obligation : obligations) {
-        auto &&[type, trait] = obligation;
-
-        if (eq(type, u)) {
-          if (!visitedObligations.emplace(&obligation).second)
-            continue;
-
-          for (auto &&error : solveConformance(u, trait))
-            errors.emplace_back(error);
-        }
-      }
+  for (auto &&u : pendingUnifications) {
+    if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
+      for (auto &&trait : obligations[u])
+        addObligation(root, trait);
+      continue;
     }
+
+    for (auto &&trait : obligations[u])
+      for (auto &&error : solveConformance(u, trait))
+        errors.emplace_back(error);
   }
 
   return errors;
@@ -144,6 +137,8 @@ Context::getExtensions(Type *type, TraitType *trait) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&[extension, sub] : getEveryExtension(type)) {
+    EnterExtensionRAII enterThisExtension(this, extension);
+
     if (!extension->trait && !trait) {
       matches.emplace_back(extension, sub);
       continue;
@@ -180,8 +175,15 @@ std::vector<diag::DiagBuilder> Context::probe(Type *t1, Type *t2) {
   std::vector<UninferredType *> pendingUnifications;
   auto errors = doUnifyAndSolveConformance(t1, t2, pendingUnifications);
 
-  for (auto &&pending : pendingUnifications)
+  for (auto &&pending : pendingUnifications) {
+    if (auto *root = pending->getRootType()->getAs<res::UninferredType>()) {
+      auto &rootObligations = obligations[root];
+      rootObligations.resize(rootObligations.size() -
+                             obligations[pending].size());
+    }
+
     pending->setParent(nullptr);
+  }
 
   return errors;
 }
@@ -190,16 +192,9 @@ std::vector<diag::DiagBuilder>
 Context::solveConformance(Type *type, TraitType *requirement) {
   std::vector<TraitType *> candidates;
 
-  if (auto *u = type->getAs<res::UninferredType>())
-    for (auto &&[type, trait] : obligations)
-      if (eq(type, u) && probe(trait, requirement).empty())
-        candidates.emplace_back(trait);
-
-  if (candidates.empty()) {
-    for (auto &&trait : getEveryConformance(type))
-      if (probe(trait, requirement).empty())
-        candidates.emplace_back(trait);
-  }
+  for (auto &&trait : getEveryConformance(type))
+    if (probe(trait, requirement).empty())
+      candidates.emplace_back(trait);
 
   if (candidates.empty()) {
     auto extensions = getExtensions(type->getRootType(), requirement);
@@ -324,7 +319,7 @@ std::vector<TraitType *> Context::getEveryConformance(Type *type) {
 }
 
 void Context::addObligation(res::UninferredType *type, res::TraitType *trait) {
-  obligations.emplace_back(type, trait);
+  obligations[type].emplace_back(trait);
 }
 
 void Context::dumpEveryFunctionCFG() const {
