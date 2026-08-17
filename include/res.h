@@ -69,17 +69,25 @@ class Context final {
   class EnterExtensionRAII {
     Context *c;
     res::TypeExtension *e;
+    bool isTopLevel;
 
   public:
-    EnterExtensionRAII(Context *c, res::TypeExtension *e)
+    EnterExtensionRAII(Context *c, res::TypeExtension *e, bool isTopLevel)
         : c(c),
-          e(e) {
-      c->extensionStack.emplace(e);
+          e(e),
+          isTopLevel(isTopLevel) {
+      if (!isTopLevel)
+        c->extensionStack.emplace(e);
     }
 
-    ~EnterExtensionRAII() { c->extensionStack.erase(e); }
+    ~EnterExtensionRAII() {
+      if (!isTopLevel)
+        c->extensionStack.erase(e);
+    }
   };
 
+  // FIXME: cyclic obligations are the real issue, find a way to detect those
+  // instead of extensions
   std::set<TypeExtension *> extensionStack;
 
   std::vector<diag::DiagBuilder> doUnify(
@@ -101,9 +109,9 @@ public:
   TranslationUnit *getTU() const { return translationUnit.get(); };
 
   std::vector<std::pair<TypeExtension *, Substitution>>
-  getEveryExtension(Type *type);
-  std::vector<std::pair<TypeExtension *, Substitution>>
-  getExtensions(Type *type, TraitType *trait = nullptr);
+  getEveryExtension(Type *type, bool isTopLevel);
+  std::vector<std::pair<TypeExtension *, Substitution>> getExtensions(
+      Type *type, TraitType *trait = nullptr, bool isTopLevel = false);
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
@@ -113,8 +121,8 @@ public:
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
-  std::vector<res::TraitType *> getSatisfyingTraits(Type *type,
-                                                    TraitType *requirement);
+  std::vector<res::TraitType *>
+  getSatisfyingTraits(Type *type, TraitType *requirement, bool isTopLevel);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

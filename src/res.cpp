@@ -110,7 +110,8 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
     }
 
     for (auto &&trait : obligations[u]) {
-      std::vector<TraitType *> candidates = getSatisfyingTraits(u, trait);
+      std::vector<TraitType *> candidates =
+          getSatisfyingTraits(u, trait, false);
 
       if (candidates.empty()) {
         errors.emplace_back(err::unsatisfiedRequirement()
@@ -136,14 +137,14 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getEveryExtension(Type *type) {
+Context::getEveryExtension(Type *type, bool isTopLevel) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&extension : extensions) {
     if (extensionStack.count(extension.get()))
       continue;
 
-    EnterExtensionRAII enterThisExtension(this, extension.get());
+    EnterExtensionRAII enterThisExtension(this, extension.get(), isTopLevel);
 
     Substitution sub = getUninferredInstantiation(extension.get());
     if (probe(type, instantiate(extension->type, sub)).empty())
@@ -154,11 +155,11 @@ Context::getEveryExtension(Type *type) {
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait) {
+Context::getExtensions(Type *type, TraitType *trait, bool isTopLevel) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
-  for (auto &&[extension, sub] : getEveryExtension(type)) {
-    EnterExtensionRAII enterThisExtension(this, extension);
+  for (auto &&[extension, sub] : getEveryExtension(type, isTopLevel)) {
+    EnterExtensionRAII enterThisExtension(this, extension, isTopLevel);
 
     if (!extension->trait && !trait) {
       matches.emplace_back(extension, sub);
@@ -173,8 +174,8 @@ Context::getExtensions(Type *type, TraitType *trait) {
   return matches;
 }
 
-std::vector<res::TraitType *>
-Context::getSatisfyingTraits(Type *type, TraitType *requirement) {
+std::vector<res::TraitType *> Context::getSatisfyingTraits(
+    Type *type, TraitType *requirement, bool isTopLevel) {
   std::vector<TraitType *> candidates;
 
   for (auto &&trait : getEveryConformance(type))
@@ -182,7 +183,8 @@ Context::getSatisfyingTraits(Type *type, TraitType *requirement) {
       candidates.emplace_back(trait);
 
   if (candidates.empty()) {
-    auto extensions = getExtensions(type->getRootType(), requirement);
+    auto extensions =
+        getExtensions(type->getRootType(), requirement, isTopLevel);
     for (auto &&[extension, sub] : extensions)
       candidates.emplace_back(
           instantiate(extension->trait, sub)->getAs<res::TraitType>());
