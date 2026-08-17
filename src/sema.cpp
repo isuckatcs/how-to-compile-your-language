@@ -428,7 +428,7 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
     res::TraitType *trait = t->getAs<res::TraitType>();
 
-    if (!ctx.solveConformance(type, trait).empty())
+    if (ctx.getSatisfyingTraits(type, trait).empty())
       return err::traitNotImplemented()
           .at(traitSpec->trait->location)
           .with(type->getName())
@@ -1025,7 +1025,15 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
   if (!anyType || type->getAs<res::AnyTraitType>())
     return false;
 
-  return ctx.solveConformance(type, anyType->withSelfType(&ctx, type)).empty();
+  auto traits =
+      ctx.getSatisfyingTraits(type, anyType->withSelfType(&ctx, type));
+
+  if (traits.empty())
+    return false;
+
+  assert(traits.size() == 1 && "ambigous trait object candidate");
+
+  return ctx.unify(anyType->withSelfType(&ctx, type), traits.back()).empty();
 }
 
 res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
@@ -1369,39 +1377,35 @@ Sema::resolveTypeExtension(res::Context &ctx,
                                  traitFnTypeParams.size()))
       continue;
 
-    res::Substitution sub;
+    res::Substitution implInstSub = ctx.getUninferredInstantiation(implFn);
     bool error = false;
 
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
       res::Type *traitParamTy = traitFn->typeParams[i]->getType();
-      res::Type *implParamTy = implFn->typeParams[i]->getType();
+      res::Type *implParamTy =
+          ctx.instantiate(implFn->typeParams[i]->getType(), implInstSub);
 
-      sub[implParamTy] = traitParamTy;
-      for (auto &&trait : ctx.getDirectConformance(implParamTy)) {
-        trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
+      auto errors = ctx.unify(traitParamTy, implParamTy);
+      if (errors.empty())
+        continue;
 
-        auto errors = ctx.solveConformance(traitParamTy, trait);
-        if (errors.empty())
-          continue;
+      for (auto &&error : errors)
+        error.at(implFn->typeParams[i]->location).report(reporter);
 
-        for (auto &&error : errors)
-          error.at(implFn->typeParams[i]->location).report(reporter);
-
-        err::stricterParamTy()
-            .at(implFn->typeParams[i]->location)
-            .with(traitParamTy->getName())
-            .with(implParamTy->getName())
-            .report(reporter);
-        error = true;
-      }
+      err::stricterParamTy()
+          .at(implFn->typeParams[i]->location)
+          .with(traitParamTy->getName())
+          .with(implFn->typeParams[i]->getType()->getName())
+          .report(reporter);
+      error = true;
     }
     if (error)
       continue;
 
     auto traitSub = trait->getSub();
 
-    res::Type *expectedType =
-        ctx.instantiate(ctx.instantiate(traitFn->getType(), traitSub), sub);
+    res::Type *expectedType = ctx.instantiate(
+        ctx.instantiate(traitFn->getType(), traitSub), implInstSub);
     res::Type *actualType = implFn->getType();
 
     if (!ctx.unify(expectedType, actualType).empty()) {
@@ -2074,7 +2078,6 @@ res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
   }
 
   res::GenericDeclContext *gdc = nullptr;
-  auto sub = type->getSub();
 
   if (auto *st = type->getAs<res::StructType>())
     gdc = st->getDecl();
@@ -2085,6 +2088,9 @@ res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
 
   assert(gdc && "unexpected type param type");
 
+  auto expectedSub = ctx.getUninferredInstantiation(gdc);
+  auto actualSub = type->getSub();
+
   auto astIt = astDecl->typeArguments.begin();
   for (auto &&typeParam : gdc->typeParams) {
     // AnyTraitType doesn't have a Self mapping, so nothing to check here.
@@ -2092,16 +2098,14 @@ res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
       continue;
 
     auto *typeParamType = typeParam->getType();
-    auto *typeArg = ctx.instantiate(typeParamType, sub);
+    auto *expectedType = ctx.instantiate(typeParamType, expectedSub);
+    auto *actualType = ctx.instantiate(typeParamType, actualSub);
 
-    for (auto &&trait : ctx.getDirectConformance(typeParamType)) {
-      trait = ctx.instantiate(trait, sub)->getAs<res::TraitType>();
-      if (auto errs = ctx.solveConformance(typeArg, trait); !errs.empty()) {
-        for (auto &&error : errs)
-          error.at((*astIt)->location).report(reporter);
+    if (auto errs = ctx.unify(expectedType, actualType); !errs.empty()) {
+      for (auto &&error : errs)
+        error.at((*astIt)->location).report(reporter);
 
-        return nullptr;
-      }
+      return nullptr;
     }
 
     ++astIt;

@@ -108,13 +108,13 @@ public:
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
   std::vector<diag::DiagBuilder> probe(Type *t1, Type *t2);
-  std::vector<diag::DiagBuilder> solveConformance(Type *type,
-                                                  TraitType *requirement);
 
   Type *instantiate(Type *t, const Substitution &sub);
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
+  std::vector<res::TraitType *> getSatisfyingTraits(Type *type,
+                                                    TraitType *requirement);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

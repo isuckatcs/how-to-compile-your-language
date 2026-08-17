@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B<T> {}
+
+extension number : A<bool> {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A<bool>' conflicts with extension 'number : A<bool>'
+extension number : A<bool> {}
+
+extension unit : A<unit> {}
+
+extension unit : B<bool> {}
+
+// CHECK: [[# @LINE + 1 ]]:26: error: extension 'U : B<bool>' conflicts with extension 'unit : B<bool>'
+extension<T, U : A<T>> U : B<bool> {}
+
+fn main() {}

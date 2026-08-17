@@ -99,16 +99,37 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
     Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
   auto errors = doUnify(t1, t2, pendingUnifications);
 
-  for (auto &&u : pendingUnifications) {
+  size_t i = 0;
+  while (i != pendingUnifications.size()) {
+    auto *u = pendingUnifications[i++];
+
     if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
       for (auto &&trait : obligations[u])
         addObligation(root, trait);
       continue;
     }
 
-    for (auto &&trait : obligations[u])
-      for (auto &&error : solveConformance(u, trait))
-        errors.emplace_back(error);
+    for (auto &&trait : obligations[u]) {
+      std::vector<TraitType *> candidates = getSatisfyingTraits(u, trait);
+
+      if (candidates.empty()) {
+        errors.emplace_back(err::unsatisfiedRequirement()
+                                .with(u->getName())
+                                .with(trait->getName()));
+        continue;
+      }
+
+      if (candidates.size() > 1) {
+        for (auto &&candidate : candidates)
+          errors.emplace_back(err::ambigousConformance()
+                                  .with(candidate->getName())
+                                  .with(u->getName())
+                                  .with(trait->getName()));
+        continue;
+      }
+
+      doUnify(trait, candidates[0], pendingUnifications);
+    }
   }
 
   return errors;
@@ -152,6 +173,24 @@ Context::getExtensions(Type *type, TraitType *trait) {
   return matches;
 }
 
+std::vector<res::TraitType *>
+Context::getSatisfyingTraits(Type *type, TraitType *requirement) {
+  std::vector<TraitType *> candidates;
+
+  for (auto &&trait : getEveryConformance(type))
+    if (probe(trait, requirement).empty())
+      candidates.emplace_back(trait);
+
+  if (candidates.empty()) {
+    auto extensions = getExtensions(type->getRootType(), requirement);
+    for (auto &&[extension, sub] : extensions)
+      candidates.emplace_back(
+          instantiate(extension->trait, sub)->getAs<res::TraitType>());
+  }
+
+  return candidates;
+}
+
 bool Context::eq(Type *t1, Type *t2) const {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
@@ -186,40 +225,6 @@ std::vector<diag::DiagBuilder> Context::probe(Type *t1, Type *t2) {
   }
 
   return errors;
-}
-
-std::vector<diag::DiagBuilder>
-Context::solveConformance(Type *type, TraitType *requirement) {
-  std::vector<TraitType *> candidates;
-
-  for (auto &&trait : getEveryConformance(type))
-    if (probe(trait, requirement).empty())
-      candidates.emplace_back(trait);
-
-  if (candidates.empty()) {
-    auto extensions = getExtensions(type->getRootType(), requirement);
-    for (auto &&[extension, sub] : extensions)
-      candidates.emplace_back(
-          instantiate(extension->trait, sub)->getAs<res::TraitType>());
-  }
-
-  if (candidates.empty())
-    return {err::unsatisfiedRequirement()
-                .with(type->getName())
-                .with(requirement->getName())};
-
-  if (candidates.size() > 1) {
-    std::vector<diag::DiagBuilder> errors;
-    for (auto &&candidate : candidates)
-      errors.emplace_back(err::ambigousConformance()
-                              .with(candidate->getName())
-                              .with(type->getName())
-                              .with(requirement->getName()));
-    return errors;
-  }
-
-  unify(requirement, candidates[0]);
-  return {};
 }
 
 Type *Context::instantiate(Type *t, const Substitution &sub) {
