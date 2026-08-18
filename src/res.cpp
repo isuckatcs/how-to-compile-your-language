@@ -104,12 +104,29 @@ std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
     auto *u = pendingUnifications[i++];
 
     if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
+      // FIXME: don't duplicate obligations with add
       for (auto &&trait : obligations[u])
         addObligation(root, trait);
       continue;
     }
 
+    std::vector<res::TraitType *> seen;
+
     for (auto &&trait : obligations[u]) {
+      // FIXME: remove
+      bool duplicate = false;
+      for (auto &&s : seen) {
+        if (eq(s, trait)) {
+          duplicate = true;
+          break;
+        }
+      }
+
+      if (duplicate)
+        continue;
+
+      seen.emplace_back(trait);
+
       std::vector<TraitType *> candidates =
           getSatisfyingTraits(u, trait, false);
 
