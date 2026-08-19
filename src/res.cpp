@@ -62,108 +62,183 @@ void Context::add(std::unique_ptr<TypeExtension> extension) {
   extensions.emplace_back(std::move(extension));
 }
 
-std::vector<diag::DiagBuilder> Context::doUnify(
-    Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
+void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
 
   if (t1 == t2)
-    return {};
+    return;
 
   if (auto *u = t1->getAs<UninferredType>();
       u && !t2->getAs<res::AnyTraitType>() && !t2->getAs<res::RefType>()) {
     u->setParent(t2);
-    pendingUnifications.emplace_back(u);
-    return {};
+    result.inferredTypes.emplace_back(u);
+    return;
   }
 
   if (t2->getAs<UninferredType>())
-    return doUnify(t2, t1, pendingUnifications);
+    return doUnify(t2, t1, result);
 
-  if (!t1->isSameKind(t2))
-    return {err::unificationError().with(t1->getName()).with(t2->getName())};
-
-  for (size_t i = 0; i < t1->args.size(); ++i) {
-    auto errs = doUnify(t1->args[i], t2->args[i], pendingUnifications);
-    if (!errs.empty()) {
-      errs.emplace_back(
-          err::unificationError().with(t1->getName()).with(t2->getName()));
-      return errs;
-    }
-  }
-
-  return {};
-}
-
-std::vector<diag::DiagBuilder> Context::doUnifyAndSolveConformance(
-    Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications) {
-  auto errors = doUnify(t1, t2, pendingUnifications);
+  result.success = t1->isSameKind(t2);
 
   size_t i = 0;
-  while (i != pendingUnifications.size()) {
-    auto *u = pendingUnifications[i++];
+  while (i < t1->args.size() && result.success) {
+    doUnify(t1->args[i], t2->args[i], result);
+    ++i;
+  }
+
+  if (!result.success)
+    result.diags.emplace_back(
+        err::unificationError().with(t1->getName()).with(t2->getName()));
+}
+
+void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
+  size_t i = 0;
+  while (i != result.inferredTypes.size()) {
+    auto *u = result.inferredTypes[i++];
 
     if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
-      // FIXME: don't duplicate obligations with add
       for (auto &&trait : obligations[u])
         addObligation(root, trait);
+      result.propagatedObligations[root] = obligations[u].size();
       continue;
     }
 
-    std::vector<res::TraitType *> seen;
-
     for (auto &&trait : obligations[u]) {
-      // FIXME: remove
-      bool duplicate = false;
-      for (auto &&s : seen) {
-        if (eq(s, trait)) {
-          duplicate = true;
-          break;
+      auto queryResult = querySatisfyingTraits(u, trait);
+
+      if (queryResult->state == Result::State::Success) {
+        doUnify(trait, queryResult->traits[0], result);
+        continue;
+      }
+
+      if (queryResult->state == Result::State::Ambigous && allowAmbiguity) {
+        result.hasAmbiguousObligations = true;
+        continue;
+      }
+
+      for (auto &&error : queryResult->diags) {
+        result.success = false;
+        result.diags.emplace_back(error);
+      }
+    }
+  }
+}
+
+void Context::rollbackUnify(const UnifyResult &result) {
+  for (auto &&type : result.inferredTypes) {
+    if (auto *root = type->getRootType()->getAs<res::UninferredType>()) {
+      auto &rootObligations = obligations[root];
+      rootObligations.resize(rootObligations.size() - obligations[type].size());
+    }
+
+    type->setParent(nullptr);
+  }
+}
+
+std::unique_ptr<Context::Result>
+Context::querySatisfyingTraits(Type *type, TraitType *trait) {
+  ++requirementDepth;
+
+  // Construct a successful default result.
+  auto result = std::make_unique<Result>();
+
+  // auto indentWidth = requirementDepth;
+  // if (indentWidth == 0) {
+  //   std::cerr << "\n\n";
+  // }
+
+  if (requirementDepth > recursionLimit) {
+    // std::cerr << indent(indentWidth) << "\n\npending too complex\n";
+    result->state = Result::State::Fail;
+    result->diags.emplace_back(err::recursionLimitReached());
+    --requirementDepth;
+    return result;
+  }
+
+  // std::cerr << indent(indentWidth) << "doSolveConformance " <<
+  // type->getName()
+  //           << " : " << trait->getName() << "\n";
+
+  for (auto &&conformingTrait : getEveryConformance(type))
+    if (probe(trait, conformingTrait).empty())
+      result->traits.emplace_back(conformingTrait);
+
+  if (result->traits.empty()) {
+    for (auto &&extension : extensions) {
+      if (!extension->trait)
+        continue;
+
+      // std::cerr << indent(indentWidth) << "checking extension "
+      //           << extension->type->getName() << " : "
+      //           << extension->trait->getName() << "\n";
+
+      Substitution sub = getUninferredInstantiation(extension.get());
+      res::Type *extType = instantiate(extension->type, sub);
+      res::TraitType *extTrait =
+          instantiate(extension->trait, sub)->getAs<res::TraitType>();
+
+      UnifyResult unifyResult;
+      doUnify(type, extType, unifyResult);
+
+      if (unifyResult.success)
+        doUnify(trait, extTrait, unifyResult);
+
+      if (unifyResult.success) {
+        processObligations(unifyResult, true);
+
+        if (unifyResult.success) {
+          // std::cerr << indent(indentWidth) << "`-accepted\n";
+          if (unifyResult.hasAmbiguousObligations)
+            result->state = Result::State::Ambigous;
+
+          result->traits.emplace_back(extTrait);
         }
       }
 
-      if (duplicate)
-        continue;
-
-      seen.emplace_back(trait);
-
-      std::vector<TraitType *> candidates =
-          getSatisfyingTraits(u, trait, false);
-
-      if (candidates.empty()) {
-        errors.emplace_back(err::unsatisfiedRequirement()
-                                .with(u->getName())
-                                .with(trait->getName()));
-        continue;
-      }
-
-      if (candidates.size() > 1) {
-        for (auto &&candidate : candidates)
-          errors.emplace_back(err::ambigousConformance()
-                                  .with(candidate->getName())
-                                  .with(u->getName())
-                                  .with(trait->getName()));
-        continue;
-      }
-
-      doUnify(trait, candidates[0], pendingUnifications);
+      rollbackUnify(unifyResult);
     }
   }
 
-  return errors;
+  // std::cerr << indent(indentWidth) << "result of " << type->getName() << " :
+  // "
+  //           << trait->getName() << "\n";
+  // for (auto &&trait : result->traits)
+  //   std::cerr << indent(indentWidth) << "  " << trait->getName() << "\n";
+  // std::cerr << indent(indentWidth) << "returning\n";
+
+  --requirementDepth;
+
+  if (result->traits.empty()) {
+    result->state = Result::State::Fail;
+    result->diags.emplace_back(err::unsatisfiedRequirement()
+                                   .with(type->getName())
+                                   .with(trait->getName()));
+    return result;
+  }
+
+  if (result->traits.size() > 1) {
+    result->state = Result::State::Ambigous;
+
+    for (auto &&resultTrait : result->traits)
+      result->diags.emplace_back(err::ambigousConformance()
+                                     .with(resultTrait->getName())
+                                     .with(type->getName())
+                                     .with(trait->getName()));
+    return result;
+  }
+
+  return result;
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getEveryExtension(Type *type, bool isTopLevel) {
+Context::getEveryExtension(Type *type) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&extension : extensions) {
-    if (extensionStack.count(extension.get()))
-      continue;
-
-    EnterExtensionRAII enterThisExtension(this, extension.get(), isTopLevel);
-
     Substitution sub = getUninferredInstantiation(extension.get());
+    // FIXME: ambigous probes are rejected, but should be accepted
+
     if (probe(type, instantiate(extension->type, sub)).empty())
       matches.emplace_back(extension.get(), sub);
   }
@@ -172,42 +247,22 @@ Context::getEveryExtension(Type *type, bool isTopLevel) {
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait, bool isTopLevel) {
+Context::getExtensions(Type *type, TraitType *trait) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
-  for (auto &&[extension, sub] : getEveryExtension(type, isTopLevel)) {
-    EnterExtensionRAII enterThisExtension(this, extension, isTopLevel);
-
+  for (auto &&[extension, sub] : getEveryExtension(type)) {
     if (!extension->trait && !trait) {
       matches.emplace_back(extension, sub);
       continue;
     }
 
-    if (extension->trait && trait)
+    if (extension->trait && trait) {
       if (probe(trait, instantiate(extension->trait, sub)).empty())
         matches.emplace_back(extension, sub);
+    }
   }
 
   return matches;
-}
-
-std::vector<res::TraitType *> Context::getSatisfyingTraits(
-    Type *type, TraitType *requirement, bool isTopLevel) {
-  std::vector<TraitType *> candidates;
-
-  for (auto &&trait : getEveryConformance(type))
-    if (probe(trait, requirement).empty())
-      candidates.emplace_back(trait);
-
-  if (candidates.empty()) {
-    auto extensions =
-        getExtensions(type->getRootType(), requirement, isTopLevel);
-    for (auto &&[extension, sub] : extensions)
-      candidates.emplace_back(
-          instantiate(extension->trait, sub)->getAs<res::TraitType>());
-  }
-
-  return candidates;
 }
 
 bool Context::eq(Type *t1, Type *t2) const {
@@ -225,25 +280,18 @@ bool Context::eq(Type *t1, Type *t2) const {
 }
 
 std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
-  std::vector<UninferredType *> pendingUnifications;
-  return doUnifyAndSolveConformance(t1, t2, pendingUnifications);
+  UnifyResult result;
+  doUnify(t1, t2, result);
+  processObligations(result, false);
+  return result.diags;
 }
 
 std::vector<diag::DiagBuilder> Context::probe(Type *t1, Type *t2) {
-  std::vector<UninferredType *> pendingUnifications;
-  auto errors = doUnifyAndSolveConformance(t1, t2, pendingUnifications);
-
-  for (auto &&pending : pendingUnifications) {
-    if (auto *root = pending->getRootType()->getAs<res::UninferredType>()) {
-      auto &rootObligations = obligations[root];
-      rootObligations.resize(rootObligations.size() -
-                             obligations[pending].size());
-    }
-
-    pending->setParent(nullptr);
-  }
-
-  return errors;
+  UnifyResult result;
+  doUnify(t1, t2, result);
+  processObligations(result, false);
+  rollbackUnify(result);
+  return result.diags;
 }
 
 Type *Context::instantiate(Type *t, const Substitution &sub) {

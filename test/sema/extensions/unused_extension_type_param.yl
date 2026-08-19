@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B<T> {
+  fn foo(self: &Self) {}
+}
+
+extension<T, U : A<T>> U : B<T> {}
+
+// FIXME: there is no way to infer U, so it is never checker and codegen fails
+extension<T, U : B<T>> number : A<T> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
+  123.foo();
+}

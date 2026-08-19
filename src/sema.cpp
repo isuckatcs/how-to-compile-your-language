@@ -428,7 +428,7 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
     res::TraitType *trait = t->getAs<res::TraitType>();
 
-    if (ctx.getSatisfyingTraits(type, trait, true).empty())
+    if (ctx.querySatisfyingTraits(type, trait)->traits.empty())
       return err::traitNotImplemented()
           .at(traitSpec->trait->location)
           .with(type->getName())
@@ -614,14 +614,14 @@ Sema::lookupAssociatedDecls(res::Context &ctx,
   if (!candidates.empty())
     return candidates;
 
-  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr, true))
+  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
     if (auto *decl = extension->getFunction(identifier))
       candidates.push_back({ctx.instantiate(extension->type, sub), decl, sub});
 
   if (!candidates.empty())
     return candidates;
 
-  for (auto &&[extension, sub] : ctx.getEveryExtension(type, true))
+  for (auto &&[extension, sub] : ctx.getEveryExtension(type))
     if (auto *trait = extension->trait)
       if (auto *decl = trait->getDecl()->lookupFunction(identifier))
         candidates.push_back({ctx.instantiate(extension->type, sub), decl,
@@ -1026,7 +1026,8 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
     return false;
 
   auto traits =
-      ctx.getSatisfyingTraits(type, anyType->withSelfType(&ctx, type), true);
+      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type))
+          ->traits;
 
   if (traits.empty())
     return false;
@@ -1434,7 +1435,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     res::Substitution testSub = ctx.getUninferredInstantiation(extension);
     for (auto &&[conflict, sub] : ctx.getExtensions(
              ctx.instantiate(type, testSub),
-             ctx.instantiate(trait, testSub)->getAs<res::TraitType>(), true)) {
+             ctx.instantiate(trait, testSub)->getAs<res::TraitType>())) {
       if (conflict == extension)
         break;
 
@@ -1449,7 +1450,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     }
 
     for (auto &&requirement : ctx.getDirectConformance(trait)) {
-      if (!ctx.getExtensions(type, requirement, true).empty())
+      if (!ctx.getExtensions(type, requirement).empty())
         continue;
 
       err::missingRequirement()

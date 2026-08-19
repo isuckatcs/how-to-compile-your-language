@@ -55,6 +55,19 @@ struct TranslationUnit final : public GenericDeclContext {
 };
 
 class Context final {
+public:
+  struct Result final {
+    enum class State {
+      Success,
+      Ambigous,
+      Fail,
+    };
+
+    State state;
+    std::vector<res::TraitType *> traits;
+    std::vector<diag::DiagBuilder> diags;
+  };
+
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Type>> types;
@@ -63,37 +76,24 @@ class Context final {
   std::vector<std::unique_ptr<TypeExtension>> extensions;
   std::unique_ptr<TranslationUnit> translationUnit;
 
+  // FIXME: move back to the types
   std::unordered_map<res::UninferredType *, std::vector<res::TraitType *>>
       obligations;
 
-  class EnterExtensionRAII {
-    Context *c;
-    res::TypeExtension *e;
-    bool isTopLevel;
-
-  public:
-    EnterExtensionRAII(Context *c, res::TypeExtension *e, bool isTopLevel)
-        : c(c),
-          e(e),
-          isTopLevel(isTopLevel) {
-      if (!isTopLevel)
-        c->extensionStack.emplace(e);
-    }
-
-    ~EnterExtensionRAII() {
-      if (!isTopLevel)
-        c->extensionStack.erase(e);
-    }
+  struct UnifyResult final {
+    bool success = true;
+    bool hasAmbiguousObligations = false;
+    std::vector<diag::DiagBuilder> diags = {};
+    std::vector<UninferredType *> inferredTypes = {};
+    std::unordered_map<UninferredType *, size_t> propagatedObligations = {};
   };
 
-  // FIXME: cyclic obligations are the real issue, find a way to detect those
-  // instead of extensions
-  std::set<TypeExtension *> extensionStack;
+  void doUnify(Type *t1, Type *t2, UnifyResult &result);
+  void processObligations(UnifyResult &result, bool allowAmbiguity);
+  void rollbackUnify(const UnifyResult &result);
 
-  std::vector<diag::DiagBuilder> doUnify(
-      Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
-  std::vector<diag::DiagBuilder> doUnifyAndSolveConformance(
-      Type *t1, Type *t2, std::vector<UninferredType *> &pendingUnifications);
+  const int recursionLimit = 10;
+  int requirementDepth = 0;
 
 public:
   Context()
@@ -109,9 +109,9 @@ public:
   TranslationUnit *getTU() const { return translationUnit.get(); };
 
   std::vector<std::pair<TypeExtension *, Substitution>>
-  getEveryExtension(Type *type, bool isTopLevel);
-  std::vector<std::pair<TypeExtension *, Substitution>> getExtensions(
-      Type *type, TraitType *trait = nullptr, bool isTopLevel = false);
+  getEveryExtension(Type *type);
+  std::vector<std::pair<TypeExtension *, Substitution>>
+  getExtensions(Type *type, TraitType *trait = nullptr);
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
@@ -121,8 +121,7 @@ public:
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
-  std::vector<res::TraitType *>
-  getSatisfyingTraits(Type *type, TraitType *requirement, bool isTopLevel);
+  std::unique_ptr<Result> querySatisfyingTraits(Type *type, TraitType *trait);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

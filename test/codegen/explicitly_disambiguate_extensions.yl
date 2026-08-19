@@ -1,0 +1,28 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+trait B<T> {
+  fn foo(self: &Self);
+}
+
+extension<T, U : B<T>> U : B<unit> {
+  fn foo(self: &Self) {
+    println(123);
+  }
+}
+
+extension number : B<number> {
+  fn foo(self: &Self) {
+    println(456);
+  }
+}
+
+fn main() {
+  let n = 123;
+
+  @<number : B<unit>>::foo(n);
+  // CHECK: call void @_YT1BGnuE3foo(ptr %n, ptr null)
+
+  @<number : B<number>>::foo(n);
+  // CHECK-NEXT: call void @_YT1BGnnE3foo(ptr %n, ptr null)
+}

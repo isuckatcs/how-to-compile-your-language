@@ -167,6 +167,7 @@ diag(Error, missingTraitFn, "'{}' must implement function '{}' from trait '{}'")
 diag(Error, conflictingExtension, "extension '{} : {}' conflicts with extension '{} : {}'");
 diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
 diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");
+diag(Error, recursionLimitReached, "recursion limit reached while checking obligations");
 
 // structs
 diag(Error, selfContainingStruct, "struct '{}' contains itself");

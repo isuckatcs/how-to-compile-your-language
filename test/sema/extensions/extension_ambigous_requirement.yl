@@ -1,0 +1,28 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S2 { b: bool }
+
+trait T0<P0> {
+  fn m0(self: &Self): P0;
+}
+
+trait T1 {
+  fn m1(self: &Self): number;
+}
+
+extension S2 : T0<bool> {
+  fn m0(self: &Self): bool { return true; }
+}
+
+// S2 must satisfy T0<A>. It satisfies both T0<bool> and T0<S2>, what is A?
+extension<A, B : T0<A>> B : T1 {
+  fn m1(self: &Self): number { return 1; }
+}
+
+extension<A, B : T1> B : T0<S2> {
+  fn m0(self: &Self): S2 { return S2 { b: true, }; }
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:18: error: failed to find member 'm1' in 'S2'
+  S2 { b: true }.m1();
+}

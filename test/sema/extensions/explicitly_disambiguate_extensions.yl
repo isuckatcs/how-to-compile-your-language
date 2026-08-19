@@ -1,0 +1,24 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait B<T> {
+  fn foo(self: &Self) {}
+}
+
+extension<T, U : B<T>> U : B<unit> {}
+
+extension number : B<number> {}
+
+fn main() {
+  let n = 123;
+
+  @<number : B<unit>>::foo(n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+
+  @<number : B<number>>::foo(n);
+  // CHECK-NEXT: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {number}
+}
