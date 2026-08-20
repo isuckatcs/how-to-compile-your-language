@@ -76,10 +76,6 @@ public:
   std::vector<std::unique_ptr<TypeExtension>> extensions;
   std::unique_ptr<TranslationUnit> translationUnit;
 
-  // FIXME: move back to the types
-  std::unordered_map<res::UninferredType *, std::vector<res::TraitType *>>
-      obligations;
-
   struct UnifyResult final {
     bool success = true;
     bool hasAmbiguousObligations = false;
@@ -126,8 +122,6 @@ public:
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);
-
-  void addObligation(res::UninferredType *type, res::TraitType *trait);
 
   void dumpEveryFunctionCFG() const;
 };
@@ -480,10 +474,13 @@ struct UninferredType final : public Creatable<UninferredType>, public Type {
   Type *getRootType() override;
   std::string getName() const override;
 
+  void addObligation(res::TraitType *trait);
+
 private:
   inline static size_t nextId = 0;
 
   Type *parent = nullptr;
+  std::vector<res::TraitType *> obligations;
 
   UninferredType();
 

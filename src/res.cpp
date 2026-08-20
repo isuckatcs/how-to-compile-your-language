@@ -98,13 +98,13 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
     auto *u = result.inferredTypes[i++];
 
     if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
-      for (auto &&trait : obligations[u])
-        addObligation(root, trait);
-      result.propagatedObligations[root] = obligations[u].size();
+      for (auto &&trait : u->obligations)
+        root->addObligation(trait);
+      result.propagatedObligations[root] = u->obligations.size();
       continue;
     }
 
-    for (auto &&trait : obligations[u]) {
+    for (auto &&trait : u->obligations) {
       QueryResult<TraitType *> queryResult = querySatisfyingTraits(u, trait);
 
       if (queryResult.state == QueryState::Success) {
@@ -299,14 +299,12 @@ template <typename Fn> void Context::probe(Fn &&fn) {
 
   fn(result);
 
-  for (auto &&type : result.inferredTypes) {
-    if (auto *root = type->getRootType()->getAs<res::UninferredType>()) {
-      auto &rootObligations = obligations[root];
-      rootObligations.resize(rootObligations.size() - obligations[type].size());
-    }
+  for (auto &&[type, cnt] : result.propagatedObligations)
+    for (size_t i = 0; i < cnt; ++i)
+      type->obligations.pop_back();
 
+  for (auto &&type : result.inferredTypes)
     type->setParent(nullptr);
-  }
 }
 
 Type *Context::instantiate(Type *t, const Substitution &sub) {
@@ -352,8 +350,8 @@ Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {
     sub[tpType] = probeType;
 
     for (auto &&trait : getDirectConformance(tpType))
-      addObligation(probeType,
-                    instantiate(trait, sub)->getAs<res::TraitType>());
+      probeType->addObligation(
+          instantiate(trait, sub)->getAs<res::TraitType>());
   }
 
   return sub;
@@ -403,10 +401,6 @@ std::vector<TraitType *> Context::getEveryConformance(Type *type) {
   }
 
   return result;
-}
-
-void Context::addObligation(res::UninferredType *type, res::TraitType *trait) {
-  obligations[type].emplace_back(trait);
 }
 
 void Context::dumpEveryFunctionCFG() const {
@@ -493,6 +487,10 @@ std::string UninferredType::getName() const {
     return parent->getName();
   return baseName;
 };
+
+void UninferredType::addObligation(res::TraitType *trait) {
+  obligations.emplace_back(trait);
+}
 
 BuiltinUnitType::BuiltinUnitType()
     : Type("unit"){};
