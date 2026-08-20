@@ -141,7 +141,6 @@ diag(Error, notGeneric, "'{}' is not a generic");
 
 // functions
 diag(Error, wrongArgCount, "wrong number of arguments in function call, expected {}, but received {}");
-diag(Error, expectedMethodCall, "expected to call method");
 diag(Error, classMethodCallOnInstance, "class level methods cannot be called on an instance");
 diag(Error, expectedReturnValue, "expected function to return a value");
 diag(Error, expectedReturnValueOnEveryPath, "expected function to return a value on every path");

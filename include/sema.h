@@ -126,17 +126,23 @@ class Sema {
                                        res::Decl *decl,
                                        res::Substitution sub = {});
 
-  struct AssociatedLookupResult {
-    res::Type *type;
-    res::Decl *decl;
-    res::Substitution sub;
+  // FIXME: definitely a query
+  struct AssociatedLookupResult final {
+    res::Context::QueryState state = res::Context::QueryState::Success;
+    res::Decl *decl = nullptr;
+    res::Type *typeHint = nullptr;
+    std::vector<diag::DiagBuilder> diags = {};
+    res::Substitution sub = {};
   };
 
-  std::vector<AssociatedLookupResult>
-  lookupAssociatedDecls(res::Context &ctx,
-                        std::string identifier,
-                        res::Type *type,
-                        res::TraitType *trait = nullptr);
+  AssociatedLookupResult lookupAssociatedDecl(res::Context &ctx,
+                                              std::string identifier,
+                                              res::Type *type,
+                                              res::TraitType *trait = nullptr);
+  res::DeclRefExpr *resolveAssociatedDeclRef(res::Context &ctx,
+                                             const ast::DeclRefExpr *dre,
+                                             res::Type *type,
+                                             res::TraitType *trait = nullptr);
 
   res::CallExpr *resolveCallExpr(res::Context &ctx, const ast::CallExpr &call);
   res::UnaryOperator *insertUnaryDeref(res::Context &ctx, res::Expr *val);

@@ -10,15 +10,15 @@ extension S {
 fn main() {
   let s = S{};
 
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
+  // CHECK: [[# @LINE + 1 ]]:5: error: failed to find field 'method' in 'S'
   s.method;
 
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
+  // CHECK: [[# @LINE + 1 ]]:5: error: failed to find field 'method' in 'S'
   s.method.method;
 
-  // CHECK: [[# @LINE + 1 ]]:13: error: expected to call method
+  // CHECK: [[# @LINE + 1 ]]:14: error: failed to find field 'method' in 'S'
   s.method().method;
   
-  // CHECK: [[# @LINE + 1 ]]:4: error: expected to call method
+  // CHECK: [[# @LINE + 1 ]]:5: error: failed to find field 'method' in 'S'
   s.method.method();
 }

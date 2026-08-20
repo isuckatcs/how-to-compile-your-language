@@ -421,8 +421,6 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
   const auto &fragments = pathExpr.fragments;
   size_t idx = 0;
 
-  std::vector<AssociatedLookupResult> candidates;
-
   if (auto *traitSpec = pathExpr.traitSpecifier.get()) {
     varOrReturn(type, resolveType(ctx, *traitSpec->type, true));
     varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
@@ -437,56 +435,25 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
           .report(reporter);
 
     const ast::DeclRefExpr *fragment = fragments[idx].get();
-    candidates = lookupAssociatedDecls(ctx, fragment->identifier, type, trait);
-
-    if (candidates.empty())
-      return err::memberLookupFailed()
-          .at(fragment->location)
-          .with(fragment->identifier)
-          .with(trait->getName())
-          .report(reporter);
+    varOrReturn(dre, resolveAssociatedDeclRef(ctx, fragment, type, trait));
+    resFragments.emplace_back(dre);
 
     ++idx;
   }
 
   for (; idx != fragments.size(); ++idx) {
     const ast::DeclRefExpr *fragment = fragments[idx].get();
-    if (!candidates.empty()) {
+    if (!resFragments.empty()) {
       assert(idx > 0 && "unexpected fragment index");
 
-      res::Type *type = nullptr;
-      for (auto &&candidate : candidates) {
-        if (candidate.decl->getAs<res::TypeDecl>()) {
-          varOrReturn(dre, resolveDeclRefExpr(ctx, fragments[idx - 1].get(),
-                                              candidate.decl, candidate.sub));
-
-          if (candidate.type && !resFragments.empty())
-            ctx.unify(candidate.type, resFragments.back()->getType());
-
-          resFragments.emplace_back(dre);
-          type = dre->getType();
-          break;
-        }
-      }
-
-      if (!type)
-        return err::memberAccessInValue()
-            .at(fragment->location)
-            .report(reporter);
-
+      res::Type *type = resFragments.back()->getType();
       if (type->getAs<res::TraitType>())
         return err::memberAccessInRawTrait()
             .at(fragment->location)
             .report(reporter);
 
-      candidates = lookupAssociatedDecls(ctx, fragment->identifier, type);
-      if (candidates.empty())
-        return err::memberLookupFailed()
-            .at(fragment->location)
-            .with(fragment->identifier)
-            .with(type->getName())
-            .report(reporter);
-
+      varOrReturn(dre, resolveAssociatedDeclRef(ctx, fragment, type));
+      resFragments.emplace_back(dre);
       continue;
     }
 
@@ -498,16 +465,18 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
         return err::selfTyNotAllowed().at(fragment->location).report(reporter);
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
-        candidates.push_back(
-            {nullptr, paramType->getDecl(), paramType->getSub()});
+        varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
+                                            paramType->getSub()));
+        resFragments.emplace_back(dre);
         continue;
       }
 
       auto *structType = selfType->getAs<res::StructType>();
       assert(structType && "unexpect self type");
 
-      candidates.push_back(
-          {nullptr, structType->getDecl(), structType->getSub()});
+      varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, structType->getDecl(),
+                                          structType->getSub()));
+      resFragments.emplace_back(dre);
       continue;
     }
 
@@ -518,29 +487,36 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
           .with(fragment->identifier)
           .report(reporter);
 
-    for (auto &&symbol : symbolsInScope)
-      candidates.push_back({nullptr, symbol, res::Substitution{}});
+    if (fragments.size() > 1) {
+      for (auto &&decl : symbolsInScope) {
+        if (decl->getAs<res::TypeDecl>()) {
+          varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, decl));
+          resFragments.emplace_back(dre);
+          break;
+        }
+      }
+
+      if (resFragments.empty())
+        return err::memberAccessInValue()
+            .at(fragments[idx + 1]->location)
+            .report(reporter);
+
+      continue;
+    }
+
+    for (auto &&decl : symbolsInScope) {
+      if (decl->getAs<ExpectedDecl>()) {
+        varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, decl));
+        resFragments.emplace_back(dre);
+        break;
+      }
+    }
+
+    if (resFragments.empty())
+      return err::wrongDeclKind().at(fragment->location).report(reporter);
   }
 
-  std::vector<AssociatedLookupResult> expectedCandidates;
-  for (auto &&candidate : candidates)
-    if (dynamic_cast<ExpectedDecl *>(candidate.decl))
-      expectedCandidates.emplace_back(std::move(candidate));
-
-  if (expectedCandidates.empty())
-    return err::wrongDeclKind().at(fragments.back()->location).report(reporter);
-
-  if (expectedCandidates.size() > 1 && fragments.size() > 1)
-    return err::ambigousAssociatedFn()
-        .at(fragments.back()->location)
-        .report(reporter);
-
-  auto &&[type, decl, sub] = expectedCandidates.front();
-
-  if (type && !resFragments.empty())
-    ctx.unify(type, resFragments.back()->getType());
-
-  return resolveDeclRefExpr(ctx, fragments.back().get(), decl, sub);
+  return resFragments.back();
 }
 
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
@@ -594,48 +570,125 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   return functionInfo->declReferences.emplace_back(resDre);
 }
 
-std::vector<Sema::AssociatedLookupResult>
-Sema::lookupAssociatedDecls(res::Context &ctx,
-                            std::string identifier,
-                            res::Type *type,
-                            res::TraitType *trait) {
-  std::vector<AssociatedLookupResult> candidates;
+Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
+                                                        std::string identifier,
+                                                        res::Type *type,
+                                                        res::TraitType *trait) {
+  AssociatedLookupResult result;
 
   if (trait) {
-    if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-      candidates.push_back({type, decl, trait->getSub()});
+    result.decl = trait->getDecl()->lookupFunction(identifier);
+    result.sub = trait->getSub();
 
-    return candidates;
+    if (!result.decl) {
+      result.state = res::Context::QueryState::Error;
+      result.diags.emplace_back(
+          err::memberLookupFailed().with(identifier).with(trait->getName()));
+    }
+
+    return result;
   }
 
+  std::vector<std::pair<res::Decl *, res::Substitution>> candidates;
   for (auto &&trait : ctx.getEveryConformance(type))
     if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-      candidates.push_back({type, decl, trait->getSub()});
+      candidates.emplace_back(decl, trait->getSub());
 
-  if (!candidates.empty())
-    return candidates;
-
-  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
-    if (auto *decl = extension->getFunction(identifier))
-      candidates.push_back({ctx.instantiate(extension->type, sub), decl, sub});
-
-  if (!candidates.empty())
-    return candidates;
-
-  for (auto &&trait : ctx.getTU()->traits) {
-    auto *decl = trait->lookupFunction(identifier);
-    if (!decl)
-      continue;
-
-    res::Substitution traitSub = ctx.getUninferredInstantiation(trait);
-    auto *traitType =
-        ctx.instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
-    for (auto &&[ext, sub] : ctx.getExtensions(type, traitType))
-      candidates.push_back({ctx.instantiate(ext->type, sub), decl,
-                            ctx.instantiate(ext->trait->getSub(), sub)});
+  if (candidates.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambigousAssociatedFn());
+    return result;
   }
 
-  return candidates;
+  if (candidates.size() == 1) {
+    auto &&[decl, sub] = candidates.front();
+    result.decl = decl;
+    result.sub = sub;
+    return result;
+  }
+
+  std::vector<std::pair<res::TypeExtension *, res::Substitution>>
+      applicableExtensions;
+  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
+    if (extension->getFunction(identifier))
+      applicableExtensions.emplace_back(extension, sub);
+
+  if (applicableExtensions.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambigousAssociatedFn());
+    return result;
+  }
+
+  if (applicableExtensions.size() == 1) {
+    auto &&[extension, sub] = applicableExtensions.front();
+    result.decl = extension->getFunction(identifier);
+    result.sub = sub;
+    result.typeHint = ctx.instantiate(extension->type, sub);
+    return result;
+  }
+
+  std::vector<res::TraitDecl *> applicableTraits;
+  for (auto &&trait : ctx.getTU()->traits)
+    if (trait->lookupFunction(identifier))
+      applicableTraits.emplace_back(trait);
+
+  if (applicableTraits.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambigousAssociatedFn());
+    return result;
+  }
+
+  if (applicableTraits.empty()) {
+    result.state = res::Context::QueryState::Error;
+    result.diags.emplace_back(
+        err::memberLookupFailed().with(identifier).with(type->getName()));
+    return result;
+  }
+
+  res::TraitDecl *applicableTrait = applicableTraits.front();
+  auto *decl = applicableTrait->lookupFunction(identifier);
+
+  res::Substitution traitSub = ctx.getUninferredInstantiation(applicableTrait);
+  auto *traitType = ctx.instantiate(applicableTrait->getType(), traitSub)
+                        ->getAs<res::TraitType>();
+
+  auto extensions = ctx.getExtensions(type, traitType);
+  if (extensions.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambigousAssociatedFn());
+    return result;
+  }
+
+  if (extensions.empty()) {
+    result.state = res::Context::QueryState::Error;
+    result.diags.emplace_back(
+        err::memberLookupFailed().with(identifier).with(type->getName()));
+    return result;
+  }
+
+  auto &&[extension, sub] = extensions.front();
+
+  result.decl = decl;
+  result.sub = ctx.instantiate(extension->trait->getSub(), sub);
+  result.typeHint = ctx.instantiate(extension->type, sub);
+  return result;
+}
+
+res::DeclRefExpr *Sema::resolveAssociatedDeclRef(res::Context &ctx,
+                                                 const ast::DeclRefExpr *dre,
+                                                 res::Type *type,
+                                                 res::TraitType *trait) {
+  auto result = lookupAssociatedDecl(ctx, dre->identifier, type, trait);
+  if (result.decl) {
+    if (result.typeHint)
+      ctx.unify(type, result.typeHint);
+
+    return resolveDeclRefExpr(ctx, dre, result.decl, result.sub);
+  }
+
+  for (auto &&err : result.diags)
+    err.at(dre->location).report(reporter);
+  return nullptr;
 }
 
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
@@ -832,52 +885,24 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   const SourceLocation &memberLoc = member->location;
   std::string memberId = member->identifier;
 
-  std::vector<AssociatedLookupResult> candidates;
-
   if (!asCall) {
-    auto *structType = lookupType->getAs<res::StructType>();
-    if (!structType)
+    auto *st = lookupType->getAs<res::StructType>();
+    if (!st)
       return err::fieldLookupBaseInvalid()
           .at(memberLoc)
           .with(memberId)
           .with(baseType->getName())
           .report(reporter);
 
-    if (auto *field = structType->getDecl()->lookupField(memberId))
-      candidates.push_back({structType, field, structType->getSub()});
-  }
-
-  if (candidates.empty())
-    candidates = lookupAssociatedDecls(ctx, member->identifier, lookupType);
-
-  if (candidates.empty() && basePtrType)
-    candidates = lookupAssociatedDecls(ctx, member->identifier, basePtrType);
-
-  if (candidates.size() > 1)
-    return err::ambigousAssociatedFn().at(member->location).report(reporter);
-
-  if (candidates.empty()) {
-    if (!asCall)
+    auto *field = st->getDecl()->lookupField(memberId);
+    if (!field)
       return err::fieldLookupFailed()
           .at(memberLoc)
           .with(memberId)
           .with(lookupType->getName())
           .report(reporter);
 
-    return err::memberLookupFailed()
-        .at(member->location)
-        .with(member->identifier)
-        .with(baseType->getName())
-        .report(reporter);
-  }
-
-  auto &&[type, decl, sub] = candidates.back();
-  varOrReturn(dre, resolveDeclRefExpr(ctx, member, decl, sub));
-
-  if (!asCall) {
-    if (decl->getAs<res::FunctionDecl>())
-      return err::expectedMethodCall().at(me.location).report(reporter);
-
+    varOrReturn(dre, resolveDeclRefExpr(ctx, member, field, st->getSub()));
     if (basePtrType)
       base = insertUnaryDeref(ctx, base);
 
@@ -886,7 +911,19 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
     return resMemberExpr;
   }
 
-  auto *fnDecl = decl->getAs<res::FunctionDecl>();
+  auto result = lookupAssociatedDecl(ctx, member->identifier, lookupType);
+  if (result.state == res::Context::QueryState::Error && basePtrType)
+    result = lookupAssociatedDecl(ctx, member->identifier, basePtrType);
+
+  if (!result.decl) {
+    for (auto &&err : result.diags)
+      err.at(member->location).report(reporter);
+    return nullptr;
+  }
+
+  varOrReturn(dre, resolveDeclRefExpr(ctx, member, result.decl, result.sub));
+
+  auto *fnDecl = result.decl->getAs<res::FunctionDecl>();
   auto *functionType = dre->getType()->getAs<res::FunctionType>();
 
   assert(fnDecl && "expected function decl");
@@ -1346,9 +1383,9 @@ Sema::resolveTypeExtension(res::Context &ctx,
   for (auto &&fn : extension.functions) {
     if (!trait) {
       res::Substitution testSub = ctx.getUninferredInstantiation(resExtension);
-      if (!lookupAssociatedDecls(ctx, fn->identifier,
-                                 ctx.instantiate(type, testSub))
-               .empty()) {
+      auto result = lookupAssociatedDecl(ctx, fn->identifier,
+                                         ctx.instantiate(type, testSub));
+      if (result.decl) {
         err::redeclaration()
             .at(fn->location)
             .with(fn->identifier)
