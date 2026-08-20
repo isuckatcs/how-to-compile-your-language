@@ -2,7 +2,6 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_RES_H
 
 #include <memory>
-#include <set>
 #include <utility>
 #include <variant>
 #include <vector>
