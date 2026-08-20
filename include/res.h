@@ -106,8 +106,6 @@ public:
   TranslationUnit *getTU() const { return translationUnit.get(); };
 
   std::vector<std::pair<TypeExtension *, Substitution>>
-  getEveryExtension(Type *type);
-  std::vector<std::pair<TypeExtension *, Substitution>>
   getExtensions(Type *type, TraitType *trait = nullptr);
 
   bool eq(Type *t1, Type *t2) const;

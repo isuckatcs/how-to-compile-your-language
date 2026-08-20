@@ -228,7 +228,7 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 }
 
 std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getEveryExtension(Type *type) {
+Context::getExtensions(Type *type, TraitType *trait) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
   for (auto &&extension : extensions) {
@@ -236,38 +236,24 @@ Context::getEveryExtension(Type *type) {
 
     probe([&, this](UnifyResult &unifyResult) {
       doUnify(type, instantiate(extension->type, sub), unifyResult);
-      processObligations(unifyResult, true);
+      if (!unifyResult.success)
+        return;
 
-      if (unifyResult.success)
-        matches.emplace_back(extension.get(), sub);
-    });
-  }
-
-  return matches;
-}
-
-std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait) {
-  std::vector<std::pair<TypeExtension *, Substitution>> matches;
-
-  for (auto &&pair : getEveryExtension(type)) {
-    auto &extension = pair.first;
-    auto &sub = pair.second;
-
-    if (!extension->trait && !trait) {
-      matches.emplace_back(extension, sub);
-      continue;
-    }
-
-    if (extension->trait && trait) {
-      probe([&, this](UnifyResult &unifyResult) {
+      if (extension->trait && trait) {
         doUnify(trait, instantiate(extension->trait, sub), unifyResult);
-        processObligations(unifyResult, true);
+        if (!unifyResult.success)
+          return;
+      }
 
-        if (unifyResult.success)
-          matches.emplace_back(extension, sub);
-      });
-    }
+      processObligations(unifyResult, true);
+      if (!unifyResult.success)
+        return;
+
+      if ((extension->trait == nullptr) != (trait == nullptr))
+        return;
+
+      matches.emplace_back(extension.get(), sub);
+    });
   }
 
   return matches;
@@ -343,12 +329,12 @@ Substitution Context::instantiate(const Substitution &s,
 
 Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {
   Substitution sub;
+  for (auto &&typeParam : declCtx->typeParams)
+    sub[typeParam->getType()] = UninferredType::create(*this);
+
   for (auto &&typeParam : declCtx->typeParams) {
-    auto *tpType = typeParam->getType();
-    auto *probeType = UninferredType::create(*this);
-
-    sub[tpType] = probeType;
-
+    res::Type *tpType = typeParam->getType();
+    auto *probeType = sub[tpType]->getAs<res::UninferredType>();
     for (auto &&trait : getDirectConformance(tpType))
       probeType->addObligation(
           instantiate(trait, sub)->getAs<res::TraitType>());

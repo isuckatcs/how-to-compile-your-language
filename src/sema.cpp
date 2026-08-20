@@ -622,11 +622,18 @@ Sema::lookupAssociatedDecls(res::Context &ctx,
   if (!candidates.empty())
     return candidates;
 
-  for (auto &&[extension, sub] : ctx.getEveryExtension(type))
-    if (auto *trait = extension->trait)
-      if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-        candidates.push_back({ctx.instantiate(extension->type, sub), decl,
-                              ctx.instantiate(trait->getSub(), sub)});
+  for (auto &&trait : ctx.getTU()->traits) {
+    auto *decl = trait->lookupFunction(identifier);
+    if (!decl)
+      continue;
+
+    res::Substitution traitSub = ctx.getUninferredInstantiation(trait);
+    auto *traitType =
+        ctx.instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
+    for (auto &&[ext, sub] : ctx.getExtensions(type, traitType))
+      candidates.push_back({ctx.instantiate(ext->type, sub), decl,
+                            ctx.instantiate(ext->trait->getSub(), sub)});
+  }
 
   return candidates;
 }
