@@ -56,16 +56,16 @@ struct TranslationUnit final : public GenericDeclContext {
 
 class Context final {
 public:
-  struct Result final {
-    enum class State {
-      Success,
-      Ambigous,
-      Fail,
-    };
+  enum class QueryState {
+    Success,
+    Ambiguous,
+    Error,
+  };
 
-    State state;
-    std::vector<res::TraitType *> traits;
-    std::vector<diag::DiagBuilder> diags;
+  template <typename T> struct QueryResult final {
+    QueryState state = QueryState::Success;
+    std::vector<T> traits = {};
+    std::vector<diag::DiagBuilder> diags = {};
   };
 
   std::vector<std::unique_ptr<Stmt>> statements;
@@ -122,7 +122,7 @@ public:
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
-  std::unique_ptr<Result> querySatisfyingTraits(Type *type, TraitType *trait);
+  QueryResult<TraitType *> querySatisfyingTraits(Type *type, TraitType *trait);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

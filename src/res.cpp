@@ -105,19 +105,19 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
     }
 
     for (auto &&trait : obligations[u]) {
-      auto queryResult = querySatisfyingTraits(u, trait);
+      QueryResult<TraitType *> queryResult = querySatisfyingTraits(u, trait);
 
-      if (queryResult->state == Result::State::Success) {
-        doUnify(trait, queryResult->traits[0], result);
+      if (queryResult.state == QueryState::Success) {
+        doUnify(trait, queryResult.traits[0], result);
         continue;
       }
 
-      if (queryResult->state == Result::State::Ambigous && allowAmbiguity) {
+      if (queryResult.state == QueryState::Ambiguous && allowAmbiguity) {
         result.hasAmbiguousObligations = true;
         continue;
       }
 
-      for (auto &&error : queryResult->diags) {
+      for (auto &&error : queryResult.diags) {
         result.success = false;
         result.diags.emplace_back(error);
       }
@@ -125,12 +125,12 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
   }
 }
 
-std::unique_ptr<Context::Result>
+Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   ++requirementDepth;
 
   // Construct a successful default result.
-  auto result = std::make_unique<Result>();
+  QueryResult<TraitType *> result;
 
   // auto indentWidth = requirementDepth;
   // if (indentWidth == 0) {
@@ -139,8 +139,8 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 
   if (requirementDepth > recursionLimit) {
     // std::cerr << indent(indentWidth) << "\n\npending too complex\n";
-    result->state = Result::State::Fail;
-    result->diags.emplace_back(err::recursionLimitReached());
+    result.state = QueryState::Error;
+    result.diags.emplace_back(err::recursionLimitReached());
     --requirementDepth;
     return result;
   }
@@ -155,11 +155,11 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
       processObligations(unifyResult, false);
 
       if (unifyResult.success)
-        result->traits.emplace_back(conformingTrait);
+        result.traits.emplace_back(conformingTrait);
     });
   }
 
-  if (result->traits.empty()) {
+  if (result.traits.empty()) {
     for (auto &&extension : extensions) {
       if (!extension->trait)
         continue;
@@ -189,9 +189,9 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
         // std::cerr << indent(indentWidth) << "`-accepted\n";
 
         if (unifyResult.hasAmbiguousObligations)
-          result->state = Result::State::Ambigous;
+          result.state = QueryState::Ambiguous;
 
-        result->traits.emplace_back(extTrait);
+        result.traits.emplace_back(extTrait);
       });
     }
   }
@@ -205,22 +205,22 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 
   --requirementDepth;
 
-  if (result->traits.empty()) {
-    result->state = Result::State::Fail;
-    result->diags.emplace_back(err::unsatisfiedRequirement()
-                                   .with(type->getName())
-                                   .with(trait->getName()));
+  if (result.traits.empty()) {
+    result.state = QueryState::Error;
+    result.diags.emplace_back(err::unsatisfiedRequirement()
+                                  .with(type->getName())
+                                  .with(trait->getName()));
     return result;
   }
 
-  if (result->traits.size() > 1) {
-    result->state = Result::State::Ambigous;
+  if (result.traits.size() > 1) {
+    result.state = QueryState::Ambiguous;
 
-    for (auto &&resultTrait : result->traits)
-      result->diags.emplace_back(err::ambigousConformance()
-                                     .with(resultTrait->getName())
-                                     .with(type->getName())
-                                     .with(trait->getName()));
+    for (auto &&resultTrait : result.traits)
+      result.diags.emplace_back(err::ambigousConformance()
+                                    .with(resultTrait->getName())
+                                    .with(type->getName())
+                                    .with(trait->getName()));
     return result;
   }
 

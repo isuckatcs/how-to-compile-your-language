@@ -428,7 +428,8 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
     res::TraitType *trait = t->getAs<res::TraitType>();
 
-    if (ctx.querySatisfyingTraits(type, trait)->traits.empty())
+    if (ctx.querySatisfyingTraits(type, trait).state ==
+        res::Context::QueryState::Error)
       return err::traitNotImplemented()
           .at(traitSpec->trait->location)
           .with(type->getName())
@@ -1026,8 +1027,7 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
     return false;
 
   auto traits =
-      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type))
-          ->traits;
+      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type)).traits;
 
   if (traits.empty())
     return false;
