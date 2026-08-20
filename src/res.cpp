@@ -125,17 +125,6 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
   }
 }
 
-void Context::rollbackUnify(const UnifyResult &result) {
-  for (auto &&type : result.inferredTypes) {
-    if (auto *root = type->getRootType()->getAs<res::UninferredType>()) {
-      auto &rootObligations = obligations[root];
-      rootObligations.resize(rootObligations.size() - obligations[type].size());
-    }
-
-    type->setParent(nullptr);
-  }
-}
-
 std::unique_ptr<Context::Result>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   ++requirementDepth;
@@ -160,9 +149,15 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   // type->getName()
   //           << " : " << trait->getName() << "\n";
 
-  for (auto &&conformingTrait : getEveryConformance(type))
-    if (probe(trait, conformingTrait).empty())
-      result->traits.emplace_back(conformingTrait);
+  for (auto &&conformingTrait : getEveryConformance(type)) {
+    probe([&, this](UnifyResult &unifyResult) {
+      doUnify(trait, conformingTrait, unifyResult);
+      processObligations(unifyResult, false);
+
+      if (unifyResult.success)
+        result->traits.emplace_back(conformingTrait);
+    });
+  }
 
   if (result->traits.empty()) {
     for (auto &&extension : extensions) {
@@ -178,25 +173,26 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
       res::TraitType *extTrait =
           instantiate(extension->trait, sub)->getAs<res::TraitType>();
 
-      UnifyResult unifyResult;
-      doUnify(type, extType, unifyResult);
+      probe([&, this](UnifyResult &unifyResult) {
+        doUnify(type, extType, unifyResult);
+        if (!unifyResult.success)
+          return;
 
-      if (unifyResult.success)
         doUnify(trait, extTrait, unifyResult);
+        if (!unifyResult.success)
+          return;
 
-      if (unifyResult.success) {
         processObligations(unifyResult, true);
+        if (!unifyResult.success)
+          return;
 
-        if (unifyResult.success) {
-          // std::cerr << indent(indentWidth) << "`-accepted\n";
-          if (unifyResult.hasAmbiguousObligations)
-            result->state = Result::State::Ambigous;
+        // std::cerr << indent(indentWidth) << "`-accepted\n";
 
-          result->traits.emplace_back(extTrait);
-        }
-      }
+        if (unifyResult.hasAmbiguousObligations)
+          result->state = Result::State::Ambigous;
 
-      rollbackUnify(unifyResult);
+        result->traits.emplace_back(extTrait);
+      });
     }
   }
 
@@ -237,10 +233,14 @@ Context::getEveryExtension(Type *type) {
 
   for (auto &&extension : extensions) {
     Substitution sub = getUninferredInstantiation(extension.get());
-    // FIXME: ambigous probes are rejected, but should be accepted
 
-    if (probe(type, instantiate(extension->type, sub)).empty())
-      matches.emplace_back(extension.get(), sub);
+    probe([&, this](UnifyResult &unifyResult) {
+      doUnify(type, instantiate(extension->type, sub), unifyResult);
+      processObligations(unifyResult, true);
+
+      if (unifyResult.success)
+        matches.emplace_back(extension.get(), sub);
+    });
   }
 
   return matches;
@@ -250,15 +250,23 @@ std::vector<std::pair<TypeExtension *, Substitution>>
 Context::getExtensions(Type *type, TraitType *trait) {
   std::vector<std::pair<TypeExtension *, Substitution>> matches;
 
-  for (auto &&[extension, sub] : getEveryExtension(type)) {
+  for (auto &&pair : getEveryExtension(type)) {
+    auto &extension = pair.first;
+    auto &sub = pair.second;
+
     if (!extension->trait && !trait) {
       matches.emplace_back(extension, sub);
       continue;
     }
 
     if (extension->trait && trait) {
-      if (probe(trait, instantiate(extension->trait, sub)).empty())
-        matches.emplace_back(extension, sub);
+      probe([&, this](UnifyResult &unifyResult) {
+        doUnify(trait, instantiate(extension->trait, sub), unifyResult);
+        processObligations(unifyResult, true);
+
+        if (unifyResult.success)
+          matches.emplace_back(extension, sub);
+      });
     }
   }
 
@@ -286,12 +294,19 @@ std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
   return result.diags;
 }
 
-std::vector<diag::DiagBuilder> Context::probe(Type *t1, Type *t2) {
+template <typename Fn> void Context::probe(Fn &&fn) {
   UnifyResult result;
-  doUnify(t1, t2, result);
-  processObligations(result, false);
-  rollbackUnify(result);
-  return result.diags;
+
+  fn(result);
+
+  for (auto &&type : result.inferredTypes) {
+    if (auto *root = type->getRootType()->getAs<res::UninferredType>()) {
+      auto &rootObligations = obligations[root];
+      rootObligations.resize(rootObligations.size() - obligations[type].size());
+    }
+
+    type->setParent(nullptr);
+  }
 }
 
 Type *Context::instantiate(Type *t, const Substitution &sub) {

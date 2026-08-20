@@ -92,6 +92,8 @@ public:
   void processObligations(UnifyResult &result, bool allowAmbiguity);
   void rollbackUnify(const UnifyResult &result);
 
+  template <typename Fn> void probe(Fn &&fn);
+
   const int recursionLimit = 10;
   int requirementDepth = 0;
 
@@ -115,7 +117,6 @@ public:
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
-  std::vector<diag::DiagBuilder> probe(Type *t1, Type *t2);
 
   Type *instantiate(Type *t, const Substitution &sub);
   Substitution instantiate(const Substitution &s, const Substitution &sub);
