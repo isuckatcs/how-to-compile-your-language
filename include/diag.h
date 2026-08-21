@@ -137,6 +137,7 @@ diag(Error, universalTypeExtension, "expected a trait extension or an extension 
 
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");
+diag(Error, extensionTypeParamUnused, "type parameter '{}' must be referenced by either the extended type or the extending trait");
 diag(Error, typeArgCntMismatch, "type argument count mismatch, expected {}, but received {}");
 diag(Error, notGeneric, "'{}' is not a generic");
 

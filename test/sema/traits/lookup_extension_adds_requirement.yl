@@ -1,16 +1,20 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-trait A {
-  fn foo() {}
-}
+trait A {}
+
 trait B<T> {}
+
+struct S<T, U> {}
+
+extension<T, U> S<T, U> : B<number> {}
 
 extension<T : A> T : A {}
 
+// CHECK: [[# @LINE + 1 ]]:28: error: extension 'T : B<number>' conflicts with extension 'S<T, U> : B<number>'
 extension<T : B<number>> T : B<number> {}
 
 extension<T : B<number> & B<unit>> T : B<unit> {}
 
-// CHECK: [[# @LINE + 1 ]]:36: error: extension 'U : B<unit>' conflicts with extension 'T : B<unit>'
-extension<T, U : B<T> & B<unit>> U : B<unit> {}
+// CHECK: [[# @LINE + 1 ]]:42: error: extension 'S<T, U> : B<unit>' conflicts with extension 'T : B<unit>'
+extension<T, U : B<T> & B<unit>> S<T, U> : B<unit> {}
 
 fn main() {}

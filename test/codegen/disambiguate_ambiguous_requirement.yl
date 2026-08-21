@@ -3,6 +3,8 @@
 // RUN: compiler %s -o %t && %t | grep -Plzxe '123\n456\n'
 struct S { b: bool }
 
+struct Dummy<T> {}
+
 trait A<T> {
   fn foo(self: &Self);
 }
@@ -17,7 +19,7 @@ extension S : A<bool> {
   }
 }
 
-extension<T, U : B<T>> U : A<S> {
+extension<T, U : B<T>> U : A<Dummy<T>> {
   fn foo(self: &Self) {
     println(456);
   }
@@ -35,6 +37,6 @@ fn main() {
   @<S : B<bool>>::bar(s2);
   // CHECK: call void @_YT1BGS1SbE3bar(ptr %s2, ptr null)
 
-  @<S : B<S>>::bar(s2);
-  // CHECK: call void @_YT1BGS1SS1SE3bar(ptr %s2, ptr null)
+  @<S : B<Dummy<bool>>>::bar(s2);
+  // CHECK: call void @_YT1BGS1SS5DummyGbEE3bar(ptr %s2, ptr null)
 }

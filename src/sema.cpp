@@ -156,8 +156,10 @@ res::Type *Sema::resolveType(res::Context &ctx,
           .with(udt->identifier)
           .report(reporter);
 
-    if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>())
+    if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>()) {
+      typeParamDecl->setUsed(true);
       return res::TypeParamType::create(ctx, typeParamDecl);
+    }
 
     auto *gdc = dynamic_cast<res::GenericDeclContext *>(decl);
     assert(gdc && "expected generic decl context");
@@ -1374,6 +1376,9 @@ Sema::resolveTypeExtension(res::Context &ctx,
                                           extension.typeParams))
     return nullptr;
 
+  for (auto &&tp : typeParams)
+    tp->setUsed(false);
+
   varOrReturn(type, resolveType(ctx, *extension.type));
 
   res::TraitType *trait = nullptr;
@@ -1386,6 +1391,21 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return err::universalTypeExtension()
         .at(extension.type->location)
         .report(reporter);
+
+  bool error = false;
+
+  for (auto &&tp : typeParams) {
+    if (!tp->used) {
+      err::extensionTypeParamUnused()
+          .with(tp->identifier)
+          .at(tp->location)
+          .report(reporter);
+      error = true;
+    }
+  }
+
+  if (error)
+    return nullptr;
 
   auto *resExtension = res::TypeExtension::create(
       ctx, extension.location, std::move(typeParams), type, trait);

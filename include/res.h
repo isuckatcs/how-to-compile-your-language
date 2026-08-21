@@ -212,6 +212,7 @@ struct Decl : public TypedNode {
   SourceLocation location;
   GenericDeclContext *declContext;
   bool needsStorage = false;
+  bool used = false;
 
   virtual ~Decl() = default;
 
@@ -223,6 +224,7 @@ struct Decl : public TypedNode {
     return dynamic_cast<const T *>(this);
   }
 
+  void setUsed(bool value) { used = value; }
   void setStorageNeeded() { needsStorage = true; }
 
   virtual void dump(size_t level = 0) const = 0;

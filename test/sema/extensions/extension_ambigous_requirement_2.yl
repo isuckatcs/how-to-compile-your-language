@@ -1,27 +1,21 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S2 { b: bool }
 
-trait T0<P0> {
-  fn m0(self: &Self): P0;
+trait A<T, U> {
+  fn foo(self: &Self) {}
 }
 
-trait T1 {
-  fn m1(self: &Self): number;
+trait B<T> {
+  fn bar(self: &Self) {}
 }
 
-extension S2 : T0<bool> {
-  fn m0(self: &Self): bool { return true; }
-}
+extension<T> S2 : A<bool, T> {}
 
-extension<A, B : T0<A>> B : T1 {
-  fn m1(self: &Self): number { return 1; }
-}
+extension<T, U : A<T, T>> U : B<T> {}
 
-extension<A, B : T1> B : T0<S2> {
-  fn m0(self: &Self): S2 { return S2 { b: true, }; }
-}
+extension<T, U : B<T>> U : A<S2, T> {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:18: error: ambigous associated function reference
-  S2 { b: true }.m0();
+  S2 { b: true }.foo();
 }

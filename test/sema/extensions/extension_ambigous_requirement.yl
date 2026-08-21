@@ -1,6 +1,8 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 struct S { b: bool }
 
+struct Dummy<T> {}
+
 trait A<T> {
   fn foo(self: &Self) {}
 }
@@ -11,7 +13,7 @@ trait B<T> {
 
 extension S : A<bool> {}
 
-extension<T, U : B<T>> U : A<S> {}
+extension<T, U : B<T>> U : A<Dummy<T>> {}
 
 // S must satisfy A<T>. It is satisfied by both A<bool> and A<S>. What should T be?
 extension<T, U : A<T>> U : B<T> {}
@@ -21,11 +23,11 @@ fn main() {
 
   s.bar();
   // CHECK: [[# @LINE - 1 ]]:5: error: 'A<bool>' ambigously satisfies requirement 'S : A<_>'
-  // CHECK: [[# @LINE - 2 ]]:5: error: 'A<S>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:5: error: 'A<Dummy<_>>' ambigously satisfies requirement 'S : A<_>'
   // CHECK: [[# @LINE - 3 ]]:5: error: explicit type annotations needed to disambiguate lookup result
 
   S::bar();
   // CHECK: [[# @LINE - 1 ]]:6: error: 'A<bool>' ambigously satisfies requirement 'S : A<_>'
-  // CHECK: [[# @LINE - 2 ]]:6: error: 'A<S>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:6: error: 'A<Dummy<_>>' ambigously satisfies requirement 'S : A<_>'
   // CHECK: [[# @LINE - 3 ]]:6: error: explicit type annotations needed to disambiguate lookup result
 }

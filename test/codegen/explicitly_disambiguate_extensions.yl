@@ -1,11 +1,13 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+struct Dummy<T> {}
+
 trait B<T> {
   fn foo(self: &Self);
 }
 
-extension<T, U : B<T>> U : B<unit> {
+extension<T, U : B<T>> U : B<Dummy<T>> {
   fn foo(self: &Self) {
     println(123);
   }
@@ -20,8 +22,8 @@ extension number : B<number> {
 fn main() {
   let n = 123;
 
-  @<number : B<unit>>::foo(n);
-  // CHECK: call void @_YT1BGnuE3foo(ptr %n, ptr null)
+  @<number : B<Dummy<number>>>::foo(n);
+  // CHECK: call void @_YT1BGnS5DummyGnEE3foo(ptr %n, ptr null)
 
   @<number : B<number>>::foo(n);
   // CHECK-NEXT: call void @_YT1BGnnE3foo(ptr %n, ptr null)

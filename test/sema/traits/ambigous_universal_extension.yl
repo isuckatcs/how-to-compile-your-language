@@ -1,10 +1,10 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-trait B<T> {
+trait B<T, U> {
   fn foo(self: &Self) {}
 }
 
-extension<T, U : B<T>> U : B<unit> {}
-extension number : B<number> {}
+extension<T, U : B<T, T>> U : B<unit, T> {}
+extension<T> number : B<number, T> {}
 
 fn main() {
   // CHECK: [[# @LINE + 1 ]]:7: error: ambigous associated function reference

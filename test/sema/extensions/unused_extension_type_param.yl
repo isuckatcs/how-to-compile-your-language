@@ -7,10 +7,9 @@ trait B<T> {
 
 extension<T, U : A<T>> U : B<T> {}
 
-// FIXME: there is no way to infer U, so it is never checker and codegen fails
+// CHECK: [[# @LINE + 1 ]]:14: error: type parameter 'U' must be referenced by either the extended type or the extending trait
 extension<T, U : B<T>> number : A<T> {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
   123.foo();
 }
