@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {}
+
+trait B<T> {
+  fn foo(self: &Self) : S<T> {
+    return S@<T>{};
+  }
+}
+
+extension<T> number : B<T> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:7: error: explicit type annotations are needed to infer the type of 'foo'
+  123.foo();
+}

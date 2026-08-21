@@ -2279,13 +2279,17 @@ bool Sema::runPostFunctionBodyChecks() {
 
 bool Sema::checkDeclRefTypes() {
   bool error = false;
-  for (auto &&dre : functionInfo->declReferences) {
-    auto *gdc = dre->decl->getAs<res::GenericDeclContext>();
-    if (!gdc || gdc->typeParams.empty())
-      continue;
 
-    for (auto &&tp : gdc->typeParams) {
-      if (dre->sub[tp->getType()]->getAs<res::UninferredType>()) {
+  // FIXME: introduce a resolved path expression and error out on the first
+  // fragment
+  std::set<res::Type *> seen;
+
+  for (auto &&dre : functionInfo->declReferences) {
+    for (auto &&[from, to] : dre->sub) {
+      if (seen.count(to->getRootType()))
+        continue;
+
+      if (to->getAs<res::UninferredType>()) {
         err::annotationsNeeded()
             .at(dre->location)
             .with(dre->decl->identifier)
@@ -2294,6 +2298,9 @@ bool Sema::checkDeclRefTypes() {
         break;
       }
     }
+
+    for (auto &&[from, to] : dre->sub)
+      seen.emplace(to->getRootType());
   }
 
   return !error;
