@@ -598,7 +598,7 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
 
   if (candidates.size() > 1) {
     result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambigousAssociatedFn());
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
     return result;
   }
 
@@ -618,7 +618,7 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
 
   if (applicableExtensions.size() > 1) {
     result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambigousAssociatedFn());
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
     return result;
   }
 
@@ -637,7 +637,7 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
 
   if (applicableTraits.size() > 1) {
     result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambigousAssociatedFn());
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
     return result;
   }
 
@@ -660,7 +660,7 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
     result.state = res::Context::QueryState::Ambiguous;
 
     if (extensionQuery.items.size() > 1) {
-      result.diags.emplace_back(err::ambigousAssociatedFn());
+      result.diags.emplace_back(err::ambiguousAssociatedFn());
       return result;
     }
 
@@ -1089,7 +1089,7 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
   if (traits.empty())
     return false;
 
-  assert(traits.size() == 1 && "ambigous trait object candidate");
+  assert(traits.size() == 1 && "ambiguous trait object candidate");
 
   return ctx.unify(anyType->withSelfType(&ctx, type), traits.back()).empty();
 }

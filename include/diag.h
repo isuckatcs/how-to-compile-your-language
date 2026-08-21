@@ -100,7 +100,7 @@ diag(Error, memberFnLookupFailed, "failed to find member function '{}' in '{}'")
 diag(Error, noFieldWithName, "'{}' has no field named '{}'");
 diag(Error, memberAccessInRawTrait, "cannot look up member in trait without a specific extension");
 diag(Error, memberAccessInValue, "cannot look up member in value");
-diag(Error, ambigousAssociatedFn, "ambigous associated function reference");
+diag(Error, ambiguousAssociatedFn, "ambiguous associated function reference");
 diag(Error, traitObjectMethodNotCalled, "expected to call member function on trait object");
 
 // types
@@ -109,7 +109,7 @@ diag(Error, failedToResolveType, "failed to resolve type '{}'");
 diag(Error, unificationError, "cannot unify '{}' with '{}'")
 diag(Error, unsatisfiedRequirement, "cannot satisfy requirement '{} : {}'")
 diag(Error, unknownFunctionAssignment, "unknown function type '{}' on the lhs of assignment");
-diag(Error, ambigousConformance, "'{}' ambigously satisfies requirement '{} : {}'")
+diag(Error, ambiguousConformance, "'{}' ambiguously satisfies requirement '{} : {}'")
 diag(Error, annotationsNeeded, "explicit type annotations are needed to infer the type of '{}'");
 diag(Error, annotationsNeededForLookup, "explicit type annotations needed to disambiguate lookup result");
 diag(Error, initTyMismatch, "an expression of type '{}' cannot be used to initialize a variable of type '{}'");

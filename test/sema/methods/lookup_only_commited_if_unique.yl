@@ -10,6 +10,6 @@ extension S<bool> {
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:14: error: ambigous associated function reference
+  // CHECK: [[# @LINE + 1 ]]:14: error: ambiguous associated function reference
   let x = S::foo;
 }

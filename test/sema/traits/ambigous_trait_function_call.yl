@@ -16,9 +16,9 @@ extension S : A<unit> {
 fn main() {
   let s = S{};
 
-  // CHECK: [[# @LINE + 1]]:5: error: ambigous associated function reference
+  // CHECK: [[# @LINE + 1]]:5: error: ambiguous associated function reference
   s.foo();
   
-  // CHECK: [[# @LINE + 1]]:6: error: ambigous associated function reference
+  // CHECK: [[# @LINE + 1]]:6: error: ambiguous associated function reference
   S::foo();
 }

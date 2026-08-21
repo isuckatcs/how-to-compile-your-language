@@ -7,6 +7,6 @@ extension<T, U : B<T, T>> U : B<unit, T> {}
 extension<T> number : B<number, T> {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: ambigous associated function reference
+  // CHECK: [[# @LINE + 1 ]]:7: error: ambiguous associated function reference
   123.foo();
 }

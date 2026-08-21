@@ -193,7 +193,7 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
     result.state = QueryState::Ambiguous;
 
     for (auto &&resultTrait : result.items)
-      result.diags.emplace_back(err::ambigousConformance()
+      result.diags.emplace_back(err::ambiguousConformance()
                                     .with(resultTrait->getName())
                                     .with(type->getName())
                                     .with(trait->getName()));

@@ -12,6 +12,6 @@ fn foo<T, U: A<T>>(u: U) {}
 
 fn main() {
   foo(S{});
-  // CHECK: [[# @LINE - 1 ]]:8: error: 'A<unit>' ambigously satisfies requirement 'S : A<_>'
-  // CHECK: [[# @LINE - 2 ]]:8: error: 'A<number>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 1 ]]:8: error: 'A<unit>' ambiguously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:8: error: 'A<number>' ambiguously satisfies requirement 'S : A<_>'
 }

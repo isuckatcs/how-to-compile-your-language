@@ -9,8 +9,8 @@ trait B : A<number> & A<unit> {}
 
 fn foo<T : B>(t: T) {
   bar(t);
-  // CHECK: [[# @LINE - 1 ]]:7: error: 'A<number>' ambigously satisfies requirement 'T : A<_>'
-  // CHECK: [[# @LINE - 2 ]]:7: error: 'A<unit>' ambigously satisfies requirement 'T : A<_>'
+  // CHECK: [[# @LINE - 1 ]]:7: error: 'A<number>' ambiguously satisfies requirement 'T : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:7: error: 'A<unit>' ambiguously satisfies requirement 'T : A<_>'
 }
 
 fn bar<T, U: A<T>>(u: U) {}
