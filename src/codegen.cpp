@@ -1279,7 +1279,6 @@ llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
   assert(result.items.size() == 1 && "failed to find extension");
   const auto &extension = result.items.front();
 
-  // FIXME: is this sub needed?
   auto extensionSub = resCtx->getUninferredInstantiation(extension);
   resCtx->unify(trait, resCtx->instantiate(extension->trait, extensionSub));
 
