@@ -63,7 +63,7 @@ public:
 
   template <typename T> struct QueryResult final {
     QueryState state = QueryState::Success;
-    std::vector<T> traits = {};
+    std::vector<T> items = {};
     std::vector<diag::DiagBuilder> diags = {};
   };
 
@@ -105,8 +105,8 @@ public:
 
   TranslationUnit *getTU() const { return translationUnit.get(); };
 
-  std::vector<std::pair<TypeExtension *, Substitution>>
-  getExtensions(Type *type, TraitType *trait = nullptr);
+  QueryResult<TypeExtension *> queryExtensions(Type *type, TraitType *trait);
+  QueryResult<TraitType *> querySatisfyingTraits(Type *type, TraitType *trait);
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
@@ -115,7 +115,6 @@ public:
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
-  QueryResult<TraitType *> querySatisfyingTraits(Type *type, TraitType *trait);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
   std::vector<TraitType *> getEveryConformance(Type *type);

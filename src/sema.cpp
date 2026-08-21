@@ -609,9 +609,10 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
 
   std::vector<std::pair<res::TypeExtension *, res::Substitution>>
       applicableExtensions;
-  for (auto &&[extension, sub] : ctx.getExtensions(type, nullptr))
+  for (auto &&extension : ctx.queryExtensions(type, nullptr).items)
     if (extension->getFunction(identifier))
-      applicableExtensions.emplace_back(extension, sub);
+      applicableExtensions.emplace_back(
+          extension, ctx.getUninferredInstantiation(extension));
 
   if (applicableExtensions.size() > 1) {
     result.state = res::Context::QueryState::Ambiguous;
@@ -652,21 +653,22 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
   auto *traitType = ctx.instantiate(applicableTrait->getType(), traitSub)
                         ->getAs<res::TraitType>();
 
-  auto extensions = ctx.getExtensions(type, traitType);
-  if (extensions.size() > 1) {
+  auto extensionQuery = ctx.queryExtensions(type, traitType);
+  if (extensionQuery.state == res::Context::QueryState::Ambiguous) {
     result.state = res::Context::QueryState::Ambiguous;
     result.diags.emplace_back(err::ambigousAssociatedFn());
     return result;
   }
 
-  if (extensions.empty()) {
+  if (extensionQuery.state == res::Context::QueryState::Error) {
     result.state = res::Context::QueryState::Error;
     result.diags.emplace_back(
         err::memberLookupFailed().with(identifier).with(type->getName()));
     return result;
   }
 
-  auto &&[extension, sub] = extensions.front();
+  auto *extension = extensionQuery.items.front();
+  auto sub = ctx.getUninferredInstantiation(extension);
 
   result.decl = decl;
   result.sub = ctx.instantiate(extension->trait->getSub(), sub);
@@ -1071,7 +1073,7 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
     return false;
 
   auto traits =
-      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type)).traits;
+      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type)).items;
 
   if (traits.empty())
     return false;
@@ -1477,9 +1479,11 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 
   if (res::TraitType *trait = extension->trait) {
     res::Substitution testSub = ctx.getUninferredInstantiation(extension);
-    for (auto &&[conflict, sub] : ctx.getExtensions(
-             ctx.instantiate(type, testSub),
-             ctx.instantiate(trait, testSub)->getAs<res::TraitType>())) {
+    for (auto &&conflict :
+         ctx.queryExtensions(
+                ctx.instantiate(type, testSub),
+                ctx.instantiate(trait, testSub)->getAs<res::TraitType>())
+             .items) {
       if (conflict == extension)
         break;
 
@@ -1494,7 +1498,8 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     }
 
     for (auto &&requirement : ctx.getDirectConformance(trait)) {
-      if (!ctx.getExtensions(type, requirement).empty())
+      if (ctx.queryExtensions(type, requirement).state !=
+          res::Context::QueryState::Error)
         continue;
 
       err::missingRequirement()

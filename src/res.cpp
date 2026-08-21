@@ -108,7 +108,7 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
       QueryResult<TraitType *> queryResult = querySatisfyingTraits(u, trait);
 
       if (queryResult.state == QueryState::Success) {
-        doUnify(trait, queryResult.traits[0], result);
+        doUnify(trait, queryResult.items[0], result);
         continue;
       }
 
@@ -155,44 +155,20 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
       processObligations(unifyResult, false);
 
       if (unifyResult.success)
-        result.traits.emplace_back(conformingTrait);
+        result.items.emplace_back(conformingTrait);
     });
   }
 
-  if (result.traits.empty()) {
-    for (auto &&extension : extensions) {
-      if (!extension->trait)
-        continue;
+  if (result.items.empty()) {
+    auto extensionsResult = queryExtensions(type, trait);
 
-      // std::cerr << indent(indentWidth) << "checking extension "
-      //           << extension->type->getName() << " : "
-      //           << extension->trait->getName() << "\n";
+    if (extensionsResult.state == QueryState::Ambiguous)
+      result.state = QueryState::Ambiguous;
 
-      Substitution sub = getUninferredInstantiation(extension.get());
-      res::Type *extType = instantiate(extension->type, sub);
-      res::TraitType *extTrait =
-          instantiate(extension->trait, sub)->getAs<res::TraitType>();
-
-      probe([&, this](UnifyResult &unifyResult) {
-        doUnify(type, extType, unifyResult);
-        if (!unifyResult.success)
-          return;
-
-        doUnify(trait, extTrait, unifyResult);
-        if (!unifyResult.success)
-          return;
-
-        processObligations(unifyResult, true);
-        if (!unifyResult.success)
-          return;
-
-        // std::cerr << indent(indentWidth) << "`-accepted\n";
-
-        if (unifyResult.hasAmbiguousObligations)
-          result.state = QueryState::Ambiguous;
-
-        result.traits.emplace_back(extTrait);
-      });
+    for (auto &&extension : extensionsResult.items) {
+      auto sub = getUninferredInstantiation(extension);
+      result.items.emplace_back(
+          instantiate(extension->trait, sub)->getAs<res::TraitType>());
     }
   }
 
@@ -205,7 +181,7 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 
   --requirementDepth;
 
-  if (result.traits.empty()) {
+  if (result.items.empty()) {
     result.state = QueryState::Error;
     result.diags.emplace_back(err::unsatisfiedRequirement()
                                   .with(type->getName())
@@ -213,10 +189,10 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
     return result;
   }
 
-  if (result.traits.size() > 1) {
+  if (result.items.size() > 1) {
     result.state = QueryState::Ambiguous;
 
-    for (auto &&resultTrait : result.traits)
+    for (auto &&resultTrait : result.items)
       result.diags.emplace_back(err::ambigousConformance()
                                     .with(resultTrait->getName())
                                     .with(type->getName())
@@ -227,9 +203,9 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   return result;
 }
 
-std::vector<std::pair<TypeExtension *, Substitution>>
-Context::getExtensions(Type *type, TraitType *trait) {
-  std::vector<std::pair<TypeExtension *, Substitution>> matches;
+Context::QueryResult<TypeExtension *>
+Context::queryExtensions(Type *type, TraitType *trait) {
+  QueryResult<TypeExtension *> result;
 
   for (auto &&extension : extensions) {
     Substitution sub = getUninferredInstantiation(extension.get());
@@ -252,11 +228,20 @@ Context::getExtensions(Type *type, TraitType *trait) {
       if ((extension->trait == nullptr) != (trait == nullptr))
         return;
 
-      matches.emplace_back(extension.get(), sub);
+      if (unifyResult.hasAmbiguousObligations)
+        result.state = QueryState::Ambiguous;
+
+      result.items.emplace_back(extension.get());
     });
   }
 
-  return matches;
+  if (result.items.empty())
+    result.state = QueryState::Error;
+
+  if (result.items.size() > 1)
+    result.state = QueryState::Ambiguous;
+
+  return result;
 }
 
 bool Context::eq(Type *t1, Type *t2) const {

@@ -1275,10 +1275,12 @@ void Codegen::generateMainWrapper() {
 // until monomorphization (e.g.: T::foo()).
 llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
                                                  const res::FunctionDecl *fn) {
-  auto extensions = resCtx->getExtensions(trait->getTypeArgs()[0], trait);
-  assert(extensions.size() == 1 && "failed to find extension");
-  const auto &[extension, extensionSub] = extensions[0];
+  auto result = resCtx->queryExtensions(trait->getTypeArgs()[0], trait);
+  assert(result.items.size() == 1 && "failed to find extension");
+  const auto &extension = result.items.front();
 
+  // FIXME: is this sub needed?
+  auto extensionSub = resCtx->getUninferredInstantiation(extension);
   resCtx->unify(trait, resCtx->instantiate(extension->trait, extensionSub));
 
   auto *extensionFn = extension->getFunction(fn->identifier);
