@@ -111,6 +111,7 @@ diag(Error, unsatisfiedRequirement, "cannot satisfy requirement '{} : {}'")
 diag(Error, unknownFunctionAssignment, "unknown function type '{}' on the lhs of assignment");
 diag(Error, ambigousConformance, "'{}' ambigously satisfies requirement '{} : {}'")
 diag(Error, annotationsNeeded, "explicit type annotations are needed to infer the type of '{}'");
+diag(Error, annotationsNeededForLookup, "explicit type annotations needed to disambiguate lookup result");
 diag(Error, initTyMismatch, "an expression of type '{}' cannot be used to initialize a variable of type '{}'");
 diag(Error, incompatibleAssignment, "expected to assign '{}' but received '{}' instead");
 diag(Error, invalidReturnValue, "cannot return '{}' from a function returning '{}'");

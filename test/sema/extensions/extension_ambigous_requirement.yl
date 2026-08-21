@@ -1,28 +1,31 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-struct S2 { b: bool }
+struct S { b: bool }
 
-trait T0<P0> {
-  fn m0(self: &Self): P0;
+trait A<T> {
+  fn foo(self: &Self) {}
 }
 
-trait T1 {
-  fn m1(self: &Self): number;
+trait B<T> {
+  fn bar(self: &Self) {}
 }
 
-extension S2 : T0<bool> {
-  fn m0(self: &Self): bool { return true; }
-}
+extension S : A<bool> {}
 
-// S2 must satisfy T0<A>. It satisfies both T0<bool> and T0<S2>, what is A?
-extension<A, B : T0<A>> B : T1 {
-  fn m1(self: &Self): number { return 1; }
-}
+extension<T, U : B<T>> U : A<S> {}
 
-extension<A, B : T1> B : T0<S2> {
-  fn m0(self: &Self): S2 { return S2 { b: true, }; }
-}
+// S must satisfy A<T>. It is satisfied by both A<bool> and A<S>. What should T be?
+extension<T, U : A<T>> U : B<T> {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:18: error: failed to find member 'm1' in 'S2'
-  S2 { b: true }.m1();
+  let s = S { b: true };
+
+  s.bar();
+  // CHECK: [[# @LINE - 1 ]]:5: error: 'A<bool>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:5: error: 'A<S>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 3 ]]:5: error: explicit type annotations needed to disambiguate lookup result
+
+  S::bar();
+  // CHECK: [[# @LINE - 1 ]]:6: error: 'A<bool>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 2 ]]:6: error: 'A<S>' ambigously satisfies requirement 'S : A<_>'
+  // CHECK: [[# @LINE - 3 ]]:6: error: explicit type annotations needed to disambiguate lookup result
 }

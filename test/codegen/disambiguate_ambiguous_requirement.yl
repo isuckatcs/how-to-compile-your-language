@@ -1,0 +1,40 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzxe '123\n456\n'
+struct S { b: bool }
+
+trait A<T> {
+  fn foo(self: &Self);
+}
+
+trait B<T> {
+  fn bar(self: &Self);
+}
+
+extension S : A<bool> {
+  fn foo(self: &Self) {
+    println(123);
+  }
+}
+
+extension<T, U : B<T>> U : A<S> {
+  fn foo(self: &Self) {
+    println(456);
+  }
+}
+
+extension<T, U : A<T>> U : B<T> {
+  fn bar(self: &Self) {
+    self.foo();
+  }
+}
+
+fn main() {
+  let s2 = S { b: true };
+
+  @<S : B<bool>>::bar(s2);
+  // CHECK: call void @_YT1BGS1SbE3bar(ptr %s2, ptr null)
+
+  @<S : B<S>>::bar(s2);
+  // CHECK: call void @_YT1BGS1SS1SE3bar(ptr %s2, ptr null)
+}

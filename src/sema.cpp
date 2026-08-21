@@ -656,7 +656,16 @@ Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
   auto extensionQuery = ctx.queryExtensions(type, traitType);
   if (extensionQuery.state == res::Context::QueryState::Ambiguous) {
     result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambigousAssociatedFn());
+
+    if (extensionQuery.items.size() > 1) {
+      result.diags.emplace_back(err::ambigousAssociatedFn());
+      return result;
+    }
+
+    for (auto &&err : extensionQuery.diags)
+      result.diags.emplace_back(err);
+
+    result.diags.emplace_back(err::annotationsNeededForLookup());
     return result;
   }
 

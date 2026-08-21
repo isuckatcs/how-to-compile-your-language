@@ -112,15 +112,15 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
         continue;
       }
 
+      for (auto &&error : queryResult.diags)
+        result.diags.emplace_back(error);
+
       if (queryResult.state == QueryState::Ambiguous && allowAmbiguity) {
         result.hasAmbiguousObligations = true;
         continue;
       }
 
-      for (auto &&error : queryResult.diags) {
-        result.success = false;
-        result.diags.emplace_back(error);
-      }
+      result.success = false;
     }
   }
 }
@@ -228,8 +228,11 @@ Context::queryExtensions(Type *type, TraitType *trait) {
       if ((extension->trait == nullptr) != (trait == nullptr))
         return;
 
-      if (unifyResult.hasAmbiguousObligations)
+      if (unifyResult.hasAmbiguousObligations) {
         result.state = QueryState::Ambiguous;
+        for (auto &&err : unifyResult.diags)
+          result.diags.emplace_back(err);
+      }
 
       result.items.emplace_back(extension.get());
     });
