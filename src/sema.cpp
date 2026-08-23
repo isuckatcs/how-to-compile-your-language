@@ -2001,7 +2001,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
     worklist.emplace(sd->getType()->getAs<res::StructType>(), 0);
 
     while (!worklist.empty()) {
-      auto &&[ty, level] = worklist.top();
+      auto [ty, level] = worklist.top();
       worklist.pop();
 
       res::StructDecl *decl = ty->getDecl();
