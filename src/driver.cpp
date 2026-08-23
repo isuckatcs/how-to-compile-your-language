@@ -188,5 +188,5 @@ int main(int argc, const char **argv) {
   int ret = std::system(command.str().c_str());
   std::filesystem::remove(llvmIRPath);
 
-  return ret;
+  return ret == 0 ? 0 : 1;
 }
