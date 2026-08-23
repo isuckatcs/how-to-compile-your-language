@@ -20,6 +20,5 @@ fn main() {
   foo(s);
   // CHECK: [[# @LINE - 1 ]]:7: error: 'B<Empty>' ambiguously satisfies requirement 'S<Empty, number> : B<_>'
   // CHECK: [[# @LINE - 2 ]]:7: error: 'B<number>' ambiguously satisfies requirement 'S<Empty, number> : B<_>'
-  // CHECK: [[# @LINE - 3 ]]:7: error: 'B<Empty>' ambiguously satisfies requirement 'S<Empty, number> : B<_>'
-  // CHECK: [[# @LINE - 4 ]]:7: error: 'B<number>' ambiguously satisfies requirement 'S<Empty, number> : B<_>'
 }
+// CHECK-NOT: {{.*error.*}}

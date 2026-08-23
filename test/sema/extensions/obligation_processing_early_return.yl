@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B<T> {}
+
+trait C {}
+
+extension number: C {}
+
+extension number : B<bool> {}
+
+// obligation procession fails on 'A' and unifying with 'B<bool>' no longer overwrites the result
+extension<T : A & B<bool>> T : C {}
+// CHECK: TypeExtension T : C
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitConformance T : A & B<bool>
+
+fn main() {}

@@ -135,6 +135,7 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
       }
 
       result.success = false;
+      return;
     }
   }
 }
