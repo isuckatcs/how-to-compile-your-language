@@ -125,6 +125,114 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
   }
 }
 
+Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
+    std::string identifier, Type *type, TraitType *trait) {
+  QueryResult<AssociatedDeclRef> result;
+
+  if (trait) {
+    if (auto *decl = trait->getDecl()->lookupFunction(identifier)) {
+      result.items.push_back({nullptr, decl, trait->getSub()});
+      return result;
+    }
+
+    result.state = res::Context::QueryState::Error;
+    result.diags.emplace_back(
+        err::memberLookupFailed().with(identifier).with(trait->getName()));
+    return result;
+  }
+
+  std::vector<AssociatedDeclRef> candidates;
+  for (auto &&trait : getEveryConformance(type))
+    if (auto *decl = trait->getDecl()->lookupFunction(identifier))
+      candidates.push_back({nullptr, decl, trait->getSub()});
+
+  if (candidates.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
+    return result;
+  }
+
+  if (candidates.size() == 1) {
+    result.items.emplace_back(std::move(candidates.front()));
+    return result;
+  }
+
+  std::vector<std::pair<res::TypeExtension *, res::Substitution>>
+      applicableExtensions;
+  for (auto &&extension : queryExtensions(type, nullptr).items)
+    if (extension->getFunction(identifier))
+      applicableExtensions.emplace_back(extension,
+                                        getUninferredInstantiation(extension));
+
+  if (applicableExtensions.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
+    return result;
+  }
+
+  if (applicableExtensions.size() == 1) {
+    auto &&[extension, sub] = applicableExtensions.front();
+    result.items.push_back({instantiate(extension->type, sub),
+                            extension->getFunction(identifier), sub});
+    return result;
+  }
+
+  std::vector<res::TraitDecl *> applicableTraits;
+  for (auto &&trait : getTU()->traits)
+    if (trait->lookupFunction(identifier))
+      applicableTraits.emplace_back(trait);
+
+  if (applicableTraits.size() > 1) {
+    result.state = res::Context::QueryState::Ambiguous;
+    result.diags.emplace_back(err::ambiguousAssociatedFn());
+    return result;
+  }
+
+  if (applicableTraits.empty()) {
+    result.state = res::Context::QueryState::Error;
+    result.diags.emplace_back(
+        err::memberLookupFailed().with(identifier).with(type->getName()));
+    return result;
+  }
+
+  res::TraitDecl *applicableTrait = applicableTraits.front();
+  auto *decl = applicableTrait->lookupFunction(identifier);
+
+  res::Substitution traitSub = getUninferredInstantiation(applicableTrait);
+  auto *traitType = instantiate(applicableTrait->getType(), traitSub)
+                        ->getAs<res::TraitType>();
+
+  auto extensionQuery = queryExtensions(type, traitType);
+  if (extensionQuery.state == res::Context::QueryState::Ambiguous) {
+    result.state = res::Context::QueryState::Ambiguous;
+
+    if (extensionQuery.items.size() > 1) {
+      result.diags.emplace_back(err::ambiguousAssociatedFn());
+      return result;
+    }
+
+    for (auto &&err : extensionQuery.diags)
+      result.diags.emplace_back(err);
+
+    result.diags.emplace_back(err::annotationsNeededForLookup());
+    return result;
+  }
+
+  if (extensionQuery.state == res::Context::QueryState::Error) {
+    result.state = res::Context::QueryState::Error;
+    result.diags.emplace_back(
+        err::memberLookupFailed().with(identifier).with(type->getName()));
+    return result;
+  }
+
+  auto *extension = extensionQuery.items.front();
+  auto sub = getUninferredInstantiation(extension);
+
+  result.items.push_back({instantiate(extension->type, sub), decl,
+                          instantiate(extension->trait->getSub(), sub)});
+  return result;
+}
+
 Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   ++requirementDepth;

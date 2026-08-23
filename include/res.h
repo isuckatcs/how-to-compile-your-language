@@ -31,6 +31,12 @@ struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
   void dump() const;
 };
 
+struct AssociatedDeclRef final {
+  res::Type *typeHint = nullptr;
+  res::Decl *decl = nullptr;
+  res::Substitution sub = {};
+};
+
 struct GenericDeclContext {
   GenericDeclContext *parent;
   std::vector<res::TypeParamDecl *> typeParams;
@@ -67,6 +73,7 @@ public:
     std::vector<diag::DiagBuilder> diags = {};
   };
 
+private:
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
   std::vector<std::unique_ptr<Type>> types;
@@ -107,6 +114,8 @@ public:
 
   QueryResult<TypeExtension *> queryExtensions(Type *type, TraitType *trait);
   QueryResult<TraitType *> querySatisfyingTraits(Type *type, TraitType *trait);
+  QueryResult<AssociatedDeclRef>
+  queryAssociatedDecls(std::string identifier, Type *type, TraitType *trait);
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
