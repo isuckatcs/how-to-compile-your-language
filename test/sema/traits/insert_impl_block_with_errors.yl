@@ -12,7 +12,7 @@ extension S : A {
   fn foo() {}
 }
 
-// CHECK: [[# @LINE + 1 ]]:13: error: extension 'S : A' conflicts with extension 'S : A'
+// CHECK: [[# @LINE + 1 ]]:13: error: extension 'S : A' conflicts with extension 'S : A' for type 'S'
 extension S : A {
   fn foo() {}
 }

@@ -5,7 +5,7 @@ trait B {}
 
 extension<T: B> T : A {}
 
-// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A' conflicts with extension 'T : A'
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A' conflicts with extension 'T : A' for type 'number'
 extension number : A {}
 
 extension number : B {}

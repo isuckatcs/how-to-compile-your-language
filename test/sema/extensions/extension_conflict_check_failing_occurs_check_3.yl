@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {}
+
+trait B<T> {}
+
+extension<T> T : B<S<number>> {}
+
+// CHECK: [[# @LINE + 1 ]]:16: error: extension 'T : B<T>' conflicts with extension 'T : B<S<number>>' for type 'S<number>'
+extension<T> T : B<T> {}
+
+// CHECK: [[# @LINE + 1 ]]:19: error: extension 'S<T> : B<T>' conflicts with extension 'T : B<S<number>>' for type 'S<S<number>>'
+extension<T> S<T> : B<T> {}
+
+fn main() {}

@@ -9,7 +9,7 @@ extension<T : A<number>> T : B {}
 
 extension number : A<number> {}
 
-// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : B' conflicts with extension 'T : B'
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : B' conflicts with extension 'T : B' for type 'number'
 extension number : B {}
 
 fn foo<T : B>(t: T) {}

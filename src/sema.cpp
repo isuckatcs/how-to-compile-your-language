@@ -1402,20 +1402,24 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 
   if (res::TraitType *trait = extension->trait) {
     res::Substitution testSub = ctx.getUninferredInstantiation(extension);
-    for (auto &&conflict :
-         ctx.queryExtensions(
-                ctx.instantiate(type, testSub),
-                ctx.instantiate(trait, testSub)->getAs<res::TraitType>())
-             .items) {
+
+    res::Type *testType = ctx.instantiate(type, testSub);
+    auto *testTrait = ctx.instantiate(trait, testSub)->getAs<res::TraitType>();
+    for (auto &&conflict : ctx.queryExtensions(testType, testTrait).items) {
       if (conflict == extension)
         break;
 
-      err::conflictingExtension()
+      auto conflictSub = ctx.getUninferredInstantiation(conflict);
+      ctx.unify(testType, ctx.instantiate(conflict->type, conflictSub));
+      ctx.unify(testTrait, ctx.instantiate(conflict->trait, conflictSub));
+
+      err::conflictingExtensionForType()
           .at(extension->location)
           .with(type->getName())
           .with(trait->getName())
           .with(conflict->type->getName())
           .with(conflict->trait->getName())
+          .with(testType->getName())
           .report(reporter);
       error = true;
     }

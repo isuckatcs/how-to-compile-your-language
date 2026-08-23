@@ -5,14 +5,14 @@ trait B<T, U> {}
 
 extension number : A<bool> {}
 
-// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A<bool>' conflicts with extension 'number : A<bool>'
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : A<bool>' conflicts with extension 'number : A<bool>' for type 'number'
 extension number : A<bool> {}
 
 extension unit : A<unit> {}
 
 extension<X> unit : B<bool, X> {}
 
-// CHECK: [[# @LINE + 1 ]]:26: error: extension 'U : B<bool, T>' conflicts with extension 'unit : B<bool, X>'
+// CHECK: [[# @LINE + 1 ]]:26: error: extension 'U : B<bool, T>' conflicts with extension 'unit : B<bool, X>' for type 'unit'
 extension<T, U : A<T>> U : B<bool, T> {}
 
 fn main() {}

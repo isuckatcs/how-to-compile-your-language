@@ -62,6 +62,19 @@ void Context::add(std::unique_ptr<TypeExtension> extension) {
   extensions.emplace_back(std::move(extension));
 }
 
+bool Context::occurs(UninferredType *type, Type *in) {
+  in = in->getRootType();
+
+  if (type == in)
+    return true;
+
+  for (auto &&arg : in->args)
+    if (occurs(type, arg))
+      return true;
+
+  return false;
+}
+
 void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
   t1 = t1->getRootType();
   t2 = t2->getRootType();
@@ -70,7 +83,8 @@ void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
     return;
 
   if (auto *u = t1->getAs<UninferredType>();
-      u && !t2->getAs<res::AnyTraitType>() && !t2->getAs<res::RefType>()) {
+      u && !t2->getAs<res::AnyTraitType>() && !t2->getAs<res::RefType>() &&
+      !occurs(u, t2)) {
     u->setParent(t2);
     result.inferredTypes.emplace_back(u);
     return;

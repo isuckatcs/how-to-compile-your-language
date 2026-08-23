@@ -5,7 +5,7 @@ trait B<T> {}
 
 extension number : A<bool> {}
 
-// CHECK: [[# @LINE + 1 ]]:26: error: extension 'U : A<T>' conflicts with extension 'number : A<bool>'
+// CHECK: [[# @LINE + 1 ]]:26: error: extension 'U : A<T>' conflicts with extension 'number : A<bool>' for type 'number'
 extension<T, U : A<T>> U : A<T> {}
 
 fn main() {}

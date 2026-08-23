@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {}
+
+trait A {}
+
+trait B<T> {}
+
+extension<T> S<T> : B<T> {}
+// CHECK: TypeExtension S<T> : B<T>
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+
+extension<T : A> T : B<T> {}
+// CHECK-NEXT: TypeExtension T : B<T>
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitConformance T : A
+
+fn main() {}
