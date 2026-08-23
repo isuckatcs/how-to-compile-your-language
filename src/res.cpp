@@ -178,13 +178,28 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
   }
 
   std::vector<res::TraitDecl *> applicableTraits;
-  for (auto &&trait : getTU()->traits)
-    if (trait->lookupFunction(identifier))
+  for (auto &&trait : getTU()->traits) {
+    res::Substitution traitSub = getUninferredInstantiation(trait);
+    auto *traitType =
+        instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
+
+    if (trait->lookupFunction(identifier) &&
+        queryExtensions(type, traitType).state != QueryState::Error)
       applicableTraits.emplace_back(trait);
+  }
 
   if (applicableTraits.size() > 1) {
     result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambiguousAssociatedFn());
+
+    for (auto &&trait : applicableTraits)
+      result.diags.emplace_back(err::traitProvidesMethod()
+                                    .with(trait->identifier)
+                                    .with(identifier)
+                                    .with(type->getName()));
+
+    result.diags.emplace_back(err::multipleTraitsProvideMethod()
+                                  .with(identifier)
+                                  .with(type->getName()));
     return result;
   }
 
@@ -215,13 +230,6 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
       result.diags.emplace_back(err);
 
     result.diags.emplace_back(err::annotationsNeededForLookup());
-    return result;
-  }
-
-  if (extensionQuery.state == res::Context::QueryState::Error) {
-    result.state = res::Context::QueryState::Error;
-    result.diags.emplace_back(
-        err::memberLookupFailed().with(identifier).with(type->getName()));
     return result;
   }
 

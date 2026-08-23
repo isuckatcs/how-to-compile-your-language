@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: &Self) {}
+}
+
+trait B {
+  fn foo(self: &Self) {}
+}
+
+extension number : A {}
+
+extension number : B {}
+
+fn main() {
+  123.foo();
+  // CHECK: [[# @LINE - 1 ]]:7: error: trait 'A' provides 'foo' for 'number'
+  // CHECK: [[# @LINE - 2 ]]:7: error: trait 'B' provides 'foo' for 'number'
+  // CHECK: [[# @LINE - 3 ]]:7: error: multiple traits provide 'foo' for 'number'
+}

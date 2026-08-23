@@ -1,0 +1,34 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S<T> {}
+
+trait A<T> {}
+
+trait B<T> {
+  fn foo(self: &Self) {}
+}
+
+trait C {
+  fn foo(self: &Self) {}
+}
+
+extension<T> S<T> : A<bool> {}
+
+extension<T> S<T> : A<number> {}
+
+extension<T, U : A<T>> U : B<T> {}
+
+extension<T> S<T> : C {}
+
+fn main() {
+  let s = S{};
+
+  s.foo();
+  // CHECK: [[# @LINE - 1 ]]:5: error: trait 'B' provides 'foo' for 'S<_>'
+  // CHECK: [[# @LINE - 2 ]]:5: error: trait 'C' provides 'foo' for 'S<_>'
+  // CHECK: [[# @LINE - 3 ]]:5: error: multiple traits provide 'foo' for 'S<_>'
+
+  S::foo();
+  // CHECK: [[# @LINE - 1 ]]:6: error: trait 'B' provides 'foo' for 'S<_>'
+  // CHECK: [[# @LINE - 2 ]]:6: error: trait 'C' provides 'foo' for 'S<_>'
+  // CHECK: [[# @LINE - 3 ]]:6: error: multiple traits provide 'foo' for 'S<_>'
+}
