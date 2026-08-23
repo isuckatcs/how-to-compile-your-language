@@ -114,7 +114,7 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
     if (auto *root = u->getRootType()->getAs<res::UninferredType>()) {
       for (auto &&trait : u->obligations)
         root->addObligation(trait);
-      result.propagatedObligations[root] = u->obligations.size();
+      result.propagatedObligations[root] += u->obligations.size();
       continue;
     }
 
