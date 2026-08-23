@@ -1,0 +1,23 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B<T, U> {}
+
+extension number : A {}
+
+extension<T> T : B<number, unit> {}
+
+// B<number, number> cannot be unified with B<T, unit>, but T -> number is saved and checking 'number : A' used to hide the failure
+fn bar<T : A, U : B<T, unit>>(u: U) {}
+
+fn foo<T : B<number, number>>(t: T) { bar(t); }
+// CHECK: FunctionDecl @({{.*}}) foo {(T) -> unit}
+// CHECK-NEXT:   TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     TraitConformance T : B<number, number>
+// CHECK-NEXT:   ParamDecl @({{.*}}) t {T}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) bar {(T) -> unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) t {T}
+
+fn main() {}

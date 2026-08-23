@@ -98,6 +98,9 @@ void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
   size_t i = 0;
   while (i < t1->args.size() && result.success) {
     doUnify(t1->args[i], t2->args[i], result);
+    if (!result.success)
+      break;
+
     ++i;
   }
 
@@ -107,6 +110,8 @@ void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
 }
 
 void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
+  assert(result.success && "processing obligations after failed unification");
+
   size_t i = 0;
   while (i != result.inferredTypes.size()) {
     auto *u = result.inferredTypes[i++];
@@ -272,7 +277,8 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   for (auto &&conformingTrait : getEveryConformance(type)) {
     probe([&, this](UnifyResult &unifyResult) {
       doUnify(trait, conformingTrait, unifyResult);
-      processObligations(unifyResult, false);
+      if (unifyResult.success)
+        processObligations(unifyResult, false);
 
       if (unifyResult.success)
         result.items.emplace_back(conformingTrait);
@@ -377,7 +383,8 @@ bool Context::eq(Type *t1, Type *t2) const {
 std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
   UnifyResult result;
   doUnify(t1, t2, result);
-  processObligations(result, false);
+  if (result.success)
+    processObligations(result, false);
   return result.diags;
 }
 
