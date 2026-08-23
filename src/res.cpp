@@ -237,25 +237,14 @@ Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   ++requirementDepth;
 
-  // Construct a successful default result.
   QueryResult<TraitType *> result;
 
-  // auto indentWidth = requirementDepth;
-  // if (indentWidth == 0) {
-  //   std::cerr << "\n\n";
-  // }
-
   if (requirementDepth > recursionLimit) {
-    // std::cerr << indent(indentWidth) << "\n\npending too complex\n";
     result.state = QueryState::Error;
     result.diags.emplace_back(err::recursionLimitReached());
     --requirementDepth;
     return result;
   }
-
-  // std::cerr << indent(indentWidth) << "doSolveConformance " <<
-  // type->getName()
-  //           << " : " << trait->getName() << "\n";
 
   for (auto &&conformingTrait : getEveryConformance(type)) {
     probe([&, this](UnifyResult &unifyResult) {
@@ -279,13 +268,6 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
           instantiate(extension->trait, sub)->getAs<res::TraitType>());
     }
   }
-
-  // std::cerr << indent(indentWidth) << "result of " << type->getName() << " :
-  // "
-  //           << trait->getName() << "\n";
-  // for (auto &&trait : result->traits)
-  //   std::cerr << indent(indentWidth) << "  " << trait->getName() << "\n";
-  // std::cerr << indent(indentWidth) << "returning\n";
 
   --requirementDepth;
 
