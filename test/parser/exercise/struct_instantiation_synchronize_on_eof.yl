@@ -1,0 +1,5 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 2 ]]:11: error: expected expression
+  // CHECK: [[# @LINE + 1 ]]:11: error: expected '}' at the end of block
+  S { x: -

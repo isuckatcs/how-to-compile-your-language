@@ -9,8 +9,9 @@ fn main(): unit {
     let err = Color {
         r: 0, 
         +,
-        // CHECK: [[# @LINE -1 ]]:9: error: expected field initialization
+        // CHECK: [[# @LINE - 1 ]]:9: error: expected field initialization
         b: 2,
+    // CHECK: [[# @LINE + 1 ]]:6: error: expected 'trait', 'struct', 'extension' or 'fn'
     };
 
     let x = 1;
@@ -25,7 +26,4 @@ fn main(): unit {
 // CHECK-NEXT: FunctionDecl 'main'
 // CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   Block
-// CHECK-NEXT:     DeclStmt
-// CHECK-NEXT:       VarDecl 'x'
-// CHECK-NEXT:         NumberLiteral '1'
 // CHECK-NOT: {{.*}}

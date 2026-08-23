@@ -815,12 +815,8 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
 
     auto fieldInitList = parseListWithTrailingComma<ast::FieldInitStmt>(
         &Parser::parseFieldInitStmt, TokenKind::Rbrace);
-
-    if (!fieldInitList) {
-      synchronizeOn({TokenKind::Rbrace});
-      eatNextToken(); // eat '}'
+    if (!fieldInitList)
       return nullptr;
-    }
 
     expectOrReturn(
         TokenKind::Rbrace,
