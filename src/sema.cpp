@@ -467,8 +467,9 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
         return err::selfTyNotAllowed().at(fragment->location).report(reporter);
 
       if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
-        varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
-                                            paramType->getSub()));
+        auto *dre = resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
+                                       paramType->getSub());
+        assert(dre && "self type not resolved");
         resFragments.emplace_back(dre);
         continue;
       }
