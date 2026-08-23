@@ -600,9 +600,17 @@ struct DeclRefExpr final : public Creatable<DeclRefExpr>, public Expr {
   Decl *decl;
   Substitution sub;
 
+  void setPath(std::vector<res::DeclRefExpr *> path) {
+    this->path = std::move(path);
+  }
+
+  const std::vector<res::DeclRefExpr *> &getPath() const { return path; }
+
   void dump(size_t level = 0) const override;
 
 private:
+  std::vector<res::DeclRefExpr *> path;
+
   DeclRefExpr(SourceLocation loc,
               Decl *d,
               Expr::ValueCategory valueCategory,

@@ -78,7 +78,7 @@ class Sema {
     res::FunctionDecl *function = nullptr;
     res::LambdaExpr *lambda = nullptr;
     Scope *lambdaParamScope = nullptr;
-    std::vector<res::DeclRefExpr *> declReferences = {};
+    std::vector<res::DeclRefExpr *> paths = {};
     std::vector<const ast::Expr *> pendingCaptureInits = {};
   };
 

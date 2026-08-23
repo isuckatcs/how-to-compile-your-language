@@ -518,7 +518,12 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       return err::wrongDeclKind().at(fragment->location).report(reporter);
   }
 
-  return resFragments.back();
+  auto *dre = resFragments.back();
+  functionInfo->paths.emplace_back(dre);
+
+  resFragments.pop_back();
+  dre->setPath(std::move(resFragments));
+  return dre;
 }
 
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
@@ -569,7 +574,7 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
   if (modifiers & AddressTaken)
     resDre->decl->setStorageNeeded();
 
-  return functionInfo->declReferences.emplace_back(resDre);
+  return resDre;
 }
 
 Sema::AssociatedLookupResult Sema::lookupAssociatedDecl(res::Context &ctx,
@@ -935,6 +940,7 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   }
 
   varOrReturn(dre, resolveDeclRefExpr(ctx, member, result.decl, result.sub));
+  functionInfo->paths.emplace_back(dre);
 
   auto *fnDecl = result.decl->getAs<res::FunctionDecl>();
   auto *functionType = dre->getType()->getAs<res::FunctionType>();
@@ -2278,30 +2284,30 @@ bool Sema::runPostFunctionBodyChecks() {
 }
 
 bool Sema::checkDeclRefTypes() {
-  bool error = false;
 
-  // FIXME: introduce a resolved path expression and error out on the first
-  // fragment
-  std::set<res::Type *> seen;
+  auto checkDre = [&](const res::DeclRefExpr *dre) -> const res::DeclRefExpr * {
+    for (auto &&fragment : dre->getPath())
+      for (auto &&[from, to] : fragment->sub)
+        if (to->getAs<res::UninferredType>())
+          return err::annotationsNeeded()
+              .at(fragment->location)
+              .with(fragment->decl->identifier)
+              .report(reporter);
 
-  for (auto &&dre : functionInfo->declReferences) {
-    for (auto &&[from, to] : dre->sub) {
-      if (seen.count(to->getRootType()))
-        continue;
-
-      if (to->getAs<res::UninferredType>()) {
-        err::annotationsNeeded()
+    for (auto &&[from, to] : dre->sub)
+      if (to->getAs<res::UninferredType>())
+        return err::annotationsNeeded()
             .at(dre->location)
             .with(dre->decl->identifier)
             .report(reporter);
-        error = true;
-        break;
-      }
-    }
 
-    for (auto &&[from, to] : dre->sub)
-      seen.emplace(to->getRootType());
-  }
+    return dre;
+  };
+
+  bool error = false;
+
+  for (auto &&dre : functionInfo->paths)
+    error |= !checkDre(dre);
 
   return !error;
 }
