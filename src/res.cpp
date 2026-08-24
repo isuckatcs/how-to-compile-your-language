@@ -134,9 +134,10 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
       for (auto &&error : queryResult.diags)
         result.diags.emplace_back(error);
 
-      if (queryResult.state == QueryState::Ambiguous && allowAmbiguity) {
+      if (queryResult.state == QueryState::Ambiguous) {
         result.hasAmbiguousObligations = true;
-        continue;
+        if (allowAmbiguity)
+          continue;
       }
 
       result.success = false;
@@ -199,12 +200,14 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
 
   std::vector<res::TraitDecl *> applicableTraits;
   for (auto &&trait : getTU()->traits) {
+    if (!trait->lookupFunction(identifier))
+      continue;
+
     res::Substitution traitSub = getUninferredInstantiation(trait);
     auto *traitType =
         instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
 
-    if (trait->lookupFunction(identifier) &&
-        queryExtensions(type, traitType).state != QueryState::Error)
+    if (queryExtensions(type, traitType).state != QueryState::Error)
       applicableTraits.emplace_back(trait);
   }
 
@@ -249,7 +252,7 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
     for (auto &&err : extensionQuery.diags)
       result.diags.emplace_back(err);
 
-    result.diags.emplace_back(err::annotationsNeededForLookup());
+    result.diags.emplace_back(err::annotationsNeededForRequirements());
     return result;
   }
 
@@ -288,8 +291,11 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   if (result.items.empty()) {
     auto extensionsResult = queryExtensions(type, trait);
 
-    if (extensionsResult.state == QueryState::Ambiguous)
+    if (extensionsResult.state == QueryState::Ambiguous) {
       result.state = QueryState::Ambiguous;
+      for (auto &&err : extensionsResult.diags)
+        result.diags.emplace_back(err);
+    }
 
     for (auto &&extension : extensionsResult.items) {
       auto sub = getUninferredInstantiation(extension);
@@ -383,8 +389,13 @@ bool Context::eq(Type *t1, Type *t2) const {
 std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
   UnifyResult result;
   doUnify(t1, t2, result);
+
   if (result.success)
     processObligations(result, false);
+
+  if (result.hasAmbiguousObligations)
+    result.diags.emplace_back(err::annotationsNeededForRequirements());
+
   return result.diags;
 }
 

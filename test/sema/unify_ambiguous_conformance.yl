@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+trait B<T> {}
+
+extension number : B<unit> {}
+
+extension number : B<number> {}
+
+extension<T, U : B<T>> U : A<T> {}
+
+fn f<T, U : A<T>>(u: U) {}
+
+fn main() { f(1); }
+// CHECK: [[# @LINE - 1 ]]:15: error: 'B<unit>' ambiguously satisfies requirement 'number : B<_>'
+// CHECK: [[# @LINE - 2 ]]:15: error: 'B<number>' ambiguously satisfies requirement 'number : B<_>'
+// CHECK: [[# @LINE - 3 ]]:15: error: explicit type annotations needed to disambiguate requirements
