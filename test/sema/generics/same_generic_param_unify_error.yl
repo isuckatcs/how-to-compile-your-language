@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+struct S<T, U> {}
+
+fn foo<T>(s: S<T, T>) {}
+
+fn main() {
+  foo(S@<number, unit>{});
+  // CHECK: [[# @LINE - 1 ]]:23: error: cannot unify 'unit' with 'number'
+  // CHECK: [[# @LINE - 2 ]]:23: error: cannot unify 'S<number, unit>' with 'S<number, number>'
+}

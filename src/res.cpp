@@ -551,10 +551,10 @@ std::string Type::getName() const {
 
   if (!args.empty()) {
     ss << '<';
-    for (auto &&arg : args) {
-      ss << arg->getName();
+    for (size_t i = 0; i < args.size(); ++i) {
+      ss << args[i]->getName();
 
-      if (arg != args.back())
+      if (i != args.size() - 1)
         ss << ',' << ' ';
     }
     ss << '>';
