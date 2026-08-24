@@ -441,6 +441,9 @@ Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {
     sub[typeParam->getType()] = UninferredType::create(*this);
 
   for (auto &&typeParam : declCtx->typeParams) {
+    if (typeParam->isImplicitSelf)
+      continue;
+
     res::Type *tpType = typeParam->getType();
     auto *probeType = sub[tpType]->getAs<res::UninferredType>();
     for (auto &&trait : getDirectConformance(tpType))
