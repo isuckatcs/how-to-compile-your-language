@@ -1727,9 +1727,6 @@ res::TraitDecl *Sema::resolveTraitDecl(res::Context &ctx,
   auto *traitType = res::TraitType::create(ctx, trait, typeParamTys);
   trait->setType(traitType);
 
-  self->conformance = res::TraitConformance::create(
-      ctx, decl.location, selfType, std::vector<res::TraitType *>{traitType});
-
   return trait;
 }
 

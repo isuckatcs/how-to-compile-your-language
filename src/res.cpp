@@ -457,23 +457,38 @@ std::vector<TraitType *> Context::getDirectConformance(Type *type) {
   if (auto *a = type->getAs<res::AnyTraitType>())
     return {a->withSelfType(this, a)};
 
-  res::TraitConformance *conformance = nullptr;
+  if (auto *t = type->getAs<TraitType>()) {
+    res::TraitConformance *conformance = t->getDecl()->conformance;
+    if (!conformance)
+      return {};
 
-  if (auto *t = type->getAs<TraitType>())
-    conformance = t->getDecl()->conformance;
-  else if (auto *tp = type->getAs<TypeParamType>())
-    conformance = tp->getDecl()->conformance;
+    std::vector<TraitType *> traits;
+    Substitution sub = type->getSub();
 
-  if (!conformance)
-    return {};
+    for (auto &&trait : conformance->traits)
+      traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
 
-  std::vector<TraitType *> traits;
-  Substitution sub = type->getSub();
+    return traits;
+  }
 
-  for (auto &&trait : conformance->traits)
-    traits.emplace_back(instantiate(trait, sub)->getAs<res::TraitType>());
+  if (auto *tp = type->getAs<TypeParamType>()) {
+    const res::TypeParamDecl *decl = tp->getDecl();
 
-  return traits;
+    if (decl->isImplicitSelf) {
+      auto *traitType = dynamic_cast<const res::TraitDecl *>(decl->declContext)
+                            ->getType()
+                            ->getAs<res::TraitType>();
+      return {traitType};
+    }
+
+    res::TraitConformance *conformance = decl->conformance;
+    if (!conformance)
+      return {};
+
+    return conformance->traits;
+  }
+
+  return {};
 }
 
 std::vector<TraitType *> Context::getEveryConformance(Type *type) {
