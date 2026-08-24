@@ -1213,9 +1213,9 @@ void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
   }
   function->getArg(function->arg_size() - 1)->setName("closure");
 
-  if (functionDecl->identifier == "gcCollect")
+  if (functionDecl->isBuiltin && functionDecl->identifier == "gcCollect")
     generateBuiltinGCCollectBody();
-  else if (functionDecl->identifier == "println")
+  else if (functionDecl->isBuiltin && functionDecl->identifier == "println")
     generateBuiltinPrintlnBody(*functionDecl);
   else
     generateBlock(*functionDecl->body);

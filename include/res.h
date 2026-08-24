@@ -356,7 +356,9 @@ struct FunctionDecl final : public Creatable<FunctionDecl>,
   std::vector<ParamDecl *> params;
   Block *body = nullptr;
   bool mustImplement = false;
+  bool isBuiltin = false;
 
+  void setBuiltin(bool b) { isBuiltin = b; }
   void setMustImplement(bool b) { mustImplement = b; }
   void setBody(Block *body) { this->body = body; }
   void setParams(std::vector<ParamDecl *> params) {

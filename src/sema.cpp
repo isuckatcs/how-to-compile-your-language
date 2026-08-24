@@ -84,6 +84,8 @@ res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   auto *fn =
       res::FunctionDecl::create(ctx, loc, "println", scope->getDeclContext(),
                                 std::vector<res::TypeParamDecl *>{});
+  fn->setBuiltin(true);
+
   fn->setType(res::FunctionType::create(ctx, std::vector<res::Type *>{numTy},
                                         res::BuiltinUnitType::create(ctx)));
 
@@ -100,6 +102,8 @@ res::FunctionDecl *Sema::createBuiltinGCCollect(res::Context &ctx) {
 
   auto *fn =
       res::FunctionDecl::create(ctx, loc, "gcCollect", scope->getDeclContext());
+  fn->setBuiltin(true);
+
   fn->setType(res::FunctionType::create(ctx, std::vector<res::Type *>{},
                                         res::BuiltinUnitType::create(ctx)));
   fn->setBody(res::Block::create(ctx, loc, std::vector<res::Stmt *>()));

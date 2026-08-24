@@ -1,0 +1,35 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+struct S {}
+
+extension S {
+  fn println(self: &Self) {
+    println(123);
+  }
+  // CHECK: define void @_YS1S7println(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  fn gcCollect(self: &Self) {
+    println(456);
+  }
+  // CHECK: define void @_YS1S9gcCollect(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @_Y7println(double 4.560000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+fn main() {
+  let s = S{};
+  // CHECK: %s = alloca {}, align 8
+
+  s.println();
+  // CHECK-NEXT: call void @_YS1S7println(ptr %s, ptr null)
+
+  s.gcCollect();
+  // CHECK-NEXT: call void @_YS1S9gcCollect(ptr %s, ptr null)
+}
