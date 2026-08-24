@@ -153,6 +153,7 @@ diag(Error, rvalueAssignment, "cannot assign to rvalue");
 diag(Error, immutableAssignment, "cannot assign to immutable value");
 diag(Error, rvalueRef, "only lvalues can be taken by reference");
 diag(Error, mutRefParameter, "a '&' parameter cannot be 'mut'");
+diag(Error, numberLiteralOutOfRange, "number literal must be between {} and {}");
 
 // init
 diag(Error, notInitialized, "'{}' is not initialized");

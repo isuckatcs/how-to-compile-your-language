@@ -110,6 +110,9 @@ class Sema {
                          bool expectTrait = false,
                          res::Type *traitSelfType = nullptr);
 
+  res::NumberLiteral *resolveNumberLiteral(res::Context &ctx,
+                                           const ast::NumberLiteral &number);
+
   res::UnaryOperator *resolveUnaryOperator(res::Context &ctx,
                                            const ast::UnaryOperator &unary);
   res::BinaryOperator *resolveBinaryOperator(res::Context &ctx,

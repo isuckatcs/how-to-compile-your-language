@@ -1,5 +1,6 @@
 #include <cassert>
-#include <iostream>
+#include <charconv>
+#include <limits>
 #include <map>
 #include <set>
 #include <stack>
@@ -599,6 +600,28 @@ res::DeclRefExpr *Sema::resolveAssociatedDeclRef(res::Context &ctx,
   return resolveDeclRefExpr(ctx, dre, decl, sub);
 }
 
+res::NumberLiteral *
+Sema::resolveNumberLiteral(res::Context &ctx,
+                           const ast::NumberLiteral &number) {
+  const std::string &value = number.value;
+  double result = 0;
+  auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), result);
+
+  if (ec == std::errc::result_out_of_range) {
+    auto limits = std::numeric_limits<double>{};
+    return err::numberLiteralOutOfRange()
+        .at(number.location)
+        .with(limits.min())
+        .with(limits.max())
+        .report(reporter);
+  }
+
+  auto *nl = res::NumberLiteral::create(ctx, number.location, result);
+  nl->setType(res::BuiltinNumberType::create(ctx));
+  return nl;
+}
+
 res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
                                      const ast::CallExpr &call) {
   SourceLocation callLoc = call.location;
@@ -1182,12 +1205,8 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 res::Expr *Sema::resolveExpr(res::Context &ctx,
                              const ast::Expr &expr,
                              res::Type *typeHint) {
-  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr)) {
-    auto *nl = res::NumberLiteral::create(ctx, number->location,
-                                          std::stod(number->value));
-    nl->setType(res::BuiltinNumberType::create(ctx));
-    return nl;
-  }
+  if (const auto *number = dynamic_cast<const ast::NumberLiteral *>(&expr))
+    return resolveNumberLiteral(ctx, *number);
 
   if (const auto *boolLiteral = dynamic_cast<const ast::BoolLiteral *>(&expr)) {
     auto *bl = res::BoolLiteral::create(ctx, boolLiteral->location,
