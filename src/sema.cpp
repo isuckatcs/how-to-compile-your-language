@@ -1409,9 +1409,13 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
       if (conflict == extension)
         break;
 
+      auto extensionSub = ctx.getUninferredInstantiation(extension);
       auto conflictSub = ctx.getUninferredInstantiation(conflict);
-      ctx.unify(testType, ctx.instantiate(conflict->type, conflictSub));
-      ctx.unify(testTrait, ctx.instantiate(conflict->trait, conflictSub));
+
+      res::Type *forType = ctx.instantiate(type, extensionSub);
+      ctx.unify(forType, ctx.instantiate(conflict->type, conflictSub));
+      ctx.unify(ctx.instantiate(trait, extensionSub),
+                ctx.instantiate(conflict->trait, conflictSub));
 
       err::conflictingExtensionForType()
           .at(extension->location)
@@ -1419,7 +1423,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
           .with(trait->getName())
           .with(conflict->type->getName())
           .with(conflict->trait->getName())
-          .with(testType->getName())
+          .with(forType->getName())
           .report(reporter);
       error = true;
     }
