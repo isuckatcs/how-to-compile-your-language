@@ -1,0 +1,39 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+extension unit : A {}
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+// CHECK: [[# @LINE - 2 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+// CHECK: [[# @LINE - 2 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 3 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+// CHECK: [[# @LINE - 2 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 3 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 4 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+// CHECK: [[# @LINE - 2 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 3 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 4 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 5 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+
+extension<T : A> T : A {}
+// CHECK: [[# @LINE - 1 ]]:20: error: extension 'T : A' conflicts with extension 'unit : A' for type 'unit'
+// CHECK: [[# @LINE - 2 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 3 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 4 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 5 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+// CHECK: [[# @LINE - 6 ]]:20: error: extension 'T : A' conflicts with extension 'T : A' for type '_'
+
+fn main() {}

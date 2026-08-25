@@ -73,6 +73,20 @@ public:
     std::vector<diag::DiagBuilder> diags = {};
   };
 
+  struct SatisfyingTraitsCache
+      : private std::unordered_map<size_t, QueryResult<TraitType *>> {
+    void insertIfMissing(Type *type,
+                         TraitType *trait,
+                         QueryResult<TraitType *> result);
+    std::optional<QueryResult<TraitType *>> get(Type *type,
+                                                TraitType *trait) const;
+
+  private:
+    std::hash<std::string> hash = {};
+
+    void buildKey(Type *type, TraitType *trait, std::stringstream &ss) const;
+  };
+
 private:
   std::vector<std::unique_ptr<Stmt>> statements;
   std::vector<std::unique_ptr<Decl>> decls;
@@ -99,6 +113,8 @@ private:
 
   const int recursionLimit = 10;
   int requirementDepth = 0;
+
+  SatisfyingTraitsCache satisfyingTraitsCache;
 
 public:
   Context()

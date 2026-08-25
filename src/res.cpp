@@ -38,6 +38,42 @@ void TranslationUnit::dump(size_t level) const {
     fn->dump(level);
 }
 
+void Context::SatisfyingTraitsCache::insertIfMissing(
+    Type *type, TraitType *trait, QueryResult<TraitType *> result) {
+  std::stringstream ss;
+  buildKey(type, trait, ss);
+  size_t key = hash(ss.str());
+
+  if (!count(key))
+    emplace(key, std::move(result));
+}
+
+std::optional<Context::QueryResult<TraitType *>>
+Context::SatisfyingTraitsCache::get(Type *type, TraitType *trait) const {
+  std::stringstream ss;
+  buildKey(type, trait, ss);
+  size_t key = hash(ss.str());
+
+  if (!count(key))
+    return std::nullopt;
+
+  return find(key)->second;
+}
+
+void Context::SatisfyingTraitsCache::buildKey(Type *type,
+                                              TraitType *trait,
+                                              std::stringstream &ss) const {
+  ss << type->getName() << ':' << trait->getName();
+
+  for (auto &&t : std::initializer_list<Type *>{type, trait}) {
+    ss << ':';
+
+    for (auto &&a : t->args)
+      if (auto *u = a->getAs<res::UninferredType>())
+        ss << 't' << std::get<size_t>(u->metadata);
+  }
+}
+
 void Context::add(std::unique_ptr<Stmt> stmt) {
   statements.emplace_back(std::move(stmt));
 }
@@ -266,6 +302,9 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
 
 Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
+  if (auto result = satisfyingTraitsCache.get(type, trait))
+    return *result;
+
   ++requirementDepth;
 
   QueryResult<TraitType *> result;
@@ -311,6 +350,8 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
     result.diags.emplace_back(err::unsatisfiedRequirement()
                                   .with(type->getName())
                                   .with(trait->getName()));
+
+    satisfyingTraitsCache.insertIfMissing(type, trait, result);
     return result;
   }
 
@@ -322,9 +363,12 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
                                     .with(resultTrait->getName())
                                     .with(type->getName())
                                     .with(trait->getName()));
+
+    satisfyingTraitsCache.insertIfMissing(type, trait, result);
     return result;
   }
 
+  satisfyingTraitsCache.insertIfMissing(type, trait, result);
   return result;
 }
 
