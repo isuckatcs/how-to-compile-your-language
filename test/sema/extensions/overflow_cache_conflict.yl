@@ -1,0 +1,35 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A0 {}
+trait A1 {}
+trait A2 {}
+trait A3 {}
+trait A4 {}
+trait A5 {}
+trait A6 {}
+trait A7 {}
+trait A8 {}
+trait A9 {}
+trait A10 {}
+
+extension number : A0 {}
+extension<T : A0> T : A1 {}
+extension<T : A1> T : A2 {}
+extension<T : A2> T : A3 {}
+extension<T : A3> T : A4 {}
+extension<T : A4> T : A5 {}
+extension<T : A5> T : A6 {}
+extension<T : A6> T : A7 {}
+extension<T : A7> T : A8 {}
+extension<T : A8> T : A9 {}
+extension<T : A9> T : A10 {}
+
+fn foo<T : A10>(t : T) {}
+fn bar<T : A1>(t : T) {}
+
+fn main() {
+  // T : A1 should not be cached for the T : A10 query
+  bar(1);
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : A10'
+  foo(1);
+}

@@ -39,19 +39,22 @@ void TranslationUnit::dump(size_t level) const {
 }
 
 void Context::ExtensionCache::insertIfMissing(
-    Type *type, TraitType *trait, QueryResult<TypeExtension *> result) {
+    Type *type,
+    TraitType *trait,
+    int depth,
+    std::vector<TypeExtension *> result) {
   std::stringstream ss;
-  buildKey(type, trait, ss);
+  buildKey(type, trait, depth, ss);
   size_t key = hash(ss.str());
 
   if (!count(key))
     emplace(key, std::move(result));
 }
 
-std::optional<Context::QueryResult<TypeExtension *>>
-Context::ExtensionCache::get(Type *type, TraitType *trait) const {
+std::optional<std::vector<TypeExtension *>>
+Context::ExtensionCache::get(Type *type, TraitType *trait, int depth) const {
   std::stringstream ss;
-  buildKey(type, trait, ss);
+  buildKey(type, trait, depth, ss);
   size_t key = hash(ss.str());
 
   if (!count(key))
@@ -62,6 +65,7 @@ Context::ExtensionCache::get(Type *type, TraitType *trait) const {
 
 void Context::ExtensionCache::buildKey(Type *type,
                                        TraitType *trait,
+                                       int depth,
                                        std::stringstream &ss) const {
   ss << type->getName() << ':';
   if (trait)
@@ -80,6 +84,8 @@ void Context::ExtensionCache::buildKey(Type *type,
       if (auto *u = a->getAs<res::UninferredType>())
         ss << 't' << std::get<size_t>(u->metadata);
   }
+
+  ss << ':' << depth;
 }
 
 void Context::add(std::unique_ptr<Stmt> stmt) {
@@ -362,9 +368,6 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 
 Context::QueryResult<TypeExtension *>
 Context::queryExtensions(Type *type, TraitType *trait) {
-  if (auto result = extensionCache.get(type, trait))
-    return *result;
-
   QueryResult<TypeExtension *> result;
 
   if (extensionDepth == extensionDepthLimit) {
@@ -373,37 +376,46 @@ Context::queryExtensions(Type *type, TraitType *trait) {
     return result;
   }
 
-  ++extensionDepth;
+  if (auto cachedExtensions = extensionCache.get(type, trait, extensionDepth)) {
+    result.items = std::move(*cachedExtensions);
+  } else {
+    for (auto &&extension : extensions) {
+      ++extensionDepth;
 
-  for (auto &&extension : extensions) {
-    Substitution sub = getUninferredInstantiation(extension.get());
+      Substitution sub = getUninferredInstantiation(extension.get());
 
-    probe([&, this](UnifyResult &unifyResult) {
-      doUnify(type, instantiate(extension->type, sub), unifyResult);
-      if (!unifyResult.success)
-        return;
-
-      if (extension->trait && trait) {
-        doUnify(trait, instantiate(extension->trait, sub), unifyResult);
+      probe([&, this](UnifyResult &unifyResult) {
+        doUnify(type, instantiate(extension->type, sub), unifyResult);
         if (!unifyResult.success)
           return;
-      }
 
-      processObligations(unifyResult, true);
-      if (!unifyResult.success)
-        return;
+        if (extension->trait && trait) {
+          doUnify(trait, instantiate(extension->trait, sub), unifyResult);
+          if (!unifyResult.success)
+            return;
+        }
 
-      if ((extension->trait == nullptr) != (trait == nullptr))
-        return;
+        processObligations(unifyResult, true);
+        if (!unifyResult.success)
+          return;
 
-      if (unifyResult.hasAmbiguousObligations) {
-        result.state = QueryState::Ambiguous;
-        for (auto &&err : unifyResult.diags)
-          result.diags.emplace_back(err);
-      }
+        if ((extension->trait == nullptr) != (trait == nullptr))
+          return;
 
-      result.items.emplace_back(extension.get());
-    });
+        if (unifyResult.hasAmbiguousObligations) {
+          result.state = QueryState::Ambiguous;
+          for (auto &&err : unifyResult.diags)
+            result.diags.emplace_back(err);
+        }
+
+        result.items.emplace_back(extension.get());
+      });
+
+      --extensionDepth;
+    }
+
+    if (extensionDepth != extensionDepthLimit - 1)
+      extensionCache.insertIfMissing(type, trait, extensionDepth, result.items);
   }
 
   if (result.items.empty())
@@ -411,11 +423,6 @@ Context::queryExtensions(Type *type, TraitType *trait) {
 
   if (result.items.size() > 1)
     result.state = QueryState::Ambiguous;
-
-  if (extensionDepth != extensionDepthLimit)
-    extensionCache.insertIfMissing(type, trait, result);
-
-  --extensionDepth;
 
   return result;
 }
