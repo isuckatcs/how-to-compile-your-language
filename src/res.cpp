@@ -38,8 +38,8 @@ void TranslationUnit::dump(size_t level) const {
     fn->dump(level);
 }
 
-void Context::SatisfyingTraitsCache::insertIfMissing(
-    Type *type, TraitType *trait, QueryResult<TraitType *> result) {
+void Context::ExtensionCache::insertIfMissing(
+    Type *type, TraitType *trait, QueryResult<TypeExtension *> result) {
   std::stringstream ss;
   buildKey(type, trait, ss);
   size_t key = hash(ss.str());
@@ -48,8 +48,8 @@ void Context::SatisfyingTraitsCache::insertIfMissing(
     emplace(key, std::move(result));
 }
 
-std::optional<Context::QueryResult<TraitType *>>
-Context::SatisfyingTraitsCache::get(Type *type, TraitType *trait) const {
+std::optional<Context::QueryResult<TypeExtension *>>
+Context::ExtensionCache::get(Type *type, TraitType *trait) const {
   std::stringstream ss;
   buildKey(type, trait, ss);
   size_t key = hash(ss.str());
@@ -60,13 +60,21 @@ Context::SatisfyingTraitsCache::get(Type *type, TraitType *trait) const {
   return find(key)->second;
 }
 
-void Context::SatisfyingTraitsCache::buildKey(Type *type,
-                                              TraitType *trait,
-                                              std::stringstream &ss) const {
-  ss << type->getName() << ':' << trait->getName();
+void Context::ExtensionCache::buildKey(Type *type,
+                                       TraitType *trait,
+                                       std::stringstream &ss) const {
+  ss << type->getName() << ':';
+  if (trait)
+    ss << trait->getName();
 
   for (auto &&t : std::initializer_list<Type *>{type, trait}) {
     ss << ':';
+
+    if (!t)
+      continue;
+
+    if (auto *u = t->getAs<res::UninferredType>())
+      ss << 't' << std::get<size_t>(u->metadata);
 
     for (auto &&a : t->args)
       if (auto *u = a->getAs<res::UninferredType>())
@@ -302,9 +310,6 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
 
 Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
-  if (auto result = satisfyingTraitsCache.get(type, trait))
-    return *result;
-
   ++requirementDepth;
 
   QueryResult<TraitType *> result;
@@ -350,8 +355,6 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
     result.diags.emplace_back(err::unsatisfiedRequirement()
                                   .with(type->getName())
                                   .with(trait->getName()));
-
-    satisfyingTraitsCache.insertIfMissing(type, trait, result);
     return result;
   }
 
@@ -363,17 +366,16 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
                                     .with(resultTrait->getName())
                                     .with(type->getName())
                                     .with(trait->getName()));
-
-    satisfyingTraitsCache.insertIfMissing(type, trait, result);
     return result;
   }
-
-  satisfyingTraitsCache.insertIfMissing(type, trait, result);
   return result;
 }
 
 Context::QueryResult<TypeExtension *>
 Context::queryExtensions(Type *type, TraitType *trait) {
+  if (auto result = extensionCache.get(type, trait))
+    return *result;
+
   QueryResult<TypeExtension *> result;
 
   for (auto &&extension : extensions) {
@@ -413,6 +415,8 @@ Context::queryExtensions(Type *type, TraitType *trait) {
   if (result.items.size() > 1)
     result.state = QueryState::Ambiguous;
 
+  if (requirementDepth < recursionLimit)
+    extensionCache.insertIfMissing(type, trait, result);
   return result;
 }
 

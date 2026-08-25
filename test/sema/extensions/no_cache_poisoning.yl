@@ -1,0 +1,18 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {}
+
+struct S<T> {}
+
+extension<T> number : A<S<T>> {}
+
+fn foo<T, U : A<S<T>>>(u: U, t: T) {}
+
+fn main() {
+  foo(1, 1);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(number, number) -> unit}
+
+  foo(1, true);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(number, bool) -> unit}
+}
