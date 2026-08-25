@@ -310,16 +310,7 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
 
 Context::QueryResult<TraitType *>
 Context::querySatisfyingTraits(Type *type, TraitType *trait) {
-  ++requirementDepth;
-
   QueryResult<TraitType *> result;
-
-  if (requirementDepth > recursionLimit) {
-    result.state = QueryState::Error;
-    result.diags.emplace_back(err::recursionLimitReached());
-    --requirementDepth;
-    return result;
-  }
 
   for (auto &&conformingTrait : getEveryConformance(type)) {
     probe([&, this](UnifyResult &unifyResult) {
@@ -348,8 +339,6 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
     }
   }
 
-  --requirementDepth;
-
   if (result.items.empty()) {
     result.state = QueryState::Error;
     result.diags.emplace_back(err::unsatisfiedRequirement()
@@ -377,6 +366,14 @@ Context::queryExtensions(Type *type, TraitType *trait) {
     return *result;
 
   QueryResult<TypeExtension *> result;
+
+  if (extensionDepth == extensionDepthLimit) {
+    result.state = QueryState::Error;
+    result.diags.emplace_back(err::recursionLimitReached());
+    return result;
+  }
+
+  ++extensionDepth;
 
   for (auto &&extension : extensions) {
     Substitution sub = getUninferredInstantiation(extension.get());
@@ -415,8 +412,11 @@ Context::queryExtensions(Type *type, TraitType *trait) {
   if (result.items.size() > 1)
     result.state = QueryState::Ambiguous;
 
-  if (requirementDepth < recursionLimit)
+  if (extensionDepth != extensionDepthLimit)
     extensionCache.insertIfMissing(type, trait, result);
+
+  --extensionDepth;
+
   return result;
 }
 

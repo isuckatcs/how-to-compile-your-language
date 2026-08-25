@@ -111,8 +111,8 @@ private:
 
   template <typename Fn> void probe(Fn &&fn);
 
-  const int recursionLimit = 10;
-  int requirementDepth = 0;
+  const int extensionDepthLimit = 10;
+  int extensionDepth = 0;
 
   ExtensionCache extensionCache;
 
