@@ -74,13 +74,13 @@ public:
   };
 
   struct ExtensionCache
-      : private std::unordered_map<size_t, std::vector<TypeExtension *>> {
+      : private std::unordered_map<size_t, QueryResult<TypeExtension *>> {
     void insertIfMissing(Type *type,
                          TraitType *trait,
                          int depth,
-                         std::vector<TypeExtension *> result);
+                         QueryResult<TypeExtension *> result);
 
-    std::optional<std::vector<TypeExtension *>>
+    std::optional<QueryResult<TypeExtension *>>
     get(Type *type, TraitType *trait, int depth) const;
 
   private:

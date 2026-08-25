@@ -42,7 +42,7 @@ void Context::ExtensionCache::insertIfMissing(
     Type *type,
     TraitType *trait,
     int depth,
-    std::vector<TypeExtension *> result) {
+    QueryResult<TypeExtension *> result) {
   std::stringstream ss;
   buildKey(type, trait, depth, ss);
   size_t key = hash(ss.str());
@@ -51,7 +51,7 @@ void Context::ExtensionCache::insertIfMissing(
     emplace(key, std::move(result));
 }
 
-std::optional<std::vector<TypeExtension *>>
+std::optional<Context::QueryResult<TypeExtension *>>
 Context::ExtensionCache::get(Type *type, TraitType *trait, int depth) const {
   std::stringstream ss;
   buildKey(type, trait, depth, ss);
@@ -376,47 +376,48 @@ Context::queryExtensions(Type *type, TraitType *trait) {
     return result;
   }
 
-  if (auto cachedExtensions = extensionCache.get(type, trait, extensionDepth)) {
-    result.items = std::move(*cachedExtensions);
-  } else {
-    for (auto &&extension : extensions) {
-      ++extensionDepth;
+  if (auto cachedExtensions = extensionCache.get(type, trait, extensionDepth))
+    return *cachedExtensions;
 
-      Substitution sub = getUninferredInstantiation(extension.get());
+  for (auto &&extension : extensions) {
+    ++extensionDepth;
 
-      probe([&, this](UnifyResult &unifyResult) {
-        doUnify(type, instantiate(extension->type, sub), unifyResult);
+    Substitution sub = getUninferredInstantiation(extension.get());
+
+    probe([&, this](UnifyResult &unifyResult) {
+      doUnify(type, instantiate(extension->type, sub), unifyResult);
+      if (!unifyResult.success)
+        return;
+
+      if (extension->trait && trait) {
+        doUnify(trait, instantiate(extension->trait, sub), unifyResult);
         if (!unifyResult.success)
           return;
+      }
 
-        if (extension->trait && trait) {
-          doUnify(trait, instantiate(extension->trait, sub), unifyResult);
-          if (!unifyResult.success)
-            return;
-        }
+      processObligations(unifyResult, true);
+      if (!unifyResult.success)
+        return;
 
-        processObligations(unifyResult, true);
-        if (!unifyResult.success)
-          return;
+      if ((extension->trait == nullptr) != (trait == nullptr))
+        return;
 
-        if ((extension->trait == nullptr) != (trait == nullptr))
-          return;
+      if (unifyResult.hasAmbiguousObligations) {
+        result.state = QueryState::Ambiguous;
+        for (auto &&err : unifyResult.diags)
+          result.diags.emplace_back(err);
+      }
 
-        if (unifyResult.hasAmbiguousObligations) {
-          result.state = QueryState::Ambiguous;
-          for (auto &&err : unifyResult.diags)
-            result.diags.emplace_back(err);
-        }
+      result.items.emplace_back(extension.get());
+    });
 
-        result.items.emplace_back(extension.get());
-      });
-
-      --extensionDepth;
-    }
-
-    if (extensionDepth != extensionDepthLimit - 1)
-      extensionCache.insertIfMissing(type, trait, extensionDepth, result.items);
+    --extensionDepth;
+    if (result.state == QueryState::Ambiguous)
+      break;
   }
+
+  if (extensionDepth != extensionDepthLimit)
+    extensionCache.insertIfMissing(type, trait, extensionDepth, result);
 
   if (result.items.empty())
     result.state = QueryState::Error;
