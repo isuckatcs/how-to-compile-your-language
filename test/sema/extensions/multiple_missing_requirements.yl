@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+trait B : A {}
+trait C : A {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : B' requires extension 'number : A'
+extension number : B {}
+
+// CHECK: [[# @LINE + 1 ]]:18: error: extension 'number : C' requires extension 'number : A'
+extension number : C {}
+
+fn main() {}

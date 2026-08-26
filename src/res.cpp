@@ -416,15 +416,13 @@ Context::queryExtensions(Type *type, TraitType *trait) {
       break;
   }
 
-  if (extensionDepth != extensionDepthLimit)
-    extensionCache.insertIfMissing(type, trait, extensionDepth, result);
-
   if (result.items.empty())
     result.state = QueryState::Error;
 
   if (result.items.size() > 1)
     result.state = QueryState::Ambiguous;
 
+  extensionCache.insertIfMissing(type, trait, extensionDepth, result);
   return result;
 }
 
