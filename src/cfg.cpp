@@ -168,6 +168,12 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     dumpStmt(asRef->expr);
     return;
   }
+
+  if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(stmt)) {
+    std::cerr << "(materialize) ";
+    dumpStmt(mte->expr);
+    return;
+  }
 }
 
 void CFG::dump() const {
@@ -334,6 +340,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (auto *asRef = dynamic_cast<const res::ImplicitAsRefExpr *>(&expr))
     return insertExpr(*asRef->expr, block);
+
+  if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(&expr))
+    return insertExpr(*mte->expr, block);
 
   return block;
 }
