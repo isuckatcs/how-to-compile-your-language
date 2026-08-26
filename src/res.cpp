@@ -332,16 +332,17 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   if (result.items.empty()) {
     auto extensionsResult = queryExtensions(type, trait);
 
-    if (extensionsResult.state == QueryState::Ambiguous) {
-      result.state = QueryState::Ambiguous;
-      for (auto &&err : extensionsResult.diags)
-        result.diags.emplace_back(err);
-    }
-
     for (auto &&extension : extensionsResult.items) {
       auto sub = getUninferredInstantiation(extension);
       result.items.emplace_back(
           instantiate(extension->trait, sub)->getAs<res::TraitType>());
+    }
+
+    if (extensionsResult.state == QueryState::Ambiguous &&
+        extensionsResult.items.size() == 1) {
+      result.state = QueryState::Ambiguous;
+      result.diags = std::move(extensionsResult.diags);
+      return result;
     }
   }
 
@@ -402,10 +403,9 @@ Context::queryExtensions(Type *type, TraitType *trait) {
       if ((extension->trait == nullptr) != (trait == nullptr))
         return;
 
-      if (unifyResult.hasAmbiguousObligations) {
+      if (unifyResult.hasAmbiguousObligations && result.items.empty()) {
         result.state = QueryState::Ambiguous;
-        for (auto &&err : unifyResult.diags)
-          result.diags.emplace_back(err);
+        result.diags = std::move(unifyResult.diags);
       }
 
       result.items.emplace_back(extension.get());
