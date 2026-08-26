@@ -112,7 +112,6 @@ private:
   bool occurs(UninferredType *type, Type *in);
   void doUnify(Type *t1, Type *t2, UnifyResult &result);
   void processObligations(UnifyResult &result, bool allowAmbiguity);
-  void rollbackUnify(const UnifyResult &result);
 
   template <typename Fn> void probe(Fn &&fn);
 
