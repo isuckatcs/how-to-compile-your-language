@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(n: &number) {}
+
+fn main() {
+  let x: number;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: 'x' is not initialized
+  foo(x);
+}

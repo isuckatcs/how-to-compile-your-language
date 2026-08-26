@@ -158,6 +158,12 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     dumpStmt(decay->expr);
     return;
   }
+
+  if (auto *asRef = dynamic_cast<const res::ImplicitAsRefExpr *>(stmt)) {
+    std::cerr << "(& <-) ";
+    dumpStmt(asRef->expr);
+    return;
+  }
 }
 
 void CFG::dump() const {
@@ -321,6 +327,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (auto *decay = dynamic_cast<const res::ImplicitPtrToRefDecay *>(&expr))
     return insertExpr(*decay->expr, block);
+
+  if (auto *asRef = dynamic_cast<const res::ImplicitAsRefExpr *>(&expr))
+    return insertExpr(*asRef->expr, block);
 
   return block;
 }

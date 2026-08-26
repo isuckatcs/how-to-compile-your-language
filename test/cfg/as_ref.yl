@@ -1,0 +1,26 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+fn foo(n: &number) {}
+
+fn main() {
+  let x = 123;
+  foo(x);
+}
+// CHECK: fn main({{.*}}) {
+// CHECK-NEXT: bb2:
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb1:
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   $1 = 123
+// CHECK-NEXT:   let x = $1
+// CHECK-NEXT:   $2 = x
+// CHECK-NEXT:   $3 = (& <-) $2
+// CHECK-NEXT:   $4 = foo
+// CHECK-NEXT:   $5 = $4($3)
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb0:
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
