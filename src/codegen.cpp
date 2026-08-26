@@ -23,6 +23,10 @@ struct Mangling {
     if (const auto *p = type->getAs<res::PointerType>())
       return (p->isMutable() ? "m" : "p") + mangleMonoType(p->getPointeeType());
 
+    if (const auto *r = type->getAs<res::RefType>())
+      return (r->isMutable() ? "i" : "r") +
+             mangleMonoType(r->getReferencedType());
+
     if (const auto *s = type->getAs<res::StructType>()) {
       static int lambdaCnt = 0;
       static std::map<const res::StructDecl *, std::string> lambdaNames;

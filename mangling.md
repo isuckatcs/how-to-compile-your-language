@@ -16,6 +16,8 @@
     |   'b'
     |   'p' <type>
     |   'm' <type>
+    |   'r' <type>
+    |   'i' <type>
     |   <structType>
     |   <anyTraitType>
     |   <traitType>

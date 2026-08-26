@@ -1,0 +1,19 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '456\n'
+fn takeRef(n: &mut number) {
+  n = 456;
+}
+
+fn foo<T>(t: T): T {
+  return t;
+}
+
+fn main() {
+  mut n = 123;
+
+  foo(takeRef)(n);
+  // CHECK: call void @_Y3fooGFinRuE(ptr sret({ ptr, ptr }) %struct.ret.tmp, ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
+
+  println(n);
+}
