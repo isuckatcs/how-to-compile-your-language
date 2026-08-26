@@ -1,0 +1,13 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn main() {
+  mut x = 123;
+  
+  let p = gc x;
+  // CHECK: %0 = load double, ptr %x, align 8
+  // CHECK-NEXT: %1 = call ptr @gcAlloc(i32 8, ptr null)
+  // CHECK-NEXT: store double %0, ptr %1, align 8
+
+  println(*p);
+}

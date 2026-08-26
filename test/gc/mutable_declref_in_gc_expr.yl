@@ -1,0 +1,13 @@
+// RUN: compiler %s -o %t && YL_GC_DUMP=1 %t | filecheck %s
+// RUN: %valgrind %t
+fn main() {
+  mut x = 123;
+  
+  let p = gc x;
+  // CHECK: [0] alloc {{.*}} data: {{.*}} (8 B) {heap: 32 B, threshold: 96 B}
+
+  println(*p);
+  // CHECK-NEXT: {{^123$}}
+}
+// CHECK-NEXT: [0] sweep {{.*}} data: {{.*}} (8 B) {heap: 0 B, threshold: 96 B}
+// CHECK-NEXT: [0] sweep {heap: 0 B, threshold: 96 B}

@@ -371,7 +371,7 @@ llvm::Value *Codegen::generateGCExpr(const res::GCExpr &gcExpr) {
   auto *valueType = getMonoType(gcExpr.expr->getType());
   auto *valueTy = generateType(valueType);
 
-  auto *val = generateExpr(*gcExpr.expr);
+  auto *val = generateExprAndLoadValue(*gcExpr.expr);
   createTmpGCRootIfNeeded(val, gcExpr.expr);
 
   auto *ptr = allocateHeapVariable(valueType);
