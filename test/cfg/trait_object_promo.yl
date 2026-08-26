@@ -1,0 +1,43 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+trait A {}
+
+extension<T> T : A {}
+
+fn foo(n: &any A) {}
+fn bar(n: *any A) {}
+
+fn main() {
+  let x = 123;
+  foo(x);
+
+  let y = gc 123;
+  bar(y);
+}
+
+// CHECK: fn main({{.*}}) {
+// CHECK-NEXT: bb2:
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb1:
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   $1 = 123
+// CHECK-NEXT:   let x = $1
+// CHECK-NEXT:   $2 = x
+// CHECK-NEXT:   $3 = (& <-) $2
+// CHECK-NEXT:   $4 = (any <-) $3
+// CHECK-NEXT:   $5 = foo
+// CHECK-NEXT:   $6 = $5($4)
+// CHECK-NEXT:   $7 = 123
+// CHECK-NEXT:   $8 = gc $7
+// CHECK-NEXT:   let y = $8
+// CHECK-NEXT:   $9 = y
+// CHECK-NEXT:   $10 = (any <-) $9
+// CHECK-NEXT:   $11 = bar
+// CHECK-NEXT:   $12 = $11($10)
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb0:
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }

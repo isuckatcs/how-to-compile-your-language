@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+extension<T> T : A {}
+
+fn foo(n: &any A) {}
+fn bar(n: *any A) {}
+
+fn main() {
+  let x: number;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: 'x' is not initialized
+  foo(x);
+
+  let y: *number;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: 'y' is not initialized
+  bar(y);
+}
