@@ -1,0 +1,15 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  mut x: number;
+  
+  if true { 
+    x = 1; 
+  }
+  
+  x = 2;
+
+  println(x);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) println {(number) -> unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) x {number}
+}

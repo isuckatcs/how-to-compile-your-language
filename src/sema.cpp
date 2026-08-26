@@ -2332,16 +2332,16 @@ bool Sema::checkVariableInitialization(const CFG &cfg) {
 
         if (auto *assignment = dynamic_cast<const res::Assignment *>(*it)) {
           const auto *assignee = assignment->assignee;
-
           auto *dre = dynamic_cast<const res::DeclRefExpr *>(assignee);
-          if (dre && state[dre->decl] == State::Unassigned) {
-            state[dre->decl] = State::Assigned;
-            continue;
-          }
 
-          if (!assignee->isMutable())
+          bool alreadyInit = !dre || !dre->decl->getAs<res::VarDecl>() ||
+                             state[dre->decl] > State::Unassigned;
+          if (!assignee->isMutable() && alreadyInit)
             errors.emplace_back(
                 err::immutableAssignment().at(assignment->location));
+
+          if (dre)
+            state[dre->decl] = State::Assigned;
 
           continue;
         }
