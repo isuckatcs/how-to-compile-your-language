@@ -1,0 +1,24 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn foo<T>(t: T, u: T): () -> T {
+  return->() {
+    return ->() { 
+      u;
+      // CHECK: %0 = getelementptr inbounds nuw { double, double }, ptr %closure, i32 0, i32 0
+
+      let x = t;
+      // CHECK-NEXT: %1 = getelementptr inbounds nuw { double, double }, ptr %closure, i32 0, i32 1
+      // CHECK-NEXT: %2 = load double, ptr %1, align 8
+      // CHECK-NEXT: store double %2, ptr %x, align 8
+
+      return x; 
+      // CHECK-NEXT: %3 = load double, ptr %x, align 8
+      // CHECK-NEXT: store double %3, ptr %retval, align 8
+    }();
+  };
+}
+
+fn main() {
+  println(foo(123, 0)());
+}

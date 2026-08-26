@@ -333,7 +333,9 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
     return builder.CreateGEP(baseTy, base, {builder.getInt64(1)});
   }
 
-  EnterMonoCtxRAII structCtx(this, baseType->getSub());
+  auto *baseStructType = baseType->getAs<res::StructType>();
+  bool isBaseLambda = baseStructType && baseStructType->getDecl()->isLambda;
+  EnterMonoCtxRAII structCtx(this, isBaseLambda ? monoCtx : baseType->getSub());
 
   unsigned index = 0;
   for (auto &&field : baseType->getAs<res::StructType>()->getDecl()->fields) {
@@ -503,7 +505,8 @@ llvm::Value *Codegen::constructStruct(
   llvm::Type *structTy = generateType(structType);
   unsigned gepIdx = 0;
 
-  EnterMonoCtxRAII structCtx(this, structType->getSub());
+  EnterMonoCtxRAII structCtx(
+      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
 
   for (auto &&fieldDecl : structType->getDecl()->fields) {
     llvm::Type *fieldTy = generateType(getMonoType(fieldDecl->getType()));
@@ -922,7 +925,8 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
   if (!structType)
     return {};
 
-  EnterMonoCtxRAII structCtx(this, structType->getSub());
+  EnterMonoCtxRAII structCtx(
+      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
 
   const auto &dataLayout = module.getDataLayout();
   const auto *structLayout =
@@ -1317,7 +1321,8 @@ llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
 
 llvm::StructType *
 Codegen::generateStructType(const res::StructType *structType) {
-  EnterMonoCtxRAII structCtx(this, structType->getSub());
+  EnterMonoCtxRAII structCtx(
+      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
 
   std::vector<llvm::Type *> fieldTys;
   for (auto &&field : structType->getDecl()->fields) {
