@@ -1324,16 +1324,32 @@ Sema::resolveTypeExtension(res::Context &ctx,
   if (error)
     return nullptr;
 
-  auto *resExtension = res::TypeExtension::create(
-      ctx, extension.location, std::move(typeParams), type, trait);
+  return res::TypeExtension::create(ctx, extension.location,
+                                    std::move(typeParams), type, trait);
+}
 
-  EnterNewScopeRAII extensionScope(this, resExtension);
-  for (auto &&fn : extension.functions) {
+bool Sema::resolveExtensionBody(res::Context &ctx,
+                                res::TypeExtension *extension,
+                                const ast::TypeExtension &astExtension) {
+  bool error = false;
+  res::Type *type = extension->type;
+  res::TraitType *trait = extension->trait;
+
+  EnterNewScopeRAII typeParamScope(this);
+  for (auto &&tp : extension->typeParams)
+    insertDeclToCurrentScope(tp);
+
+  EnterNewScopeRAII extensionScope(this, extension);
+  for (auto &&fn : astExtension.functions) {
     if (!trait) {
-      res::Substitution testSub = ctx.getUninferredInstantiation(resExtension);
-      auto result = ctx.queryAssociatedDecls(
-          fn->identifier, ctx.instantiate(type, testSub), nullptr);
-      if (result.state != res::Context::QueryState::Error) {
+      res::Substitution sub = ctx.getUninferredInstantiation(extension);
+
+      bool redeclared = false;
+      for (auto &&extension :
+           ctx.queryExtensions(ctx.instantiate(type, sub), nullptr).items)
+        redeclared |= extension->getFunction(fn->identifier) != nullptr;
+
+      if (redeclared) {
         err::redeclaration()
             .at(fn->location)
             .with(fn->identifier)
@@ -1342,7 +1358,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       }
 
       if (auto *memberFn = resolveFunctionDecl(ctx, *fn))
-        resExtension->functions.emplace_back(memberFn);
+        extension->functions.emplace_back(memberFn);
 
       continue;
     }
@@ -1371,7 +1387,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
       continue;
 
     res::Substitution implInstSub = ctx.getUninferredInstantiation(implFn);
-    bool error = false;
+    bool implError = false;
 
     for (size_t i = 0; i < implTypeParams.size(); ++i) {
       res::Type *traitParamTy = traitFn->typeParams[i]->getType();
@@ -1390,9 +1406,9 @@ Sema::resolveTypeExtension(res::Context &ctx,
           .with(traitParamTy->getName())
           .with(implFn->typeParams[i]->getType()->getName())
           .report(reporter);
-      error = true;
+      implError = true;
     }
-    if (error)
+    if (implError)
       continue;
 
     auto traitSub = trait->getSub();
@@ -1411,19 +1427,12 @@ Sema::resolveTypeExtension(res::Context &ctx,
     }
 
     if (insertDeclToCurrentScope(implFn))
-      resExtension->functions.emplace_back(implFn);
+      extension->functions.emplace_back(implFn);
   }
 
-  return resExtension;
-}
+  error |= extension->functions.size() != astExtension.functions.size();
 
-bool Sema::resolveExtensionBody(res::Context &ctx,
-                                res::TypeExtension *extension,
-                                const ast::TypeExtension &astExtension) {
-  bool error = false;
-  res::Type *type = extension->type;
-
-  if (res::TraitType *trait = extension->trait) {
+  if (trait) {
     res::Substitution testSub = ctx.getUninferredInstantiation(extension);
 
     res::Type *testType = ctx.instantiate(type, testSub);
@@ -1469,7 +1478,6 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     error |= !implementsAllNecessaryTraitFunctions(extension);
   }
 
-  error |= extension->functions.size() != astExtension.functions.size();
   return !error;
 }
 

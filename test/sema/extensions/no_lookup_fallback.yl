@@ -1,0 +1,23 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo();
+}
+
+struct S {}
+
+extension S : A {
+  fn foo() {}
+}
+// CHECK: TypeExtension S : A
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:     Block
+
+extension S {
+  fn foo<T>() {}
+}
+// CHECK-NEXT: TypeExtension S
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {() -> unit}
+// CHECK-NEXT:     TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     Block
+
+fn main() {}

@@ -1,0 +1,19 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+struct S { x: number }
+
+extension S {
+  fn foo(self: &Self): number { return 1; }
+}
+
+extension S {
+  fn bar(self: &Self): number { return 2; }
+}
+
+fn main() {
+  let s = S { x: 1 };
+  println(s.bar());
+  // CHECK: CallExpr {number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(&S) -> number}
+  // CHECK-NEXT:   ImplicitAsRefExpr {&S}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) s {S}
+}
