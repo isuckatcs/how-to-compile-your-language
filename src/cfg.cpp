@@ -145,6 +145,13 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     std::cerr << "(implicit deref) ";
     dumpStmt(deref->dre);
   }
+
+  if (auto *gc = dynamic_cast<const res::GCExpr *>(stmt)) {
+    std::cerr << "gc ";
+    if (gc->getType()->getAs<res::PointerType>()->isMutable())
+      std::cerr << "mut ";
+    dumpStmt(gc->expr);
+  }
 }
 
 void CFG::dump() const {
@@ -302,6 +309,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (auto *deref = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
     return insertExpr(*deref->dre, block);
+
+  if (auto *gc = dynamic_cast<const res::GCExpr *>(&expr))
+    return insertExpr(*gc->expr, block);
 
   return block;
 }

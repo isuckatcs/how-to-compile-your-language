@@ -1,0 +1,12 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let x;
+
+  // CHECK: [[# @LINE + 1 ]]:6: error: 'x' is not initialized
+  gc x;
+
+  // CHECK: [[# @LINE + 1 ]]:10: error: 'x' is not initialized
+  gc mut x;
+
+  x = 123;
+}
