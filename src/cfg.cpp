@@ -140,6 +140,11 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     }
     std::cerr << "](...){...}";
   }
+
+  if (auto *deref = dynamic_cast<const res::ImplicitDerefExpr *>(stmt)) {
+    std::cerr << "(implicit deref) ";
+    dumpStmt(deref->dre);
+  }
 }
 
 void CFG::dump() const {
@@ -294,6 +299,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
     for (auto it = inits.rbegin(); it != inits.rend(); ++it)
       block = insertExpr(**it, block);
   }
+
+  if (auto *deref = dynamic_cast<const res::ImplicitDerefExpr *>(&expr))
+    return insertExpr(*deref->dre, block);
 
   return block;
 }
