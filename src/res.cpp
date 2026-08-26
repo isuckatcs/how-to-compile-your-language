@@ -112,10 +112,13 @@ void Context::add(std::unique_ptr<TypeExtension> extension) {
   extensions.emplace_back(std::move(extension));
 }
 
-bool Context::occurs(UninferredType *type, Type *in) {
+bool Context::occurs(Type *type, Type *in) const {
+  if (!type->getAs<res::UninferredType>() && !type->getAs<res::TypeParamType>())
+    return false;
+
   in = in->getRootType();
 
-  if (type == in)
+  if (type->isSameKind(in))
     return true;
 
   for (auto &&arg : in->args)
@@ -498,6 +501,21 @@ Substitution Context::instantiate(const Substitution &s,
     res[from] = instantiate(to, sub);
 
   return res;
+}
+
+bool Context::isInfiniteStructType(StructType *structType) const {
+  const auto &typeParams = structType->getDecl()->typeParams;
+  const auto &typeArgs = structType->getTypeArgs();
+
+  for (size_t i = 0; i < typeParams.size(); ++i) {
+    res::Type *typeParam = typeParams[i]->getType();
+    res::Type *typeArg = typeArgs[i];
+
+    if (!typeParam->isSameKind(typeArg) && occurs(typeParam, typeArg))
+      return true;
+  }
+
+  return false;
 }
 
 Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {

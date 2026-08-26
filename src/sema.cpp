@@ -197,10 +197,17 @@ res::Type *Sema::resolveType(res::Context &ctx,
           res::TraitType::create(ctx, td, std::move(resolvedTypeArgs)));
     }
 
-    return validatedUserDefinedType(
-        ctx, udt,
-        res::StructType::create(ctx, decl->getAs<res::StructDecl>(),
-                                std::move(resolvedTypeArgs)));
+    auto *structType = res::StructType::create(
+        ctx, decl->getAs<res::StructDecl>(), std::move(resolvedTypeArgs));
+
+    if (ctx.isInfiniteStructType(structType))
+      return err::infiniteStructType()
+          .at(parsedType.location)
+          .with(decl->getType()->getName())
+          .with(structType->getName())
+          .report(reporter);
+
+    return validatedUserDefinedType(ctx, udt, structType);
   }
 
   if (const auto *arg = dynamic_cast<const ast::ArgumentType *>(&parsedType)) {

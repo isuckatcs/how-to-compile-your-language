@@ -21,6 +21,7 @@ struct TypeExtension;
 struct FunctionDecl;
 struct TypeParamDecl;
 struct TraitType;
+class StructType;
 struct UninferredType;
 struct TraitDecl;
 struct StructDecl;
@@ -109,7 +110,7 @@ private:
     std::unordered_map<UninferredType *, size_t> propagatedObligations = {};
   };
 
-  bool occurs(UninferredType *type, Type *in);
+  bool occurs(Type *type, Type *in) const;
   void doUnify(Type *t1, Type *t2, UnifyResult &result);
   void processObligations(UnifyResult &result, bool allowAmbiguity);
 
@@ -144,6 +145,7 @@ public:
   Type *instantiate(Type *t, const Substitution &sub);
   Substitution instantiate(const Substitution &s, const Substitution &sub);
 
+  bool isInfiniteStructType(StructType *structType) const;
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);
 
   std::vector<TraitType *> getDirectConformance(Type *type);
