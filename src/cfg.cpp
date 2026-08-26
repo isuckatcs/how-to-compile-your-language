@@ -89,6 +89,7 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
         std::cerr << ", ";
     }
     std::cerr << ')';
+    return;
   }
 
   if (auto *binop = dynamic_cast<const res::BinaryOperator *>(stmt)) {
@@ -139,11 +140,13 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
         std::cerr << ',' << ' ';
     }
     std::cerr << "](...){...}";
+    return;
   }
 
   if (auto *deref = dynamic_cast<const res::ImplicitDerefExpr *>(stmt)) {
     std::cerr << "(implicit deref) ";
     dumpStmt(deref->dre);
+    return;
   }
 
   if (auto *gc = dynamic_cast<const res::GCExpr *>(stmt)) {
@@ -151,6 +154,7 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     if (gc->getType()->getAs<res::PointerType>()->isMutable())
       std::cerr << "mut ";
     dumpStmt(gc->expr);
+    return;
   }
 
   if (auto *decay = dynamic_cast<const res::ImplicitPtrToRefDecay *>(stmt)) {
