@@ -47,6 +47,9 @@ Token Lexer::getNextToken() {
 
   SourceLocation tokenStartLocation{source, line, column};
 
+  if (idx > source->buffer.size())
+    return Token{tokenStartLocation, TokenKind::Eof};
+
   for (auto &&c : singleCharTokens)
     if (c == currentChar)
       return Token{tokenStartLocation, static_cast<TokenKind>(c)};

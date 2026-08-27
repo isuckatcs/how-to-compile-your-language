@@ -12,11 +12,12 @@
 #include "utils.h"
 
 namespace yl {
-constexpr char singleCharTokens[] = {'\0', '(', ')', '{', '}', ';', ',',
-                                     '+',  '*', '<', '>', '!', '.', '@'};
+constexpr char singleCharTokens[] = {'(', ')', '{', '}', ';', ',', '+',
+                                     '*', '<', '>', '!', '.', '@'};
 
 enum class TokenKind : char {
   Unk = -128,
+  Eof,
   Slash,
 
   Equal,
@@ -51,20 +52,19 @@ enum class TokenKind : char {
   KwGC,
   KwAny,
 
-  Eof = singleCharTokens[0],
-  Lpar = singleCharTokens[1],
-  Rpar = singleCharTokens[2],
-  Lbrace = singleCharTokens[3],
-  Rbrace = singleCharTokens[4],
-  Semi = singleCharTokens[5],
-  Comma = singleCharTokens[6],
-  Plus = singleCharTokens[7],
-  Asterisk = singleCharTokens[8],
-  Lt = singleCharTokens[9],
-  Gt = singleCharTokens[10],
-  Excl = singleCharTokens[11],
-  Dot = singleCharTokens[12],
-  At = singleCharTokens[13],
+  Lpar = singleCharTokens[0],
+  Rpar = singleCharTokens[1],
+  Lbrace = singleCharTokens[2],
+  Rbrace = singleCharTokens[3],
+  Semi = singleCharTokens[4],
+  Comma = singleCharTokens[5],
+  Plus = singleCharTokens[6],
+  Asterisk = singleCharTokens[7],
+  Lt = singleCharTokens[8],
+  Gt = singleCharTokens[9],
+  Excl = singleCharTokens[10],
+  Dot = singleCharTokens[11],
+  At = singleCharTokens[12],
 };
 
 std::string_view getOpStr(TokenKind op);
