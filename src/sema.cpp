@@ -1444,9 +1444,10 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 
     res::Type *testType = ctx.instantiate(type, testSub);
     auto *testTrait = ctx.instantiate(trait, testSub)->getAs<res::TraitType>();
-    for (auto &&conflict : ctx.queryExtensions(testType, testTrait).items) {
-      if (conflict == extension)
-        break;
+    auto extensionQuery = ctx.queryExtensions(testType, testTrait);
+
+    if (extensionQuery.items[0] != extension) {
+      res::TypeExtension *conflict = extensionQuery.items[0];
 
       auto extensionSub = ctx.getUninferredInstantiation(extension);
       auto conflictSub = ctx.getUninferredInstantiation(conflict);
