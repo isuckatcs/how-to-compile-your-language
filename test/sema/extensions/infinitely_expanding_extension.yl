@@ -8,6 +8,6 @@ extension<T, U : A<S<T>>> U : A<T> {}
 fn foo<T, U : A<T>>(u : U) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : A<_>'
+  // CHECK: [[# @LINE + 1 ]]:7: error: overflow while solving 'number : A<_>'
   foo(1);
 }

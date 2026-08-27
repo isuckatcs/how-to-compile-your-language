@@ -146,24 +146,26 @@ void Context::doUnify(Type *t1, Type *t2, UnifyResult &result) {
   if (t2->getAs<UninferredType>())
     return doUnify(t2, t1, result);
 
-  result.success = t1->isSameKind(t2);
+  if (!t1->isSameKind(t2))
+    result.state = QueryState::Error;
 
   size_t i = 0;
-  while (i < t1->args.size() && result.success) {
+  while (i < t1->args.size() && result.state == QueryState::Success) {
     doUnify(t1->args[i], t2->args[i], result);
-    if (!result.success)
+    if (result.state == QueryState::Error)
       break;
 
     ++i;
   }
 
-  if (!result.success)
+  if (result.state == QueryState::Error)
     result.diags.emplace_back(
         err::unificationError().with(t1->getName()).with(t2->getName()));
 }
 
 void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
-  assert(result.success && "processing obligations after failed unification");
+  assert(result.state == QueryState::Success &&
+         "processing obligations after failed unification");
 
   size_t i = 0;
   while (i != result.inferredTypes.size()) {
@@ -187,13 +189,10 @@ void Context::processObligations(UnifyResult &result, bool allowAmbiguity) {
       for (auto &&error : queryResult.diags)
         result.diags.emplace_back(error);
 
-      if (queryResult.state == QueryState::Ambiguous) {
-        result.hasAmbiguousObligations = true;
-        if (allowAmbiguity)
-          continue;
-      }
+      result.state = queryResult.state;
+      if (result.state == QueryState::Ambiguous && allowAmbiguity)
+        continue;
 
-      result.success = false;
       return;
     }
   }
@@ -260,7 +259,14 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
     auto *traitType =
         instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
 
-    if (queryExtensions(type, traitType).state != QueryState::Error)
+    auto applicableTraitQuery = queryExtensions(type, traitType);
+    if (applicableTraitQuery.state == QueryState::Overflow) {
+      result.state = applicableTraitQuery.state;
+      result.diags = std::move(applicableTraitQuery.diags);
+      return result;
+    }
+
+    if (applicableTraitQuery.state != QueryState::Error)
       applicableTraits.emplace_back(trait);
   }
 
@@ -324,10 +330,10 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
   for (auto &&conformingTrait : getEveryConformance(type)) {
     probe([&, this](UnifyResult &unifyResult) {
       doUnify(trait, conformingTrait, unifyResult);
-      if (unifyResult.success)
+      if (unifyResult.state == QueryState::Success)
         processObligations(unifyResult, false);
 
-      if (unifyResult.success)
+      if (unifyResult.state == QueryState::Success)
         result.items.emplace_back(conformingTrait);
     });
   }
@@ -341,10 +347,16 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
           instantiate(extension->trait, sub)->getAs<res::TraitType>());
     }
 
-    if (extensionsResult.state == QueryState::Ambiguous &&
-        extensionsResult.items.size() == 1) {
-      result.state = QueryState::Ambiguous;
+    result.state = extensionsResult.state;
+
+    if (result.state == QueryState::Ambiguous && result.items.size() == 1) {
       result.diags = std::move(extensionsResult.diags);
+      return result;
+    }
+
+    if (result.state == QueryState::Overflow) {
+      result.diags.emplace_back(
+          err::overflow().with(type->getName()).with(trait->getName()));
       return result;
     }
   }
@@ -373,10 +385,10 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
 Context::QueryResult<TypeExtension *>
 Context::queryExtensions(Type *type, TraitType *trait) {
   QueryResult<TypeExtension *> result;
+  std::vector<diag::DiagBuilder> overflowDiags;
 
   if (extensionDepth == extensionDepthLimit) {
-    result.state = QueryState::Error;
-    result.diags.emplace_back(err::recursionLimitReached());
+    result.state = QueryState::Overflow;
     return result;
   }
 
@@ -390,24 +402,29 @@ Context::queryExtensions(Type *type, TraitType *trait) {
 
     probe([&, this](UnifyResult &unifyResult) {
       doUnify(type, instantiate(extension->type, sub), unifyResult);
-      if (!unifyResult.success)
+      if (unifyResult.state == QueryState::Error)
         return;
 
       if (extension->trait && trait) {
         doUnify(trait, instantiate(extension->trait, sub), unifyResult);
-        if (!unifyResult.success)
+        if (unifyResult.state == QueryState::Error)
           return;
       }
 
       processObligations(unifyResult, true);
-      if (!unifyResult.success)
+      if (unifyResult.state == QueryState::Error)
         return;
+
+      if (unifyResult.state == QueryState::Overflow) {
+        overflowDiags = std::move(unifyResult.diags);
+        return;
+      }
 
       if ((extension->trait == nullptr) != (trait == nullptr))
         return;
 
-      if (unifyResult.hasAmbiguousObligations && result.items.empty()) {
-        result.state = QueryState::Ambiguous;
+      if (unifyResult.state == QueryState::Ambiguous && result.items.empty()) {
+        result.state = unifyResult.state;
         result.diags = std::move(unifyResult.diags);
       }
 
@@ -419,8 +436,14 @@ Context::queryExtensions(Type *type, TraitType *trait) {
       break;
   }
 
-  if (result.items.empty())
+  if (result.items.empty()) {
     result.state = QueryState::Error;
+
+    if (!overflowDiags.empty()) {
+      result.state = QueryState::Overflow;
+      result.diags = std::move(overflowDiags);
+    }
+  }
 
   if (result.items.size() > 1)
     result.state = QueryState::Ambiguous;
@@ -447,10 +470,10 @@ std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
   UnifyResult result;
   doUnify(t1, t2, result);
 
-  if (result.success)
+  if (result.state == QueryState::Success)
     processObligations(result, false);
 
-  if (result.hasAmbiguousObligations)
+  if (result.state == QueryState::Ambiguous)
     result.diags.emplace_back(err::annotationsNeededForRequirements());
 
   return result.diags;

@@ -66,6 +66,7 @@ public:
     Success,
     Ambiguous,
     Error,
+    Overflow,
   };
 
   template <typename T> struct QueryResult final {
@@ -103,8 +104,7 @@ private:
   std::unique_ptr<TranslationUnit> translationUnit;
 
   struct UnifyResult final {
-    bool success = true;
-    bool hasAmbiguousObligations = false;
+    QueryState state = QueryState::Success;
     std::vector<diag::DiagBuilder> diags = {};
     std::vector<UninferredType *> inferredTypes = {};
     std::unordered_map<UninferredType *, size_t> propagatedObligations = {};

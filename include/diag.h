@@ -170,7 +170,7 @@ diag(Error, missingTraitFn, "'{}' must implement function '{}' from trait '{}'")
 diag(Error, conflictingExtensionForType, "extension '{} : {}' conflicts with extension '{} : {}' for type '{}'");
 diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
 diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");
-diag(Error, recursionLimitReached, "recursion limit reached while checking obligations");
+diag(Error, overflow, "overflow while solving '{} : {}'");
 diag(Error, multipleTraitsProvideMethod, "multiple traits provide '{}' for '{}'");
 diag(Error, traitProvidesMethod, "trait '{}' provides '{}' for '{}'");
 

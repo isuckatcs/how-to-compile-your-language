@@ -11,9 +11,9 @@ extension<T : A<number>> T : B {}
 fn foo<T : B>(t: T) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: failed to find member 'foo' in 'number'
+  // CHECK: [[# @LINE + 1 ]]:7: error: overflow while solving 'number : A<number>'
   123.foo();
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : B'
+  // CHECK: [[# @LINE + 1 ]]:7: error: overflow while solving 'number : B'
   foo(123);
 }

@@ -30,6 +30,6 @@ fn main() {
   // T : A1 should not be cached for the T : A10 query
   bar(1);
 
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : A10'
+  // CHECK: [[# @LINE + 1 ]]:7: error: overflow while solving 'number : A10'
   foo(1);
 }
