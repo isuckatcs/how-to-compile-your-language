@@ -423,9 +423,10 @@ Context::queryExtensions(Type *type, TraitType *trait) {
       if ((extension->trait == nullptr) != (trait == nullptr))
         return;
 
-      if (unifyResult.state == QueryState::Ambiguous && result.items.empty()) {
+      if (unifyResult.state == QueryState::Ambiguous) {
         result.state = unifyResult.state;
         result.diags = std::move(unifyResult.diags);
+        result.items.clear();
       }
 
       result.items.emplace_back(extension.get());
