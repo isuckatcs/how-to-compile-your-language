@@ -33,13 +33,13 @@ fn main() {
   @<S : A>::foo();
   S::foo();
 }
-// CHECK: define void @_YS1S3fooS8lambda_021__builtin_lambda_call(ptr %closure) {
+// CHECK: define void @_YYS1S3fooS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_YS1S3bar(ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_YT1AGS1SE3fooS8lambda_021__builtin_lambda_call(ptr %closure) {
+// CHECK: define void @_YYT1AGS1SE3fooS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_YT1AGS1SE3bar(ptr null)
 // CHECK-NEXT:   ret void

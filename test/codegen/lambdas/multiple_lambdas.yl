@@ -20,13 +20,13 @@ fn main() {
   l2();
 }
 
-// CHECK: define void @_Y4mainS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {
+// CHECK: define void @_YY4mainS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   call void @_Y7println(double %x, ptr null)
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y4mainS8lambda_121__builtin_lambda_call(ptr %closure) {
+// CHECK: define void @_YY4mainS8lambda_121__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %closure, i32 0, i32 0
 // CHECK-NEXT:   %1 = load double, ptr %0, align 8

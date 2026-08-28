@@ -10,7 +10,7 @@ fn returnLambda(): (number) -> number {
   return ->(x){ return x; };
   // CHECK: %lambda.tmp = alloca { ptr, ptr }, align 8
   // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
-  // CHECK-NEXT: store ptr @_Y12returnLambdaS8lambda_021__builtin_lambda_call, ptr %0, align 8
+  // CHECK-NEXT: store ptr @_YY12returnLambdaS8lambda_021__builtin_lambda_call, ptr %0, align 8
 }
 
 fn unusedRoot() {

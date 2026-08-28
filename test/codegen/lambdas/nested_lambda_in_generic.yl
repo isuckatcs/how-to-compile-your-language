@@ -1,6 +1,10 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %t | grep -Plzx '1\n1\n2\n2\n3\n3\n'
+
+// CHECK: @Y7wrapperGFRuES8lambda_0.offsets = internal constant { i32, i32, [1 x i32] } { i32 24, i32 1, [1 x i32] [i32 16] }
+// CHECK_NEXT: @YY7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_0.offsets = internal constant { i32, i32, [1 x i32] } { i32 24, i32 1, [1 x i32] [i32 16] }
+
 fn wrapper<T>(t: T, n: number): T {
   return ->(){
     println(n);
@@ -14,11 +18,11 @@ fn wrapper<T>(t: T, n: number): T {
 
 fn main() {
   wrapper(123, 1);
-  // CHECK: define double @_Y7wrapperGnES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
+  // CHECK: define double @_YYY7wrapperGnES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
 
   wrapper(unit, 2);
-  // CHECK: define void @_Y7wrapperGuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
+  // CHECK: define void @_YYY7wrapperGuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
 
   wrapper(main, 3);
-  // CHECK: define void @_Y7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr sret({ ptr, ptr }) %ret, ptr %closure) {
+  // CHECK: define void @_YYY7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr sret({ ptr, ptr }) %ret, ptr %closure) {
 }

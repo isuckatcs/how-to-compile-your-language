@@ -17,5 +17,5 @@ fn main() {
   // CHECK-NEXT: call void @_Y3foo(ptr byval({ ptr, ptr }) %struct.arg.tmp, ptr null)
 }
 
-// CHECK: define void @_Y4mainS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {
+// CHECK: define void @_YY4mainS8lambda_021__builtin_lambda_call(double %x, ptr %closure) {
 // CHECK-NOT: {{.*lambda_1.*}}

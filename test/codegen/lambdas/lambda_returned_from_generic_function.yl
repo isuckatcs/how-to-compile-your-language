@@ -24,10 +24,10 @@ fn foo<T>(b: bool): (T) -> T {
 
 fn main() {
   foo(true)(unit);
-  // CHECK: store ptr @_Y3fooGuES8lambda_021__builtin_lambda_call, ptr %1, align 8
-  // CHECK: store ptr @_Y3fooGuES8lambda_121__builtin_lambda_call, ptr %5, align 8
+  // CHECK: store ptr @_YY3fooGuES8lambda_021__builtin_lambda_call, ptr %1, align 8
+  // CHECK: store ptr @_YY3fooGuES8lambda_121__builtin_lambda_call, ptr %5, align 8
 
   foo(false)(0);
-  // CHECK: store ptr @_Y3fooGnES8lambda_021__builtin_lambda_call, ptr %1, align 8
-  // CHECK: store ptr @_Y3fooGnES8lambda_121__builtin_lambda_call, ptr %5, align 8
+  // CHECK: store ptr @_YY3fooGnES8lambda_021__builtin_lambda_call, ptr %1, align 8
+  // CHECK: store ptr @_YY3fooGnES8lambda_121__builtin_lambda_call, ptr %5, align 8
 }

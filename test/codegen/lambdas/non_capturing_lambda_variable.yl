@@ -27,7 +27,7 @@ fn main() {
     println(456);
   };
   // CHECK-NEXT: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 0
-  // CHECK-NEXT: store ptr @_Y4mainS8lambda_021__builtin_lambda_call, ptr %0, align 8
+  // CHECK-NEXT: store ptr @_YY4mainS8lambda_021__builtin_lambda_call, ptr %0, align 8
   // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %lambda.tmp, i32 0, i32 1
   // CHECK-NEXT: store ptr null, ptr %1, align 8
   // CHECK-NEXT: call void @llvm.memcpy.p0.p0.i64(ptr align 8 %l, ptr align 8 %lambda.tmp, i64 16, i1 false)
@@ -40,7 +40,7 @@ fn main() {
   // CHECK-NEXT: call void %3(ptr %5)
 }
 
-// CHECK: define void @_Y4mainS8lambda_021__builtin_lambda_call(ptr %closure) {
+// CHECK: define void @_YY4mainS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %0 = getelementptr {}, ptr %closure, i64 1
 // CHECK-NEXT:   %1 = getelementptr {}, ptr %closure, i64 1

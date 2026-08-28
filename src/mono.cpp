@@ -107,7 +107,7 @@ std::string Mangling::mangleFunctionDecl(res::Context *resCtx,
                                          const res::FunctionDecl *fn,
                                          const res::Substitution &sub) {
   std::stringstream mangledName;
-  mangledName << '_' << 'Y';
+  mangledName << '_';
   mangledName << mangleFunctionSignature(resCtx, fn, sub);
   return mangledName.str();
 }
@@ -116,6 +116,7 @@ std::string Mangling::mangleFunctionSignature(res::Context *resCtx,
                                               const res::FunctionDecl *fn,
                                               const res::Substitution &sub) {
   std::stringstream mangledName;
+  mangledName << 'Y';
 
   if (auto *e = dynamic_cast<const res::TypeExtension *>(fn->declContext))
     mangledName << mangleMonoType(resCtx, e->trait ? e->trait : e->type, sub);

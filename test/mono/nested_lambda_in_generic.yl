@@ -10,6 +10,6 @@ fn main() {
   wrapper(unit);
   wrapper(main);
 }
-// CHECK: (__builtin_lambda_call, [T = number]) -> _Y7wrapperGnES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call
-// CHECK-NEXT: (__builtin_lambda_call, [T = unit]) -> _Y7wrapperGuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call
-// CHECK-NEXT: (__builtin_lambda_call, [T = () -> unit]) -> _Y7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call
+// CHECK: (__builtin_lambda_call, [T = number]) -> _YYY7wrapperGnES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call
+// CHECK-NEXT: (__builtin_lambda_call, [T = unit]) -> _YYY7wrapperGuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call
+// CHECK-NEXT: (__builtin_lambda_call, [T = () -> unit]) -> _YYY7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call

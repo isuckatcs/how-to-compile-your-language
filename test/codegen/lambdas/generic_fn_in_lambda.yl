@@ -12,7 +12,7 @@ fn main() {
     return foo(x); 
   }());
 }
-// CHECK: define double @_Y4mainS8lambda_021__builtin_lambda_call(ptr %closure) {
+// CHECK: define double @_YY4mainS8lambda_021__builtin_lambda_call(ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
 // CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %closure, i32 0, i32 0
