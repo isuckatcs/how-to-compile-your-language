@@ -465,7 +465,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 }
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
-  if (const auto *fnDecl = dre.decl->getAs<res::FunctionDecl>())
+  if (dre.decl->getAs<res::FunctionDecl>())
     return module.getFunction(monoCtx->mangledDeclRefs[monoFnId][&dre]);
 
   return declarations[dre.decl];
