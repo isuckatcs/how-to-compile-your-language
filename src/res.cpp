@@ -19,9 +19,20 @@ res::Type *Substitution::getSelfType() const {
   return nullptr;
 }
 
-void Substitution::dump() const {
-  for (auto &&[from, to] : *this)
-    std::cerr << from->getName() << " -> " << to->getName() << '\n';
+std::string Substitution::getString() const {
+  std::stringstream ss;
+
+  ss << "[";
+  for (auto it = this->begin(); it != this->end(); ++it) {
+    if (it != this->begin())
+      ss << ", ";
+
+    auto &&[from, to] = *it;
+    ss << from->getName() << " = " << to->getName();
+  }
+  ss << "]";
+
+  return ss.str();
 }
 
 void TranslationUnit::dump(size_t level) const {

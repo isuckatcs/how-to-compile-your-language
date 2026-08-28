@@ -171,6 +171,7 @@ diag(Error, conflictingExtensionForType, "extension '{} : {}' conflicts with ext
 diag(Error, missingRequirement, "extension '{} : {}' requires extension '{} : {}'");
 diag(Error, selfRequiringTrait, "trait '{}' requires conformance to itself");
 diag(Error, overflow, "overflow while solving '{} : {}'");
+diag(Error, monoOverflow, "overflow while instantiating '{}' with '{}'");
 diag(Error, multipleTraitsProvideMethod, "multiple traits provide '{}' for '{}'");
 diag(Error, traitProvidesMethod, "trait '{}' provides '{}' for '{}'");
 

@@ -3,116 +3,13 @@
 #include <llvm/TargetParser/Host.h>
 
 #include <set>
-#include <sstream>
 
 #include "codegen.h"
 
 namespace yl {
-namespace {
-struct Mangling {
-  static std::string mangleMonoType(res::Type *type) {
-    if (type->getAs<res::BuiltinUnitType>())
-      return "u";
-
-    if (type->getAs<res::BuiltinNumberType>())
-      return "n";
-
-    if (type->getAs<res::BuiltinBoolType>())
-      return "b";
-
-    if (const auto *p = type->getAs<res::PointerType>())
-      return (p->isMutable() ? "m" : "p") + mangleMonoType(p->getPointeeType());
-
-    if (const auto *r = type->getAs<res::RefType>())
-      return (r->isMutable() ? "i" : "r") +
-             mangleMonoType(r->getReferencedType());
-
-    if (const auto *s = type->getAs<res::StructType>()) {
-      static int lambdaCnt = 0;
-      static std::map<const res::StructDecl *, std::string> lambdaNames;
-
-      const auto *sd = s->getDecl();
-      if (sd->isLambda && !lambdaNames.count(sd))
-        lambdaNames[sd] = "lambda_" + std::to_string(lambdaCnt++);
-
-      const std::string &id = sd->isLambda ? lambdaNames[sd] : sd->identifier;
-
-      std::stringstream mangledName;
-      mangledName << 'S' << id.size() << id
-                  << mangleGenericArgs(s->getTypeArgs());
-      return mangledName.str();
-    }
-
-    if (const auto *a = type->getAs<res::AnyTraitType>()) {
-      const auto &id = a->getDecl()->identifier;
-
-      std::stringstream mangledName;
-      mangledName << 'A' << id.size() << id
-                  << mangleGenericArgs(a->getTypeArgs());
-      return mangledName.str();
-    }
-
-    if (const auto *tr = type->getAs<res::TraitType>()) {
-      const auto &id = tr->getDecl()->identifier;
-
-      std::stringstream mangledName;
-      mangledName << 'T' << id.size() << id
-                  << mangleGenericArgs(tr->getTypeArgs());
-      return mangledName.str();
-    }
-
-    if (const auto *f = type->getAs<res::FunctionType>()) {
-      std::stringstream mangledName;
-
-      mangledName << 'F';
-      for (auto &&arg : f->getArgs())
-        mangledName << mangleMonoType(arg);
-      mangledName << 'R' << mangleMonoType(f->getReturnType());
-
-      return mangledName.str();
-    }
-
-    llvm_unreachable("unexpected type in mangling");
-  }
-
-  static std::string mangleFunctionDecl(const res::FunctionDecl *fn,
-                                        res::Type *parentMonoType,
-                                        const res::Substitution &sub) {
-    std::stringstream mangledName;
-
-    const auto &identifier = fn->identifier;
-    mangledName << '_' << 'Y';
-    if (parentMonoType)
-      mangledName << mangleMonoType(parentMonoType);
-    mangledName << identifier.size();
-
-    std::vector<res::Type *> typeArgs;
-    for (auto &&tp : fn->typeParams)
-      typeArgs.emplace_back(sub.at(tp->getType()));
-
-    mangledName << identifier << mangleGenericArgs(typeArgs);
-    return mangledName.str();
-  }
-
-private:
-  static std::string mangleGenericArgs(const std::vector<res::Type *> &args) {
-    if (args.empty())
-      return "";
-
-    std::stringstream mangledName;
-
-    mangledName << 'G';
-    for (auto &&arg : args)
-      mangledName << mangleMonoType(arg);
-    mangledName << 'E';
-
-    return mangledName.str();
-  }
-};
-} // namespace
-
-Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
-    : resCtx(&resolvedCtx),
+Codegen::Codegen(mono::Context &mono, std::string_view sourcePath)
+    : monoCtx(&mono),
+      resCtx(mono.resCtx),
       builder(context),
       module("<translation_unit>", context),
       dl(&module.getDataLayout()) {
@@ -121,7 +18,7 @@ Codegen::Codegen(res::Context &resolvedCtx, std::string_view sourcePath)
 }
 
 res::Type *Codegen::getMonoType(res::Type *type) const {
-  return resCtx->instantiate(type, monoCtx);
+  return resCtx->instantiate(type, currentSub);
 }
 
 llvm::Type *Codegen::generateType(res::Type *monoType) {
@@ -339,7 +236,8 @@ llvm::Value *Codegen::generateMemberExpr(const res::MemberExpr &memberExpr) {
 
   auto *baseStructType = baseType->getAs<res::StructType>();
   bool isBaseLambda = baseStructType && baseStructType->getDecl()->isLambda;
-  EnterMonoCtxRAII structCtx(this, isBaseLambda ? monoCtx : baseType->getSub());
+  UseSubstitutionRAII structCtx(this,
+                                isBaseLambda ? currentSub : baseType->getSub());
 
   unsigned index = 0;
   for (auto &&field : baseType->getAs<res::StructType>()->getDecl()->fields) {
@@ -390,7 +288,8 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   llvm::Type *lambdaTy = generateType(lambdaExpr.getType());
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
 
-  llvm::Value *function = generateFunctionDecl(*lambdaExpr.getFunction());
+  llvm::Value *function =
+      module.getFunction(monoCtx->mangledLambdas[monoFnId][&lambdaExpr]);
 
   bool needsClosure = dl->getTypeAllocSize(generateType(closureType)) != 0;
   llvm::Value *closure = needsClosure
@@ -474,25 +373,10 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   llvm::Value *obj = generateExpr(*promo.expr);
 
   res::Type *resultType = getMonoType(promo.getType());
-  res::Type *originType = getMonoType(promo.expr->getType());
+  if (resultType->getAs<res::PointerType>() && promo.expr->isLvalue())
+    obj = loadValue(obj, builder.getPtrTy());
 
-  res::AnyTraitType *anyType = nullptr;
-  res::Type *objectType = nullptr;
-
-  if (auto *ptrType = resultType->getAs<res::PointerType>()) {
-    objectType = originType->getAs<res::PointerType>()->getPointeeType();
-    anyType = ptrType->getPointeeType()->getAs<res::AnyTraitType>();
-
-    if (promo.expr->isLvalue())
-      obj = loadValue(obj, builder.getPtrTy());
-  } else {
-    objectType = originType->getAs<res::RefType>()->getReferencedType();
-    anyType = resultType->getAs<res::RefType>()
-                  ->getReferencedType()
-                  ->getAs<res::AnyTraitType>();
-  }
-
-  auto *vtable = getVtable(anyType->withSelfType(resCtx, objectType));
+  auto *vtable = generateVtable(monoCtx->vtableRefs[monoFnId][&promo]);
   auto *traitObjTy = generateType(resultType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
@@ -509,8 +393,9 @@ llvm::Value *Codegen::constructStruct(
   llvm::Type *structTy = generateType(structType);
   unsigned gepIdx = 0;
 
-  EnterMonoCtxRAII structCtx(
-      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
+  UseSubstitutionRAII structCtx(this, structType->getDecl()->isLambda
+                                          ? currentSub
+                                          : structType->getSub());
 
   for (auto &&fieldDecl : structType->getDecl()->fields) {
     llvm::Type *fieldTy = generateType(getMonoType(fieldDecl->getType()));
@@ -580,19 +465,10 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 }
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
-  const res::FunctionDecl *fnDecl = dre.decl->getAs<res::FunctionDecl>();
-  if (!fnDecl)
-    return declarations[dre.decl];
+  if (const auto *fnDecl = dre.decl->getAs<res::FunctionDecl>())
+    return module.getFunction(monoCtx->mangledDeclRefs[monoFnId][&dre]);
 
-  EnterMonoCtxRAII declCtx(this, resCtx->instantiate(dre.sub, monoCtx));
-
-  if (auto *trait = dynamic_cast<res::TraitDecl *>(dre.decl->declContext)) {
-    auto *traitType = getMonoType(trait->getType())->getAs<res::TraitType>();
-    if (auto *f = generateExtensionFnDecl(traitType, fnDecl))
-      return f;
-  }
-
-  return generateFunctionDecl(*fnDecl);
+  return declarations[dre.decl];
 }
 
 llvm::Value *Codegen::generateCallExpr(const res::CallExpr &call) {
@@ -929,8 +805,9 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
   if (!structType)
     return {};
 
-  EnterMonoCtxRAII structCtx(
-      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
+  UseSubstitutionRAII structCtx(this, structType->getDecl()->isLambda
+                                          ? currentSub
+                                          : structType->getSub());
 
   const auto &dataLayout = module.getDataLayout();
   const auto *structLayout =
@@ -1158,11 +1035,12 @@ void Codegen::generateBlock(const res::Block &block) {
   }
 }
 
-void Codegen::generateFunctionBody(const PendingFunctionDescriptor &fn) {
+void Codegen::generateFunctionBody(const mono::Function &fn) {
   temporaryRoots.clear();
 
-  auto [monoCtx, mangledName, functionDecl] = fn;
-  EnterMonoCtxRAII instantiationCtx(this, monoCtx);
+  auto [id, functionDecl, mangledName, sub] = fn;
+  UseSubstitutionRAII instantiationCtx(this, sub);
+  monoFnId = id;
 
   llvm::Function *function = module.getFunction(mangledName);
   llvm::FunctionType *functionTy = function->getFunctionType();
@@ -1279,54 +1157,28 @@ void Codegen::generateMainWrapper() {
   builder.CreateRet(llvm::ConstantInt::getSigned(builder.getInt32Ty(), 0));
 }
 
-// Lookup must be handled during codegen because some receivers are not known
-// until monomorphization (e.g.: T::foo()).
-llvm::Function *Codegen::generateExtensionFnDecl(res::TraitType *trait,
-                                                 const res::FunctionDecl *fn) {
-  auto result = resCtx->queryExtensions(trait->getTypeArgs()[0], trait);
-  assert(result.items.size() == 1 && "failed to find extension");
-  const auto &extension = result.items.front();
+llvm::Function *Codegen::generateFunctionDecl(const mono::Function &fn) {
+  UseSubstitutionRAII ctx(this, fn.sub);
 
-  auto extensionSub = resCtx->getUninferredInstantiation(extension);
-  resCtx->unify(trait, resCtx->instantiate(extension->trait, extensionSub));
+  assert(fn.decl->body && "generating function with no body");
 
-  auto *extensionFn = extension->getFunction(fn->identifier);
-  if (!extensionFn)
-    return nullptr;
-
-  EnterMonoCtxRAII extensionCtx(this, extensionSub);
-  return generateFunctionDecl(*extensionFn);
-}
-
-llvm::Function *Codegen::generateFunctionDecl(const res::FunctionDecl &fn) {
-  assert(fn.body && "generating function with no body");
-
-  res::Type *declCtxType = nullptr;
-  const res::GenericDeclContext *declCtx = fn.declContext;
-
-  if (auto *e = dynamic_cast<const res::TypeExtension *>(declCtx))
-    declCtxType = e->trait ? getMonoType(e->trait) : getMonoType(e->type);
-  else if (auto *t = dynamic_cast<const res::TraitDecl *>(declCtx))
-    declCtxType = getMonoType(t->getType());
-
-  std::string name = Mangling::mangleFunctionDecl(&fn, declCtxType, monoCtx);
-  if (auto *function = module.getFunction(name))
+  if (auto *function = module.getFunction(fn.name))
     return function;
 
-  auto *type = getMonoType(fn.getType())->getAs<res::FunctionType>();
+  auto *type = getMonoType(fn.decl->getType())->getAs<res::FunctionType>();
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                          name, module);
+                                          fn.name, module);
   function->setAttributes(constructAttrList(type));
 
-  pendingFunctions.push({monoCtx, name, &fn});
   return function;
 }
 
 llvm::StructType *
 Codegen::generateStructType(const res::StructType *structType) {
-  EnterMonoCtxRAII structCtx(
-      this, structType->getDecl()->isLambda ? monoCtx : structType->getSub());
+  UseSubstitutionRAII structCtx(this, structType->getDecl()->isLambda
+                                          ? currentSub
+                                          : structType->getSub());
 
   std::vector<llvm::Type *> fieldTys;
   for (auto &&field : structType->getDecl()->fields) {
@@ -1340,21 +1192,13 @@ Codegen::generateStructType(const res::StructType *structType) {
   return llvm::StructType::get(context, fieldTys);
 }
 
-llvm::Value *Codegen::getVtable(res::TraitType *trait) {
-  std::string id = "vtable." + Mangling::mangleMonoType(trait);
-  if (auto *vtable = module.getGlobalVariable(id, true))
-    return vtable;
+llvm::Value *Codegen::generateVtable(std::string vtableId) {
+  if (auto *vtableVar = module.getGlobalVariable(vtableId, true))
+    return vtableVar;
 
   std::vector<llvm::Constant *> vFunctions;
-  for (auto &&[layoutTrait, layoutFn] : trait->getVtableLayout(resCtx)) {
-    if (auto *f = generateExtensionFnDecl(layoutTrait, layoutFn)) {
-      vFunctions.emplace_back(f);
-      continue;
-    }
-
-    EnterMonoCtxRAII traitCtx(this, layoutTrait->getSub());
-    vFunctions.emplace_back(generateFunctionDecl(*layoutFn));
-  }
+  for (auto &&fn : monoCtx->vtables[vtableId])
+    vFunctions.emplace_back(module.getFunction(fn));
 
   if (vFunctions.empty())
     return llvm::ConstantPointerNull::get(builder.getPtrTy());
@@ -1362,11 +1206,11 @@ llvm::Value *Codegen::getVtable(res::TraitType *trait) {
   auto *arrTy = llvm::ArrayType::get(builder.getPtrTy(), vFunctions.size());
   auto *arr = llvm::ConstantArray::get(arrTy, vFunctions);
 
-  auto *vtable = new llvm::GlobalVariable(
-      arrTy, true, llvm::GlobalVariable::InternalLinkage, arr, id);
-  module.insertGlobalVariable(vtable);
+  auto *vtableVar = new llvm::GlobalVariable(
+      arrTy, true, llvm::GlobalVariable::InternalLinkage, arr, vtableId);
+  module.insertGlobalVariable(vtableVar);
 
-  return vtable;
+  return vtableVar;
 }
 
 bool Codegen::isVirtualCall(const res::CallExpr &call) {
@@ -1418,20 +1262,11 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 }
 
 llvm::Module *Codegen::generateIR() {
-  for (auto &&e : resCtx->getTU()->extensions)
-    if (e->typeParams.empty())
-      for (auto &&fn : e->functions)
-        if (fn->typeParams.empty())
-          generateFunctionDecl(*fn);
+  for (auto &&fn : monoCtx->functions)
+    generateFunctionDecl(fn);
 
-  for (auto &&fn : resCtx->getTU()->functions)
-    if (fn->typeParams.empty())
-      generateFunctionDecl(*fn);
-
-  while (!pendingFunctions.empty()) {
-    generateFunctionBody(pendingFunctions.front());
-    pendingFunctions.pop();
-  }
+  for (auto &&fn : monoCtx->functions)
+    generateFunctionBody(fn);
 
   generateMainWrapper();
   return &module;

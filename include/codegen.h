@@ -6,38 +6,33 @@
 #include <llvm/IR/Module.h>
 
 #include <map>
-#include <queue>
 #include <set>
 
+#include "mono.h"
 #include "res.h"
 
 namespace yl {
 class Codegen {
-  class EnterMonoCtxRAII {
+  class UseSubstitutionRAII {
     Codegen *codegen;
-    res::Substitution prevMonoCtx;
+    res::Substitution prevSub;
 
   public:
-    EnterMonoCtxRAII(Codegen *codegen, res::Substitution sub)
+    UseSubstitutionRAII(Codegen *codegen, res::Substitution sub)
         : codegen(codegen),
-          prevMonoCtx(std::move(codegen->monoCtx)) {
-      codegen->monoCtx = std::move(sub);
+          prevSub(std::move(codegen->currentSub)) {
+      codegen->currentSub = std::move(sub);
     }
-    ~EnterMonoCtxRAII() { codegen->monoCtx = std::move(prevMonoCtx); }
+    ~UseSubstitutionRAII() { codegen->currentSub = std::move(prevSub); }
   };
 
-  struct PendingFunctionDescriptor {
-    res::Substitution monoCtx;
-    std::string mangledName;
-    const res::FunctionDecl *decl;
-  };
-
+  mono::Context *monoCtx;
   res::Context *resCtx;
 
   std::map<const res::Decl *, llvm::Value *> declarations;
 
-  std::queue<PendingFunctionDescriptor> pendingFunctions;
-  res::Substitution monoCtx;
+  res::Substitution currentSub;
+  size_t monoFnId = 0;
 
   std::set<llvm::AllocaInst *> permanentRoots;
   std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;
@@ -104,10 +99,8 @@ class Codegen {
 
   void generateBlock(const res::Block &block);
 
-  llvm::Function *generateExtensionFnDecl(res::TraitType *trait,
-                                          const res::FunctionDecl *fn);
-  llvm::Function *generateFunctionDecl(const res::FunctionDecl &fn);
-  void generateFunctionBody(const PendingFunctionDescriptor &fn);
+  llvm::Function *generateFunctionDecl(const mono::Function &fn);
+  void generateFunctionBody(const mono::Function &fn);
 
   llvm::StructType *generateStructType(const res::StructType *structType);
 
@@ -126,10 +119,10 @@ class Codegen {
   bool isVirtualCall(const res::CallExpr &call);
   llvm::Value *lookupCalleeFromVtable(const res::CallExpr *call,
                                       llvm::Value *receiver);
-  llvm::Value *getVtable(res::TraitType *trait);
+  llvm::Value *generateVtable(std::string vtableId);
 
 public:
-  Codegen(res::Context &resolvedCtx, std::string_view sourcePath);
+  Codegen(mono::Context &monoCtx, std::string_view sourcePath);
 
   llvm::Module *generateIR();
 };

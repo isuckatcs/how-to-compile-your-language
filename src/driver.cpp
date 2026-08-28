@@ -9,6 +9,7 @@
 
 #include "codegen.h"
 #include "lexer.h"
+#include "mono.h"
 #include "parser.h"
 #include "sema.h"
 
@@ -24,6 +25,7 @@ void displayHelp() {
             << "  -verify-only    only verify the generated llvm module\n"
             << "  -ast-dump       print the abstract syntax tree\n"
             << "  -res-dump       print the resolved syntax tree\n"
+            << "  -mono-dump      print the instantiated generics\n"
             << "  -llvm-dump      print the llvm module\n"
             << "  -cfg-dump       print the control flow graph\n";
 }
@@ -35,6 +37,7 @@ struct CompilerOptions {
   bool verifyOnly = false;
   bool astDump = false;
   bool resDump = false;
+  bool monoDump = false;
   bool llvmDump = false;
   bool cfgDump = false;
 };
@@ -66,6 +69,8 @@ CompilerOptions parseArguments(int argc,
         options.astDump = true;
       else if (arg == "-res-dump")
         options.resDump = true;
+      else if (arg == "-mono-dump")
+        options.monoDump = true;
       else if (arg == "-llvm-dump")
         options.llvmDump = true;
       else if (arg == "-cfg-dump")
@@ -154,7 +159,20 @@ int main(int argc, const char **argv) {
   if (!resolvedCtx)
     return 1;
 
-  Codegen codegen(*resolvedCtx, options.source.c_str());
+  MonoCollector monoCollector(reporter, resolvedCtx.get());
+  std::unique_ptr<mono::Context> monoCtx = monoCollector.collectMonoFunctions();
+
+  if (options.monoDump) {
+    if (monoCtx)
+      monoCtx->dump();
+
+    return 0;
+  }
+
+  if (!monoCtx)
+    return 1;
+
+  Codegen codegen(*monoCtx, options.source.c_str());
   llvm::Module *llvmIR = codegen.generateIR();
 
   if (options.verifyOnly)

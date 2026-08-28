@@ -54,15 +54,6 @@ fn main() {
 // CHECK-NEXT:   ret void
 // CHECK-NEXT: }
 
-// CHECK: define void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x, ptr %closure) {
-// CHECK-NEXT: entry:
-// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 16, i1 false)
-// CHECK-NEXT:   br label %return
-// CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   ret void
-// CHECK-NEXT: }
-
 // CHECK: define double @_YS1SGuE3barGnE(double %y, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   %retval = alloca double, align 8
@@ -73,4 +64,13 @@ fn main() {
 // CHECK-NEXT: return:                                           ; preds = %entry
 // CHECK-NEXT:   %0 = load double, ptr %retval, align 8
 // CHECK-NEXT:   ret double %0
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y3fooGFunRnE(ptr sret({ ptr, ptr }) %ret, ptr byval({ ptr, ptr }) %x, ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %x, i64 16, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
 // CHECK-NEXT: }

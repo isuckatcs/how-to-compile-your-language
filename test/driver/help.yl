@@ -9,5 +9,6 @@
 // CHECK-NEXT:   -verify-only    only verify the generated llvm module
 // CHECK-NEXT:   -ast-dump       print the abstract syntax tree
 // CHECK-NEXT:   -res-dump       print the resolved syntax tree
+// CHECK-NEXT:   -mono-dump      print the instantiated generics
 // CHECK-NEXT:   -llvm-dump      print the llvm module
 // CHECK-NEXT:   -cfg-dump       print the control flow graph

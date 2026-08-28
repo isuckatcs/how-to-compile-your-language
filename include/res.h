@@ -29,7 +29,7 @@ struct StructDecl;
 struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
   res::Type *getSelfType() const;
 
-  void dump() const;
+  std::string getString() const;
 };
 
 struct AssociatedDeclRef final {

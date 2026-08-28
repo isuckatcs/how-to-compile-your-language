@@ -1,0 +1,13 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+fn foo<T>(t: T) {
+  bar(gc t);
+}
+
+fn bar<T>(t: T) {
+  // CHECK: [[# @LINE + 1 ]]:3: error: overflow while instantiating 'foo' with '[T = **********number]'
+  foo(gc t);
+}
+
+fn main() {
+  foo(0);
+}
