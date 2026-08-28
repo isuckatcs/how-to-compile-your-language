@@ -1,0 +1,22 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: &Self) {}
+}
+
+struct S {}
+
+extension S : A {}
+
+fn main() {
+  let s: *any A = gc S {};
+  let s2: *any A = gc S {};
+  let s3: *any A = gc S {};
+  let s4: *any A = gc S {};
+  let s5: *any A = gc S {};
+
+  println(123);
+}
+// CHECK: vtable.T1AGS1SE
+// CHECK-NEXT:   _YT1AGS1SE3foo
+
+// CHECK-NOT: {{^@vtable.*}}

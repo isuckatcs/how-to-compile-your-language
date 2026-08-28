@@ -1,0 +1,8 @@
+// RUN: compiler %s || test $? -eq 1
+fn foo<T>() {
+  foo@<*T>();
+}
+
+fn main() {
+  foo@<bool>();
+}
