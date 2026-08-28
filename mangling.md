@@ -2,7 +2,11 @@
 
 ```bnf
 <mangledSymbol> 
-    ::= '_Yl' <structType>* <identifier> <genericArgs>?
+    ::= '_' <functionSignature>
+    |   <type>
+
+<functionSignature>
+    ::= 'Y' (<functionSignature> | <structType> | <traitType>) <identifier> <genericArgs>?
 
 <identifier>
     ::= ('0'..'9')+ ('a'..'z' | 'A'..'Z')+ ('a'..'z' | 'A'..'Z' | '0'..'9')*
