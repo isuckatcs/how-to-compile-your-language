@@ -845,7 +845,7 @@ llvm::Value *Codegen::getTypeMetadata(res::Type *type) {
   else if (type->getAs<res::FunctionType>())
     globalPrefix = "function";
   else
-    globalPrefix = Mangling::mangleMonoType(type);
+    globalPrefix = Mangling::mangleMonoType(resCtx, type, currentSub);
 
   std::string globalId = globalPrefix + ".offsets";
 

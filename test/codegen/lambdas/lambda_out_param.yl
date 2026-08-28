@@ -9,7 +9,7 @@ fn main() {
 
   println(x);
 }
-// CHECK: define void @_YS8lambda_021__builtin_lambda_call(ptr %x, ptr %closure) {
+// CHECK: define void @_Y4mainS8lambda_021__builtin_lambda_call(ptr %x, ptr %closure) {
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   store double 1.230000e+02, ptr %x, align 8
 // CHECK-NEXT:   ret void

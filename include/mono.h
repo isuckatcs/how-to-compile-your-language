@@ -35,13 +35,20 @@ struct Context final {
 } // namespace mono
 
 struct Mangling {
-  static std::string mangleMonoType(res::Type *type);
-  static std::string mangleFunctionDecl(const res::FunctionDecl *fn,
-                                        res::Type *parentMonoType,
+  static std::string mangleMonoType(res::Context *resCtx,
+                                    res::Type *type,
+                                    const res::Substitution &sub);
+  static std::string mangleFunctionDecl(res::Context *resCtx,
+                                        const res::FunctionDecl *fn,
                                         const res::Substitution &sub);
 
 private:
-  static std::string mangleGenericArgs(const std::vector<res::Type *> &args);
+  static std::string mangleFunctionSignature(res::Context *resCtx,
+                                             const res::FunctionDecl *fn,
+                                             const res::Substitution &sub);
+  static std::string mangleGenericArgs(res::Context *resCtx,
+                                       const std::vector<res::Type *> &args,
+                                       const res::Substitution &sub);
 };
 
 class MonoCollector final {

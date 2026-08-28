@@ -28,7 +28,9 @@ res::Type *Sema::Scope::getSelfType() const {
       return t->typeParams[0]->getType();
 
     if (auto *e = dynamic_cast<res::TypeExtension *>(declContext))
-      return e->type;
+      if (auto *st = e->type->getAs<res::StructType>();
+          !st || !st->getDecl()->isLambda)
+        return e->type;
 
     declContext = declContext->parent;
   }
@@ -960,8 +962,8 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   res::Type *closureType = res::StructType::create(ctx, closure);
   closure->setType(closureType);
 
-  auto *closureExtension =
-      res::TypeExtension::create(ctx, loc, noTypeParams, closureType, nullptr);
+  auto *closureExtension = res::TypeExtension::create(
+      ctx, loc, noTypeParams, scope->getDeclContext(), closureType, nullptr);
 
   auto *closureParamType = res::PointerType::create(ctx, closureType, false);
   paramTypes.emplace_back(closureParamType);
@@ -984,6 +986,7 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   std::vector<const ast::Expr *> pendingCaptureInits;
   {
     WithFunctionInfoRAII lambdaInfo(this, {lambdaFn, resLambdaExpr, scope});
+    EnterNewScopeRAII lambdaScope(this, lambdaFn);
 
     varOrReturn(block, resolveBlock(ctx, *lambdaExpr.body));
     lambdaFn->setBody(block);
@@ -1332,7 +1335,8 @@ Sema::resolveTypeExtension(res::Context &ctx,
     return nullptr;
 
   return res::TypeExtension::create(ctx, extension.location,
-                                    std::move(typeParams), type, trait);
+                                    std::move(typeParams),
+                                    scope->getDeclContext(), type, trait);
 }
 
 bool Sema::resolveExtensionBody(res::Context &ctx,

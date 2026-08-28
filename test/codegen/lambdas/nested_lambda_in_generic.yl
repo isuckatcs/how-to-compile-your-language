@@ -1,0 +1,24 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n1\n2\n2\n3\n3\n'
+fn wrapper<T>(t: T, n: number): T {
+  return ->(){
+    println(n);
+
+    return ->(){
+      println(n);
+      return t;
+    }();
+  }();
+}
+
+fn main() {
+  wrapper(123, 1);
+  // CHECK: define double @_Y7wrapperGnES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
+
+  wrapper(unit, 2);
+  // CHECK: define void @_Y7wrapperGuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr %closure) {
+
+  wrapper(main, 3);
+  // CHECK: define void @_Y7wrapperGFRuES8lambda_021__builtin_lambda_callS8lambda_021__builtin_lambda_call(ptr sret({ ptr, ptr }) %ret, ptr %closure) {
+}

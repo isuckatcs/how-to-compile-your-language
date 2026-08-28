@@ -584,6 +584,7 @@ struct TypeExtension final : public Creatable<TypeExtension>,
 private:
   TypeExtension(SourceLocation location,
                 std::vector<TypeParamDecl *> typeParams,
+                GenericDeclContext *declContext,
                 Type *type,
                 TraitType *trait);
   friend Creatable<TypeExtension>;

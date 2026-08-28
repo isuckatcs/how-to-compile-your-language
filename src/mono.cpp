@@ -21,7 +21,11 @@ void Context::dump() const {
 }
 } // namespace mono
 
-std::string Mangling::mangleMonoType(res::Type *type) {
+std::string Mangling::mangleMonoType(res::Context *resCtx,
+                                     res::Type *type,
+                                     const res::Substitution &sub) {
+  type = resCtx->instantiate(type, sub);
+
   if (type->getAs<res::BuiltinUnitType>())
     return "u";
 
@@ -32,27 +36,38 @@ std::string Mangling::mangleMonoType(res::Type *type) {
     return "b";
 
   if (const auto *p = type->getAs<res::PointerType>())
-    return (p->isMutable() ? "m" : "p") + mangleMonoType(p->getPointeeType());
+    return (p->isMutable() ? "m" : "p") +
+           mangleMonoType(resCtx, p->getPointeeType(), sub);
 
   if (const auto *r = type->getAs<res::RefType>())
     return (r->isMutable() ? "i" : "r") +
-           mangleMonoType(r->getReferencedType());
+           mangleMonoType(resCtx, r->getReferencedType(), sub);
 
   if (const auto *s = type->getAs<res::StructType>()) {
-    static int lambdaCnt = 0;
-    static std::map<const res::StructDecl *, std::string> lambdaNames;
-
-    // FIXME: this mangles a lambda in multiple instances of the same function
-    // to the same name
-    const auto *sd = s->getDecl();
-    if (sd->isLambda && !lambdaNames.count(sd))
-      lambdaNames[sd] = "lambda_" + std::to_string(lambdaCnt++);
-
-    const std::string &id = sd->isLambda ? lambdaNames[sd] : sd->identifier;
+    static std::map<std::string, std::map<const res::StructDecl *, std::string>>
+        lambdaNames;
 
     std::stringstream mangledName;
+
+    const auto *sd = s->getDecl();
+    std::string id = sd->identifier;
+
+    if (sd->isLambda) {
+      auto *parentFn = dynamic_cast<const res::FunctionDecl *>(sd->declContext);
+      assert(parentFn && "lambda found outside function");
+
+      std::string parentName = mangleFunctionSignature(resCtx, parentFn, sub);
+
+      if (!lambdaNames.count(parentName) || !lambdaNames[parentName].count(sd))
+        lambdaNames[parentName][sd] =
+            "lambda_" + std::to_string(lambdaNames[parentName].size());
+
+      mangledName << parentName;
+      id = lambdaNames[parentName][sd];
+    }
+
     mangledName << 'S' << id.size() << id
-                << mangleGenericArgs(s->getTypeArgs());
+                << mangleGenericArgs(resCtx, s->getTypeArgs(), sub);
     return mangledName.str();
   }
 
@@ -61,7 +76,7 @@ std::string Mangling::mangleMonoType(res::Type *type) {
 
     std::stringstream mangledName;
     mangledName << 'A' << id.size() << id
-                << mangleGenericArgs(a->getTypeArgs());
+                << mangleGenericArgs(resCtx, a->getTypeArgs(), sub);
     return mangledName.str();
   }
 
@@ -70,7 +85,7 @@ std::string Mangling::mangleMonoType(res::Type *type) {
 
     std::stringstream mangledName;
     mangledName << 'T' << id.size() << id
-                << mangleGenericArgs(tr->getTypeArgs());
+                << mangleGenericArgs(resCtx, tr->getTypeArgs(), sub);
     return mangledName.str();
   }
 
@@ -79,8 +94,8 @@ std::string Mangling::mangleMonoType(res::Type *type) {
 
     mangledName << 'F';
     for (auto &&arg : f->getArgs())
-      mangledName << mangleMonoType(arg);
-    mangledName << 'R' << mangleMonoType(f->getReturnType());
+      mangledName << mangleMonoType(resCtx, arg, sub);
+    mangledName << 'R' << mangleMonoType(resCtx, f->getReturnType(), sub);
 
     return mangledName.str();
   }
@@ -88,26 +103,39 @@ std::string Mangling::mangleMonoType(res::Type *type) {
   llvm_unreachable("unexpected type in mangling");
 }
 
-std::string Mangling::mangleFunctionDecl(const res::FunctionDecl *fn,
-                                         res::Type *parentMonoType,
+std::string Mangling::mangleFunctionDecl(res::Context *resCtx,
+                                         const res::FunctionDecl *fn,
                                          const res::Substitution &sub) {
   std::stringstream mangledName;
-
-  const auto &identifier = fn->identifier;
   mangledName << '_' << 'Y';
-  if (parentMonoType)
-    mangledName << mangleMonoType(parentMonoType);
-  mangledName << identifier.size();
-
-  std::vector<res::Type *> typeArgs;
-  for (auto &&tp : fn->typeParams)
-    typeArgs.emplace_back(sub.at(tp->getType()));
-
-  mangledName << identifier << mangleGenericArgs(typeArgs);
+  mangledName << mangleFunctionSignature(resCtx, fn, sub);
   return mangledName.str();
 }
 
-std::string Mangling::mangleGenericArgs(const std::vector<res::Type *> &args) {
+std::string Mangling::mangleFunctionSignature(res::Context *resCtx,
+                                              const res::FunctionDecl *fn,
+                                              const res::Substitution &sub) {
+  std::stringstream mangledName;
+
+  if (auto *e = dynamic_cast<const res::TypeExtension *>(fn->declContext))
+    mangledName << mangleMonoType(resCtx, e->trait ? e->trait : e->type, sub);
+  else if (auto *t = dynamic_cast<const res::TraitDecl *>(fn->declContext))
+    mangledName << mangleMonoType(resCtx, t->getType(), sub);
+
+  const auto &identifier = fn->identifier;
+  mangledName << identifier.size() << identifier;
+
+  std::vector<res::Type *> typeArgs;
+  for (auto &&tp : fn->typeParams)
+    typeArgs.emplace_back(tp->getType());
+
+  mangledName << mangleGenericArgs(resCtx, typeArgs, sub);
+  return mangledName.str();
+}
+
+std::string Mangling::mangleGenericArgs(res::Context *resCtx,
+                                        const std::vector<res::Type *> &args,
+                                        const res::Substitution &sub) {
   if (args.empty())
     return "";
 
@@ -115,7 +143,7 @@ std::string Mangling::mangleGenericArgs(const std::vector<res::Type *> &args) {
 
   mangledName << 'G';
   for (auto &&arg : args)
-    mangledName << mangleMonoType(arg);
+    mangledName << mangleMonoType(resCtx, arg, sub);
   mangledName << 'E';
 
   return mangledName.str();
@@ -224,7 +252,8 @@ bool MonoCollector::processFunctionBody(const mono::Function &fn,
 }
 
 std::string MonoCollector::generateVtable(res::TraitType *trait) {
-  std::string vtableId = "vtable." + Mangling::mangleMonoType(trait);
+  std::string vtableId =
+      "vtable." + Mangling::mangleMonoType(resCtx, trait, trait->getSub());
   if (monoCtx->vtables.count(vtableId))
     return vtableId;
 
@@ -253,16 +282,7 @@ std::string MonoCollector::generateVtable(res::TraitType *trait) {
 std::string MonoCollector::monomorphize(const res::FunctionDecl *fnDecl,
                                         res::Substitution sub,
                                         size_t depth) {
-  res::Type *declCtxType = nullptr;
-  const res::GenericDeclContext *declCtx = fnDecl->declContext;
-
-  if (auto *e = dynamic_cast<const res::TypeExtension *>(declCtx))
-    declCtxType = e->trait ? resCtx->instantiate(e->trait, sub)
-                           : resCtx->instantiate(e->type, sub);
-  else if (auto *t = dynamic_cast<const res::TraitDecl *>(declCtx))
-    declCtxType = resCtx->instantiate(t->getType(), sub);
-
-  std::string name = Mangling::mangleFunctionDecl(fnDecl, declCtxType, sub);
+  std::string name = Mangling::mangleFunctionDecl(resCtx, fnDecl, sub);
 
   if (seen.emplace(name).second) {
     mono::Function function{monoCtx->functions.size(), fnDecl, name, sub};

@@ -930,9 +930,10 @@ void FunctionDecl::dump(size_t level) const {
 
 TypeExtension::TypeExtension(SourceLocation location,
                              std::vector<TypeParamDecl *> typeParams,
+                             GenericDeclContext *declContext,
                              Type *type,
                              TraitType *trait)
-    : GenericDeclContext(nullptr, std::move(typeParams)),
+    : GenericDeclContext(declContext, std::move(typeParams)),
       location(location),
       type(type),
       trait(trait) {}
