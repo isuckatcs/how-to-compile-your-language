@@ -248,7 +248,7 @@ MonoCollector::generateVtable(const res::TraitObjectPromoExpr *promo,
   if (monoCtx->vtables.count(vtableId))
     return vtableId;
 
-  if (!objectType->getSub().empty())
+  if (!objectType->getSub().empty() || !anyType->getSub().empty())
     depth += 1;
 
   std::vector<std::string> functions;

@@ -1,0 +1,17 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo(self: &Self);
+}
+
+struct S {}
+
+extension<T> S : A<T> {
+  fn foo(self: &Self) {
+    // CHECK: [[# @LINE + 1 ]]:25: error: overflow while instantiating 'foo' with '[T = **********number]'
+    let a: *any A<*T> = gc S {};
+  }
+}
+
+fn main() {
+  let a: *any A<number> = gc S {};
+}
