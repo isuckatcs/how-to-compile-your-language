@@ -186,8 +186,11 @@ void MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
       if (!fnDecl)
         continue;
 
+      res::Substitution declSub;
+      for (auto &&[from, to] : dre->sub)
+        declSub[from] = resCtx->instantiate(to, fn.sub);
+
       // This is a virtual function reference, don't monomorphize it.
-      res::Substitution declSub = resCtx->instantiate(dre->sub, fn.sub);
       auto *selfType = declSub.getSelfType();
       if (selfType && selfType->getAs<res::AnyTraitType>())
         continue;
@@ -196,24 +199,17 @@ void MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
         auto *traitType = resCtx->instantiate(trait->getType(), declSub)
                               ->getAs<res::TraitType>();
 
-        auto result =
-            resCtx->queryExtensions(traitType->getTypeArgs()[0], traitType);
-        assert(result.items.size() == 1 && "failed to find extension");
-        const auto &extension = result.items.front();
+        auto result = resCtx->queryAssociatedDecls(dre->decl->identifier,
+                                                   selfType, traitType);
+        assert(result.items.size() == 1 && "failed to find extension function");
 
-        auto extensionSub = resCtx->getUninferredInstantiation(extension);
-        resCtx->unify(traitType,
-                      resCtx->instantiate(extension->trait, extensionSub));
-
-        if (auto *extensionFn = extension->getFunction(fnDecl->identifier)) {
-          fnDecl = extensionFn;
-          declSub = resCtx->instantiate(extensionSub, fn.sub);
-        }
+        auto &[hint, decl, sub] = result.items.front();
+        fnDecl = decl->getAs<res::FunctionDecl>();
+        declSub = sub;
       }
 
-      const std::string &mangledName = monomorphize(
-          dre->location, fnDecl, declSub, depth + (declSub.empty() ? 0 : 1));
-      fn.mangledDeclRefs[dre] = mangledName;
+      fn.mangledDeclRefs[dre] = monomorphize(dre->location, fnDecl, declSub,
+                                             depth + (declSub.empty() ? 0 : 1));
     }
 
     for (auto &&[succ, reachable] : succs)
@@ -253,22 +249,13 @@ MonoCollector::generateVtable(const res::TraitObjectPromoExpr *promo,
 
   std::vector<std::string> functions;
   for (auto &&[layoutTrait, layoutFn] : trait->getVtableLayout(resCtx)) {
-    auto result = resCtx->queryExtensions(trait->getTypeArgs()[0], layoutTrait);
-    assert(result.items.size() == 1 && "failed to find extension");
-    const auto &extension = result.items.front();
+    auto result = resCtx->queryAssociatedDecls(layoutFn->identifier, objectType,
+                                               layoutTrait);
+    assert(result.items.size() == 1 && "failed to find extension function");
 
-    auto extensionSub = resCtx->getUninferredInstantiation(extension);
-    resCtx->unify(layoutTrait,
-                  resCtx->instantiate(extension->trait, extensionSub));
-
-    if (auto *extensionFn = extension->getFunction(layoutFn->identifier)) {
-      functions.emplace_back(
-          monomorphize(promo->location, extensionFn, extensionSub, depth));
-      continue;
-    }
-
-    functions.emplace_back(
-        monomorphize(promo->location, layoutFn, layoutTrait->getSub(), depth));
+    auto &[hint, decl, sub] = result.items.front();
+    functions.emplace_back(monomorphize(
+        promo->location, decl->getAs<res::FunctionDecl>(), sub, depth));
   }
 
   monoCtx->vtables[vtableId] = std::move(functions);

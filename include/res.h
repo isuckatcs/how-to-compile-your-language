@@ -143,9 +143,7 @@ public:
 
   bool eq(Type *t1, Type *t2) const;
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
-
   Type *instantiate(Type *t, const Substitution &sub);
-  Substitution instantiate(const Substitution &s, const Substitution &sub);
 
   bool isInfiniteStructType(StructType *structType) const;
   Substitution getUninferredInstantiation(GenericDeclContext *declCtx);

@@ -229,104 +229,103 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
     std::string identifier, Type *type, TraitType *trait) {
   QueryResult<AssociatedDeclRef> result;
 
-  if (trait) {
-    if (auto *decl = trait->getDecl()->lookupFunction(identifier)) {
-      result.items.push_back({nullptr, decl, trait->getSub()});
+  if (!trait) {
+    std::vector<AssociatedDeclRef> candidates;
+    for (auto &&trait : getEveryConformance(type))
+      if (auto *decl = trait->getDecl()->lookupFunction(identifier))
+        candidates.push_back({nullptr, decl, trait->getSub()});
+
+    if (candidates.size() > 1) {
+      result.state = res::Context::QueryState::Ambiguous;
+      result.diags.emplace_back(err::ambiguousAssociatedFn());
       return result;
     }
 
+    if (candidates.size() == 1) {
+      result.items.emplace_back(std::move(candidates.front()));
+      return result;
+    }
+
+    std::vector<std::pair<res::TypeExtension *, res::Substitution>>
+        applicableExtensions;
+    for (auto &&extension : queryExtensions(type, nullptr).items)
+      if (extension->getFunction(identifier))
+        applicableExtensions.emplace_back(
+            extension, getUninferredInstantiation(extension));
+
+    if (applicableExtensions.size() > 1) {
+      result.state = res::Context::QueryState::Ambiguous;
+      result.diags.emplace_back(err::ambiguousAssociatedFn());
+      return result;
+    }
+
+    if (applicableExtensions.size() == 1) {
+      auto &&[extension, sub] = applicableExtensions.front();
+      result.items.push_back({instantiate(extension->type, sub),
+                              extension->getFunction(identifier), sub});
+      return result;
+    }
+
+    std::vector<res::TraitDecl *> applicableTraits;
+    for (auto &&trait : getTU()->traits) {
+      if (!trait->lookupFunction(identifier))
+        continue;
+
+      res::Substitution traitSub = getUninferredInstantiation(trait);
+      auto *traitType =
+          instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
+
+      auto applicableTraitQuery = queryExtensions(type, traitType);
+      if (applicableTraitQuery.state == QueryState::Overflow) {
+        result.state = applicableTraitQuery.state;
+        result.diags = std::move(applicableTraitQuery.diags);
+        return result;
+      }
+
+      if (applicableTraitQuery.state != QueryState::Error)
+        applicableTraits.emplace_back(trait);
+    }
+
+    if (applicableTraits.size() > 1) {
+      result.state = res::Context::QueryState::Ambiguous;
+
+      for (auto &&trait : applicableTraits)
+        result.diags.emplace_back(err::traitProvidesMethod()
+                                      .with(trait->identifier)
+                                      .with(identifier)
+                                      .with(type->getName()));
+
+      result.diags.emplace_back(err::multipleTraitsProvideMethod()
+                                    .with(identifier)
+                                    .with(type->getName()));
+      return result;
+    }
+
+    if (applicableTraits.empty()) {
+      result.state = res::Context::QueryState::Error;
+      result.diags.emplace_back(
+          err::memberLookupFailed().with(identifier).with(type->getName()));
+      return result;
+    }
+
+    res::TraitDecl *applicableTrait = applicableTraits.front();
+    res::Substitution traitSub = getUninferredInstantiation(applicableTrait);
+    trait = instantiate(applicableTrait->getType(), traitSub)
+                ->getAs<res::TraitType>();
+  }
+
+  res::Type *typeHint = nullptr;
+  res::Decl *decl = trait->getDecl()->lookupFunction(identifier);
+  Substitution sub = trait->getSub();
+
+  if (!decl) {
     result.state = res::Context::QueryState::Error;
     result.diags.emplace_back(
         err::memberLookupFailed().with(identifier).with(trait->getName()));
     return result;
   }
 
-  std::vector<AssociatedDeclRef> candidates;
-  for (auto &&trait : getEveryConformance(type))
-    if (auto *decl = trait->getDecl()->lookupFunction(identifier))
-      candidates.push_back({nullptr, decl, trait->getSub()});
-
-  if (candidates.size() > 1) {
-    result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambiguousAssociatedFn());
-    return result;
-  }
-
-  if (candidates.size() == 1) {
-    result.items.emplace_back(std::move(candidates.front()));
-    return result;
-  }
-
-  std::vector<std::pair<res::TypeExtension *, res::Substitution>>
-      applicableExtensions;
-  for (auto &&extension : queryExtensions(type, nullptr).items)
-    if (extension->getFunction(identifier))
-      applicableExtensions.emplace_back(extension,
-                                        getUninferredInstantiation(extension));
-
-  if (applicableExtensions.size() > 1) {
-    result.state = res::Context::QueryState::Ambiguous;
-    result.diags.emplace_back(err::ambiguousAssociatedFn());
-    return result;
-  }
-
-  if (applicableExtensions.size() == 1) {
-    auto &&[extension, sub] = applicableExtensions.front();
-    result.items.push_back({instantiate(extension->type, sub),
-                            extension->getFunction(identifier), sub});
-    return result;
-  }
-
-  std::vector<res::TraitDecl *> applicableTraits;
-  for (auto &&trait : getTU()->traits) {
-    if (!trait->lookupFunction(identifier))
-      continue;
-
-    res::Substitution traitSub = getUninferredInstantiation(trait);
-    auto *traitType =
-        instantiate(trait->getType(), traitSub)->getAs<res::TraitType>();
-
-    auto applicableTraitQuery = queryExtensions(type, traitType);
-    if (applicableTraitQuery.state == QueryState::Overflow) {
-      result.state = applicableTraitQuery.state;
-      result.diags = std::move(applicableTraitQuery.diags);
-      return result;
-    }
-
-    if (applicableTraitQuery.state != QueryState::Error)
-      applicableTraits.emplace_back(trait);
-  }
-
-  if (applicableTraits.size() > 1) {
-    result.state = res::Context::QueryState::Ambiguous;
-
-    for (auto &&trait : applicableTraits)
-      result.diags.emplace_back(err::traitProvidesMethod()
-                                    .with(trait->identifier)
-                                    .with(identifier)
-                                    .with(type->getName()));
-
-    result.diags.emplace_back(err::multipleTraitsProvideMethod()
-                                  .with(identifier)
-                                  .with(type->getName()));
-    return result;
-  }
-
-  if (applicableTraits.empty()) {
-    result.state = res::Context::QueryState::Error;
-    result.diags.emplace_back(
-        err::memberLookupFailed().with(identifier).with(type->getName()));
-    return result;
-  }
-
-  res::TraitDecl *applicableTrait = applicableTraits.front();
-  auto *decl = applicableTrait->lookupFunction(identifier);
-
-  res::Substitution traitSub = getUninferredInstantiation(applicableTrait);
-  auto *traitType = instantiate(applicableTrait->getType(), traitSub)
-                        ->getAs<res::TraitType>();
-
-  auto extensionQuery = queryExtensions(type, traitType);
+  auto extensionQuery = queryExtensions(type, trait);
   if (extensionQuery.state == res::Context::QueryState::Ambiguous) {
     result.state = res::Context::QueryState::Ambiguous;
 
@@ -342,11 +341,21 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
     return result;
   }
 
-  auto *extension = extensionQuery.items.front();
-  auto sub = getUninferredInstantiation(extension);
+  if (extensionQuery.state == QueryState::Success) {
+    auto *extension = extensionQuery.items.front();
 
-  result.items.push_back({instantiate(extension->type, sub), decl,
-                          instantiate(extension->trait->getSub(), sub)});
+    Substitution extensionSub = getUninferredInstantiation(extension);
+    typeHint = instantiate(extension->type, extensionSub);
+
+    unify(instantiate(extension->trait, extensionSub), trait);
+
+    if (auto *extensionFnDecl = extension->getFunction(identifier)) {
+      decl = extensionFnDecl;
+      sub = extensionSub;
+    }
+  }
+
+  result.items.push_back({typeHint, decl, sub});
   return result;
 }
 
@@ -541,16 +550,6 @@ Type *Context::instantiate(Type *t, const Substitution &sub) {
     arg = instantiate(arg, sub);
 
   return t;
-}
-
-Substitution Context::instantiate(const Substitution &s,
-                                  const Substitution &sub) {
-  Substitution res;
-
-  for (auto &&[from, to] : s)
-    res[from] = instantiate(to, sub);
-
-  return res;
 }
 
 bool Context::isInfiniteStructType(StructType *structType) const {
