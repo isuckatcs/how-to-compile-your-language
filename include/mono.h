@@ -54,14 +54,23 @@ class MonoCollector final {
   res::Context *resCtx;
   mono::Context *monoCtx;
 
-  std::deque<std::pair<mono::Function, size_t>> worklist;
+  struct WorklistItem {
+    SourceLocation origin;
+    mono::Function fn;
+    size_t depth;
+  };
+
+  std::deque<WorklistItem> worklist;
   std::set<std::string> seen;
 
   void processTopLevelFunctions();
-  bool processFunctionBody(mono::Function &fn, size_t depth);
+  void processFunctionBody(mono::Function &fn, size_t depth);
 
-  std::string generateVtable(res::TraitType *trait);
-  std::string monomorphize(const res::FunctionDecl *fn,
+  std::string generateVtable(const res::TraitObjectPromoExpr *promo,
+                             res::Substitution sub,
+                             size_t depth);
+  std::string monomorphize(SourceLocation origin,
+                           const res::FunctionDecl *fn,
                            res::Substitution sub,
                            size_t depth);
 

@@ -150,7 +150,7 @@ std::string Mangling::mangleGenericArgs(res::Context *resCtx,
   return mangledName.str();
 }
 
-bool MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
+void MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
   CFG cfg = CFGBuilder().build(*fn.decl);
 
   std::set<int> visited;
@@ -168,31 +168,13 @@ bool MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
 
     for (auto it = stmts.rbegin(); it != stmts.rend(); ++it) {
       if (auto *promo = dynamic_cast<const res::TraitObjectPromoExpr *>(*it)) {
-        res::Type *resultType = resCtx->instantiate(promo->getType(), fn.sub);
-        res::Type *originType =
-            resCtx->instantiate(promo->expr->getType(), fn.sub);
-
-        res::AnyTraitType *anyType = nullptr;
-        res::Type *objectType = nullptr;
-
-        if (auto *ptrType = resultType->getAs<res::PointerType>()) {
-          objectType = originType->getAs<res::PointerType>()->getPointeeType();
-          anyType = ptrType->getPointeeType()->getAs<res::AnyTraitType>();
-        } else {
-          objectType = originType->getAs<res::RefType>()->getReferencedType();
-          anyType = resultType->getAs<res::RefType>()
-                        ->getReferencedType()
-                        ->getAs<res::AnyTraitType>();
-        }
-
-        fn.vtableRefs[promo] =
-            generateVtable(anyType->withSelfType(resCtx, objectType));
+        fn.vtableRefs[promo] = generateVtable(promo, fn.sub, depth);
         continue;
       }
 
       if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(*it)) {
-        fn.mangledLambdas[lambda] =
-            monomorphize(lambda->getFunction(), fn.sub, depth);
+        fn.mangledLambdas[lambda] = monomorphize(
+            lambda->location, lambda->getFunction(), fn.sub, depth);
         continue;
       }
 
@@ -209,16 +191,6 @@ bool MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
       auto *selfType = declSub.getSelfType();
       if (selfType && selfType->getAs<res::AnyTraitType>())
         continue;
-
-      if (depth + 1 > depthLimit) {
-        err::monoOverflow()
-            .at(dre->location)
-            .with(fnDecl->identifier)
-            .with(declSub.getString())
-            .report(reporter);
-
-        return false;
-      }
 
       if (auto *trait = dynamic_cast<res::TraitDecl *>(fnDecl->declContext)) {
         auto *traitType = resCtx->instantiate(trait->getType(), declSub)
@@ -239,23 +211,46 @@ bool MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
         }
       }
 
-      const std::string &mangledName = monomorphize(
-          fnDecl, declSub, depth + (fnDecl->typeParams.empty() ? 0 : 1));
+      const std::string &mangledName =
+          monomorphize(dre->location, fnDecl, declSub,
+                       depth + (fnDecl->typeParams.empty() ? 0 : 1));
       fn.mangledDeclRefs[dre] = mangledName;
     }
 
     for (auto &&[succ, reachable] : succs)
       worklist.emplace_back(succ);
   }
-
-  return true;
 }
 
-std::string MonoCollector::generateVtable(res::TraitType *trait) {
+std::string
+MonoCollector::generateVtable(const res::TraitObjectPromoExpr *promo,
+                              res::Substitution sub,
+                              size_t depth) {
+  res::Type *resultType = resCtx->instantiate(promo->getType(), sub);
+  res::Type *originType = resCtx->instantiate(promo->expr->getType(), sub);
+
+  res::AnyTraitType *anyType = nullptr;
+  res::Type *objectType = nullptr;
+
+  if (auto *ptrType = resultType->getAs<res::PointerType>()) {
+    objectType = originType->getAs<res::PointerType>()->getPointeeType();
+    anyType = ptrType->getPointeeType()->getAs<res::AnyTraitType>();
+  } else {
+    objectType = originType->getAs<res::RefType>()->getReferencedType();
+    anyType = resultType->getAs<res::RefType>()
+                  ->getReferencedType()
+                  ->getAs<res::AnyTraitType>();
+  }
+
+  res::TraitType *trait = anyType->withSelfType(resCtx, objectType);
+
   std::string vtableId =
       "vtable." + Mangling::mangleMonoType(resCtx, trait, trait->getSub());
   if (monoCtx->vtables.count(vtableId))
     return vtableId;
+
+  if (!objectType->getSub().empty())
+    depth += 1;
 
   std::vector<std::string> functions;
   for (auto &&[layoutTrait, layoutFn] : trait->getVtableLayout(resCtx)) {
@@ -268,24 +263,27 @@ std::string MonoCollector::generateVtable(res::TraitType *trait) {
                   resCtx->instantiate(extension->trait, extensionSub));
 
     if (auto *extensionFn = extension->getFunction(layoutFn->identifier)) {
-      functions.emplace_back(monomorphize(extensionFn, extensionSub, 0));
+      functions.emplace_back(
+          monomorphize(promo->location, extensionFn, extensionSub, depth));
       continue;
     }
 
-    functions.emplace_back(monomorphize(layoutFn, layoutTrait->getSub(), 0));
+    functions.emplace_back(
+        monomorphize(promo->location, layoutFn, layoutTrait->getSub(), depth));
   }
 
   monoCtx->vtables[vtableId] = std::move(functions);
   return vtableId;
 }
 
-std::string MonoCollector::monomorphize(const res::FunctionDecl *fnDecl,
+std::string MonoCollector::monomorphize(SourceLocation origin,
+                                        const res::FunctionDecl *fnDecl,
                                         res::Substitution sub,
                                         size_t depth) {
   std::string name = Mangling::mangleFunctionDecl(resCtx, fnDecl, sub);
 
   mono::Function function{fnDecl, name, sub, {}, {}, {}};
-  worklist.emplace_back(function, depth);
+  worklist.push_back({origin, function, depth});
 
   return name;
 }
@@ -306,7 +304,7 @@ void MonoCollector::processTopLevelFunctions() {
 
   res::Substitution emptySub;
   for (auto &&fnDecl : topLevelFunctions)
-    monomorphize(fnDecl, emptySub, 0);
+    monomorphize(fnDecl->location, fnDecl, emptySub, 0);
 }
 
 std::unique_ptr<mono::Context> MonoCollector::collectMonoFunctions() {
@@ -317,15 +315,20 @@ std::unique_ptr<mono::Context> MonoCollector::collectMonoFunctions() {
   processTopLevelFunctions();
 
   while (!worklist.empty()) {
-    auto [fn, depth] = worklist.front();
+    auto [loc, fn, depth] = worklist.front();
     worklist.pop_front();
+
+    if (depth > depthLimit)
+      return err::monoOverflow()
+          .at(loc)
+          .with(fn.decl->identifier)
+          .with(fn.sub.getString())
+          .report(reporter);
 
     if (!seen.emplace(fn.name).second)
       continue;
 
-    if (!processFunctionBody(fn, depth))
-      return nullptr;
-
+    processFunctionBody(fn, depth);
     monoCtx->functions.emplace_back(fn);
   }
 
