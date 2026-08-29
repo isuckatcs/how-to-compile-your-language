@@ -150,8 +150,7 @@ std::string Mangling::mangleGenericArgs(res::Context *resCtx,
   return mangledName.str();
 }
 
-bool MonoCollector::processFunctionBody(const mono::Function &fn,
-                                        size_t depth) {
+bool MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
   CFG cfg = CFGBuilder().build(*fn.decl);
 
   std::set<int> visited;
@@ -186,13 +185,13 @@ bool MonoCollector::processFunctionBody(const mono::Function &fn,
                         ->getAs<res::AnyTraitType>();
         }
 
-        monoCtx->vtableRefs[fn.id][promo] =
+        fn.vtableRefs[promo] =
             generateVtable(anyType->withSelfType(resCtx, objectType));
         continue;
       }
 
       if (auto *lambda = dynamic_cast<const res::LambdaExpr *>(*it)) {
-        monoCtx->mangledLambdas[fn.id][lambda] =
+        fn.mangledLambdas[lambda] =
             monomorphize(lambda->getFunction(), fn.sub, depth);
         continue;
       }
@@ -242,7 +241,7 @@ bool MonoCollector::processFunctionBody(const mono::Function &fn,
 
       const std::string &mangledName = monomorphize(
           fnDecl, declSub, depth + (fnDecl->typeParams.empty() ? 0 : 1));
-      monoCtx->mangledDeclRefs[fn.id][dre] = mangledName;
+      fn.mangledDeclRefs[dre] = mangledName;
     }
 
     for (auto &&[succ, reachable] : succs)
@@ -285,11 +284,8 @@ std::string MonoCollector::monomorphize(const res::FunctionDecl *fnDecl,
                                         size_t depth) {
   std::string name = Mangling::mangleFunctionDecl(resCtx, fnDecl, sub);
 
-  if (seen.emplace(name).second) {
-    mono::Function function{monoCtx->functions.size(), fnDecl, name, sub};
-    monoCtx->functions.emplace_back(function);
-    worklist.emplace_back(function, depth);
-  }
+  mono::Function function{fnDecl, name, sub, {}, {}, {}};
+  worklist.emplace_back(function, depth);
 
   return name;
 }
@@ -324,8 +320,13 @@ std::unique_ptr<mono::Context> MonoCollector::collectMonoFunctions() {
     auto [fn, depth] = worklist.front();
     worklist.pop_front();
 
+    if (!seen.emplace(fn.name).second)
+      continue;
+
     if (!processFunctionBody(fn, depth))
       return nullptr;
+
+    monoCtx->functions.emplace_back(fn);
   }
 
   return ctx;

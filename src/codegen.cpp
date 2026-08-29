@@ -289,7 +289,7 @@ llvm::Value *Codegen::generateLambdaExpr(const res::LambdaExpr &lambdaExpr) {
   auto *closureType = lambdaExpr.closure->getType()->getAs<res::StructType>();
 
   llvm::Value *function =
-      module.getFunction(monoCtx->mangledLambdas[monoFnId][&lambdaExpr]);
+      module.getFunction(currentMonoFn->mangledLambdas.at(&lambdaExpr));
 
   bool needsClosure = dl->getTypeAllocSize(generateType(closureType)) != 0;
   llvm::Value *closure = needsClosure
@@ -376,7 +376,7 @@ Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
   if (resultType->getAs<res::PointerType>() && promo.expr->isLvalue())
     obj = loadValue(obj, builder.getPtrTy());
 
-  auto *vtable = generateVtable(monoCtx->vtableRefs[monoFnId][&promo]);
+  auto *vtable = generateVtable(currentMonoFn->vtableRefs.at(&promo));
   auto *traitObjTy = generateType(resultType);
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
@@ -466,7 +466,7 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
 
 llvm::Value *Codegen::generateDeclRefExpr(const res::DeclRefExpr &dre) {
   if (dre.decl->getAs<res::FunctionDecl>())
-    return module.getFunction(monoCtx->mangledDeclRefs[monoFnId][&dre]);
+    return module.getFunction(currentMonoFn->mangledDeclRefs.at(&dre));
 
   return declarations[dre.decl];
 }
@@ -1038,11 +1038,10 @@ void Codegen::generateBlock(const res::Block &block) {
 void Codegen::generateFunctionBody(const mono::Function &fn) {
   temporaryRoots.clear();
 
-  auto [id, functionDecl, mangledName, sub] = fn;
-  UseSubstitutionRAII instantiationCtx(this, sub);
-  monoFnId = id;
+  UseSubstitutionRAII instantiationCtx(this, fn.sub);
+  currentMonoFn = &fn;
 
-  llvm::Function *function = module.getFunction(mangledName);
+  llvm::Function *function = module.getFunction(fn.name);
   llvm::FunctionType *functionTy = function->getFunctionType();
   llvm::Type *returnTy = functionTy->getReturnType();
 
@@ -1073,6 +1072,7 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
     ++nonVoidArgIdx;
   }
 
+  auto *functionDecl = fn.decl;
   for (auto &&paramDecl : functionDecl->params) {
     res::Type *paramDeclTy = getMonoType(paramDecl->getType());
     llvm::Type *argTy = generateType(paramDeclTy);

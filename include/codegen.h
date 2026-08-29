@@ -32,7 +32,7 @@ class Codegen {
   std::map<const res::Decl *, llvm::Value *> declarations;
 
   res::Substitution currentSub;
-  size_t monoFnId = 0;
+  const mono::Function *currentMonoFn = nullptr;
 
   std::set<llvm::AllocaInst *> permanentRoots;
   std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;

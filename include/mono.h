@@ -12,23 +12,19 @@
 namespace yl {
 namespace mono {
 struct Function final {
-  size_t id;
   const res::FunctionDecl *decl;
   std::string name;
   res::Substitution sub;
+
+  std::map<const res::DeclRefExpr *, std::string> mangledDeclRefs;
+  std::map<const res::LambdaExpr *, std::string> mangledLambdas;
+  std::map<const res::TraitObjectPromoExpr *, std::string> vtableRefs;
 };
 
 struct Context final {
   res::Context *resCtx;
   std::vector<Function> functions;
   std::map<std::string, std::vector<std::string>> vtables;
-
-  std::map<size_t, std::map<const res::DeclRefExpr *, std::string>>
-      mangledDeclRefs;
-  std::map<size_t, std::map<const res::LambdaExpr *, std::string>>
-      mangledLambdas;
-  std::map<size_t, std::map<const res::TraitObjectPromoExpr *, std::string>>
-      vtableRefs;
 
   void dump() const;
 };
@@ -62,7 +58,7 @@ class MonoCollector final {
   std::set<std::string> seen;
 
   void processTopLevelFunctions();
-  bool processFunctionBody(const mono::Function &fn, size_t depth);
+  bool processFunctionBody(mono::Function &fn, size_t depth);
 
   std::string generateVtable(res::TraitType *trait);
   std::string monomorphize(const res::FunctionDecl *fn,
