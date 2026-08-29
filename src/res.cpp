@@ -12,8 +12,7 @@ namespace yl {
 namespace res {
 res::Type *Substitution::getSelfType() const {
   for (auto &&[from, to] : *this)
-    if (auto *t = from->getAs<res::TypeParamType>();
-        t && t->getDecl()->isImplicitSelf)
+    if (from->getDecl()->isImplicitSelf)
       return to;
 
   return nullptr;
@@ -22,9 +21,26 @@ res::Type *Substitution::getSelfType() const {
 std::string Substitution::getString() const {
   std::stringstream ss;
 
+  using MappingType = std::pair<const TypeParamType *, const yl::res::Type *>;
+  std::vector<MappingType> mappings;
+  for (auto &&[from, to] : *this)
+    mappings.emplace_back(from, to);
+
+  auto cmp = [](const MappingType &lhs, const MappingType &rhs) {
+    SourceLocation lhsLoc = lhs.first->getDecl()->location;
+    SourceLocation rhsLoc = rhs.first->getDecl()->location;
+
+    if (lhsLoc.line < rhsLoc.line)
+      return true;
+
+    return lhsLoc.col < rhsLoc.col;
+  };
+
+  std::sort(mappings.begin(), mappings.end(), cmp);
+
   ss << "[";
-  for (auto it = this->begin(); it != this->end(); ++it) {
-    if (it != this->begin())
+  for (auto it = mappings.begin(); it != mappings.end(); ++it) {
+    if (it != mappings.begin())
       ss << ", ";
 
     auto &&[from, to] = *it;
@@ -555,13 +571,14 @@ bool Context::isInfiniteStructType(StructType *structType) const {
 Substitution Context::getUninferredInstantiation(GenericDeclContext *declCtx) {
   Substitution sub;
   for (auto &&typeParam : declCtx->typeParams)
-    sub[typeParam->getType()] = UninferredType::create(*this);
+    sub[typeParam->getType()->getAs<res::TypeParamType>()] =
+        UninferredType::create(*this);
 
   for (auto &&typeParam : declCtx->typeParams) {
     if (typeParam->isImplicitSelf)
       continue;
 
-    res::Type *tpType = typeParam->getType();
+    auto *tpType = typeParam->getType()->getAs<res::TypeParamType>();
     auto *probeType = sub[tpType]->getAs<res::UninferredType>();
     for (auto &&trait : getDirectConformance(tpType))
       probeType->addObligation(
@@ -784,7 +801,8 @@ Substitution TraitType::getSub() const {
   Substitution res;
 
   for (size_t i = 0; i < args.size(); ++i)
-    res[getDecl()->typeParams[i]->getType()] = args[i];
+    res[getDecl()->typeParams[i]->getType()->getAs<res::TypeParamType>()] =
+        args[i];
 
   return res;
 }
@@ -810,7 +828,8 @@ Substitution StructType::getSub() const {
   Substitution res;
 
   for (size_t i = 0; i < args.size(); ++i)
-    res[getDecl()->typeParams[i]->getType()] = args[i];
+    res[getDecl()->typeParams[i]->getType()->getAs<res::TypeParamType>()] =
+        args[i];
 
   return res;
 }
@@ -822,7 +841,8 @@ Substitution AnyTraitType::getSub() const {
   Substitution res;
 
   for (size_t i = 0; i < args.size(); ++i)
-    res[getDecl()->typeParams[i + 1]->getType()] = args[i];
+    res[getDecl()->typeParams[i + 1]->getType()->getAs<res::TypeParamType>()] =
+        args[i];
 
   return res;
 }

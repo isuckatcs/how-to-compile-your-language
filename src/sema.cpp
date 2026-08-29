@@ -571,7 +571,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
 
     for (size_t i = 0; i < args.size(); ++i) {
       varOrReturn(arg, resolveType(ctx, *args[i]));
-      auto *expectedType = sub[gdc->typeParams[i]->getType()];
+      auto *expectedType =
+          sub[gdc->typeParams[i]->getType()->getAs<res::TypeParamType>()];
 
       if (auto errs = ctx.unify(expectedType, arg); !errs.empty()) {
         for (auto &&err : errs)
@@ -2164,7 +2165,8 @@ bool Sema::checkVtableCompatibility(res::Context &ctx,
       continue;
     }
 
-    res::Type *selfTPType = trait->getDecl()->typeParams[0]->getType();
+    auto *selfTPType =
+        trait->getDecl()->typeParams[0]->getType()->getAs<res::TypeParamType>();
     res::Substitution testSub;
     testSub[selfTPType] = res::BuiltinUnitType::create(ctx);
 

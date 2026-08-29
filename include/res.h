@@ -21,12 +21,14 @@ struct TypeExtension;
 struct FunctionDecl;
 struct TypeParamDecl;
 struct TraitType;
+struct TypeParamType;
 class StructType;
 struct UninferredType;
 struct TraitDecl;
 struct StructDecl;
 
-struct Substitution : public std::unordered_map<res::Type *, res::Type *> {
+struct Substitution
+    : public std::unordered_map<res::TypeParamType *, res::Type *> {
   res::Type *getSelfType() const;
 
   std::string getString() const;
