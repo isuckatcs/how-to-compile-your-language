@@ -211,9 +211,8 @@ void MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
         }
       }
 
-      const std::string &mangledName =
-          monomorphize(dre->location, fnDecl, declSub,
-                       depth + (fnDecl->typeParams.empty() ? 0 : 1));
+      const std::string &mangledName = monomorphize(
+          dre->location, fnDecl, declSub, depth + (declSub.empty() ? 0 : 1));
       fn.mangledDeclRefs[dre] = mangledName;
     }
 
