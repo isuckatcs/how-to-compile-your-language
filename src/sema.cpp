@@ -1449,7 +1449,9 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 
     res::Type *testType = ctx.instantiate(type, testSub);
     auto *testTrait = ctx.instantiate(trait, testSub)->getAs<res::TraitType>();
+
     auto extensionQuery = ctx.queryExtensions(testType, testTrait);
+    assert(extensionQuery.items.size() > 0 && "failed to find extensions");
 
     if (extensionQuery.items[0] != extension) {
       res::TypeExtension *conflict = extensionQuery.items[0];
