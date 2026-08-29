@@ -1,0 +1,36 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+fn bar<T0,
+       T1,
+       T2,
+       T3,
+       T4,
+       T5,
+       T6,
+       T7,
+       T8,
+       T9> () {
+  // CHECK: [[# @LINE + 1 ]]:3: error: overflow while instantiating 'bar' with '[T0 = **********unit, T1 = unit, T2 = unit, T3 = unit, T4 = unit, T5 = unit, T6 = unit, T7 = unit, T8 = unit, T9 = unit]'
+  bar@<*T0,
+       T1,
+       T2,
+       T3,
+       T4,
+       T5,
+       T6,
+       T7,
+       T8,
+       T9>();
+}
+
+fn main() {
+  bar@<unit,
+       unit, 
+       unit, 
+       unit, 
+       unit, 
+       unit, 
+       unit, 
+       unit, 
+       unit, 
+       unit>;
+}

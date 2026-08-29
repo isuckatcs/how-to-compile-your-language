@@ -30,8 +30,8 @@ std::string Substitution::getString() const {
     SourceLocation lhsLoc = lhs.first->getDecl()->location;
     SourceLocation rhsLoc = rhs.first->getDecl()->location;
 
-    if (lhsLoc.line < rhsLoc.line)
-      return true;
+    if (lhsLoc.line != rhsLoc.line)
+      return lhsLoc.line < rhsLoc.line;
 
     return lhsLoc.col < rhsLoc.col;
   };
