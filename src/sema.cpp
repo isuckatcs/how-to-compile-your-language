@@ -2224,7 +2224,6 @@ bool Sema::runPostFunctionBodyChecks() {
 }
 
 bool Sema::checkDeclRefTypes() {
-
   auto checkDre = [&](const res::DeclRefExpr *dre) -> const res::DeclRefExpr * {
     for (auto &&fragment : dre->getPath())
       for (auto &&[from, to] : fragment->sub)
