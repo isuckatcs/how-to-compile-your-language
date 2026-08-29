@@ -245,8 +245,7 @@ bool MonoCollector::processFunctionBody(const mono::Function &fn,
     }
 
     for (auto &&[succ, reachable] : succs)
-      if (reachable)
-        worklist.emplace_back(succ);
+      worklist.emplace_back(succ);
   }
 
   return true;

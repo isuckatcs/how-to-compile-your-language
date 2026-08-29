@@ -1,0 +1,12 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '456\n'
+fn main() {
+  if false {
+    ->(){ println(123); }();
+    // CHECK: store ptr @_YY4mainS8lambda_021__builtin_lambda_call, ptr %0, align 8
+  }
+
+  println(456);
+  // CHECK: call void @_Y7println(double 4.560000e+02, ptr null)
+}

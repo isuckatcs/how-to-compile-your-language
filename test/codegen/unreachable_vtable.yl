@@ -1,0 +1,26 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '456\n'
+
+// CHECK: @vtable.T1AGnE = internal constant [3 x ptr] [ptr @_YT1AGnE3foo, ptr @_YT1AGnE3bar, ptr @_YT1AGnE3baz]
+trait A {
+  fn foo(self: &Self) {
+    println(123);
+  }
+
+  fn bar(self: &Self) {}
+
+  fn baz(self: &Self) {}
+}
+
+extension number : A {}
+
+fn main() {
+  if false {
+    let s: *any A = gc 123;
+    s.foo();
+  }
+
+  println(456);
+  // CHECK: call void @_Y7println(double 4.560000e+02, ptr null)
+}
