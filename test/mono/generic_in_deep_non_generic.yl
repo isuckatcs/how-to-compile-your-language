@@ -1,0 +1,39 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+struct S<T> {}
+
+extension<T> S<T> {
+  fn f1() { Self@<T>::f2(); }
+  fn f2() { Self@<T>::f3(); }
+  fn f3() { Self@<T>::f4(); }
+  fn f4() { Self@<T>::f5(); }
+  fn f5() { Self@<T>::f6(); }
+  fn f6() { Self@<T>::f7(); }
+  fn f7() { Self@<T>::f8(); }
+  fn f8() { Self@<T>::f9(); }
+  fn f9() { Self@<T>::f10(); }
+  fn f10() { Self@<T>::f11(); }
+  fn f11() { Self@<T>::f12(); }
+  fn f12() { generic@<T>(); }
+}
+
+fn generic<T>() {}
+
+fn main() {
+  S@<number>::f1();
+}
+// CHECK: (gcCollect, []) -> _Y9gcCollect
+// CHECK-NEXT: (println, []) -> _Y7println
+// CHECK-NEXT: (main, []) -> _Y4main
+// CHECK-NEXT: (f1, [T = number]) -> _YS1SGnE2f1
+// CHECK-NEXT: (f2, [T = number]) -> _YS1SGnE2f2
+// CHECK-NEXT: (f3, [T = number]) -> _YS1SGnE2f3
+// CHECK-NEXT: (f4, [T = number]) -> _YS1SGnE2f4
+// CHECK-NEXT: (f5, [T = number]) -> _YS1SGnE2f5
+// CHECK-NEXT: (f6, [T = number]) -> _YS1SGnE2f6
+// CHECK-NEXT: (f7, [T = number]) -> _YS1SGnE2f7
+// CHECK-NEXT: (f8, [T = number]) -> _YS1SGnE2f8
+// CHECK-NEXT: (f9, [T = number]) -> _YS1SGnE2f9
+// CHECK-NEXT: (f10, [T = number]) -> _YS1SGnE3f10
+// CHECK-NEXT: (f11, [T = number]) -> _YS1SGnE3f11
+// CHECK-NEXT: (f12, [T = number]) -> _YS1SGnE3f12
+// CHECK-NEXT: (generic, [T = number]) -> _Y7genericGnE

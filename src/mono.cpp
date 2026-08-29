@@ -240,7 +240,8 @@ bool MonoCollector::processFunctionBody(const mono::Function &fn,
         }
       }
 
-      const std::string &mangledName = monomorphize(fnDecl, declSub, depth + 1);
+      const std::string &mangledName = monomorphize(
+          fnDecl, declSub, depth + (fnDecl->typeParams.empty() ? 0 : 1));
       monoCtx->mangledDeclRefs[fn.id][dre] = mangledName;
     }
 
