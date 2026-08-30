@@ -1,0 +1,5 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:11: error: type 'number' can only be extended with traits
+extension number {}
+
+fn main() {}

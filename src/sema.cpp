@@ -1302,10 +1302,18 @@ Sema::resolveTypeExtension(res::Context &ctx,
     trait = resTrait->getAs<res::TraitType>();
   }
 
-  if (!trait && type->getAs<res::TypeParamType>())
-    return err::universalTypeExtension()
-        .at(extension.type->location)
-        .report(reporter);
+  if (!trait) {
+    if (type->getAs<res::TypeParamType>())
+      return err::universalTypeExtension()
+          .at(extension.type->location)
+          .report(reporter);
+
+    if (!type->getAs<res::StructType>())
+      return err::builtinTypeExtension()
+          .with(type->getName())
+          .at(extension.type->location)
+          .report(reporter);
+  }
 
   bool error = false;
 

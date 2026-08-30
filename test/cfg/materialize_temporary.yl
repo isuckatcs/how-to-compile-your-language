@@ -1,5 +1,9 @@
 // RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
-extension number {
+trait A {
+  fn foo(self: &Self);
+}
+
+extension number : A {
   fn foo(self: &Self) {
     println(self);
   }

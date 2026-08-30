@@ -11,7 +11,11 @@ extension number : Foo<unit, unit> {
   }
 }
 
-extension *any Foo<unit, unit> {
+trait B {
+  fn bar(self: &Self);
+}
+
+extension *any Foo<unit, unit> : B {
   fn bar(self: &Self) {
     println(self.foo());
   }
@@ -20,5 +24,5 @@ extension *any Foo<unit, unit> {
 fn main() {
   let x: *any Foo<unit, unit> = gc 123;
   x.bar();
-  // CHECK: call void @_YpA3FooGuuE3bar(ptr %x, ptr null)
+  // CHECK: call void @_YT1BGpA3FooGuuEE3bar(ptr %x, ptr null)
 }

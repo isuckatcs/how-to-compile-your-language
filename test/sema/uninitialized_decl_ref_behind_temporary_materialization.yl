@@ -1,5 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-extension number {
+trait A {
+  fn foo(self: &Self);
+}
+
+extension number : A {
   fn foo(self: &Self) {
     println(self);
   }
