@@ -1,0 +1,25 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo<T>(t: T);
+}
+
+struct S {}
+
+extension S : A {
+  fn foo<T>(t: T) {
+    println(123);
+  }
+}
+// CHECK: TypeExtension S : A
+// CHECK-NEXT:   FunctionDecl @({{.*}}) foo {(T) -> unit}
+// CHECK-NEXT:     TypeParamDecl @({{.*}}) T {T}
+// CHECK-NEXT:     ParamDecl @({{.*}}) t {T}
+// CHECK-NEXT:     Block
+// CHECK-NEXT:       CallExpr {unit}
+// CHECK-NEXT:         DeclRefExpr @({{.*}}) println {(number) -> unit}
+// CHECK-NEXT:         NumberLiteral '123' {number}
+// CHECK-NEXT:         | value: 123
+
+fn main() {
+  S::foo@<number>(123);
+}

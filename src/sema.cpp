@@ -1412,11 +1412,10 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
 
     auto traitSub = trait->getSub();
 
-    res::Type *expectedType = ctx.instantiate(
-        ctx.instantiate(traitFn->getType(), traitSub), implInstSub);
-    res::Type *actualType = implFn->getType();
+    res::Type *expectedType = ctx.instantiate(traitFn->getType(), traitSub);
+    res::Type *actualType = ctx.instantiate(implFn->getType(), implInstSub);
 
-    if (!ctx.unify(expectedType, actualType).empty()) {
+    if (!ctx.eq(expectedType, actualType)) {
       err::fnSignatureMismatch()
           .at(implFn->location)
           .with(expectedType->getName())
