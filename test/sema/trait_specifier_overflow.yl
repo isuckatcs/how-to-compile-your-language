@@ -1,0 +1,13 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A<T> {
+  fn foo() {}
+}
+
+struct S<T> {}
+
+extension<T, U : A<S<T>>> U : A<T> {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:14: error: overflow while solving 'number : A<number>'
+  @<number : A<number>>::foo();
+}

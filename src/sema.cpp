@@ -429,13 +429,13 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     varOrReturn(t, resolveType(ctx, *traitSpec->trait, false, true, type));
     res::TraitType *trait = t->getAs<res::TraitType>();
 
-    if (ctx.querySatisfyingTraits(type, trait).state ==
-        res::Context::QueryState::Error)
-      return err::traitNotImplemented()
-          .at(traitSpec->trait->location)
-          .with(type->getName())
-          .with(trait->getName())
-          .report(reporter);
+    auto result = ctx.querySatisfyingTraits(type, trait);
+    if (result.state != res::Context::QueryState::Success) {
+      for (auto &&err : result.diags)
+        err.at(traitSpec->trait->location).report(reporter);
+
+      return nullptr;
+    }
 
     const ast::DeclRefExpr *fragment = fragments[idx].get();
     varOrReturn(dre, resolveAssociatedDeclRef(ctx, fragment, type, trait));
@@ -1002,15 +1002,14 @@ bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
   if (!anyType || type->getAs<res::AnyTraitType>())
     return false;
 
-  auto traits =
-      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type)).items;
+  auto result =
+      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type));
 
-  if (traits.empty())
+  if (result.state != res::Context::QueryState::Success)
     return false;
 
-  assert(traits.size() == 1 && "ambiguous trait object candidate");
-
-  return ctx.unify(anyType->withSelfType(&ctx, type), traits.back()).empty();
+  return ctx.unify(anyType->withSelfType(&ctx, type), result.items.front())
+      .empty();
 }
 
 res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {

@@ -6,6 +6,6 @@ struct S {}
 extension S : A<number> {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1]]:9: error: 'S' doesn't implement trait 'A<unit>'
+  // CHECK: [[# @LINE + 1]]:9: error: cannot satisfy requirement 'S : A<unit>'
   @<S : A<unit>>::foo();
 }
