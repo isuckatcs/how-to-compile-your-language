@@ -2,19 +2,19 @@
 struct T<T> {}
 
 trait Foo {
-  // CHECK: [[# @LINE + 1 ]]:25: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:25: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn value(self: &Self, x: Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn out(self: &Self, x: &Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn ptr(self: &Self, x: *Self) {}
   
-  // CHECK: [[# @LINE + 1 ]]:26: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:26: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn mutPtr(self: &Self, x: *mut Self) {}
 
-  // CHECK: [[# @LINE + 1 ]]:28: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:28: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn template(self: &Self, x: T<Self>) {}
 }
 

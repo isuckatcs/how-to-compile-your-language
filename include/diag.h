@@ -128,7 +128,7 @@ diag(Error, wrongDeclKind, "referenced declaration has unexpected kind");
 diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "trait '{}' with a template method cannot be used as a trait object");
 diag(Error, traitObjectStaticMemberFn, "trait '{}' with a static method cannot be used as a trait object");
-diag(Error, traitObjectSelfParam, "trait '{}' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object");
+diag(Error, traitObjectSelfParam, "trait '{}' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object");
 diag(Error, traitObjectSelfReturn, "trait '{}' with a method returning a type referencing 'Self' cannot be used as a trait object");
 diag(Error, superTraitNotTraitObjectCompatible, "super trait '{}' of trait '{}' is not trait object compatible");
 diag(Error, traitNotTraitObjectCompatible, "trait '{}' is not trait object compatible");

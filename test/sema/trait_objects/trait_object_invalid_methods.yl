@@ -1,6 +1,6 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 trait Foo {
-  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referecing 'Self' in a non-receiver parameter type cannot be used as a trait object
+  // CHECK: [[# @LINE + 1 ]]:23: error: trait 'Foo' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object
   fn arg(self: &Self, x: Self) {}
 
   // CHECK: [[# @LINE + 1 ]]:6: error: trait 'Foo' with a method returning a type referencing 'Self' cannot be used as a trait object
