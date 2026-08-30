@@ -204,7 +204,17 @@ void MonoCollector::processFunctionBody(mono::Function &fn, size_t depth) {
         assert(result.items.size() == 1 && "failed to find extension function");
 
         auto &[hint, decl, sub] = result.items.front();
-        fnDecl = decl->getAs<res::FunctionDecl>();
+        auto *resDecl = decl->getAs<res::FunctionDecl>();
+
+        for (size_t i = 0; i < resDecl->typeParams.size(); ++i) {
+          auto *resTPType = resDecl->typeParams[i]->getType();
+          auto *dreTPType = fnDecl->typeParams[i]->getType();
+
+          sub[resTPType->getAs<res::TypeParamType>()] =
+              resCtx->instantiate(dreTPType, declSub);
+        }
+
+        fnDecl = resDecl;
         declSub = sub;
       }
 

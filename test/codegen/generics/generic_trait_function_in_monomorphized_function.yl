@@ -1,0 +1,23 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A {
+  fn foo<T>();
+}
+
+struct S {}
+
+extension S : A {
+  fn foo<X>() { 
+    println(123);
+  }
+}
+
+fn foo<T : A>() {
+  T::foo@<number>();
+  // CHECK: call void @_YT1AGS1SE3fooGnE(ptr null)
+}
+
+fn main() {
+  foo@<S>();
+}

@@ -1,0 +1,15 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+trait A { 
+  fn foo<T>() { 
+    println(123); 
+  }
+}
+
+struct S {}
+
+extension S : A {}
+
+fn main() {
+  S::foo@<number>();
+  // CHECK: (foo, [Self = S, T = number]) -> _YT1AGS1SE3fooGnE
+}
