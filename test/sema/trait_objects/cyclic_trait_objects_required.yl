@@ -1,0 +1,19 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {
+  // CHECK: [[# @LINE + 1 ]]:18: error: trait 'B' is not trait object compatible
+  fn foo(): *any B {
+    return gc 123;
+  }
+}
+
+trait B {
+  // CHECK: [[# @LINE + 1 ]]:18: error: trait 'A' is not trait object compatible
+  fn bar(): *any A {
+    return gc 456;
+  }
+}
+
+extension number : A {}
+extension number : B {}
+
+fn main() {}

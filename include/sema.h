@@ -99,9 +99,11 @@ class Sema {
 
   FunctionInfo *functionInfo;
 
-  bool shouldDelayUserDefinedTypeChecking = true;
-  std::unordered_map<const ast::UserDefinedType *, res::Type *>
-      delayedTypeChecks;
+  bool shouldDeferTypeChecking = true;
+  std::vector<std::pair<const ast::UserDefinedType *, res::Type *>>
+      deferredUserDefinedTypeChecks;
+  std::vector<std::pair<const ast::AnyType *, res::AnyTraitType *>>
+      deferredAnyTypeChecks;
 
   res::TypeDecl *resolveTypeSymbol(const ast::UserDefinedType *udt);
   res::Type *resolveType(res::Context &ctx,
@@ -228,10 +230,15 @@ class Sema {
   bool checkSelfParameter(res::Context &ctx, res::ParamDecl *param, size_t idx);
   bool isSelfContainingTrait(res::TraitDecl *trait);
   bool hasSelfContainingStructs(res::Context &ctx);
-  bool checkDelayedUserDefinedTypes(res::Context &ctx);
+  bool runDeferredTypeChecks(res::Context &ctx);
+
   res::Type *validatedUserDefinedType(res::Context &ctx,
                                       const ast::UserDefinedType *astDecl,
                                       res::Type *type);
+  res::AnyTraitType *validatedAnyTraitType(res::Context &ctx,
+                                           const ast::AnyType *astDecl,
+                                           res::AnyTraitType *type);
+
   bool checkVtableCompatibility(res::Context &ctx,
                                 SourceLocation loc,
                                 res::TraitType *trait,

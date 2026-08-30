@@ -240,20 +240,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
       return err::traitObjectNotPointee().at(any->location).report(reporter);
 
     varOrReturn(type, resolveType(ctx, *any->type, false, true));
-    auto *anyTraitType = type->getAs<res::AnyTraitType>();
-
-    SourceLocation loc = any->type->location;
-    std::set<std::string> visited;
-    if (!checkVtableCompatibility(
-            ctx, loc,
-            anyTraitType->withSelfType(&ctx, res::UninferredType::create(ctx)),
-            visited))
-      return err::traitNotTraitObjectCompatible()
-          .at(loc)
-          .with(anyTraitType->getDecl()->identifier)
-          .report(reporter);
-
-    return anyTraitType;
+    return validatedAnyTraitType(ctx, any, type->getAs<res::AnyTraitType>());
   }
 
   if (const auto *ptr = dynamic_cast<const ast::PointerType *>(&parsedType)) {
@@ -1901,7 +1888,7 @@ std::unique_ptr<res::Context> Sema::resolveAST() {
   for (auto &&[resExtension, extension] : resExtensions)
     error |= !resolveExtensionBody(*ctx, resExtension, *extension);
 
-  error |= !checkDelayedUserDefinedTypes(*ctx);
+  error |= !runDeferredTypeChecks(*ctx);
 
   auto *builtinGCCollect = createBuiltinGCCollect(*ctx);
   insertDeclToCurrentScope(builtinGCCollect);
@@ -2083,12 +2070,15 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
   return !selfContaining.empty();
 }
 
-bool Sema::checkDelayedUserDefinedTypes(res::Context &ctx) {
-  shouldDelayUserDefinedTypeChecking = false;
+bool Sema::runDeferredTypeChecks(res::Context &ctx) {
+  shouldDeferTypeChecking = false;
 
   bool error = false;
-  for (auto &&[ast, res] : delayedTypeChecks)
+  for (auto &&[ast, res] : deferredUserDefinedTypeChecks)
     error |= !validatedUserDefinedType(ctx, ast, res);
+
+  for (auto &&[ast, res] : deferredAnyTypeChecks)
+    error |= !validatedAnyTraitType(ctx, ast, res);
 
   return !error;
 }
@@ -2096,8 +2086,8 @@ bool Sema::checkDelayedUserDefinedTypes(res::Context &ctx) {
 res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
                                           const ast::UserDefinedType *astDecl,
                                           res::Type *type) {
-  if (shouldDelayUserDefinedTypeChecking) {
-    delayedTypeChecks[astDecl] = type;
+  if (shouldDeferTypeChecking) {
+    deferredUserDefinedTypeChecks.emplace_back(astDecl, type);
     return type;
   }
 
@@ -2134,6 +2124,27 @@ res::Type *Sema::validatedUserDefinedType(res::Context &ctx,
 
     ++astIt;
   }
+
+  return type;
+}
+
+res::AnyTraitType *Sema::validatedAnyTraitType(res::Context &ctx,
+                                               const ast::AnyType *astDecl,
+                                               res::AnyTraitType *type) {
+  if (shouldDeferTypeChecking) {
+    deferredAnyTypeChecks.emplace_back(astDecl, type);
+    return type;
+  }
+
+  SourceLocation loc = astDecl->type->location;
+  std::set<std::string> visited;
+  if (!checkVtableCompatibility(
+          ctx, loc, type->withSelfType(&ctx, res::UninferredType::create(ctx)),
+          visited))
+    return err::traitNotTraitObjectCompatible()
+        .at(loc)
+        .with(type->getDecl()->identifier)
+        .report(reporter);
 
   return type;
 }

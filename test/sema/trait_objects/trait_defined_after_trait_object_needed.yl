@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {
+  // CHECK: [[# @LINE + 1 ]]:11: error: trait 'A' is not trait object compatible
+  x: *any A
+}
+
+trait A {
+  fn foo() {}
+}
+
+fn main() {}
