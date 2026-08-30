@@ -134,7 +134,7 @@ diag(Error, superTraitNotTraitObjectCompatible, "super trait '{}' of trait '{}' 
 diag(Error, traitNotTraitObjectCompatible, "trait '{}' is not trait object compatible");
 diag(Error, traitObjectPtrDereference, "cannot dereference pointer to trait object");
 diag(Error, universalTypeExtension, "expected a trait extension or an extension of a concrete type");
-diag(Error, builtinTypeExtension, "type '{}' can only be extended with traits");
+diag(Error, nonStructTypeExtension, "type '{}' can only be extended with traits");
 diag(Error, infiniteStructType, "struct '{}' recurses infinitely in '{}'");
 
 // generics

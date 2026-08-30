@@ -1309,7 +1309,7 @@ Sema::resolveTypeExtension(res::Context &ctx,
           .report(reporter);
 
     if (!type->getAs<res::StructType>())
-      return err::builtinTypeExtension()
+      return err::nonStructTypeExtension()
           .with(type->getName())
           .at(extension.type->location)
           .report(reporter);
