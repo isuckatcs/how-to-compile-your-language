@@ -337,7 +337,6 @@ Context::QueryResult<AssociatedDeclRef> Context::queryAssociatedDecls(
     for (auto &&err : extensionQuery.diags)
       result.diags.emplace_back(err);
 
-    result.diags.emplace_back(err::annotationsNeededForRequirements());
     return result;
   }
 
@@ -413,6 +412,8 @@ Context::querySatisfyingTraits(Type *type, TraitType *trait) {
                                     .with(resultTrait->getName())
                                     .with(type->getName())
                                     .with(trait->getName()));
+    result.diags.emplace_back(err::annotationsNeededForRequirements());
+
     return result;
   }
   return result;
@@ -508,9 +509,6 @@ std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
 
   if (result.state == QueryState::Success)
     processObligations(result, false);
-
-  if (result.state == QueryState::Ambiguous)
-    result.diags.emplace_back(err::annotationsNeededForRequirements());
 
   return result.diags;
 }

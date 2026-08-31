@@ -997,72 +997,69 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-bool Sema::isTraitObjectOf(res::Context &ctx, res::Type *type, res::Type *any) {
-  auto *anyType = any->getAs<res::AnyTraitType>();
-  if (!anyType || type->getAs<res::AnyTraitType>())
-    return false;
-
-  auto result =
-      ctx.querySatisfyingTraits(type, anyType->withSelfType(&ctx, type));
-
-  if (result.state != res::Context::QueryState::Success)
-    return false;
-
-  return ctx.unify(anyType->withSelfType(&ctx, type), result.items.front())
-      .empty();
-}
-
 res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
+  auto *toRef = to->getAs<res::RefType>();
   res::Type *from = expr->getType();
 
-  // * -> *any
-  if (auto *toPtr = to->getAs<res::PointerType>()) {
-    auto *fromPtr = from->getAs<res::PointerType>();
-    if (!fromPtr || ctx.eq(fromPtr, toPtr) ||
-        fromPtr->isMutable() != toPtr->isMutable())
-      return expr;
-
-    if (isTraitObjectOf(ctx, fromPtr->getPointeeType(),
-                        toPtr->getPointeeType())) {
-      expr = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
-      expr->setType(to);
-    }
-
-    return expr;
-  }
-
-  auto *toRef = to->getAs<res::RefType>();
-  if (!toRef || (!expr->isMutable() && toRef->isMutable()))
-    return expr;
-
   res::Expr *coerced = expr;
-
-  // val -> &
-  res::Type *toReferencedType = toRef->getReferencedType();
-  if (ctx.unify(from, toReferencedType).empty() ||
-      isTraitObjectOf(ctx, from, toReferencedType)) {
-    coerced = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
-    coerced->setType(res::RefType::create(ctx, from, toRef->isMutable()));
+  if (toRef && !from->getAs<res::RefType>() &&
+      (expr->isMutable() || !toRef->isMutable())) {
+    if (auto *fromPtr = from->getAs<res::PointerType>();
+        fromPtr && !toRef->getReferencedType()->getAs<res::PointerType>()) {
+      // *type -> &type
+      coerced = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
+      coerced->setType(res::RefType::create(ctx, fromPtr->getPointeeType(),
+                                            toRef->isMutable()));
+    } else if (ctx.unify(from, toRef->getReferencedType()).empty() ||
+               toRef->getReferencedType()->getAs<res::AnyTraitType>()) {
+      // type -> &type
+      coerced = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
+      coerced->setType(res::RefType::create(ctx, from, toRef->isMutable()));
+    }
   }
 
-  // * -> &
-  else if (auto *fromPtr = from->getAs<res::PointerType>()) {
-    coerced = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
-    coerced->setType(res::RefType::create(ctx, fromPtr->getPointeeType(),
-                                          toRef->isMutable()));
+  // *type -> *any
+  // &type -> &any
+  res::Type *exprType = coerced->getType();
+
+  res::Type *promoFrom = nullptr;
+  res::AnyTraitType *anyType = nullptr;
+
+  if (auto *ptr = to->getAs<res::PointerType>()) {
+    anyType = ptr->getPointeeType()->getAs<res::AnyTraitType>();
+
+    auto *fromPtr = exprType->getAs<res::PointerType>();
+    if (fromPtr && fromPtr->isMutable() == ptr->isMutable())
+      promoFrom = fromPtr->getPointeeType();
   }
 
-  auto *fromRef = coerced->getType()->getAs<res::RefType>();
-  if (!fromRef || ctx.unify(fromRef, toRef).empty())
-    return coerced;
+  if (auto *ref = to->getAs<res::RefType>()) {
+    anyType = ref->getReferencedType()->getAs<res::AnyTraitType>();
 
-  if (isTraitObjectOf(ctx, fromRef->getReferencedType(),
-                      toRef->getReferencedType())) {
-    expr = res::TraitObjectPromoExpr::create(ctx, expr->location, coerced);
-    expr->setType(to);
+    auto *fromRef = exprType->getAs<res::RefType>();
+    if (fromRef && coerced->isMutable() == ref->isMutable())
+      promoFrom = fromRef->getReferencedType();
   }
 
-  return expr;
+  if (promoFrom && anyType && !ctx.eq(promoFrom, anyType) &&
+      !promoFrom->getAs<res::AnyTraitType>()) {
+
+    res::TraitType *trait = anyType->withSelfType(&ctx, promoFrom);
+    auto result = ctx.querySatisfyingTraits(promoFrom, trait);
+
+    if (result.state == res::Context::QueryState::Success) {
+      ctx.unify(result.items.front(), trait);
+      coerced =
+          res::TraitObjectPromoExpr::create(ctx, coerced->location, coerced);
+      coerced->setType(to);
+    } else {
+      for (auto &&diag : result.diags)
+        diag.at(expr->location).report(reporter);
+      return expr;
+    }
+  }
+
+  return coerced;
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
