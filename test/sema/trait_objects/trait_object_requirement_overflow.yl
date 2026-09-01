@@ -8,5 +8,5 @@ extension<T, U : A<S<T>>> U : A<T> {}
 fn main() {
   let a: *any A<number> = gc 123;
   // CHECK: [[# @LINE - 1 ]]:27: error: overflow while solving 'number : A<number>'
-  // CHECK: [[# @LINE - 2 ]]:27: error: an expression of type '*number' cannot be used to initialize a variable of type '*any A<number>'
 }
+// CHECK-NOT: {{.*error.*}}

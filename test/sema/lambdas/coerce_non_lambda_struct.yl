@@ -2,6 +2,6 @@
 struct S {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:25: error: an expression of type 'S' cannot be used to initialize a variable of type '() -> unit'
+  // CHECK: [[# @LINE + 1 ]]:25: error: cannot unify 'S' with '() -> unit'
   let f: () -> unit = S {};
 }

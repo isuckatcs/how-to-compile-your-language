@@ -9,7 +9,7 @@ fn foo(s: S): S {
 
 fn bar(s: S): S {
   return S2 {};
-  // CHECK: [[# @LINE - 1 ]]:13: error: cannot return 'S2' from a function returning 'S'
+  // CHECK: [[# @LINE - 1 ]]:13: error: cannot unify 'S2' with 'S'
 }
 
 fn main(): unit {

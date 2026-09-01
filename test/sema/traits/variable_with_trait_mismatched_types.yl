@@ -15,7 +15,7 @@ fn foo<T : A, U : B<T>>() {
   let u: U;
   let s2 = S2{};
 
-  // CHECK: [[# @LINE + 1]]:7: error: expected to assign 'U' but received 'S2' instead
+  // CHECK: [[# @LINE + 1]]:7: error: cannot unify 'S2' with 'U'
   u = s2;
 }
 

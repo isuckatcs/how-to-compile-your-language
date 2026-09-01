@@ -10,10 +10,10 @@ struct S {}
 extension S : A {}
 
 fn foo(a: *any A, b: *any B) {
-  // CHECK: [[# @LINE + 1 ]]:19: error: an expression of type '*any B' cannot be used to initialize a variable of type '*any C'
+  // CHECK: [[# @LINE + 1 ]]:19: error: cannot unify '*any B' with '*any C'
   let x: *any C = b;
   
-  // CHECK: [[# @LINE + 1 ]]:19: error: an expression of type '*any A' cannot be used to initialize a variable of type '*any B'
+  // CHECK: [[# @LINE + 1 ]]:19: error: cannot unify '*any A' with '*any B'
   let y: *any B = a;
 }
 

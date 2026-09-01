@@ -6,12 +6,12 @@ trait B : A {}
 trait C {}
 
 fn foo(x: *any B): *any C {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*any B' from a function returning '*any C'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '*any B' with '*any C'
   return x;
 }
 
 fn bar(x: *any A): *any B {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '*any A' from a function returning '*any B'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '*any A' with '*any B'
   return x;
 }
 

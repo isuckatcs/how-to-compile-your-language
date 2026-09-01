@@ -12,7 +12,7 @@ fn main(): unit {
 
   s.x = 1;
   s2.x = s2;
-  // CHECK: [[# @LINE - 1 ]]:10: error: expected to assign 'number' but received 'S2' instead
+  // CHECK: [[# @LINE - 1 ]]:10: error: cannot unify 'S2' with 'number'
 
   foo().x = 1;
 }

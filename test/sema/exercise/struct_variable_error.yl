@@ -5,5 +5,5 @@ struct S2 {}
 fn main(): unit {
   let x: S = S {};
   let y: S = S2 {};
-  // CHECK: [[# @LINE - 1 ]]:17: error: an expression of type 'S2' cannot be used to initialize a variable of type 'S'
+  // CHECK: [[# @LINE - 1 ]]:17: error: cannot unify 'S2' with 'S'
 }

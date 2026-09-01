@@ -8,7 +8,7 @@ fn main(): unit {
     // CHECK: [[# @LINE + 1 ]]:13: error: failed to resolve type 'customType'
     mut x2: customType;
     
-    // CHECK: [[# @LINE + 1 ]]:25: error: an expression of type 'unit' cannot be used to initialize a variable of type 'number'
+    // CHECK: [[# @LINE + 1 ]]:25: error: cannot unify 'unit' with 'number'
     let x3: number = foo();
 
     let x4: number;

@@ -13,5 +13,5 @@ fn main(): unit {
 
   s = s;
   s = s2;
-  // CHECK: [[# @LINE - 1 ]]:7: error: expected to assign 'S' but received 'S2' instead
+  // CHECK: [[# @LINE - 1 ]]:7: error: cannot unify 'S2' with 'S'
 }

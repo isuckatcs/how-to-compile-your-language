@@ -8,7 +8,7 @@ fn main(): unit {
 
   if s {}
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'bool' but received 'S' instead
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'S' with 'bool'
   s = S { x: 1 };
 }
 

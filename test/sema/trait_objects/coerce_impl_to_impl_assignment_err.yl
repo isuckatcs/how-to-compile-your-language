@@ -10,10 +10,10 @@ struct S {}
 extension S : A {}
 
 fn foo(x: *any A, mut y: *any B, mut z: *any C) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any B' but received '*any A' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*any A' with '*any B'
   y = x;
   
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any C' but received '*any B' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*any B' with '*any C'
   z = y;
 }
 

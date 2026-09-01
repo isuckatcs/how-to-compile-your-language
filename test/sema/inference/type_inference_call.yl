@@ -8,7 +8,7 @@ fn foo(): number {
 
   bar(x);
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'S' with 'number'
   x = S { x: 1 };
 }
 

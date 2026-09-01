@@ -8,10 +8,10 @@ struct S {}
 extension S : A {}
 
 fn foo(mut x: *any A, y: *any B) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any A' but received '*mut S' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*mut S' with '*any A'
   x = gc mut S{};
   
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign '*any B' but received '*S' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'S : B'
   y = gc S{};
 }
 

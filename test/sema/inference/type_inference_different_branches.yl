@@ -9,7 +9,7 @@ fn foo(x: number): unit {
   if x == 1 {
     s = 0;
   } else {
-    // CHECK: [[# @LINE + 1 ]]:11: error: expected to assign 'number' but received 'S' instead
+    // CHECK: [[# @LINE + 1 ]]:11: error: cannot unify 'S' with 'number'
     s = S { x: 1 };
   }
 }

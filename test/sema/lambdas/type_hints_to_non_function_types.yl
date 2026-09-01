@@ -6,17 +6,17 @@ struct S<T> {
 fn foo(x: unit) {}
 
 fn bar<T>(t: T) {
-  // CHECK: [[# @LINE + 1 ]]:7: error: expected to assign 'T' but received '(number) -> unit' instead
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '(number) -> unit' with 'T'
   t = ->(x: number){};
 }
 
 fn baz(): S<*unit> {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '(number) -> unit' from a function returning 'S<*unit>'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '(number) -> unit' with 'S<*unit>'
   return ->(x: number){};
 }
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:19: error: an expression of type '(unit) -> unit' cannot be used to initialize a variable of type 'number'
+  // CHECK: [[# @LINE + 1 ]]:19: error: cannot unify '(unit) -> unit' with 'number'
   let n: number = ->(x: unit){};
 
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '(S<unit>) -> unit' with 'unit'

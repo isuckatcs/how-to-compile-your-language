@@ -7,7 +7,7 @@ fn main(): unit {
   mut s;
   s = 0;
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'S' with 'number'
   s = S { x: 1 };
 }
 

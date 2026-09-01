@@ -10,9 +10,9 @@ fn main(): unit {
   y = x;
   y = 2;
 
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'S' with 'number'
   x = S { x: 1 };
-  // CHECK: [[# @LINE + 1 ]]:9: error: expected to assign 'number' but received 'S' instead
+  // CHECK: [[# @LINE + 1 ]]:9: error: cannot unify 'S' with 'number'
   y = S { x: 1 };
 }
 

@@ -112,9 +112,6 @@ diag(Error, unknownFunctionAssignment, "unknown function type '{}' on the lhs of
 diag(Error, ambiguousConformance, "'{}' ambiguously satisfies requirement '{} : {}'")
 diag(Error, annotationsNeeded, "explicit type annotations are needed to infer the type of '{}'");
 diag(Error, annotationsNeededForRequirements, "explicit type annotations needed to disambiguate requirements");
-diag(Error, initTyMismatch, "an expression of type '{}' cannot be used to initialize a variable of type '{}'");
-diag(Error, incompatibleAssignment, "expected to assign '{}' but received '{}' instead");
-diag(Error, invalidReturnValue, "cannot return '{}' from a function returning '{}'");
 diag(Error, expectedOperandTy, "expected '{}' operand");
 diag(Error, expectedPointerOperand, "only pointer operands can be dereferenced");
 diag(Error, memberBaseUnknown, "type of base expression is unknown");

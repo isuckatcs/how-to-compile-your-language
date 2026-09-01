@@ -2,7 +2,7 @@
 fn foo(): unit {}
 
 fn bar(): (unit) -> unit {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot return '() -> unit' from a function returning '(unit) -> unit'
+  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '() -> unit' with '(unit) -> unit'
   return foo;
 }
 

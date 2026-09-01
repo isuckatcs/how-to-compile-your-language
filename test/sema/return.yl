@@ -7,7 +7,7 @@ fn foo(): number {
     // CHECK: [[# @LINE + 1 ]]:5: error: expected a return value
     return;
 
-    // CHECK: [[# @LINE + 1 ]]:16: error: cannot return 'unit' from a function returning 'number'
+    // CHECK: [[# @LINE + 1 ]]:16: error: cannot unify 'unit' with 'number'
     return main();
 }
 
@@ -24,6 +24,6 @@ fn main(): unit {
         return;
     }
 
-    // CHECK: [[# @LINE + 1 ]]:12: error: cannot return 'number' from a function returning 'unit'
+    // CHECK: [[# @LINE + 1 ]]:12: error: cannot unify 'number' with 'unit'
     return 1.0;
 }

@@ -1128,13 +1128,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment().at(lhs->location).report(reporter);
 
   auto *lhsTy = lhs->getType();
-  auto *coercedRhs = tryCoerce(ctx, rhs, lhsTy);
-  if (!coercedRhs)
-    return err::incompatibleAssignment()
-        .at(rhs->location)
-        .with(lhsTy->getName())
-        .with(rhs->getType()->getName())
-        .report(reporter);
+  varOrReturn(coercedRhs, tryCoerce(ctx, rhs, lhsTy));
 
   if (auto *fnType = lhsTy->getAs<res::FunctionType>()) {
     auto *retTypeUninferred =
@@ -1163,17 +1157,8 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
 
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
-    expr = resolveExpr(ctx, *returnStmt.expr, retTy);
-    if (!expr)
-      return nullptr;
-
-    auto *coercedExpr = tryCoerce(ctx, expr, retTy);
-    if (!coercedExpr)
-      return err::invalidReturnValue()
-          .at(expr->location)
-          .with(expr->getType()->getName())
-          .with(retTy->getName())
-          .report(reporter);
+    varOrReturn(resolvedExpr, resolveExpr(ctx, *returnStmt.expr, retTy));
+    varOrReturn(coercedExpr, tryCoerce(ctx, resolvedExpr, retTy));
 
     coercedExpr->setConstantValue(cee->evaluate(*coercedExpr));
     expr = coercedExpr;
@@ -1482,14 +1467,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   res::Expr *initializer = nullptr;
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
-
-    auto *coercedInit = tryCoerce(ctx, init, declTy);
-    if (!coercedInit)
-      return err::initTyMismatch()
-          .at(init->location)
-          .with(init->getType()->getName())
-          .with(declTy->getName())
-          .report(reporter);
+    varOrReturn(coercedInit, tryCoerce(ctx, init, declTy));
 
     coercedInit->setConstantValue(cee->evaluate(*coercedInit));
     initializer = coercedInit;
