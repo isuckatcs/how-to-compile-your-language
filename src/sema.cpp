@@ -1018,11 +1018,11 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
       promoFrom = fromPtr->getPointeeType();
   }
 
-  if (auto *ref = to->getAs<res::RefType>()) {
-    anyType = ref->getReferencedType()->getAs<res::AnyTraitType>();
+  if (auto *toRef = to->getAs<res::RefType>()) {
+    anyType = toRef->getReferencedType()->getAs<res::AnyTraitType>();
 
     auto *fromRef = exprType->getAs<res::RefType>();
-    if (fromRef && coerced->isMutable() == ref->isMutable())
+    if (fromRef && fromRef->isMutable() == toRef->isMutable())
       promoFrom = fromRef->getReferencedType();
   }
 
