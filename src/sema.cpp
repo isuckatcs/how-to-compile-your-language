@@ -987,16 +987,17 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
   res::Type *from = expr->getType();
 
   res::Expr *coerced = expr;
-  if (toRef && !from->getAs<res::RefType>() &&
-      (expr->isMutable() || !toRef->isMutable())) {
+  if (toRef && !from->getAs<res::RefType>()) {
     if (auto *fromPtr = from->getAs<res::PointerType>();
-        fromPtr && !toRef->getReferencedType()->getAs<res::PointerType>()) {
+        fromPtr && !toRef->getReferencedType()->getAs<res::PointerType>() &&
+        (fromPtr->isMutable() || !toRef->isMutable())) {
       // *type -> &type
       coerced = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
       coerced->setType(res::RefType::create(ctx, fromPtr->getPointeeType(),
                                             toRef->isMutable()));
-    } else if (ctx.unify(from, toRef->getReferencedType()).empty() ||
-               toRef->getReferencedType()->getAs<res::AnyTraitType>()) {
+    } else if ((expr->isMutable() || !toRef->isMutable()) &&
+               (ctx.unify(from, toRef->getReferencedType()).empty() ||
+                toRef->getReferencedType()->getAs<res::AnyTraitType>())) {
       // type -> &type
       coerced = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
       coerced->setType(res::RefType::create(ctx, from, toRef->isMutable()));

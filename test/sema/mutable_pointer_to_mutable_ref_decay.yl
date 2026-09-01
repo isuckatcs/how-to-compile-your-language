@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn foo(s: &mut number) {}
+
+fn main() {
+  let p = gc mut 123;
+  foo(p);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(&mut number) -> unit}
+  // CHECK-NEXT:   ImplicitPtrToRefDecay {&mut number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) p {*mut number}
+}
