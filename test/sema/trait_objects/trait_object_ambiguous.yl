@@ -12,5 +12,5 @@ fn main() {
   // CHECK: [[# @LINE - 1 ]]:7: error: 'A<number>' ambiguously satisfies requirement 'number : A<_>'
   // CHECK: [[# @LINE - 2 ]]:7: error: 'A<bool>' ambiguously satisfies requirement 'number : A<_>'
   // CHECK: [[# @LINE - 3 ]]:7: error: explicit type annotations needed to disambiguate requirements
-  // CHECK: [[# @LINE - 4 ]]:7: error: cannot unify 'number' with '&any A<_>'
 }
+// CHECK-NOT: {{.*error.*}}

@@ -674,17 +674,12 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       continue;
     }
 
-    resolvedArgument = tryCoerce(ctx, resolvedArgument, expectedType);
-    res::Type *actualType = resolvedArgument->getType();
-
-    if (auto errors = ctx.unify(actualType, expectedType); !errors.empty()) {
-      for (auto &&error : errors)
-        error.at(argument->location).report(reporter);
+    auto *coercedArgument = tryCoerce(ctx, resolvedArgument, expectedType);
+    if (!coercedArgument)
       continue;
-    }
 
-    resolvedArgument->setConstantValue(cee->evaluate(*resolvedArgument));
-    resCall->addArg(resolvedArgument);
+    coercedArgument->setConstantValue(cee->evaluate(*coercedArgument));
+    resCall->addArg(coercedArgument);
   }
 
   if (resCall->arguments.size() != expectedArgCnt)
@@ -740,18 +735,14 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    resolvedInitExpr = tryCoerce(ctx, resolvedInitExpr, fieldTy);
-    res::Type *initTy = resolvedInitExpr->getType();
-
-    if (auto errors = ctx.unify(initTy, fieldTy); !errors.empty()) {
-      for (auto &&error : errors)
-        error.at(resolvedInitExpr->location).report(reporter);
+    auto *coercedInitExpr = tryCoerce(ctx, resolvedInitExpr, fieldTy);
+    if (!coercedInitExpr) {
       error = true;
       continue;
     }
 
     inits[id] = resolvedFieldInits.emplace_back(
-        res::FieldInitStmt::create(ctx, loc, fieldDecl, resolvedInitExpr));
+        res::FieldInitStmt::create(ctx, loc, fieldDecl, coercedInitExpr));
   }
 
   for (auto &&fieldDecl : sd->fields) {
@@ -866,15 +857,9 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   call->setType(functionType->getReturnType());
 
   auto *selfType = functionType->getArgs()[0];
-  base = tryCoerce(ctx, base, selfType);
+  varOrReturn(coercedBase, tryCoerce(ctx, base, selfType));
 
-  if (auto errors = ctx.unify(base->getType(), selfType); !errors.empty()) {
-    for (auto &&error : errors)
-      error.at(base->location).report(reporter);
-    return nullptr;
-  }
-
-  call->addArg(base);
+  call->addArg(coercedBase);
   return call;
 }
 
@@ -1055,8 +1040,16 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
     } else {
       for (auto &&diag : result.diags)
         diag.at(expr->location).report(reporter);
-      return expr;
+      return nullptr;
     }
+  }
+
+  auto errors = ctx.unify(coerced->getType(), to);
+  if (!errors.empty()) {
+    for (auto &&error : errors)
+      error.at(expr->location).report(reporter);
+
+    return nullptr;
   }
 
   return coerced;
@@ -1133,21 +1126,15 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
 
   if (!lhs->isLvalue())
     return err::rvalueAssignment().at(lhs->location).report(reporter);
+
   auto *lhsTy = lhs->getType();
-
-  rhs = tryCoerce(ctx, rhs, lhsTy);
-  auto *rhsTy = rhs->getType();
-
-  if (auto errors = ctx.unify(lhsTy, rhsTy); !errors.empty()) {
-    for (auto &&error : errors)
-      error.at(rhs->location).report(reporter);
-
+  auto *coercedRhs = tryCoerce(ctx, rhs, lhsTy);
+  if (!coercedRhs)
     return err::incompatibleAssignment()
         .at(rhs->location)
         .with(lhsTy->getName())
-        .with(rhsTy->getName())
+        .with(rhs->getType()->getName())
         .report(reporter);
-  }
 
   if (auto *fnType = lhsTy->getAs<res::FunctionType>()) {
     auto *retTypeUninferred =
@@ -1161,8 +1148,8 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
             .report(reporter);
   }
 
-  rhs->setConstantValue(cee->evaluate(*rhs));
-  return res::Assignment::create(ctx, assignment.location, lhs, rhs);
+  coercedRhs->setConstantValue(cee->evaluate(*coercedRhs));
+  return res::Assignment::create(ctx, assignment.location, lhs, coercedRhs);
 }
 
 res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
@@ -1180,17 +1167,16 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
     if (!expr)
       return nullptr;
 
-    expr = tryCoerce(ctx, expr, retTy);
-    res::Type *exprTy = expr->getType();
-
-    if (!ctx.unify(retTy, exprTy).empty())
+    auto *coercedExpr = tryCoerce(ctx, expr, retTy);
+    if (!coercedExpr)
       return err::invalidReturnValue()
           .at(expr->location)
-          .with(exprTy->getName())
+          .with(expr->getType()->getName())
           .with(retTy->getName())
           .report(reporter);
 
-    expr->setConstantValue(cee->evaluate(*expr));
+    coercedExpr->setConstantValue(cee->evaluate(*coercedExpr));
+    expr = coercedExpr;
   }
 
   return res::ReturnStmt::create(ctx, returnStmt.location, expr);
@@ -1497,18 +1483,16 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
 
-    init = tryCoerce(ctx, init, declTy);
-    auto *initTy = init->getType();
-
-    if (!ctx.unify(declTy, initTy).empty())
+    auto *coercedInit = tryCoerce(ctx, init, declTy);
+    if (!coercedInit)
       return err::initTyMismatch()
           .at(init->location)
-          .with(initTy->getName())
+          .with(init->getType()->getName())
           .with(declTy->getName())
           .report(reporter);
 
-    init->setConstantValue(cee->evaluate(*init));
-    initializer = init;
+    coercedInit->setConstantValue(cee->evaluate(*coercedInit));
+    initializer = coercedInit;
   }
 
   auto *vd = res::VarDecl::create(ctx, varDecl.location, varDecl.identifier,

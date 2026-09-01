@@ -17,7 +17,7 @@ fn main() {
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*any A'
     x: gc mut S{},
 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*S' with '*any B'
+    // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy requirement 'S : B'
     y: gc S{},
   };
 }
