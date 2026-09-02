@@ -1048,6 +1048,13 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
   auto *entryBB = llvm::BasicBlock::Create(context, "entry", function);
   builder.SetInsertPoint(entryBB);
 
+  auto *decl = fn.decl;
+  if (decl->isBuiltin &&
+      (decl->identifier == "null" || decl->identifier == "nullMut")) {
+    builder.CreateRet(llvm::ConstantPointerNull::get(builder.getPtrTy()));
+    return;
+  }
+
   // Note: llvm:Instruction has a protected destructor.
   llvm::Value *undef = llvm::UndefValue::get(builder.getInt32Ty());
   allocaInsertPoint = new llvm::BitCastInst(undef, undef->getType(),
@@ -1072,8 +1079,7 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
     ++nonVoidArgIdx;
   }
 
-  auto *functionDecl = fn.decl;
-  for (auto &&paramDecl : functionDecl->params) {
+  for (auto &&paramDecl : decl->params) {
     res::Type *paramDeclTy = getMonoType(paramDecl->getType());
     llvm::Type *argTy = generateType(paramDeclTy);
     if (dl->getTypeAllocSize(argTy) == 0) {
@@ -1097,18 +1103,13 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
     declarations[paramDecl] = argVal;
     ++nonVoidArgIdx;
   }
-  function->getArg(function->arg_size() - 1)->setName("closure");
 
-  if (functionDecl->isBuiltin && functionDecl->identifier == "null")
-    generateBuiltinNullBody();
-  else if (functionDecl->isBuiltin && functionDecl->identifier == "nullMut")
-    generateBuiltinNullMutBody();
-  else if (functionDecl->isBuiltin && functionDecl->identifier == "gcCollect")
+  if (decl->isBuiltin && decl->identifier == "gcCollect")
     generateBuiltinGCCollectBody();
-  else if (functionDecl->isBuiltin && functionDecl->identifier == "println")
-    generateBuiltinPrintlnBody(*functionDecl);
+  else if (decl->isBuiltin && decl->identifier == "println")
+    generateBuiltinPrintlnBody(*decl);
   else
-    generateBlock(*functionDecl->body);
+    generateBlock(*decl->body);
 
   if (retBB->hasNPredecessorsOrMore(1)) {
     breakIntoBB(retBB);
@@ -1126,18 +1127,6 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
     builder.CreateRetVoid();
   else
     builder.CreateRet(loadValue(retVal, returnTy));
-}
-
-void Codegen::generateBuiltinNullBody() {
-  builder.CreateStore(llvm::ConstantPointerNull::get(builder.getPtrTy()),
-                      retVal);
-  breakIntoBB(retBB);
-}
-
-void Codegen::generateBuiltinNullMutBody() {
-  builder.CreateStore(llvm::ConstantPointerNull::get(builder.getPtrTy()),
-                      retVal);
-  breakIntoBB(retBB);
 }
 
 void Codegen::generateBuiltinGCCollectBody() {
@@ -1186,6 +1175,7 @@ llvm::Function *Codegen::generateFunctionDecl(const mono::Function &fn) {
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                           fn.name, module);
   function->setAttributes(constructAttrList(type));
+  function->getArg(function->arg_size() - 1)->setName("closure");
 
   return function;
 }

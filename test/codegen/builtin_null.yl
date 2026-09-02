@@ -6,22 +6,11 @@ fn main() {
 }
 // CHECK: define ptr @_Y4nullGnE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca ptr, align 8
-// CHECK-NEXT:   store ptr null, ptr %retval, align 8
-// CHECK-NEXT:   br label %return
-// CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load ptr, ptr %retval, align 8
-// CHECK-NEXT:   ret ptr %0
+// CHECK-NEXT:   ret ptr null
 // CHECK-NEXT: }
 
 // CHECK: define ptr @_Y7nullMutGnE(ptr %closure) {
 // CHECK-NEXT: entry:
-// CHECK-NEXT:   %retval = alloca ptr, align 8
-// CHECK-NEXT:   store ptr null, ptr %retval, align 8
-// CHECK-NEXT:   br label %return
-// CHECK-NEXT: 
-// CHECK-NEXT: return:                                           ; preds = %entry
-// CHECK-NEXT:   %0 = load ptr, ptr %retval, align 8
-// CHECK-NEXT:   ret ptr %0
+// CHECK-NEXT:   ret ptr null
 // CHECK-NEXT: }
+
