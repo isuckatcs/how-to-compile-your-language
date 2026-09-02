@@ -352,7 +352,7 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   bool isLogicalOp = op == TokenKind::AmpAmp || op == TokenKind::PipePipe;
   bool isNumericOp = !isLogicalOp && op != TokenKind::EqualEqual;
 
-  bool typeError = !ctx.unify(lhsTy, rhsTy).empty();
+  bool typeError = !ctx.canUnify(lhsTy, rhsTy);
   typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
   typeError |= isNumericOp && !rhsTy->getAs<res::BuiltinNumberType>();
   typeError |=
@@ -2024,7 +2024,7 @@ bool Sema::checkSelfParameter(res::Context &ctx,
     return false;
 
   auto *refType = param->getType()->getAs<res::RefType>();
-  if (!refType || !ctx.unify(refType->getReferencedType(), selfType).empty()) {
+  if (!refType || !ctx.canUnify(refType->getReferencedType(), selfType)) {
     err::selfWrongType().at(param->location).report(reporter);
     return false;
   }
@@ -2077,7 +2077,7 @@ bool Sema::hasSelfContainingStructs(res::Context &ctx) {
       res::Substitution sub = ty->getSub();
 
       for (auto &&[seenTy, seenLevel] : seen)
-        if (seenLevel < level && ctx.unify(seenTy, ty).empty())
+        if (seenLevel < level && ctx.canUnify(seenTy, ty))
           selfContaining.emplace(decl);
 
       if (selfContaining.count(decl))
@@ -2218,7 +2218,7 @@ bool Sema::checkVtableCompatibility(res::Context &ctx,
       const auto &param = fn->params[i];
       res::Type *paramType = param->getType();
 
-      if (!ctx.unify(paramType, ctx.instantiate(paramType, testSub)).empty()) {
+      if (!ctx.canUnify(paramType, ctx.instantiate(paramType, testSub))) {
         err::traitObjectSelfParam()
             .at(param->location)
             .with(trait->getName())
@@ -2230,7 +2230,7 @@ bool Sema::checkVtableCompatibility(res::Context &ctx,
 
     res::Type *retType =
         fn->getType()->getAs<res::FunctionType>()->getReturnType();
-    if (!ctx.unify(retType, ctx.instantiate(retType, testSub)).empty()) {
+    if (!ctx.canUnify(retType, ctx.instantiate(retType, testSub))) {
       err::traitObjectSelfReturn()
           .at(fnLoc)
           .with(trait->getName())
