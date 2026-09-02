@@ -141,7 +141,7 @@ public:
   QueryResult<AssociatedDeclRef>
   queryAssociatedDecls(std::string identifier, Type *type, TraitType *trait);
 
-  bool eq(Type *t1, Type *t2) const;
+  bool canUnify(Type *t1, Type *t2);
   std::vector<diag::DiagBuilder> unify(Type *t1, Type *t2);
   Type *instantiate(Type *t, const Substitution &sub);
 

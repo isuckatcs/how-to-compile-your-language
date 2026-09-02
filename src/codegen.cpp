@@ -1249,7 +1249,7 @@ llvm::Value *Codegen::lookupCalleeFromVtable(const res::CallExpr *call,
 
   unsigned idx = 0;
   for (auto &&[layoutTrait, layoutFn] : vtableLayout) {
-    if (layoutFn == dre->decl && resCtx->eq(layoutTrait, declTrait))
+    if (layoutFn == dre->decl && resCtx->canUnify(layoutTrait, declTrait))
       break;
 
     ++idx;

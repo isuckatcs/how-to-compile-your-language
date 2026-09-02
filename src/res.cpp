@@ -489,18 +489,15 @@ Context::queryExtensions(Type *type, TraitType *trait) {
   return result;
 }
 
-bool Context::eq(Type *t1, Type *t2) const {
-  t1 = t1->getRootType();
-  t2 = t2->getRootType();
+bool Context::canUnify(Type *t1, Type *t2) {
+  bool success = false;
 
-  if (!t1->isSameKind(t2))
-    return false;
+  probe([&, this](UnifyResult &unifyResult) {
+    doUnify(t1, t2, unifyResult);
+    success = unifyResult.state == QueryState::Success;
+  });
 
-  for (size_t i = 0; i < t1->args.size(); ++i)
-    if (!eq(t1->args[i], t2->args[i]))
-      return false;
-
-  return true;
+  return success;
 }
 
 std::vector<diag::DiagBuilder> Context::unify(Type *t1, Type *t2) {
@@ -528,7 +525,7 @@ template <typename Fn> void Context::probe(Fn &&fn) {
 
 Type *Context::instantiate(Type *t, const Substitution &sub) {
   for (auto &&[from, to] : sub)
-    if (eq(from->getRootType(), t->getRootType()))
+    if (canUnify(from->getRootType(), t->getRootType()))
       return to;
 
   if (auto *fnTy = t->getAs<FunctionType>())
@@ -630,14 +627,14 @@ std::vector<TraitType *> Context::getEveryConformance(Type *type) {
 
   for (auto &&trait : getDirectConformance(type)) {
     for (auto &&superTrait : getEveryConformance(trait)) {
-      auto pred = [&](res::TraitType *t) { return eq(t, superTrait); };
+      auto pred = [&](res::TraitType *t) { return canUnify(t, superTrait); };
       if (std::find_if(result.begin(), result.end(), pred) != result.end())
         continue;
 
       result.emplace_back(superTrait);
     }
 
-    auto pred = [&](res::TraitType *t) { return eq(t, trait); };
+    auto pred = [&](res::TraitType *t) { return canUnify(t, trait); };
     if (std::find_if(result.begin(), result.end(), pred) != result.end())
       continue;
     result.emplace_back(trait);

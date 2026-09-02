@@ -1063,7 +1063,7 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
       promoFrom = fromRef->getReferencedType();
   }
 
-  if (promoFrom && anyType && !ctx.eq(promoFrom, anyType) &&
+  if (promoFrom && anyType && !ctx.canUnify(promoFrom, anyType) &&
       !promoFrom->getAs<res::AnyTraitType>()) {
 
     res::TraitType *trait = anyType->withSelfType(&ctx, promoFrom);
@@ -1427,7 +1427,7 @@ bool Sema::resolveExtensionBody(res::Context &ctx,
     res::Type *expectedType = ctx.instantiate(traitFn->getType(), traitSub);
     res::Type *actualType = ctx.instantiate(implFn->getType(), implInstSub);
 
-    if (!ctx.eq(expectedType, actualType)) {
+    if (!ctx.canUnify(expectedType, actualType)) {
       err::fnSignatureMismatch()
           .at(implFn->location)
           .with(expectedType->getName())
