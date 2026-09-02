@@ -1087,18 +1087,25 @@ res::Expr *Sema::tryPromoteToTraitObject(res::Context &ctx,
   if (promoFrom && anyType && !ctx.canUnify(promoFrom, anyType) &&
       !promoFrom->getAs<res::AnyTraitType>()) {
 
+    if (promoFrom->getAs<res::UninferredType>())
+      return err::promoOperandUnknown()
+          .at(expr->location)
+          .with(exprType->getName())
+          .with(to->getName())
+          .report(reporter);
+
     res::TraitType *trait = anyType->withSelfType(&ctx, promoFrom);
     auto result = ctx.querySatisfyingTraits(promoFrom, trait);
 
-    if (result.state == res::Context::QueryState::Success) {
-      ctx.unify(result.items.front(), trait);
-      expr = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
-      expr->setType(to);
-    } else {
+    if (result.state != res::Context::QueryState::Success) {
       for (auto &&diag : result.diags)
         diag.at(expr->location).report(reporter);
       return nullptr;
     }
+
+    ctx.unify(result.items.front(), trait);
+    expr = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
+    expr->setType(to);
   }
 
   auto errors = ctx.unify(expr->getType(), to);

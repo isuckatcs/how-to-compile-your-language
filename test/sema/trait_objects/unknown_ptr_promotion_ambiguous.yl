@@ -1,0 +1,10 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+extension bool : A {}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:23: error: cannot promote unknown '*_' type to '*any A'
+  let a: *any A = null();
+}
