@@ -11,9 +11,9 @@ fn foo(x: *any A) {}
 fn bar(x: *any B) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*mut S' with '*any A'
   foo(gc mut S{});
 
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'S : B'
   bar(gc S{});
 }
+// CHECK-NOT: {{.*error.*}}

@@ -14,10 +14,11 @@ struct S2 {
 
 fn main() {
   S2{ 
-    // CHECK: [[# @LINE + 1 ]]:8: error: cannot unify '*mut S' with '*any A'
     x: gc mut S{},
 
     // CHECK: [[# @LINE + 1 ]]:8: error: cannot satisfy requirement 'S : B'
     y: gc S{},
   };
+  // CHECK: [[# @LINE - 6 ]]:5: error: field 'y' is not initialized
 }
+// CHECK-NOT: {{.*error.*}}

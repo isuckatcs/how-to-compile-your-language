@@ -8,7 +8,6 @@ struct S {}
 extension S : A {}
 
 fn foo(): *any A {
-  // CHECK: [[# @LINE + 1 ]]:10: error: cannot unify '*mut S' with '*any A'
   return gc mut S{};
 }
 
@@ -18,3 +17,4 @@ fn bar(): *any B {
 }
 
 fn main() {}
+// CHECK-NOT: {{.*error.*}}

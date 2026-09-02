@@ -1068,11 +1068,11 @@ res::Expr *Sema::tryPromoteToTraitObject(res::Context &ctx,
   res::Type *promoFrom = nullptr;
   res::AnyTraitType *anyType = nullptr;
 
-  if (auto *ptr = to->getAs<res::PointerType>()) {
-    anyType = ptr->getPointeeType()->getAs<res::AnyTraitType>();
+  if (auto *toPtr = to->getAs<res::PointerType>()) {
+    anyType = toPtr->getPointeeType()->getAs<res::AnyTraitType>();
 
     auto *fromPtr = exprType->getAs<res::PointerType>();
-    if (fromPtr && fromPtr->isMutable() == ptr->isMutable())
+    if (fromPtr && (fromPtr->isMutable() || !toPtr->isMutable()))
       promoFrom = fromPtr->getPointeeType();
   }
 
@@ -1080,7 +1080,7 @@ res::Expr *Sema::tryPromoteToTraitObject(res::Context &ctx,
     anyType = toRef->getReferencedType()->getAs<res::AnyTraitType>();
 
     auto *fromRef = exprType->getAs<res::RefType>();
-    if (fromRef && fromRef->isMutable() == toRef->isMutable())
+    if (fromRef && (fromRef->isMutable() || !toRef->isMutable()))
       promoFrom = fromRef->getReferencedType();
   }
 
