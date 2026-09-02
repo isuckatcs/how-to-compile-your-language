@@ -710,12 +710,15 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       continue;
     }
 
-    auto *coercedArgument = tryCoerce(ctx, resolvedArgument, expectedType);
-    if (!coercedArgument)
+    auto *refArgument =
+        coerceToRefIfNeeded(ctx, resolvedArgument, expectedType);
+    auto *promotedArgument =
+        tryPromoteToTraitObject(ctx, refArgument, expectedType);
+    if (!promotedArgument)
       continue;
 
-    coercedArgument->setConstantValue(cee->evaluate(*coercedArgument));
-    resCall->addArg(coercedArgument);
+    promotedArgument->setConstantValue(cee->evaluate(*promotedArgument));
+    resCall->addArg(promotedArgument);
   }
 
   if (resCall->arguments.size() != expectedArgCnt)
@@ -771,14 +774,15 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
       continue;
     }
 
-    auto *coercedInitExpr = tryCoerce(ctx, resolvedInitExpr, fieldTy);
-    if (!coercedInitExpr) {
+    auto *promotedInitExpr =
+        tryPromoteToTraitObject(ctx, resolvedInitExpr, fieldTy);
+    if (!promotedInitExpr) {
       error = true;
       continue;
     }
 
     inits[id] = resolvedFieldInits.emplace_back(
-        res::FieldInitStmt::create(ctx, loc, fieldDecl, coercedInitExpr));
+        res::FieldInitStmt::create(ctx, loc, fieldDecl, promotedInitExpr));
   }
 
   for (auto &&fieldDecl : sd->fields) {
@@ -893,9 +897,10 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
   call->setType(functionType->getReturnType());
 
   auto *selfType = functionType->getArgs()[0];
-  varOrReturn(coercedBase, tryCoerce(ctx, base, selfType));
+  auto *refBase = coerceToRefIfNeeded(ctx, base, selfType);
+  varOrReturn(promotedBase, tryPromoteToTraitObject(ctx, refBase, selfType));
 
-  call->addArg(coercedBase);
+  call->addArg(promotedBase);
   return call;
 }
 
@@ -1018,31 +1023,47 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
+res::Expr *
+Sema::coerceToRefIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
   auto *toRef = to->getAs<res::RefType>();
   res::Type *from = expr->getType();
 
-  res::Expr *coerced = expr;
-  if (toRef && !from->getAs<res::RefType>()) {
-    if (auto *fromPtr = from->getAs<res::PointerType>();
-        fromPtr && !toRef->getReferencedType()->getAs<res::PointerType>() &&
-        (fromPtr->isMutable() || !toRef->isMutable())) {
-      // *type -> &type
-      coerced = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
-      coerced->setType(res::RefType::create(ctx, fromPtr->getPointeeType(),
-                                            toRef->isMutable()));
-    } else if ((expr->isMutable() || !toRef->isMutable()) &&
-               (ctx.unify(from, toRef->getReferencedType()).empty() ||
-                toRef->getReferencedType()->getAs<res::AnyTraitType>())) {
-      // type -> &type
-      coerced = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
-      coerced->setType(res::RefType::create(ctx, from, toRef->isMutable()));
-    }
+  if (!toRef || from->getAs<res::RefType>())
+    return expr;
+
+  res::Type *referencedType = toRef->getReferencedType();
+
+  // *type -> &type
+  auto *fromPtr = from->getAs<res::PointerType>();
+  if (fromPtr && !referencedType->getAs<res::PointerType>()) {
+    if (!fromPtr->isMutable() && toRef->isMutable())
+      return expr;
+
+    auto *decay = res::ImplicitPtrToRefDecay::create(ctx, expr->location, expr);
+    decay->setType(res::RefType::create(ctx, fromPtr->getPointeeType(),
+                                        toRef->isMutable()));
+    return decay;
   }
 
+  // type -> &type
+  if (!expr->isMutable() && toRef->isMutable())
+    return expr;
+
+  bool toAny = referencedType->getAs<res::AnyTraitType>() != nullptr;
+  if (!toAny && !ctx.canUnify(from, referencedType))
+    return expr;
+
+  auto *asRef = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);
+  asRef->setType(res::RefType::create(ctx, from, toRef->isMutable()));
+  return asRef;
+}
+
+res::Expr *Sema::tryPromoteToTraitObject(res::Context &ctx,
+                                         res::Expr *expr,
+                                         res::Type *to) {
   // *type -> *any
   // &type -> &any
-  res::Type *exprType = coerced->getType();
+  res::Type *exprType = expr->getType();
 
   res::Type *promoFrom = nullptr;
   res::AnyTraitType *anyType = nullptr;
@@ -1071,9 +1092,8 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
 
     if (result.state == res::Context::QueryState::Success) {
       ctx.unify(result.items.front(), trait);
-      coerced =
-          res::TraitObjectPromoExpr::create(ctx, coerced->location, coerced);
-      coerced->setType(to);
+      expr = res::TraitObjectPromoExpr::create(ctx, expr->location, expr);
+      expr->setType(to);
     } else {
       for (auto &&diag : result.diags)
         diag.at(expr->location).report(reporter);
@@ -1081,7 +1101,7 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
     }
   }
 
-  auto errors = ctx.unify(coerced->getType(), to);
+  auto errors = ctx.unify(expr->getType(), to);
   if (!errors.empty()) {
     for (auto &&error : errors)
       error.at(expr->location).report(reporter);
@@ -1089,7 +1109,7 @@ res::Expr *Sema::tryCoerce(res::Context &ctx, res::Expr *expr, res::Type *to) {
     return nullptr;
   }
 
-  return coerced;
+  return expr;
 }
 
 res::Stmt *Sema::resolveStmt(res::Context &ctx, const ast::Stmt &stmt) {
@@ -1165,7 +1185,7 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment().at(lhs->location).report(reporter);
 
   auto *lhsTy = lhs->getType();
-  varOrReturn(coercedRhs, tryCoerce(ctx, rhs, lhsTy));
+  varOrReturn(promotedRhs, tryPromoteToTraitObject(ctx, rhs, lhsTy));
 
   if (auto *fnType = lhsTy->getAs<res::FunctionType>()) {
     auto *retTypeUninferred =
@@ -1179,8 +1199,8 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
             .report(reporter);
   }
 
-  coercedRhs->setConstantValue(cee->evaluate(*coercedRhs));
-  return res::Assignment::create(ctx, assignment.location, lhs, coercedRhs);
+  promotedRhs->setConstantValue(cee->evaluate(*promotedRhs));
+  return res::Assignment::create(ctx, assignment.location, lhs, promotedRhs);
 }
 
 res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
@@ -1195,10 +1215,11 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
     varOrReturn(resolvedExpr, resolveExpr(ctx, *returnStmt.expr, retTy));
-    varOrReturn(coercedExpr, tryCoerce(ctx, resolvedExpr, retTy));
+    varOrReturn(promotedExpr,
+                tryPromoteToTraitObject(ctx, resolvedExpr, retTy));
 
-    coercedExpr->setConstantValue(cee->evaluate(*coercedExpr));
-    expr = coercedExpr;
+    promotedExpr->setConstantValue(cee->evaluate(*promotedExpr));
+    expr = promotedExpr;
   }
 
   return res::ReturnStmt::create(ctx, returnStmt.location, expr);
@@ -1504,10 +1525,10 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
   res::Expr *initializer = nullptr;
   if (varDecl.initializer) {
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
-    varOrReturn(coercedInit, tryCoerce(ctx, init, declTy));
+    varOrReturn(promotedInit, tryPromoteToTraitObject(ctx, init, declTy));
 
-    coercedInit->setConstantValue(cee->evaluate(*coercedInit));
-    initializer = coercedInit;
+    promotedInit->setConstantValue(cee->evaluate(*promotedInit));
+    initializer = promotedInit;
   }
 
   auto *vd = res::VarDecl::create(ctx, varDecl.location, varDecl.identifier,

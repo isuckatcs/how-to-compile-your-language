@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+fn foo<T : A>(t: &T) {}
+
+fn main() {
+  let n = 123;
+  
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : A'
+  foo(n);
+}
