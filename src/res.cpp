@@ -104,12 +104,19 @@ void Context::ExtensionCache::buildKey(Type *type,
     if (!t)
       continue;
 
+    if (auto *tp = t->getAs<res::TypeParamType>())
+      ss << 'p' << tp;
+
     if (auto *u = t->getAs<res::UninferredType>())
       ss << 't' << std::get<size_t>(u->metadata);
 
-    for (auto &&a : t->args)
+    for (auto &&a : t->args) {
+      if (auto *tp = a->getAs<res::TypeParamType>())
+        ss << 'p' << tp;
+
       if (auto *u = a->getAs<res::UninferredType>())
         ss << 't' << std::get<size_t>(u->metadata);
+    }
   }
 
   ss << ':' << depth;

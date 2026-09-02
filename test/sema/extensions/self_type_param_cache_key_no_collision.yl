@@ -1,0 +1,26 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+trait B {}
+trait C {}
+
+extension<T : A> T : B {}
+
+fn foo<T: B>(t: T) {}
+
+trait Error : C {
+  fn foo(self: &Self) {
+    // query Self : B
+    foo(self);
+    // CHECK: [[# @LINE - 1 ]]:9: error: cannot satisfy requirement 'Self : B'
+  }
+}
+
+trait Pass : A {
+  fn foo(self: &Self) {
+    // query Self : B, should not be confused with the previous query
+    foo(self);
+  }
+}
+
+fn main() {}
+// CHECK-NOT: {{.*error.*}}
