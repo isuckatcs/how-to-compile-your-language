@@ -222,6 +222,8 @@ class Sema {
   bool implementsAllNecessaryTraitFunctions(res::TypeExtension *extension);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
+  res::FunctionDecl *createBuiltinNull(res::Context &ctx);
+  res::FunctionDecl *createBuiltinNullMut(res::Context &ctx);
   res::FunctionDecl *createBuiltinPrintln(res::Context &ctx);
   res::FunctionDecl *createBuiltinGCCollect(res::Context &ctx);
 

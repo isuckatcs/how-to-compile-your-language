@@ -1,0 +1,10 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  null@<unit>();
+  // CHECK: CallExpr {*unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) null {() -> *unit}
+
+  nullMut@<number>();
+  // CHECK-NEXT: CallExpr {*mut number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) nullMut {() -> *mut number}
+}

@@ -80,6 +80,42 @@ bool Sema::insertDeclToCurrentScope(res::Decl *decl) {
   return true;
 }
 
+res::FunctionDecl *Sema::createBuiltinNull(res::Context &ctx) {
+  SourceLocation loc{nullptr, 0, 0};
+
+  auto *tp = res::TypeParamDecl::create(ctx, loc, "T");
+  tp->setType(res::TypeParamType::create(ctx, tp));
+
+  auto *fn = res::FunctionDecl::create(
+      ctx, loc, "null", scope->getDeclContext(), std::vector{tp});
+  fn->setBuiltin(true);
+
+  fn->setType(res::FunctionType::create(
+      ctx, std::vector<res::Type *>{},
+      res::PointerType::create(ctx, tp->getType(), false)));
+  fn->setBody(res::Block::create(ctx, loc, std::vector<res::Stmt *>()));
+
+  return fn;
+}
+
+res::FunctionDecl *Sema::createBuiltinNullMut(res::Context &ctx) {
+  SourceLocation loc{nullptr, 0, 0};
+
+  auto *tp = res::TypeParamDecl::create(ctx, loc, "T");
+  tp->setType(res::TypeParamType::create(ctx, tp));
+
+  auto *fn = res::FunctionDecl::create(
+      ctx, loc, "nullMut", scope->getDeclContext(), std::vector{tp});
+  fn->setBuiltin(true);
+
+  fn->setType(res::FunctionType::create(
+      ctx, std::vector<res::Type *>{},
+      res::PointerType::create(ctx, tp->getType(), true)));
+  fn->setBody(res::Block::create(ctx, loc, std::vector<res::Stmt *>()));
+
+  return fn;
+}
+
 res::FunctionDecl *Sema::createBuiltinPrintln(res::Context &ctx) {
   SourceLocation loc{nullptr, 0, 0};
   auto *numTy = res::BuiltinNumberType::create(ctx);
@@ -1855,6 +1891,14 @@ std::unique_ptr<res::Context> Sema::resolveAST() {
     error |= !resolveExtensionBody(*ctx, resExtension, *extension);
 
   error |= !runDeferredTypeChecks(*ctx);
+
+  auto *builtinNull = createBuiltinNull(*ctx);
+  insertDeclToCurrentScope(builtinNull);
+  ctx->getTU()->functions.emplace_back(builtinNull);
+
+  auto *builtinNullMut = createBuiltinNullMut(*ctx);
+  insertDeclToCurrentScope(builtinNullMut);
+  ctx->getTU()->functions.emplace_back(builtinNullMut);
 
   auto *builtinGCCollect = createBuiltinGCCollect(*ctx);
   insertDeclToCurrentScope(builtinGCCollect);

@@ -8,7 +8,7 @@ fn negate(mut x: number): number {
     // CHECK-NEXT: %1 = fneg double %0
 }
 
-fn null(mut x: number): number {
+fn nullop(mut x: number): number {
     return --x;
 
     // CHECK: %0 = load double, ptr %x1, align 8
@@ -30,6 +30,6 @@ fn timesNeg3(mut x: number): number {
 
 fn main(): unit {
     println(negate(2.34));
-    println(null(4.56));
+    println(nullop(4.56));
     println(timesNeg3(4));
 }
