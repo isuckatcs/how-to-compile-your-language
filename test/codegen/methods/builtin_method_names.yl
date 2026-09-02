@@ -1,6 +1,6 @@
 // RUN: compiler %s -verify-only
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
-// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n'
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n456\n789\n101112\n'
 struct S {}
 
 extension S {
@@ -21,6 +21,29 @@ extension S {
   // CHECK-NEXT:   call void @_Y7println(double 4.560000e+02, ptr null)
   // CHECK-NEXT:   ret void
   // CHECK-NEXT: }
+
+  fn null(self: &Self) {
+    null@<unit>();
+    println(789);
+  }
+  // CHECK: define void @_YS1S4null(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = call ptr @_Y4nullGuE(ptr null)
+  // CHECK-NEXT:   call void @_Y7println(double 7.890000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+
+  fn nullMut(self: &Self) {
+    nullMut@<unit>();
+    println(101112);
+  }
+  // CHECK: define void @_YS1S7nullMut(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = call ptr @_Y7nullMutGuE(ptr null)
+  // CHECK-NEXT:   call void @_Y7println(double 1.011120e+05, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
 }
 
 fn main() {
@@ -32,4 +55,10 @@ fn main() {
 
   s.gcCollect();
   // CHECK-NEXT: call void @_YS1S9gcCollect(ptr %s, ptr null)
+
+  s.null();
+  // CHECK-NEXT: call void @_YS1S4null(ptr %s, ptr null)
+
+  s.nullMut();
+  // CHECK-NEXT: call void @_YS1S7nullMut(ptr %s, ptr null)
 }

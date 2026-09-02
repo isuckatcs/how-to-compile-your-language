@@ -1099,7 +1099,11 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
   }
   function->getArg(function->arg_size() - 1)->setName("closure");
 
-  if (functionDecl->isBuiltin && functionDecl->identifier == "gcCollect")
+  if (functionDecl->isBuiltin && functionDecl->identifier == "null")
+    generateBuiltinNullBody();
+  else if (functionDecl->isBuiltin && functionDecl->identifier == "nullMut")
+    generateBuiltinNullMutBody();
+  else if (functionDecl->isBuiltin && functionDecl->identifier == "gcCollect")
     generateBuiltinGCCollectBody();
   else if (functionDecl->isBuiltin && functionDecl->identifier == "println")
     generateBuiltinPrintlnBody(*functionDecl);
@@ -1122,6 +1126,18 @@ void Codegen::generateFunctionBody(const mono::Function &fn) {
     builder.CreateRetVoid();
   else
     builder.CreateRet(loadValue(retVal, returnTy));
+}
+
+void Codegen::generateBuiltinNullBody() {
+  builder.CreateStore(llvm::ConstantPointerNull::get(builder.getPtrTy()),
+                      retVal);
+  breakIntoBB(retBB);
+}
+
+void Codegen::generateBuiltinNullMutBody() {
+  builder.CreateStore(llvm::ConstantPointerNull::get(builder.getPtrTy()),
+                      retVal);
+  breakIntoBB(retBB);
 }
 
 void Codegen::generateBuiltinGCCollectBody() {
