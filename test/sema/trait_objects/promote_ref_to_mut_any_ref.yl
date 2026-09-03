@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+
+fn foo(n: &number) {
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '&number' with '&mut any A'
+  bar(n);
+}
+
+fn bar(a: &mut any A) {}
+
+fn main() {}

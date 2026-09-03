@@ -1,0 +1,17 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+
+fn foo(n: &mut number) {
+  bar(n);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(&mut any A) -> unit}
+  // CHECK-NEXT:   TraitObjectPromoExpr {&mut any A}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {&mut number}
+}
+
+fn bar(a: &mut any A) {}
+
+fn main() {}
+
