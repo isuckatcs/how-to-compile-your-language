@@ -1,0 +1,20 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B {}
+
+fn foo<T : A>(t: T): T {
+  return t;
+}
+
+fn bar<T : B>(t: T): T {
+  return t;
+}
+
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:11: error: explicit type annotations are needed to infer the type of 'foo'
+  mut f = foo;
+
+  // CHECK: [[# @LINE + 1 ]]:7: error: explicit type annotations are needed to infer the type of 'bar'
+  f = bar;
+}

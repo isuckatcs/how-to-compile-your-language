@@ -1,0 +1,34 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B {}
+
+extension number : A {}
+
+extension number : B {}
+
+fn foo<T : A>(t: T): T {
+  return t;
+}
+
+fn bar<T : B>(t: T): T {
+  return t;
+}
+
+fn main() {
+  mut f = foo;
+  // CHECK: DeclStmt
+  // CHECK-NEXT:   VarDecl @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) foo {(number) -> number}
+
+  f = bar;
+  // CHECK-NEXT: Assignment
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) bar {(number) -> number}
+
+  f(123);
+  // CHECK-NEXT: CallExpr {number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) f {(number) -> number}
+  // CHECK-NEXT:   NumberLiteral '123' {number}
+  // CHECK-NEXT:   | value: 123
+}

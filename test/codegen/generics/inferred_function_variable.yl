@@ -1,0 +1,54 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n246\n'
+trait A { fn foo(self: &Self); }
+
+trait B { fn foo(self: &Self); }
+
+extension number : A {
+  fn foo(self: &Self) {
+    println(self);
+  }
+}
+
+extension number : B {
+  fn foo(self: &Self) {
+    println(self * 2);
+  }
+}
+
+fn foo<T : A>(t: T) {
+  t.foo();
+}
+
+fn bar<T : B>(t: T) {
+  t.foo();
+}
+
+fn main() {
+  mut f = foo;
+  // CHECK: store ptr @_Y3fooGnE, ptr %0, align 8
+
+  f(123);
+
+  f = bar;
+  // CHECK: store ptr @_Y3barGnE, ptr %6, align 8
+
+  f(123);
+}
+
+// CHECK: define void @_Y3fooGnE(double %t, ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %t1 = alloca double, align 8
+// CHECK-NEXT:   store double %t, ptr %t1, align 8
+// CHECK-NEXT:   call void @_YT1AGnE3foo(ptr %t1, ptr null)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK: define void @_Y3barGnE(double %t, ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %t1 = alloca double, align 8
+// CHECK-NEXT:   store double %t, ptr %t1, align 8
+// CHECK-NEXT:   call void @_YT1BGnE3foo(ptr %t1, ptr null)
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

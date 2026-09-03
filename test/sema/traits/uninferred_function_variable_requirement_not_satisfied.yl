@@ -1,0 +1,21 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {}
+
+trait B {}
+
+fn foo<T : A>(t: T): T {
+  return t;
+}
+
+fn bar<T : B>(t: T): T {
+  return t;
+}
+
+fn main() {
+  mut f = foo;
+
+  f = bar;
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: cannot satisfy requirement 'number : A'
+  f(123);
+}

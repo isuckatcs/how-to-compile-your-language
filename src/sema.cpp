@@ -1194,18 +1194,6 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   auto *lhsTy = lhs->getType();
   varOrReturn(promotedRhs, tryPromoteToTraitObject(ctx, rhs, lhsTy));
 
-  if (auto *fnType = lhsTy->getAs<res::FunctionType>()) {
-    auto *retTypeUninferred =
-        fnType->getReturnType()->getAs<res::UninferredType>();
-
-    for (auto &&argType : fnType->getArgs())
-      if (retTypeUninferred || argType->getAs<res::UninferredType>())
-        return err::unknownFunctionAssignment()
-            .at(lhs->location)
-            .with(lhsTy->getName())
-            .report(reporter);
-  }
-
   promotedRhs->setConstantValue(cee->evaluate(*promotedRhs));
   return res::Assignment::create(ctx, assignment.location, lhs, promotedRhs);
 }

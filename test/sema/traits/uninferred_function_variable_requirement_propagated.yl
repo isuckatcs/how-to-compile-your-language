@@ -3,6 +3,8 @@ trait A {}
 
 trait B {}
 
+extension number : A {}
+
 fn foo<T : A>(t: T): T {
   return t;
 }
@@ -12,7 +14,10 @@ fn bar<T : B>(t: T): T {
 }
 
 fn main() {
-  mut x = foo;
-  x = bar;
-  // CHECK: [[# @LINE - 1 ]]:3: error: unknown function type '(_) -> _' on the lhs of assignment
+  mut f = foo;
+
+  f = bar;
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: cannot satisfy requirement 'number : B'
+  f(123);
 }
