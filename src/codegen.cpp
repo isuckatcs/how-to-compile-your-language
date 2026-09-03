@@ -1167,9 +1167,6 @@ llvm::Function *Codegen::generateFunctionDecl(const mono::Function &fn) {
 
   assert(fn.decl->body && "generating function with no body");
 
-  if (auto *function = module.getFunction(fn.name))
-    return function;
-
   auto *type = getMonoType(fn.decl->getType())->getAs<res::FunctionType>();
   llvm::FunctionType *fnTy = generateFunctionType(type);
   auto *function = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
