@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -659,7 +660,7 @@ std::string ConstVal::asString() const {
         if constexpr (std::is_same_v<T, bool>)
           ss << (value ? "true" : "false");
         else if constexpr (std::is_same_v<T, double>)
-          ss << value;
+          ss << std::setprecision(15) << value;
 
         return ss.str();
       },
