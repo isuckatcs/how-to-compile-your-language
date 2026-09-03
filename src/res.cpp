@@ -132,9 +132,6 @@ void Context::add(std::unique_ptr<TypeExtension> extension) {
 }
 
 bool Context::occurs(Type *type, Type *in) const {
-  if (!type->getAs<res::UninferredType>() && !type->getAs<res::TypeParamType>())
-    return false;
-
   in = in->getRootType();
 
   if (type->isSameKind(in))
