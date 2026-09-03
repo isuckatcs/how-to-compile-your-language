@@ -370,14 +370,10 @@ Codegen::generatePtrToRef(const res::ImplicitPtrToRefDecay &decay) {
 
 llvm::Value *
 Codegen::generateTraitObjectPromo(const res::TraitObjectPromoExpr &promo) {
-  llvm::Value *obj = generateExpr(*promo.expr);
-
-  res::Type *resultType = getMonoType(promo.getType());
-  if (resultType->getAs<res::PointerType>() && promo.expr->isLvalue())
-    obj = loadValue(obj, builder.getPtrTy());
+  llvm::Value *obj = generateExprAndLoadValue(*promo.expr);
 
   auto *vtable = generateVtable(currentMonoFn->vtableRefs.at(&promo));
-  auto *traitObjTy = generateType(resultType);
+  auto *traitObjTy = generateType(getMonoType(promo.getType()));
   auto *traitObj = allocateStackVariable("traitObject", traitObjTy);
 
   builder.CreateStore(obj, builder.CreateStructGEP(traitObjTy, traitObj, 0));

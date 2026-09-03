@@ -1,0 +1,26 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+trait A {
+  fn foo(self: &Self);
+}
+
+extension number : A {
+  fn foo(self: &Self) {
+    println(self);
+  }
+}
+
+fn foo(a: *any A) {
+  a.foo();
+}
+
+fn main() {
+  mut n = gc mut 123;
+  foo(n);
+  // CHECK: %1 = load ptr, ptr %n, align 8
+  // CHECK-NEXT: %2 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 0
+  // CHECK-NEXT: store ptr %1, ptr %2, align 8
+  // CHECK-NEXT: %3 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
+  // CHECK-NEXT: store ptr @vtable.T1AGnE, ptr %3, align 8
+}
