@@ -100,6 +100,9 @@ ConstExprEvaluator::evaluateDeclRefExpr(const res::DeclRefExpr &dre) {
 }
 
 res::ConstVal ConstExprEvaluator::evaluate(const res::Expr &expr) {
+  if (expr.hasConstantValue())
+    return expr.getConstantValue();
+
   if (auto *numberLit = dynamic_cast<const res::NumberLiteral *>(&expr))
     return numberLit->value;
 
