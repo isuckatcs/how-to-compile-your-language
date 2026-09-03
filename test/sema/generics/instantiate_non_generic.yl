@@ -7,6 +7,11 @@ fn main(): unit {
 
   // CHECK: [[# @LINE + 1 ]]:7: error: 'main' is not a generic
   main@<unit>();
+
+  let a = 0;
+
+  // CHECK: [[# @LINE + 1 ]]:4: error: 'a' is not a generic
+  a@<number>;
 }
 
 // CHECK-NOT: {{.*error.*}}
