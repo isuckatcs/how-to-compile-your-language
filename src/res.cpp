@@ -86,6 +86,7 @@ Context::ExtensionCache::get(Type *type, TraitType *trait, int depth) const {
 
 void Context::ExtensionCache::addTypeToKey(Type *type,
                                            std::stringstream &ss) const {
+  type = type->getRootType();
   ss << type->baseName;
   std::visit([&ss](auto &&arg) { ss << '[' << arg << ']'; }, type->metadata);
 
