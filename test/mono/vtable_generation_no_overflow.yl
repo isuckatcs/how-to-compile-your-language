@@ -1,0 +1,24 @@
+// RUN: compiler %s -mono-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: &Self);
+}
+
+struct S {}
+
+extension S : A {
+  fn foo(self: &Self) {
+    let a: *any A = gc S {};
+  }
+}
+
+fn main() {
+  let a: *any A = gc S {};
+}
+
+// CHECK: vtable.T1AGS1SE
+// CHECK-NEXT:   _YT1AGS1SE3foo
+// CHECK-NEXT:
+// CHECK-NEXT: (foo, []) -> _YT1AGS1SE3foo
+// CHECK-NEXT: (gcCollect, []) -> _Y9gcCollect
+// CHECK-NEXT: (println, []) -> _Y7println
+// CHECK-NEXT: (main, []) -> _Y4main
