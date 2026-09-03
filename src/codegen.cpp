@@ -590,7 +590,7 @@ void Codegen::generateConditionalOperator(const res::Expr &op,
     return;
   }
 
-  builder.CreateCondBr(generateExpr(op), trueBB, falseBB);
+  builder.CreateCondBr(generateExprAndLoadValue(op), trueBB, falseBB);
 };
 
 llvm::Value *Codegen::generateBinaryOperator(const res::BinaryOperator &binop) {
