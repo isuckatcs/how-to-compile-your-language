@@ -612,6 +612,8 @@ res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
 
   if (modifiers & AddressTaken)
     resDre->decl->setStorageNeeded();
+  else
+    resDre->setConstantValue(cee->evaluate(*resDre));
 
   return resDre;
 }

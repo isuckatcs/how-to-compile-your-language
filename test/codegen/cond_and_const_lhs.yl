@@ -1,0 +1,18 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '1\n'
+fn foo(): number {
+  let cond1 = true;
+  mut cond2 = true;
+
+  if cond1 && cond2 {
+  // CHECK: br i1 true, label %and.rhs, label %and.merge
+    return 1;
+  }
+
+  return 0;
+}
+
+fn main() {
+  println(foo());
+}
