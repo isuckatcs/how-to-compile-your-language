@@ -365,6 +365,7 @@ Sema::resolveBinaryOperator(res::Context &ctx,
         .with(rhsTy->getName())
         .report(reporter);
 
+  ctx.unify(lhsTy, rhsTy);
   bool isCmpOp =
       op == TokenKind::EqualEqual || op == TokenKind::Lt || op == TokenKind::Gt;
 

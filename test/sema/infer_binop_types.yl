@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let n = gc 123;
+  n == null();
+  // CHECK: BinaryOperator '==' {bool}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) n {*number}
+  // CHECK-NEXT:   CallExpr {*number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) null {() -> *number}
+}
