@@ -221,7 +221,6 @@ class Sema {
   resolveTraitConformance(res::Context &ctx,
                           const ast::TraitConformance &conformance,
                           res::Type *type);
-  bool hasConflictingTraits(res::Context &ctx, std::vector<res::TraitType *>);
   bool implementsAllNecessaryTraitFunctions(res::TypeExtension *extension);
 
   bool insertDeclToCurrentScope(res::Decl *decl);
