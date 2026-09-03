@@ -88,12 +88,8 @@ public:
     get(Type *type, TraitType *trait, int depth) const;
 
   private:
-    std::hash<std::string> hash = {};
-
-    void buildKey(Type *type,
-                  TraitType *trait,
-                  int depth,
-                  std::stringstream &ss) const;
+    void addTypeToKey(Type *type, std::stringstream &ss) const;
+    size_t getKey(Type *type, TraitType *trait, int depth) const;
   };
 
 private:

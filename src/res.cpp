@@ -70,56 +70,41 @@ void Context::ExtensionCache::insertIfMissing(
     TraitType *trait,
     int depth,
     QueryResult<TypeExtension *> result) {
-  std::stringstream ss;
-  buildKey(type, trait, depth, ss);
-  size_t key = hash(ss.str());
-
+  size_t key = getKey(type, trait, depth);
   if (!count(key))
     emplace(key, std::move(result));
 }
 
 std::optional<Context::QueryResult<TypeExtension *>>
 Context::ExtensionCache::get(Type *type, TraitType *trait, int depth) const {
-  std::stringstream ss;
-  buildKey(type, trait, depth, ss);
-  size_t key = hash(ss.str());
+  auto result = find(getKey(type, trait, depth));
+  if (result != end())
+    return result->second;
 
-  if (!count(key))
-    return std::nullopt;
-
-  return find(key)->second;
+  return std::nullopt;
 }
 
-void Context::ExtensionCache::buildKey(Type *type,
-                                       TraitType *trait,
-                                       int depth,
-                                       std::stringstream &ss) const {
-  ss << type->getName() << ':';
-  if (trait)
-    ss << trait->getName();
+void Context::ExtensionCache::addTypeToKey(Type *type,
+                                           std::stringstream &ss) const {
+  ss << type->baseName;
+  std::visit([&ss](auto &&arg) { ss << '[' << arg << ']'; }, type->metadata);
 
-  for (auto &&t : std::initializer_list<Type *>{type, trait}) {
+  for (auto &&arg : type->args)
+    addTypeToKey(arg, ss);
+}
+
+size_t
+Context::ExtensionCache::getKey(Type *type, TraitType *trait, int depth) const {
+  std::stringstream ss;
+
+  for (auto &&t : std::initializer_list<res::Type *>{type, trait}) {
+    if (t)
+      addTypeToKey(t, ss);
     ss << ':';
-
-    if (!t)
-      continue;
-
-    if (auto *tp = t->getAs<res::TypeParamType>())
-      ss << 'p' << tp;
-
-    if (auto *u = t->getAs<res::UninferredType>())
-      ss << 't' << std::get<size_t>(u->metadata);
-
-    for (auto &&a : t->args) {
-      if (auto *tp = a->getAs<res::TypeParamType>())
-        ss << 'p' << tp;
-
-      if (auto *u = a->getAs<res::UninferredType>())
-        ss << 't' << std::get<size_t>(u->metadata);
-    }
   }
 
-  ss << ':' << depth;
+  ss << depth;
+  return std::hash<std::string>()(ss.str());
 }
 
 void Context::add(std::unique_ptr<Stmt> stmt) {
