@@ -13,12 +13,20 @@ void SourceFile::dump(size_t level) const {
 
 void BuiltinType::dump(size_t level) const {
   std::cerr << indent(level) << "BuiltinType '";
-  if (kind == Kind::Unit)
+  switch (kind) {
+  case Kind::Unit:
     std::cerr << "unit";
-  else if (kind == Kind::Number)
+    break;
+  case Kind::Number:
     std::cerr << "number";
-  else if (kind == Kind::Self)
+    break;
+  case Kind::Bool:
+    std::cerr << "bool";
+    break;
+  case Kind::Self:
     std::cerr << "Self";
+    break;
+  }
 
   std::cerr << "'\n";
 }

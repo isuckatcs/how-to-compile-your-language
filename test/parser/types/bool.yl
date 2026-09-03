@@ -9,7 +9,7 @@ fn main() {
 // CHECK-NEXT:   Block
 // CHECK-NEXT:     DeclStmt
 // CHECK-NEXT:       VarDecl 'b'
-// CHECK-NEXT:         BuiltinType ''
+// CHECK-NEXT:         BuiltinType 'bool'
 // CHECK-NEXT:     Assignment
 // CHECK-NEXT:       PathExpr
 // CHECK-NEXT:         DeclRefExpr 'b'
