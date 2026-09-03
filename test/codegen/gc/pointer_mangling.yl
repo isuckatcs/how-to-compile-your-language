@@ -2,8 +2,8 @@
 // RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
 // RUN: compiler %s -o %t && %valgrind %t
 
-// CHECK: @mn.offsets = internal constant { i32, i32, [1 x i32] } { i32 8, i32 1, [1 x i32] zeroinitializer }
 // CHECK: @pn.offsets = internal constant { i32, i32, [1 x i32] } { i32 8, i32 1, [1 x i32] zeroinitializer }
+// CHECK: @mn.offsets = internal constant { i32, i32, [1 x i32] } { i32 8, i32 1, [1 x i32] zeroinitializer }
 
 fn foo<T>(t: T) {}
 

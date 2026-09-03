@@ -34,8 +34,14 @@ class Codegen {
   res::Substitution currentSub;
   const mono::Function *currentMonoFn = nullptr;
 
+  struct RootDescriptor final {
+    llvm::AllocaInst *const alloca;
+    llvm::Value *const metadata;
+    bool isUsed;
+  };
+
+  std::vector<RootDescriptor> temporaryRoots;
   std::set<llvm::AllocaInst *> permanentRoots;
-  std::vector<std::pair<llvm::AllocaInst *, bool>> temporaryRoots;
 
   llvm::Value *retVal = nullptr;
   llvm::BasicBlock *retBB = nullptr;

@@ -886,20 +886,22 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
+  llvm::Value *metadata = getTypeMetadata(type);
+
   if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val)) {
     if (permanentRoots.count(alloca))
       return;
 
     markIfGCRoot(alloca, type);
-    temporaryRoots.emplace_back(alloca, true);
+    temporaryRoots.push_back({alloca, metadata, true});
     return;
   }
 
   llvm::AllocaInst *alloca = nullptr;
   llvm::Type *valTy = generateType(type);
 
-  for (auto &&[root, isUsed] : temporaryRoots)
-    if (!isUsed && root->getAllocatedType() == valTy) {
+  for (auto &&[root, meta, isUsed] : temporaryRoots)
+    if (!isUsed && meta == metadata) {
       alloca = root;
       isUsed = true;
       break;
@@ -908,7 +910,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   if (!alloca) {
     alloca = allocateStackVariable("tmp.root", valTy);
     markIfGCRoot(alloca, type);
-    temporaryRoots.emplace_back(alloca, true);
+    temporaryRoots.push_back({alloca, metadata, true});
   }
 
   storeValue(val, alloca, valTy);
@@ -1025,7 +1027,7 @@ void Codegen::generateBlock(const res::Block &block) {
     if (!builder.GetInsertBlock())
       break;
 
-    for (auto &[root, isUsed] : temporaryRoots)
+    for (auto &[root, meta, isUsed] : temporaryRoots)
       if (isUsed) {
         builder.CreateStore(
             llvm::Constant::getNullValue(root->getAllocatedType()), root);
