@@ -1,0 +1,25 @@
+// RUN: compiler %s -o %t && %t | filecheck %s
+// RUN: %valgrind %t
+struct Node {
+  next: *mut Node
+}
+
+fn main() {
+  let root = gc mut Node { next: nullMut() };
+
+  mut n = 0;
+  while n < 500000 {
+    root.next = gc mut Node { next: root.next };
+    n = n + 1;
+  }
+
+  mut cnt = 0;
+  mut p = root;
+  while !(p == nullMut()) {
+    cnt = cnt + 1;
+    p = p.next;
+  }
+
+  println(cnt);
+  // CHECK: 500001
+}

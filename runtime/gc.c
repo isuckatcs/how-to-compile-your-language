@@ -10,14 +10,24 @@ struct Metadata {
   const int32_t offsets[];
 };
 
+enum Color {
+  WHITE,
+  GREY,
+  BLACK,
+};
+
 struct AllocHeader {
+  enum Color color;
+  int32_t size;
   struct AllocHeader *next;
   const struct Metadata *metadata;
-  int32_t size;
-  int32_t marked;
 };
 
 static struct AllocHeader *allocatedBlocks = NULL;
+static size_t allocatedBlockCount = 0;
+
+static byte **greyStack = NULL;
+static size_t greyStackSize = 0;
 
 struct FrameInfo {
   const int32_t rootCnt;
@@ -77,7 +87,23 @@ static void gcLog(enum Phase phase, struct AllocHeader *block) {
   printf(" {heap: %ld B, threshold: %ld B}\n", heapSize, threshold);
 }
 
-static void mark(byte *root);
+// Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
+// in the `gc-lowering` pass, and pointers inside allocated objects are also
+// `null` initially because `calloc()` is used.
+static void mark(byte *root) {
+  if (!root)
+    return;
+
+  struct AllocHeader *header = (struct AllocHeader *)root - 1;
+  if (header->color != WHITE)
+    return;
+
+  header->color = GREY;
+  gcLog(MARK, header);
+
+  greyStack[greyStackSize] = root;
+  ++greyStackSize;
+}
 
 static void markChildren(byte *rootAddr, const struct Metadata *meta) {
   //
@@ -94,24 +120,7 @@ static void markChildren(byte *rootAddr, const struct Metadata *meta) {
     mark(*(byte **)(rootAddr + meta->offsets[i]));
 }
 
-// Roots marked with `@llvm.gcroot()` are automatically intialized to `null`
-// in the `gc-lowering` pass, and pointers inside allocated objects are also
-// `null` initially because `calloc()` is used.
-static void mark(byte *root) {
-  if (!root)
-    return;
-
-  struct AllocHeader *header = (struct AllocHeader *)root - 1;
-  if (header->marked)
-    return;
-
-  header->marked = 1;
-  gcLog(MARK, header);
-
-  markChildren(root, header->metadata);
-}
-
-void gcMark() {
+static void markRootNodes() {
   struct ShadowStackFrame *currentFrame = llvm_gc_root_chain;
   while (currentFrame) {
     const struct FrameInfo *frameInfo = currentFrame->frameInfo;
@@ -155,18 +164,44 @@ void gcMark() {
   }
 }
 
+void gcMark() {
+  size_t requiredStackSlots = allocatedBlockCount;
+
+  struct ShadowStackFrame *frame = llvm_gc_root_chain;
+  while (frame) {
+    requiredStackSlots += frame->frameInfo->rootCnt;
+    frame = frame->parent;
+  }
+
+  greyStack = malloc(requiredStackSlots * sizeof(byte *));
+
+  markRootNodes();
+
+  while (greyStackSize != 0) {
+    byte *root = greyStack[--greyStackSize];
+    struct AllocHeader *header = (struct AllocHeader *)root - 1;
+
+    markChildren(root, header->metadata);
+    header->color = BLACK;
+  }
+
+  free(greyStack);
+  greyStack = NULL;
+}
+
 void gcSweep() {
   struct AllocHeader **blockPtrPtr = &allocatedBlocks;
 
   while (*blockPtrPtr) {
     struct AllocHeader *blockPtr = *blockPtrPtr;
 
-    if (blockPtr->marked) {
-      blockPtr->marked = 0;
+    if (blockPtr->color == BLACK) {
+      blockPtr->color = WHITE;
       blockPtrPtr = &blockPtr->next;
       continue;
     }
 
+    --allocatedBlockCount;
     heapSize -= blockPtr->size + sizeof(struct AllocHeader);
     *blockPtrPtr = blockPtr->next;
 
@@ -190,12 +225,15 @@ void *gcAlloc(int32_t size, const struct Metadata *metadata) {
   block->size = size;
   block->next = allocatedBlocks;
 
+  ++allocatedBlockCount;
   heapSize += blockSize;
   allocatedBlocks = block;
   gcLog(ALLOC, block);
 
   if (heapSize > threshold) {
-    mark((byte *)(block + 1));
+    block->color = BLACK;
+    gcLog(MARK, block);
+
     gcMark();
     gcSweep();
   }

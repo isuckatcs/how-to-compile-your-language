@@ -53,16 +53,16 @@ extension R5 : Allocable {
 fn main() {
   let r3 = R3::alloc();
 
-  let r1 = R1{ x: 0, y: r3, z: 0};
-  let r2 = R2{ x: 0, y: r3, z: r3};
+  let r1 = R1{ x: 0, y: r3, z: 0 };
+  let r2 = R2{ x: 0, y: r3, z: r3 };
 
   gcCollect();
   // CHECK: [2] mark {{.*}} data: {{.*}} (8 B) offsets: {0 {{.*}}} {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (24 B) offsets: {0 {{.*}}} {8 {{.*}}} {16 {{.*}}} {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (24 B) offsets: {0 {{.*}}} {16 {{.*}}} {heap: 336 B, threshold: 512 B}
-  // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
-  // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (24 B) offsets: {0 {{.*}}} {16 {{.*}}} {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
+  // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
   // CHECK-NEXT: [2] mark {{.*}} data: {{.*}} (8 B) {heap: 336 B, threshold: 512 B}
