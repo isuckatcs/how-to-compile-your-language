@@ -15,7 +15,7 @@ namespace yl {
 constexpr char singleCharTokens[] = {'(', ')', '{', '}', ';', ',', '+',
                                      '*', '<', '>', '!', '.', '@'};
 
-enum class TokenKind : char {
+enum class TokenKind : signed char {
   Unk = -128,
   Eof,
   Slash,
