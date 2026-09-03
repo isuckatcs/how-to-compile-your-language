@@ -1,0 +1,28 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+fn foo() {
+  if true {
+    return;
+  } else {
+    return;
+  }
+
+  println(1);
+}
+// CHECK: define void @_Y3foo(ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   br i1 true, label %if.true, label %if.false
+// CHECK-NEXT: 
+// CHECK-NEXT: if.true:                                          ; preds = %entry
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: if.false:                                         ; preds = %entry
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %if.false, %if.true
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+fn main() {
+  foo();
+}

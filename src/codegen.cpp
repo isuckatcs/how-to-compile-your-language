@@ -149,8 +149,11 @@ llvm::Value *Codegen::generateIfStmt(const res::IfStmt &stmt) {
     breakIntoBB(exitBB);
   }
 
-  exitBB->insertInto(function);
-  builder.SetInsertPoint(exitBB);
+  if (!llvm::pred_empty(exitBB)) {
+    exitBB->insertInto(function);
+    builder.SetInsertPoint(exitBB);
+  }
+
   return nullptr;
 }
 
