@@ -1,0 +1,30 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n246\n'
+trait A {
+  fn foo(self: &Self): S;
+}
+
+struct S {
+  x: number,
+  y: number,
+}
+
+extension number : A {
+  fn foo(self: &Self): S {
+    return S { x: self, y: self * 2 };
+  }
+}
+
+fn foo(a: &any A) {
+  let s = a.foo();
+  // CHECK: call void %vFn(ptr sret({ double, double }) %struct.ret.tmp, ptr %obj, ptr null)
+
+  println(s.x);
+  println(s.y);
+} 
+
+fn main() {
+  let n = 123;
+  foo(n);
+}

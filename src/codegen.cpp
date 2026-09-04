@@ -977,13 +977,13 @@ llvm::Function *Codegen::getOrInsertGCSweep() {
       llvm::Function::ExternalLinkage, "gcSweep", module);
 }
 
-llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty,
+llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *type,
                                                bool isVirtualCall) {
   std::vector<llvm::AttributeSet> argsAttrSets;
 
   llvm::Type *retTy = builder.getVoidTy();
-  if (!ty->getReturnType()->getAs<res::BuiltinUnitType>())
-    retTy = generateType(ty->getReturnType());
+  if (!type->getReturnType()->getAs<res::BuiltinUnitType>())
+    retTy = generateType(type->getReturnType());
 
   if (retTy->isStructTy() && dl->getTypeAllocSize(retTy) != 0) {
     llvm::AttrBuilder retAttrs(context);
@@ -991,20 +991,22 @@ llvm::AttributeList Codegen::constructAttrList(const res::FunctionType *ty,
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, retAttrs));
   }
 
-  for (auto &&argTy : ty->getArgs()) {
-    llvm::Type *llvmTy = generateType(argTy);
-    if (dl->getTypeAllocSize(llvmTy) == 0)
-      continue;
-
-    if (isVirtualCall && argsAttrSets.empty()) {
+  const auto &argTypes = type->getArgs();
+  for (size_t i = 0; i < argTypes.size(); ++i) {
+    if (isVirtualCall && i == 0) {
       argsAttrSets.emplace_back(llvm::AttributeSet::get(context, {}));
       continue;
     }
 
+    res::Type *argType = argTypes[i];
+    llvm::Type *llvmTy = generateType(argType);
+    if (dl->getTypeAllocSize(llvmTy) == 0)
+      continue;
+
     llvm::AttrBuilder paramAttrs(context);
     if (llvmTy->isStructTy())
       paramAttrs.addByValAttr(llvmTy);
-    else if (argTy->getAs<res::BuiltinBoolType>())
+    else if (argType->getAs<res::BuiltinBoolType>())
       paramAttrs.addAttribute(llvm::Attribute::ZExt);
 
     argsAttrSets.emplace_back(llvm::AttributeSet::get(context, paramAttrs));
