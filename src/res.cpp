@@ -71,42 +71,51 @@ void Context::ExtensionCache::insertIfMissing(
     TraitType *trait,
     int depth,
     QueryResult<TypeExtension *> result) {
-  size_t key = getKey(type, trait, depth);
-  if (!count(key))
-    emplace(key, std::move(result));
+  if (get(type, trait, depth))
+    return;
+
+  entries.emplace_back(Key{freezeType(type), freezeType(trait), depth},
+                       std::move(result));
 }
 
 std::optional<Context::QueryResult<TypeExtension *>>
 Context::ExtensionCache::get(Type *type, TraitType *trait, int depth) const {
-  auto result = find(getKey(type, trait, depth));
-  if (result != end())
-    return result->second;
+  for (auto &&[key, result] : entries)
+    if (depth == key.depth && eq(type, key.type) && eq(trait, key.trait))
+      return result;
 
   return std::nullopt;
 }
 
-void Context::ExtensionCache::addTypeToKey(Type *type,
-                                           std::stringstream &ss) const {
-  type = type->getRootType();
-  ss << type->baseName;
-  std::visit([&ss](auto &&arg) { ss << '[' << arg << ']'; }, type->metadata);
+res::Type *Context::ExtensionCache::freezeType(res::Type *type) const {
+  if (!type)
+    return nullptr;
 
-  for (auto &&arg : type->args)
-    addTypeToKey(arg, ss);
+  auto *frozenType = type->getRootType();
+  for (auto &arg : frozenType->args)
+    arg = freezeType(arg);
+
+  return frozenType;
 }
 
-size_t
-Context::ExtensionCache::getKey(Type *type, TraitType *trait, int depth) const {
-  std::stringstream ss;
+bool Context::ExtensionCache::eq(Type *lhs, Type *rhs) const {
+  if (!lhs)
+    return !rhs;
 
-  for (auto &&t : std::initializer_list<res::Type *>{type, trait}) {
-    if (t)
-      addTypeToKey(t, ss);
-    ss << ':';
-  }
+  if (!rhs)
+    return false;
 
-  ss << depth;
-  return std::hash<std::string>()(ss.str());
+  lhs = lhs->getRootType();
+  rhs = rhs->getRootType();
+
+  if (!lhs->isSameKind(rhs))
+    return false;
+
+  for (size_t i = 0; i < lhs->args.size(); ++i)
+    if (!eq(lhs->args[i], rhs->args[i]))
+      return false;
+
+  return true;
 }
 
 void Context::add(std::unique_ptr<Stmt> stmt) {
