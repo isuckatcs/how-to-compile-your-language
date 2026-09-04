@@ -1,9 +1,9 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
 fn main() {
-  let x: *number = gc mut 123;
-
   // CHECK: [[# @LINE + 1 ]]:24: error: cannot unify '*number' with '*mut number'
-  let y: *mut number = gc 123;
+  let x: *mut number = gc 123;
+
+  let y: *number = gc mut 123;
 }
 
 // CHECK-NOT: {{.*error.*}}

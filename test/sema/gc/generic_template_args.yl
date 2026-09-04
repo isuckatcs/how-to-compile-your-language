@@ -1,13 +1,13 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-fn foo<T>(t: *T) {}
+fn foo<T>(t: *mut T) {}
 
-fn bar<T>(t: *mut T) {}
+fn bar<T>(t: *T) {}
 
 fn main() {
-  foo(gc mut 123);
-
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*number' with '*mut _'
-  bar(gc 123);
+  foo(gc 123);
+
+  bar(gc mut 123);
 }
 
 // CHECK-NOT: {{.*error.*}}
