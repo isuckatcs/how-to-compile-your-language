@@ -180,6 +180,12 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     dumpStmt(promo->expr);
     return;
   }
+
+  if (auto *harden = dynamic_cast<const res::ImplicitPtrHardening *>(stmt)) {
+    std::cerr << "(* <- *mut) ";
+    dumpStmt(harden->expr);
+    return;
+  }
 }
 
 void CFG::dump() const {
@@ -352,6 +358,9 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
 
   if (auto *promo = dynamic_cast<const res::TraitObjectPromoExpr *>(&expr))
     return insertExpr(*promo->expr, block);
+
+  if (auto *harden = dynamic_cast<const res::ImplicitPtrHardening *>(&expr))
+    return insertExpr(*harden->expr, block);
 
   return block;
 }

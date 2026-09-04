@@ -1,0 +1,7 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn main() {
+  let x: *mut number;
+
+  // CHECK: [[# @LINE + 1 ]]:20: error: 'x' is not initialized
+  let y: *number = x;
+}
