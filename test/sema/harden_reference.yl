@@ -1,0 +1,16 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo(n: &number) {
+  println(n);
+}
+
+fn bar(n: &mut number) {
+  foo(n);
+  // CHECK:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
+  // CHECK-NEXT:   ImplicitHardening {&number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {&mut number}
+}
+
+fn main() {
+  mut n = 123;
+  bar(n);
+}

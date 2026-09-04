@@ -1034,20 +1034,36 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
 res::Expr *
 Sema::hardenTypeIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
   // *mut type -> *type
-  auto *fromPtr = expr->getType()->getAs<res::PointerType>();
-  auto *toPtr = to->getAs<res::PointerType>();
-  if (!fromPtr || !toPtr)
+  // &mut type -> &type
+  res::Type *fromInner = nullptr;
+  res::Type *toInner = nullptr;
+
+  res::Type *from = expr->getType();
+  if (auto *toPtr = to->getAs<res::PointerType>()) {
+    auto *fromPtr = from->getAs<res::PointerType>();
+    if (!fromPtr || !fromPtr->isMutable() || toPtr->isMutable())
+      return expr;
+
+    fromInner = fromPtr->getPointeeType();
+    toInner = toPtr->getPointeeType();
+  } else if (auto *toRef = to->getAs<res::RefType>()) {
+    auto *fromRef = from->getAs<res::RefType>();
+    if (!fromRef || !fromRef->isMutable() || toRef->isMutable())
+      return expr;
+
+    fromInner = fromRef->getReferencedType();
+    toInner = toRef->getReferencedType();
+  }
+
+  if (!fromInner || !toInner)
     return expr;
 
-  if (!fromPtr->isMutable() || toPtr->isMutable())
+  if (!ctx.canUnify(fromInner, toInner))
     return expr;
 
-  auto *fromPointee = fromPtr->getPointeeType();
-  if (!ctx.canUnify(fromPointee, toPtr->getPointeeType()))
-    return expr;
-
+  ctx.unify(fromInner, toInner);
   auto *harden = res::ImplicitHardening::create(ctx, expr->location, expr);
-  harden->setType(res::PointerType::create(ctx, fromPointee, false));
+  harden->setType(to);
   return harden;
 }
 
