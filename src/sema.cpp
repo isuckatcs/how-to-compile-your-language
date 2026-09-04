@@ -1085,12 +1085,16 @@ Sema::hardenTypeIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
   if (!fromInner || !toInner)
     return expr;
 
-  if (!ctx.canUnify(fromInner, toInner))
+  if (!toInner->getAs<res::UninferredType>() &&
+      !ctx.canUnify(fromInner, toInner))
     return expr;
 
-  ctx.unify(fromInner, toInner);
   auto *harden = res::ImplicitHardening::create(ctx, expr->location, expr);
-  harden->setType(to);
+  if (to->getAs<res::PointerType>())
+    harden->setType(res::PointerType::create(ctx, fromInner, false));
+  else
+    harden->setType(res::RefType::create(ctx, fromInner, false));
+
   return harden;
 }
 

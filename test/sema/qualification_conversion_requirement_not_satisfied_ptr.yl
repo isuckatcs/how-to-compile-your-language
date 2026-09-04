@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo(self: &Self);
+}
+
+fn foo<T : A>(t: *T) {
+  t.foo();
+}
+
+fn main() {
+  let p = gc mut 123;
+  // CHECK: [[# @LINE + 1 ]]:7: error: cannot satisfy requirement 'number : A'
+  foo(p);
+}
