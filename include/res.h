@@ -77,7 +77,8 @@ public:
     std::vector<diag::DiagBuilder> diags = {};
   };
 
-  struct ExtensionCache final {
+  struct ExtensionCache
+      : private std::unordered_map<std::string, QueryResult<TypeExtension *>> {
     void insertIfMissing(Type *type,
                          TraitType *trait,
                          int depth,
@@ -87,16 +88,8 @@ public:
     get(Type *type, TraitType *trait, int depth) const;
 
   private:
-    struct Key {
-      Type *type;
-      Type *trait;
-      int depth;
-    };
-
-    std::vector<std::pair<Key, QueryResult<TypeExtension *>>> entries;
-
-    res::Type *freezeType(res::Type *type) const;
-    bool eq(Type *lhs, Type *rhs) const;
+    void addTypeToKey(Type *type, std::stringstream &ss) const;
+    std::string getKey(Type *type, TraitType *trait, int depth) const;
   };
 
 private:
