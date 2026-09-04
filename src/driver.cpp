@@ -61,8 +61,6 @@ CompilerOptions parseArguments(int argc,
     } else {
       if (arg == "-h")
         options.displayHelp = true;
-      else if (arg == "-o")
-        options.output = ++idx >= argc ? "" : argv[idx];
       else if (arg == "-verify-only")
         options.verifyOnly = true;
       else if (arg == "-ast-dump")
@@ -75,7 +73,14 @@ CompilerOptions parseArguments(int argc,
         options.llvmDump = true;
       else if (arg == "-cfg-dump")
         options.cfgDump = true;
-      else {
+      else if (arg == "-o") {
+        if (++idx >= argc) {
+          err::expectedFlagArgument().with(arg).report(reporter);
+          std::exit(1);
+        }
+
+        options.output = argv[idx];
+      } else {
         err::unexpectedOption().with(arg).report(reporter);
         std::exit(1);
       }

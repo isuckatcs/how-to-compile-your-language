@@ -198,6 +198,7 @@ diag(Error, unexpectedExtension, "unexpected source file extension");
 diag(Error, failedToOpenFile, "failed to open '{}'");
 diag(Error, unexpectedArgument, "unexpected argument '{}'");
 diag(Error, unexpectedOption, "unexpected option '{}'");
+diag(Error, expectedFlagArgument, "expected argument to '{}'");
 // clang-format on
 }; // namespace err
 
