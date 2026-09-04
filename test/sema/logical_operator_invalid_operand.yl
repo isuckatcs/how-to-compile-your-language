@@ -1,0 +1,8 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  // CHECK: [[# @LINE + 1 ]]:8: error: incompatible operands to binary operator ('() -> unit' and 'bool')
+  main || false;
+
+  // CHECK: [[# @LINE + 1 ]]:8: error: incompatible operands to binary operator ('bool' and 'number')
+  true && 0;
+}
