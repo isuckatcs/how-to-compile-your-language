@@ -1,0 +1,25 @@
+// RUN: compiler %s -cfg-dump 2>&1 | filecheck %s --match-full-lines
+fn foo(n: &number) {}
+
+fn bar(n: &mut number) {
+  foo(n);
+}
+// CHECK: fn bar({{.*}}) {
+// CHECK-NEXT: bb2:
+// CHECK-NEXT:   preds: 
+// CHECK-NEXT:   succs: 1 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb1:
+// CHECK-NEXT:   preds: 2 
+// CHECK-NEXT:   $1 = n
+// CHECK-NEXT:   $2 = (& <- &mut) $1
+// CHECK-NEXT:   $3 = foo
+// CHECK-NEXT:   $4 = $3($2)
+// CHECK-NEXT:   succs: 0 
+// CHECK-NEXT: 
+// CHECK-NEXT: bb0:
+// CHECK-NEXT:   preds: 1 
+// CHECK-NEXT:   succs: 
+// CHECK-NEXT: }
+
+fn main() {}

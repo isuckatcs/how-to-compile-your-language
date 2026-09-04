@@ -182,7 +182,8 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
   }
 
   if (auto *harden = dynamic_cast<const res::ImplicitHardening *>(stmt)) {
-    std::cerr << "(* <- *mut) ";
+    char symbol = harden->getType()->getAs<res::RefType>() ? '&' : '*';
+    std::cerr << '(' << symbol << " <- " << symbol << "mut) ";
     dumpStmt(harden->expr);
     return;
   }
