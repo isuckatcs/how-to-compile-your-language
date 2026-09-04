@@ -460,8 +460,8 @@ llvm::Value *Codegen::generateExpr(const res::Expr &expr) {
   if (auto *mte = dynamic_cast<const res::MaterializeTemporaryExpr *>(&expr))
     return materializeTemporary(*mte);
 
-  if (auto *harden = dynamic_cast<const res::ImplicitHardening *>(&expr))
-    return generateExprAndLoadValue(*harden->expr);
+  if (auto *qc = dynamic_cast<const res::QualificationConv *>(&expr))
+    return generateExprAndLoadValue(*qc->expr);
 
   llvm_unreachable("unexpected expression");
 }

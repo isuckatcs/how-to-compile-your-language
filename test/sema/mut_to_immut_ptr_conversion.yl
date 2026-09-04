@@ -4,7 +4,7 @@ fn foo<T>(t: *T) {}
 fn main() {
   let p: *number = nullMut();
   // CHECK: VarDecl @({{.*}}) p {*number}
-  // CHECK-NEXT:   ImplicitHardening {*number}
+  // CHECK-NEXT:   QualificationConv {*number}
   // CHECK-NEXT:     CallExpr {*mut number}
   // CHECK-NEXT:       DeclRefExpr @({{.*}}) nullMut {() -> *mut number}
 
@@ -12,6 +12,6 @@ fn main() {
   foo(p2);
   // CHECK: CallExpr {unit}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*number) -> unit}
-  // CHECK-NEXT:   ImplicitHardening {*number}
+  // CHECK-NEXT:   QualificationConv {*number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) p2 {*mut number}
 }

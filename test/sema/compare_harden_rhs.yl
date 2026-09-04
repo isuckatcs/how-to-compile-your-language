@@ -10,6 +10,6 @@ fn main() {
   n == mn;
   // CHECK: BinaryOperator '==' {bool}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) n {*number}
-  // CHECK-NEXT:   ImplicitHardening {*number}
+  // CHECK-NEXT:   QualificationConv {*number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) mn {*mut number}
 }

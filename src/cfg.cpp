@@ -181,10 +181,10 @@ void CFG::dumpStmt(const res::Stmt *stmt, bool topLevel) const {
     return;
   }
 
-  if (auto *harden = dynamic_cast<const res::ImplicitHardening *>(stmt)) {
-    char symbol = harden->getType()->getAs<res::RefType>() ? '&' : '*';
+  if (auto *qc = dynamic_cast<const res::QualificationConv *>(stmt)) {
+    char symbol = qc->getType()->getAs<res::RefType>() ? '&' : '*';
     std::cerr << '(' << symbol << " <- " << symbol << "mut) ";
-    dumpStmt(harden->expr);
+    dumpStmt(qc->expr);
     return;
   }
 }
@@ -360,8 +360,8 @@ int CFGBuilder::insertExpr(const res::Expr &expr, int block) {
   if (auto *promo = dynamic_cast<const res::TraitObjectPromoExpr *>(&expr))
     return insertExpr(*promo->expr, block);
 
-  if (auto *harden = dynamic_cast<const res::ImplicitHardening *>(&expr))
-    return insertExpr(*harden->expr, block);
+  if (auto *qc = dynamic_cast<const res::QualificationConv *>(&expr))
+    return insertExpr(*qc->expr, block);
 
   return block;
 }

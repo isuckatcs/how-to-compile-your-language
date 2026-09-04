@@ -9,7 +9,7 @@ fn main() {
 
   mn == n;
   // CHECK: BinaryOperator '==' {bool}
-  // CHECK-NEXT:   ImplicitHardening {*number}
+  // CHECK-NEXT:   QualificationConv {*number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) mn {*mut number}
   // CHECK-NEXT:   DeclRefExpr @({{.*}}) n {*number}
 }

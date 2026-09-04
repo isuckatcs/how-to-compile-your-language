@@ -205,7 +205,7 @@ class Sema {
                                size_t expected) const;
 
   res::Expr *
-  hardenTypeIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to);
+  qualificationConvIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to);
   res::Expr *
   coerceToRefIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to);
   res::Expr *

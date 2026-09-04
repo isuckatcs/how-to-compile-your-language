@@ -375,8 +375,8 @@ Sema::resolveBinaryOperator(res::Context &ctx,
     }
 
     if (!typeError) {
-      lhs = hardenTypeIfNeeded(ctx, lhs, rhsTy);
-      rhs = hardenTypeIfNeeded(ctx, rhs, lhsTy);
+      lhs = qualificationConvIfNeeded(ctx, lhs, rhsTy);
+      rhs = qualificationConvIfNeeded(ctx, rhs, lhsTy);
 
       lhsTy = lhs->getType();
       rhsTy = rhs->getType();
@@ -741,10 +741,9 @@ res::CallExpr *Sema::resolveCallExpr(res::Context &ctx,
       continue;
     }
 
-    auto *hardenedArgument =
-        hardenTypeIfNeeded(ctx, resolvedArgument, expectedType);
-    auto *refArgument =
-        coerceToRefIfNeeded(ctx, hardenedArgument, expectedType);
+    auto *qcArgument =
+        qualificationConvIfNeeded(ctx, resolvedArgument, expectedType);
+    auto *refArgument = coerceToRefIfNeeded(ctx, qcArgument, expectedType);
     auto *promotedArgument =
         tryPromoteToTraitObject(ctx, refArgument, expectedType);
     if (!promotedArgument)
@@ -808,7 +807,8 @@ res::StructInstantiationExpr *Sema::resolveStructInstantiation(
     }
 
     auto *promotedInitExpr = tryPromoteToTraitObject(
-        ctx, hardenTypeIfNeeded(ctx, resolvedInitExpr, fieldTy), fieldTy);
+        ctx, qualificationConvIfNeeded(ctx, resolvedInitExpr, fieldTy),
+        fieldTy);
     if (!promotedInitExpr) {
       error = true;
       continue;
@@ -931,8 +931,8 @@ res::Expr *Sema::resolveMemberExpr(res::Context &ctx,
 
   auto *selfType = functionType->getArgs()[0];
 
-  auto *hardenedBase = hardenTypeIfNeeded(ctx, base, selfType);
-  auto *refBase = coerceToRefIfNeeded(ctx, hardenedBase, selfType);
+  auto *qcBase = qualificationConvIfNeeded(ctx, base, selfType);
+  auto *refBase = coerceToRefIfNeeded(ctx, qcBase, selfType);
   varOrReturn(promotedBase, tryPromoteToTraitObject(ctx, refBase, selfType));
 
   call->addArg(promotedBase);
@@ -1058,8 +1058,9 @@ res::LambdaExpr *Sema::resolveLambdaExpr(res::Context &ctx,
   return resLambdaExpr;
 }
 
-res::Expr *
-Sema::hardenTypeIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
+res::Expr *Sema::qualificationConvIfNeeded(res::Context &ctx,
+                                           res::Expr *expr,
+                                           res::Type *to) {
   // *mut type -> *type
   // &mut type -> &type
   res::Type *fromInner = nullptr;
@@ -1089,13 +1090,13 @@ Sema::hardenTypeIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
       !ctx.canUnify(fromInner, toInner))
     return expr;
 
-  auto *harden = res::ImplicitHardening::create(ctx, expr->location, expr);
+  auto *qc = res::QualificationConv::create(ctx, expr->location, expr);
   if (to->getAs<res::PointerType>())
-    harden->setType(res::PointerType::create(ctx, fromInner, false));
+    qc->setType(res::PointerType::create(ctx, fromInner, false));
   else
-    harden->setType(res::RefType::create(ctx, fromInner, false));
+    qc->setType(res::RefType::create(ctx, fromInner, false));
 
-  return harden;
+  return qc;
 }
 
 res::Expr *
@@ -1271,9 +1272,9 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
   if (lhsTy->getAs<res::AnyTraitType>())
     return err::traitObjectAssignment().at(lhs->location).report(reporter);
 
-  varOrReturn(
-      promotedRhs,
-      tryPromoteToTraitObject(ctx, hardenTypeIfNeeded(ctx, rhs, lhsTy), lhsTy));
+  varOrReturn(promotedRhs,
+              tryPromoteToTraitObject(
+                  ctx, qualificationConvIfNeeded(ctx, rhs, lhsTy), lhsTy));
 
   promotedRhs->setConstantValue(cee->evaluate(*promotedRhs));
   return res::Assignment::create(ctx, assignment.location, lhs, promotedRhs);
@@ -1291,9 +1292,10 @@ res::ReturnStmt *Sema::resolveReturnStmt(res::Context &ctx,
   res::Expr *expr = nullptr;
   if (returnStmt.expr) {
     varOrReturn(resolvedExpr, resolveExpr(ctx, *returnStmt.expr, retTy));
-    varOrReturn(promotedExpr,
-                tryPromoteToTraitObject(
-                    ctx, hardenTypeIfNeeded(ctx, resolvedExpr, retTy), retTy));
+    varOrReturn(
+        promotedExpr,
+        tryPromoteToTraitObject(
+            ctx, qualificationConvIfNeeded(ctx, resolvedExpr, retTy), retTy));
 
     promotedExpr->setConstantValue(cee->evaluate(*promotedExpr));
     expr = promotedExpr;
@@ -1604,7 +1606,7 @@ res::VarDecl *Sema::resolveVarDecl(res::Context &ctx,
     varOrReturn(init, resolveExpr(ctx, *varDecl.initializer, declTy));
     varOrReturn(promotedInit,
                 tryPromoteToTraitObject(
-                    ctx, hardenTypeIfNeeded(ctx, init, declTy), declTy));
+                    ctx, qualificationConvIfNeeded(ctx, init, declTy), declTy));
 
     promotedInit->setConstantValue(cee->evaluate(*promotedInit));
     initializer = promotedInit;

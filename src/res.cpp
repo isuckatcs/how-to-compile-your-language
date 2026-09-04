@@ -1273,12 +1273,12 @@ void LambdaExpr::dump(size_t level) const {
   ext->dump(level + 1);
 }
 
-ImplicitHardening::ImplicitHardening(SourceLocation location, res::Expr *expr)
+QualificationConv::QualificationConv(SourceLocation location, res::Expr *expr)
     : Expr(location, Expr::ValueCategory::Rvalue),
       expr(expr) {}
 
-void ImplicitHardening::dump(size_t level) const {
-  std::cerr << indent(level) << "ImplicitHardening"
+void QualificationConv::dump(size_t level) const {
+  std::cerr << indent(level) << "QualificationConv"
             << " {" << getType()->getName() << '}' << '\n';
 
   expr->dump(level + 1);

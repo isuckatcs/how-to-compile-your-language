@@ -781,15 +781,15 @@ private:
   friend Creatable<LambdaExpr>;
 };
 
-struct ImplicitHardening final : public Creatable<ImplicitHardening>,
+struct QualificationConv final : public Creatable<QualificationConv>,
                                  public Expr {
   res::Expr *expr;
 
   void dump(size_t level = 0) const override;
 
 private:
-  ImplicitHardening(SourceLocation location, res::Expr *expr);
-  friend Creatable<ImplicitHardening>;
+  QualificationConv(SourceLocation location, res::Expr *expr);
+  friend Creatable<QualificationConv>;
 };
 
 struct ImplicitPtrToRefDecay final : public Creatable<ImplicitPtrToRefDecay>,

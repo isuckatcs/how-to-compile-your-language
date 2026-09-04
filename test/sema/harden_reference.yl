@@ -6,7 +6,7 @@ fn foo(n: &number) {
 fn bar(n: &mut number) {
   foo(n);
   // CHECK:   DeclRefExpr @({{.*}}) foo {(&number) -> unit}
-  // CHECK-NEXT:   ImplicitHardening {&number}
+  // CHECK-NEXT:   QualificationConv {&number}
   // CHECK-NEXT:     DeclRefExpr @({{.*}}) n {&mut number}
 }
 
