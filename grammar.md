@@ -41,7 +41,7 @@
     ::= '(' (<paramDecl> (',' <paramDecl>)* ','?)? ')'
 
 <paramDecl>
-    ::= 'mut'? <identifier> ':' <refModifier>? <type>
+    ::= 'mut'? <identifier> ':' <argumentType>
 
 <refModifier>
     ::= '&' 'mut'?
