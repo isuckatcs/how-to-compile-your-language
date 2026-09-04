@@ -1263,6 +1263,9 @@ res::Assignment *Sema::resolveAssignment(res::Context &ctx,
     return err::rvalueAssignment().at(lhs->location).report(reporter);
 
   auto *lhsTy = lhs->getType();
+  if (lhsTy->getAs<res::AnyTraitType>())
+    return err::traitObjectAssignment().at(lhs->location).report(reporter);
+
   varOrReturn(
       promotedRhs,
       tryPromoteToTraitObject(ctx, hardenTypeIfNeeded(ctx, rhs, lhsTy), lhsTy));
