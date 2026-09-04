@@ -115,7 +115,7 @@ class Codegen {
   void generateMainWrapper();
 
   std::vector<size_t> getHeapPtrOffsets(res::Type *type);
-  llvm::Value *getTypeMetadata(res::Type *type);
+  llvm::Value *getTypeMetadata(res::Type *type, bool isRoot);
   void createTmpGCRootIfNeeded(llvm::Value *val, const res::Expr *resVal);
   void markIfGCRoot(llvm::AllocaInst *alloca, res::Type *type);
   llvm::Function *getOrInsertGCAlloc();

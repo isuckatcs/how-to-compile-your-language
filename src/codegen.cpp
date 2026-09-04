@@ -778,8 +778,9 @@ llvm::Value *Codegen::allocateHeapVariable(res::Type *type) {
     ty = builder.getInt8Ty();
 
   auto size = module.getDataLayout().getTypeAllocSize(ty);
-  return builder.CreateCall(getOrInsertGCAlloc(),
-                            {builder.getInt32(size), getTypeMetadata(type)});
+  return builder.CreateCall(
+      getOrInsertGCAlloc(),
+      {builder.getInt32(size), getTypeMetadata(type, false)});
 }
 
 std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
@@ -838,10 +839,12 @@ std::vector<size_t> Codegen::getHeapPtrOffsets(res::Type *type) {
   return offsets;
 }
 
-llvm::Value *Codegen::getTypeMetadata(res::Type *type) {
-  std::string globalPrefix = "";
-
+llvm::Value *Codegen::getTypeMetadata(res::Type *type, bool isRoot) {
   auto *ptr = type->getAs<res::PointerType>();
+  if (isRoot && ptr && !ptr->getPointeeType()->getAs<res::AnyTraitType>())
+    return llvm::ConstantPointerNull::get(builder.getPtrTy());
+
+  std::string globalPrefix = "";
   if (ptr && ptr->getPointeeType()->getAs<res::AnyTraitType>())
     globalPrefix = "fat.ptr";
   else if (type->getAs<res::FunctionType>())
@@ -889,7 +892,7 @@ void Codegen::createTmpGCRootIfNeeded(llvm::Value *val,
   if (!type->getAs<res::PointerType>() && getHeapPtrOffsets(type).empty())
     return;
 
-  llvm::Value *metadata = getTypeMetadata(type);
+  llvm::Value *metadata = getTypeMetadata(type, true);
 
   if (auto *alloca = llvm::dyn_cast<llvm::AllocaInst>(val)) {
     if (permanentRoots.count(alloca))
@@ -941,14 +944,8 @@ void Codegen::markIfGCRoot(llvm::AllocaInst *alloca, res::Type *type) {
   tmpBuilder.CreateStore(
       llvm::Constant::getNullValue(alloca->getAllocatedType()), alloca);
 
-  auto *ptr = type->getAs<res::PointerType>();
-  llvm::Value *metadata =
-      ptr && !ptr->getPointeeType()->getAs<res::AnyTraitType>()
-          ? llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
-          : getTypeMetadata(type);
+  llvm::Value *metadata = getTypeMetadata(type, true);
   tmpBuilder.CreateCall(gcroot, {alloca, metadata});
-
-  return;
 }
 
 llvm::Function *Codegen::getOrInsertGCAlloc() {
