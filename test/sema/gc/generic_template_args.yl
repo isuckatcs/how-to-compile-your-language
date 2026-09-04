@@ -4,9 +4,10 @@ fn foo<T>(t: *T) {}
 fn bar<T>(t: *mut T) {}
 
 fn main() {
-  // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*mut number' with '*_'
   foo(gc mut 123);
 
   // CHECK: [[# @LINE + 1 ]]:7: error: cannot unify '*number' with '*mut _'
   bar(gc 123);
 }
+
+// CHECK-NOT: {{.*error.*}}

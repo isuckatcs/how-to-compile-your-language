@@ -205,6 +205,8 @@ class Sema {
                                size_t expected) const;
 
   res::Expr *
+  hardenPtrIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to);
+  res::Expr *
   coerceToRefIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to);
   res::Expr *
   tryPromoteToTraitObject(res::Context &ctx, res::Expr *expr, res::Type *to);

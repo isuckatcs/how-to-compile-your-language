@@ -1278,6 +1278,18 @@ void LambdaExpr::dump(size_t level) const {
   ext->dump(level + 1);
 }
 
+ImplicitPtrHardening::ImplicitPtrHardening(SourceLocation location,
+                                           res::Expr *expr)
+    : Expr(location, Expr::ValueCategory::Rvalue),
+      expr(expr) {}
+
+void ImplicitPtrHardening::dump(size_t level) const {
+  std::cerr << indent(level) << "ImplicitPtrHardening"
+            << " {" << getType()->getName() << '}' << '\n';
+
+  expr->dump(level + 1);
+}
+
 ImplicitPtrToRefDecay::ImplicitPtrToRefDecay(SourceLocation location,
                                              res::Expr *expr)
     : Expr(location, Expr::ValueCategory::Rvalue),

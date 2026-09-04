@@ -1,0 +1,17 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+fn foo<T>(t: *T) {}
+
+fn main() {
+  let p: *number = nullMut();
+  // CHECK: VarDecl @({{.*}}) p {*number}
+  // CHECK-NEXT:   ImplicitPtrHardening {*number}
+  // CHECK-NEXT:     CallExpr {*mut number}
+  // CHECK-NEXT:       DeclRefExpr @({{.*}}) nullMut {() -> *mut number}
+
+  let p2 = gc mut 123;
+  foo(p2);
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {(*number) -> unit}
+  // CHECK-NEXT:   ImplicitPtrHardening {*number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) p2 {*mut number}
+}
