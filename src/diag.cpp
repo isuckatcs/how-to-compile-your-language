@@ -10,14 +10,14 @@ void DiagnosticConsumer::consume(Diagnostic diagnostic) {
   const auto &[file, line, col] = diagnostic.location;
 
   if (file)
-    std::cerr << file->path << ':' << line << ':' << col << ':';
+    std::cerr << file->path << ':' << line << ':' << col << ':' << ' ';
 
   switch (diagnostic.severity) {
   case Diagnostic::Severity::Error:
-    std::cerr << " error: ";
+    std::cerr << "error: ";
     break;
   case Diagnostic::Severity::Warning:
-    std::cerr << " warning: ";
+    std::cerr << "warning: ";
     break;
   }
   std::cerr << diagnostic.message << '\n';
