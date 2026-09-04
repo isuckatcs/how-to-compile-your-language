@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+
+fn main() {
+  let a: *any A = gc 123;
+
+  // CHECK: [[# @LINE + 1 ]]:5: error: incompatible operands to binary operator ('*any A' and '*any A')
+  a == a;
+}

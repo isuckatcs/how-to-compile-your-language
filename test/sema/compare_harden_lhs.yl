@@ -1,0 +1,15 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+trait A {}
+
+extension number : A {}
+
+fn main() {
+  let mn = gc mut 123;
+  let n = gc 123;
+
+  mn == n;
+  // CHECK: BinaryOperator '==' {bool}
+  // CHECK-NEXT:   ImplicitHardening {*number}
+  // CHECK-NEXT:     DeclRefExpr @({{.*}}) mn {*mut number}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) n {*number}
+}

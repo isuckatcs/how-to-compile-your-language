@@ -353,12 +353,33 @@ Sema::resolveBinaryOperator(res::Context &ctx,
   bool isLogicalOp = op == TokenKind::AmpAmp || op == TokenKind::PipePipe;
   bool isNumericOp = !isLogicalOp && op != TokenKind::EqualEqual;
 
-  bool typeError = !ctx.canUnify(lhsTy, rhsTy);
-  typeError |= isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>();
-  typeError |= isNumericOp && !rhsTy->getAs<res::BuiltinNumberType>();
-  typeError |=
-      op == TokenKind::EqualEqual &&
-      (rhsTy->getAs<res::StructType>() || rhsTy->getAs<res::TypeParamType>());
+  bool typeError = false;
+
+  if ((isLogicalOp && !rhsTy->getAs<res::BuiltinBoolType>()) ||
+      (isNumericOp && !rhsTy->getAs<res::BuiltinNumberType>()))
+    typeError = true;
+
+  if (op == TokenKind::EqualEqual) {
+    if (rhsTy->getAs<res::StructType>() || rhsTy->getAs<res::TypeParamType>())
+      typeError = true;
+
+    for (auto &&ty : {lhsTy, rhsTy})
+      if (auto *ptr = ty->getAs<res::PointerType>();
+          ptr && ptr->getPointeeType()->getAs<res::AnyTraitType>())
+        typeError = true;
+
+    if (!typeError) {
+      lhs = hardenTypeIfNeeded(ctx, lhs, rhsTy);
+      rhs = hardenTypeIfNeeded(ctx, rhs, lhsTy);
+
+      lhsTy = lhs->getType();
+      rhsTy = rhs->getType();
+    }
+  }
+
+  if (!ctx.canUnify(lhsTy, rhsTy))
+    typeError = true;
+
   if (typeError)
     return err::binopIncompatibleOperands()
         .at(loc)
