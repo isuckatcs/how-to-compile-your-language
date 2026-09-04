@@ -274,31 +274,13 @@ fn main() {
   generic@<() -> unit>();
 }
 ```
+>💡 Use the `-mono-dump` flag to see how each instance was created.
 ```
-$ compiler main.yl -llvm-dump
+$ compiler main.yl -mono-dump
 
-define void @__builtin_main(ptr %closure) {
-entry:
-  call void @_Y7genericGuE(ptr null)
-  call void @_Y7genericGnE(ptr null)
-  call void @_Y7genericGFRuE(ptr null)
-  ret void
-}
-
-define void @_Y7genericGuE(ptr %closure) {
-entry:
-  ret void
-}
-
-define void @_Y7genericGnE(ptr %closure) {
-entry:
-  ret void
-}
-
-define void @_Y7genericGFRuE(ptr %closure) {
-entry:
-  ret void
-}
+(generic, [T = unit]) -> _Y7genericGuE
+(generic, [T = number]) -> _Y7genericGnE
+(generic, [T = () -> unit]) -> _Y7genericGFRuE
 ```
 
 ### 🗺️ Virtual Dispatch
@@ -428,9 +410,14 @@ bb0:
 }
 ```
 ```
+$ compiler main.yl -mono-dump
+
+(main, []) -> _Y4main
+```
+```
 $ compiler main.yl -llvm-dump
 
-define void @__builtin_main(ptr %closure) {
+define void @_Y4main(ptr %closure) {
 entry:
   call void @println(double 1.230000e+02, ptr null)
   ret void
