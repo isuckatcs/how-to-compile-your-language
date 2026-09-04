@@ -25,13 +25,16 @@ extension S {
 // CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     BuiltinType 'Self'
 // CHECK-NEXT:     ParamDecl 'self'
-// CHECK-NEXT:       BuiltinType 'Self'
+// CHECK-NEXT:       ArgumentType
+// CHECK-NEXT:         BuiltinType 'Self'
 // CHECK-NEXT:     Block
 // CHECK-NEXT:   FunctionDecl 'bar'
 // CHECK-NEXT:     Block
 // CHECK-NEXT:   FunctionDecl 'baz'
 // CHECK-NEXT:     ParamDecl 'x'
-// CHECK-NEXT:       BuiltinType 'number'
+// CHECK-NEXT:       ArgumentType
+// CHECK-NEXT:         BuiltinType 'number'
 // CHECK-NEXT:     ParamDecl 'y'
-// CHECK-NEXT:       BuiltinType 'number'
+// CHECK-NEXT:       ArgumentType
+// CHECK-NEXT:         BuiltinType 'number'
 // CHECK-NEXT:     Block

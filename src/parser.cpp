@@ -375,10 +375,7 @@ std::unique_ptr<ast::FunctionDecl> Parser::parseFunctionSignature() {
 }
 
 // <paramDecl>
-//  ::= 'mut'? <identifier> ':' <refModifier>? <type>
-//
-// <refModifier>
-//  ::= '&' 'mut'?
+//  ::= 'mut'? <identifier> ':' <argumentType>
 std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   bool isMut = nextToken.kind == TokenKind::KwMut;
   if (isMut)
@@ -393,16 +390,11 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
   std::string identifier = *nextToken.value;
   eatNextToken(); // eat identifier
 
-  std::unique_ptr<ast::RefModifier> refModifier;
-  std::unique_ptr<ast::Type> type;
-
+  std::unique_ptr<ast::ArgumentType> type;
   if (nextToken.kind == TokenKind::Colon) {
     eatNextToken(); // eat :
 
-    if (nextToken.kind == TokenKind::Amp)
-      refModifier = parseRefModifier();
-
-    type = parseType();
+    type = parseArgumentType();
     if (!type)
       return nullptr;
   }
@@ -411,7 +403,6 @@ std::unique_ptr<ast::ParamDecl> Parser::parseParamDecl() {
     return err::expected().at(nextToken.location).with("':'").report(reporter);
 
   return std::make_unique<ast::ParamDecl>(location, std::move(identifier),
-                                          std::move(refModifier),
                                           std::move(type), isMut);
 }
 

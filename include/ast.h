@@ -399,17 +399,14 @@ struct TypeParamDecl final : public Decl {
 };
 
 struct ParamDecl final : public Decl {
-  const std::unique_ptr<RefModifier> refModifier;
-  const std::unique_ptr<Type> type;
+  const std::unique_ptr<ArgumentType> type;
   const bool isMutable;
 
   ParamDecl(SourceLocation location,
             std::string identifier,
-            std::unique_ptr<RefModifier> refModifier,
-            std::unique_ptr<Type> type,
+            std::unique_ptr<ArgumentType> type,
             bool isMutable)
       : Decl(location, std::move(identifier)),
-        refModifier(std::move(refModifier)),
         type(std::move(type)),
         isMutable(isMutable) {}
 

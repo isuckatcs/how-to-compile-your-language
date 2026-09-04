@@ -240,9 +240,6 @@ void TraitDecl::dump(size_t level) const {
 void ParamDecl::dump(size_t level) const {
   std::cerr << indent(level) << "ParamDecl '" << identifier << "'\n";
 
-  if (refModifier)
-    refModifier->dump(level + 1);
-
   if (type)
     type->dump(level + 1);
 }

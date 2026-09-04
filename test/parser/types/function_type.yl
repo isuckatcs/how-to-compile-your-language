@@ -15,8 +15,9 @@ fn bar(x: () -> number): unit {}
 // CHECK-NEXT: FunctionDecl 'bar'
 // CHECK-NEXT:   BuiltinType 'unit'
 // CHECK-NEXT:   ParamDecl 'x'
-// CHECK-NEXT:     FunctionType
-// CHECK-NEXT:       BuiltinType 'number'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       FunctionType
+// CHECK-NEXT:         BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 fn baz(): unit {

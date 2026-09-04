@@ -23,5 +23,6 @@ extension S {
 // CHECK-NEXT:   FunctionDecl 'foo'
 // CHECK-NEXT:     BuiltinType 'Self'
 // CHECK-NEXT:     ParamDecl 'self'
-// CHECK-NEXT:       BuiltinType 'Self'
+// CHECK-NEXT:       ArgumentType
+// CHECK-NEXT:         BuiltinType 'Self'
 // CHECK-NEXT:     Block

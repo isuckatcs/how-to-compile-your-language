@@ -24,20 +24,23 @@ fn mutRefRef(x: &mut &unit) {}
 fn baz(x: &number) {}
 // CHECK: FunctionDecl 'baz'
 // CHECK-NEXT:   ParamDecl 'x'
-// CHECK-NEXT:     RefModifier
-// CHECK-NEXT:     BuiltinType 'number'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       RefModifier
+// CHECK-NEXT:       BuiltinType 'number'
 // CHECK-NEXT:   Block
 
 fn mutRef(x: &mut unit) {}
 // CHECK: FunctionDecl 'mutRef'
 // CHECK-NEXT:   ParamDecl 'x'
-// CHECK-NEXT:     RefModifier 'mut'
-// CHECK-NEXT:     BuiltinType 'unit'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       RefModifier 'mut'
+// CHECK-NEXT:       BuiltinType 'unit'
 // CHECK-NEXT:   Block
 
 fn mutRefNoSpace(x: &mutunit) {}
 // CHECK: FunctionDecl 'mutRefNoSpace'
 // CHECK-NEXT:   ParamDecl 'x'
-// CHECK-NEXT:     RefModifier
-// CHECK-NEXT:     UserDefinedType 'mutunit'
+// CHECK-NEXT:     ArgumentType
+// CHECK-NEXT:       RefModifier
+// CHECK-NEXT:       UserDefinedType 'mutunit'
 // CHECK-NEXT:   Block

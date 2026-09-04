@@ -4,7 +4,8 @@ fn main() {
   // CHECK:   LambdaExpr
   // CHECK-NEXT:     ParamDecl 'x'
   // CHECK-NEXT:     ParamDecl 'y'
-  // CHECK-NEXT:       BuiltinType 'number'
+  // CHECK-NEXT:       ArgumentType
+  // CHECK-NEXT:         BuiltinType 'number'
   // CHECK-NEXT:     Block
   // CHECK-NEXT:     ReturnStmt
   // CHECK-NEXT:       BinaryOperator '+'
