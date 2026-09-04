@@ -1,0 +1,18 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn main() {
+  let mn = gc mut 123;
+  // CHECK: %0 = call ptr @gcAlloc(i32 8, ptr null)
+  // CHECK-NEXT: store double 1.230000e+02, ptr %0, align 8
+  // CHECK-NEXT: store ptr %0, ptr %mn, align 8
+
+  let n: *number = mn;
+  // CHECK-NEXT: %1 = load ptr, ptr %mn, align 8
+  // CHECK-NEXT: store ptr %1, ptr %n, align 8
+
+  println(*n);
+  // CHECK-NEXT: %2 = load ptr, ptr %n, align 8
+  // CHECK-NEXT: %3 = load double, ptr %2, align 8
+  // CHECK-NEXT: call void @_Y7println(double %3, ptr null)
+}

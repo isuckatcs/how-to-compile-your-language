@@ -1,0 +1,13 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn foo(mn: *mut number) {
+  let n: *number = mn;
+  // CHECK: store ptr %mn, ptr %n, align 8
+
+  println(*n);
+}
+
+fn main() {
+  foo(gc mut 123);
+}

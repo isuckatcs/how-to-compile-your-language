@@ -1,0 +1,15 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+fn foo(mn: *mut number) {
+  bar(mn);
+  // CHECK: call void @_Y3bar(ptr %mn, ptr null)
+}
+
+fn bar(n: *number) {
+  println(*n);
+}
+
+fn main() {
+  foo(gc mut 123);
+}
