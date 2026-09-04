@@ -1,0 +1,16 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  if ->() { 
+    S { x: 123 };
+    return true;
+  }() {}
+  // CHECK: LambdaExpr
+  // CHECK-NEXT:   Block
+  // CHECK-NEXT:     StructInstantiationExpr
+  // CHECK-NEXT:       PathExpr
+  // CHECK-NEXT:         DeclRefExpr 'S'
+  // CHECK-NEXT:       FieldInitStmt 'x'
+  // CHECK-NEXT:         NumberLiteral '123'
+  // CHECK-NEXT:     ReturnStmt
+  // CHECK-NEXT:       BoolLiteral 'true'
+}

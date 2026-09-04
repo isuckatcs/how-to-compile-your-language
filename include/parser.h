@@ -28,18 +28,22 @@ class Parser {
   };
 
   template <typename T>
-  T withRestrictions(RestrictionType rests, T (Parser::*f)()) {
+  std::unique_ptr<T>
+  withRestrictions(RestrictionType rests,
+                   std::function<std::unique_ptr<T>(Parser &)> parser) {
     RestrictionType prevRestrictions = restrictions;
     restrictions |= rests;
-    auto res = (this->*f)();
+    auto res = parser(*this);
     restrictions = prevRestrictions;
     return res;
   }
 
-  template <typename T> T withNoRestrictions(T (Parser::*f)()) {
+  template <typename T>
+  std::unique_ptr<T>
+  withNoRestrictions(std::function<std::unique_ptr<T>(Parser &)> parser) {
     RestrictionType prevRestrictions = restrictions;
     restrictions = 0;
-    auto res = (this->*f)();
+    auto res = parser(*this);
     restrictions = prevRestrictions;
     return res;
   }

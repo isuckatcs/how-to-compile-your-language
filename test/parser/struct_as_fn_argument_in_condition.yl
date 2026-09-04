@@ -1,0 +1,12 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  if foo(S { x: 123 }) {}
+  // CHECK: CallExpr
+  // CHECK-NEXT:   PathExpr
+  // CHECK-NEXT:     DeclRefExpr 'foo'
+  // CHECK-NEXT:   StructInstantiationExpr
+  // CHECK-NEXT:     PathExpr
+  // CHECK-NEXT:       DeclRefExpr 'S'
+  // CHECK-NEXT:     FieldInitStmt 'x'
+  // CHECK-NEXT:       NumberLiteral '123'
+}

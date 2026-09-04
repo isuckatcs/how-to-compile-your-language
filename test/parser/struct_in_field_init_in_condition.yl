@@ -1,0 +1,12 @@
+// RUN: compiler %s -ast-dump 2>&1 | filecheck %s
+fn main() {
+  if S { s: S { x: 123 } } {}
+  // CHECK: [[# @LINE - 1 ]]:11: error: expected ';' at the end of expression
+  // CHECK: [[# @LINE - 2 ]]:28: error: expected expression
+}
+// CHECK: FunctionDecl 'main'
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     IfStmt
+// CHECK-NEXT:       PathExpr
+// CHECK-NEXT:         DeclRefExpr 'S'
+// CHECK-NEXT:       Block

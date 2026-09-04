@@ -231,8 +231,8 @@ std::unique_ptr<ast::TraitDecl> Parser::parseTraitDecl() {
   std::vector<std::unique_ptr<ast::FunctionDecl>> memberFunctions;
 
   while (nextToken.kind == TokenKind::KwFn) {
-    if (auto fn = withRestrictions(FunctionWithoutBodyAllowed,
-                                   &Parser::parseFunctionDecl)) {
+    if (auto fn = withRestrictions<ast::FunctionDecl>(
+            FunctionWithoutBodyAllowed, &Parser::parseFunctionDecl)) {
       memberFunctions.emplace_back(std::move(fn));
       continue;
     }
@@ -483,8 +483,8 @@ std::unique_ptr<ast::IfStmt> Parser::parseIfStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'if'
 
-  varOrReturn(condition,
-              withRestrictions(StructNotAllowed, &Parser::parseExpr));
+  varOrReturn(condition, withRestrictions<ast::Expr>(StructNotAllowed,
+                                                     &Parser::parseExpr));
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expectedBody().at(nextToken.location).with("'if'"));
@@ -525,7 +525,8 @@ std::unique_ptr<ast::WhileStmt> Parser::parseWhileStmt() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat 'while'
 
-  varOrReturn(cond, withRestrictions(StructNotAllowed, &Parser::parseExpr));
+  varOrReturn(
+      cond, withRestrictions<ast::Expr>(StructNotAllowed, &Parser::parseExpr));
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expectedBody().at(nextToken.location).with("'while'"));
@@ -765,7 +766,7 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
   if (nextToken.kind == TokenKind::Lpar) {
     eatNextToken(); // eat '('
 
-    varOrReturn(expr, withNoRestrictions(&Parser::parseExpr));
+    varOrReturn(expr, withNoRestrictions<ast::Expr>(&Parser::parseExpr));
 
     expectOrReturn(TokenKind::Rpar,
                    err::expected().at(nextToken.location).with("')'"));
@@ -942,8 +943,8 @@ std::unique_ptr<ast::LambdaExpr> Parser::parseLambdaExpr() {
     eatNextToken(); // eat '('
 
     while (nextToken.kind != TokenKind::Rpar) {
-      varOrReturn(param, withRestrictions(ParamWithoutTypeAllowed,
-                                          &Parser::parseParamDecl));
+      varOrReturn(param, withRestrictions<ast::ParamDecl>(
+                             ParamWithoutTypeAllowed, &Parser::parseParamDecl));
       parameterList.emplace_back(std::move(param));
 
       if (nextToken.kind != TokenKind::Comma)
@@ -972,7 +973,7 @@ std::unique_ptr<ast::LambdaExpr> Parser::parseLambdaExpr() {
 
   expectOrReturn(TokenKind::Lbrace,
                  err::expected().at(nextToken.location).with("'{'"));
-  varOrReturn(block, parseBlock());
+  varOrReturn(block, withNoRestrictions<ast::Block>(&Parser::parseBlock));
 
   return std::make_unique<ast::LambdaExpr>(location, std::move(parameterList),
                                            std::move(type), std::move(block));
@@ -1022,7 +1023,7 @@ Parser::parseListWithTrailingComma(
   auto list = std::make_unique<std::vector<std::unique_ptr<T>>>();
 
   while (nextToken.kind != closingToken) {
-    varOrReturn(init, parser(*this));
+    varOrReturn(init, withNoRestrictions(parser));
     list->emplace_back(std::move(init));
 
     if (nextToken.kind != TokenKind::Comma)
