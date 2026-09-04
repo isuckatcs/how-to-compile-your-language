@@ -363,10 +363,16 @@ Sema::resolveBinaryOperator(res::Context &ctx,
     if (rhsTy->getAs<res::StructType>() || rhsTy->getAs<res::TypeParamType>())
       typeError = true;
 
-    for (auto &&ty : {lhsTy, rhsTy})
+    for (auto &&ty : {lhsTy, rhsTy}) {
+      if (ty->getAs<res::AnyTraitType>()) {
+        typeError = true;
+        continue;
+      }
+
       if (auto *ptr = ty->getAs<res::PointerType>();
           ptr && ptr->getPointeeType()->getAs<res::AnyTraitType>())
         typeError = true;
+    }
 
     if (!typeError) {
       lhs = hardenTypeIfNeeded(ctx, lhs, rhsTy);
