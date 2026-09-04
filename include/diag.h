@@ -199,6 +199,7 @@ diag(Error, failedToOpenFile, "failed to open '{}'");
 diag(Error, unexpectedArgument, "unexpected argument '{}'");
 diag(Error, unexpectedOption, "unexpected option '{}'");
 diag(Error, expectedFlagArgument, "expected argument to '{}'");
+diag(Error, failedToFindInPath, "failed to find '{}' in PATH");
 // clang-format on
 }; // namespace err
 

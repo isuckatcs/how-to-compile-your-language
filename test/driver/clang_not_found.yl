@@ -1,0 +1,5 @@
+// RUN: COMPILER=$(which compiler); (PATH="" "$COMPILER" %s || true) 2>&1 | filecheck %s
+
+// CHECK: error: failed to find 'clang-20' in PATH
+
+fn main() {}

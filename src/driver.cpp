@@ -1,5 +1,6 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Program.h>
 
 #include <filesystem>
 #include <fstream>
@@ -195,18 +196,29 @@ int main(int argc, const char **argv) {
   llvm::raw_fd_ostream f(path, errorCode);
   llvmIR->print(f, nullptr);
 
-  std::stringstream command;
-  command << "clang-20 " << path.c_str() << " -L" << getLibDirPath(argv[0])
-          << " -lyl_runtime";
-  if (!options.output.empty())
-    command << " -o " << options.output;
+  std::string_view clangName = "clang-20";
+  llvm::ErrorOr clangPath = llvm::sys::findProgramByName(clangName);
+  if (!clangPath) {
+    err::failedToFindInPath().with(clangName).report(&reporter);
+    return 1;
+  }
+
+  std::string libDirPath = getLibDirPath(argv[0]);
+  std::string outputFile = options.output;
+
+  std::vector<llvm::StringRef> args = {*clangPath, path, "-L", libDirPath,
+                                       "-lyl_runtime"};
+  if (!options.output.empty()) {
+    args.emplace_back("-o");
+    args.emplace_back(outputFile);
+  }
 
 #ifdef YL_LIBGCOV
-  command << ' ' << YL_LIBGCOV;
+  args.emplace_back(YL_LIBGCOV);
 #endif
 
-  int ret = std::system(command.str().c_str());
+  int exitCode = llvm::sys::ExecuteAndWait(*clangPath, args);
   errorCode = llvm::sys::fs::remove(path);
 
-  return ret == 0 ? 0 : 1;
+  return exitCode;
 }
