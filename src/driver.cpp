@@ -188,18 +188,15 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  // Theoretically this can still generate the same tmp files for 2 different
-  // invocations and remove them later.
-  std::stringstream path;
-  path << "tmp-" << std::filesystem::hash_value(options.source) << ".ll";
-  const std::string &llvmIRPath = path.str();
-
+  llvm::SmallString<128> path;
   std::error_code errorCode;
-  llvm::raw_fd_ostream f(llvmIRPath, errorCode);
+  errorCode = llvm::sys::fs::createTemporaryFile("tmp", "ll", path);
+
+  llvm::raw_fd_ostream f(path, errorCode);
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  command << "clang-20 " << llvmIRPath << " -L" << getLibDirPath(argv[0])
+  command << "clang-20 " << path.c_str() << " -L" << getLibDirPath(argv[0])
           << " -lyl_runtime";
   if (!options.output.empty())
     command << " -o " << options.output;
@@ -209,7 +206,7 @@ int main(int argc, const char **argv) {
 #endif
 
   int ret = std::system(command.str().c_str());
-  std::filesystem::remove(llvmIRPath);
+  errorCode = llvm::sys::fs::remove(path);
 
   return ret == 0 ? 0 : 1;
 }
