@@ -1120,8 +1120,9 @@ Sema::coerceToRefIfNeeded(res::Context &ctx, res::Expr *expr, res::Type *to) {
   if (!expr->isMutable() && toRef->isMutable())
     return expr;
 
-  bool toAny = referencedType->getAs<res::AnyTraitType>() != nullptr;
-  if (!toAny && !ctx.canUnify(from, referencedType))
+  bool toAny = referencedType->getAs<res::AnyTraitType>();
+  bool isUninferred = referencedType->getAs<res::UninferredType>();
+  if (!toAny && !isUninferred && !ctx.canUnify(from, referencedType))
     return expr;
 
   auto *asRef = res::ImplicitAsRefExpr::create(ctx, expr->location, expr);

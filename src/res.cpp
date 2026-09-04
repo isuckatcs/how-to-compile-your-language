@@ -485,6 +485,10 @@ bool Context::canUnify(Type *t1, Type *t2) {
 
   probe([&, this](UnifyResult &unifyResult) {
     doUnify(t1, t2, unifyResult);
+
+    if (unifyResult.state == QueryState::Success)
+      processObligations(unifyResult, false);
+
     success = unifyResult.state == QueryState::Success;
   });
 
