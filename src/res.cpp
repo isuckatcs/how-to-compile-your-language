@@ -72,7 +72,7 @@ void Context::ExtensionCache::insertIfMissing(
     int depth,
     QueryResult<TypeExtension *> result) {
   std::string key = getKey(type, trait, depth);
-  if (!get(type, trait, depth))
+  if (!count(key))
     emplace(key, std::move(result));
 }
 
