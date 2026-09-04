@@ -1,0 +1,32 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+
+// CHECK: @vtable.T1AGnE = internal constant [1 x ptr] [ptr @_YT1AGnE3foo]
+
+trait A {
+  fn foo(self: &Self);
+}
+
+extension number : A {
+  fn foo(self: &Self) {
+    println(self);
+  }
+}
+
+fn dispatchFoo(a: &any A) {
+  a.foo();
+}
+
+fn wrapper(f: (&any A) -> unit) {
+  let n = 123;
+  f(n);
+  // CHECK: %0 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 0
+  // CHECK-NEXT: store ptr %n, ptr %0, align 8
+  // CHECK-NEXT: %1 = getelementptr inbounds nuw { ptr, ptr }, ptr %traitObject, i32 0, i32 1
+  // CHECK-NEXT: store ptr @vtable.T1AGnE, ptr %1, align 8
+}
+
+fn main() {
+  wrapper(dispatchFoo);
+}

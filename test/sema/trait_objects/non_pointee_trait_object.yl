@@ -1,13 +1,13 @@
 // RUN: compiler %s 2>&1 -res-dump | filecheck %s
 struct S {
-  // CHECK: [[# @LINE + 1 ]]:6: error: only pointers to trait objects are allowed
+  // CHECK: [[# @LINE + 1 ]]:6: error: only pointers and references to trait objects are allowed
   x: any Foo
 }
 
-// CHECK: [[# @LINE + 1 ]]:11: error: only pointers to trait objects are allowed
+// CHECK: [[# @LINE + 1 ]]:11: error: only pointers and references to trait objects are allowed
 fn foo(f: any Foo) {}
 
-// CHECK: [[# @LINE + 1 ]]:11: error: only pointers to trait objects are allowed
+// CHECK: [[# @LINE + 1 ]]:11: error: only pointers and references to trait objects are allowed
 fn bar(): any Foo {}
 
 fn main() {}

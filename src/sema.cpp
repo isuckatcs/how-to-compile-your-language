@@ -249,10 +249,11 @@ res::Type *Sema::resolveType(res::Context &ctx,
   }
 
   if (const auto *arg = dynamic_cast<const ast::ArgumentType *>(&parsedType)) {
-    varOrReturn(type, resolveType(ctx, *arg->type));
+    const auto *ref = arg->refModifier.get();
+    varOrReturn(type, resolveType(ctx, *arg->type, ref));
 
-    if (const auto *ref = arg->refModifier.get())
-      type = res::RefType::create(ctx, type, ref->isMut);
+    if (ref)
+      return res::RefType::create(ctx, type, ref->isMut);
 
     return type;
   }
@@ -273,7 +274,7 @@ res::Type *Sema::resolveType(res::Context &ctx,
 
   if (const auto *any = dynamic_cast<const ast::AnyType *>(&parsedType)) {
     if (!allowTraitObject)
-      return err::traitObjectNotPointee().at(any->location).report(reporter);
+      return err::traitObjectWrongType().at(any->location).report(reporter);
 
     varOrReturn(type, resolveType(ctx, *any->type, false, true));
     return validatedAnyTraitType(ctx, any, type->getAs<res::AnyTraitType>());
@@ -1697,7 +1698,7 @@ res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
   res::Type *paramType;
 
   if (param->type)
-    paramType = resolveType(ctx, *param->type, param->refModifier != nullptr);
+    paramType = resolveType(ctx, *param->type);
   else if (typeHint)
     paramType = typeHint;
   else
@@ -1706,9 +1707,6 @@ res::ParamDecl *Sema::resolveParamDecl(res::Context &ctx,
   bool isMut = param->isMutable;
 
   if (paramType) {
-    if (auto *ref = param->refModifier.get())
-      paramType = res::RefType::create(ctx, paramType, ref->isMut);
-
     if (auto *refType = paramType->getAs<res::RefType>()) {
       if (isMut)
         paramType = err::mutRefParameter().at(param->location).report(reporter);

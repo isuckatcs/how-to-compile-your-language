@@ -121,7 +121,7 @@ diag(Error, expectedBoolCondition, "expected 'bool' in condition");
 diag(Error, invalidCallTy, "calling expression of type '{}'");
 diag(Error, rawTrait, "expected a specific extension or a trait object of '{}'");
 diag(Error, wrongDeclKind, "referenced declaration has unexpected kind");
-diag(Error, traitObjectNotPointee, "only pointers to trait objects are allowed");
+diag(Error, traitObjectWrongType, "only pointers and references to trait objects are allowed");
 diag(Error, traitObjectTemplateMemberFn, "trait '{}' with a template method cannot be used as a trait object");
 diag(Error, traitObjectStaticMemberFn, "trait '{}' with a static method cannot be used as a trait object");
 diag(Error, traitObjectSelfParam, "trait '{}' with a method referencing 'Self' in a non-receiver parameter type cannot be used as a trait object");
