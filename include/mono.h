@@ -39,6 +39,10 @@ struct Mangling {
                                         const res::Substitution &sub);
 
 private:
+  // (parent function name, lambda decl) -> lambda name
+  inline static std::map<std::string, std::map<res::StructDecl *, std::string>>
+      lambdaNames;
+
   static std::string mangleFunctionSignature(res::Context *resCtx,
                                              const res::FunctionDecl *fn,
                                              const res::Substitution &sub);

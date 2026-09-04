@@ -44,12 +44,9 @@ std::string Mangling::mangleMonoType(res::Context *resCtx,
            mangleMonoType(resCtx, r->getReferencedType(), sub);
 
   if (const auto *s = type->getAs<res::StructType>()) {
-    static std::map<std::string, std::map<const res::StructDecl *, std::string>>
-        lambdaNames;
-
     std::stringstream mangledName;
 
-    const auto *sd = s->getDecl();
+    res::StructDecl *sd = s->getDecl();
     std::string id = sd->identifier;
 
     if (sd->isLambda) {
