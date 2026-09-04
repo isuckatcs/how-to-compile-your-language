@@ -412,6 +412,7 @@ bb0:
 ```
 $ compiler main.yl -mono-dump
 
+(println, []) -> _Y7println
 (main, []) -> _Y4main
 ```
 ```
@@ -419,7 +420,7 @@ $ compiler main.yl -llvm-dump
 
 define void @_Y4main(ptr %closure) {
 entry:
-  call void @println(double 1.230000e+02, ptr null)
+  call void @_Y7println(double 1.230000e+02, ptr null)
   ret void
 }
 ```
