@@ -258,7 +258,7 @@ fn main() {
 ```
 $ compiler heap_allocated_closures.yl -o heap_allocated_closures
 $ ./heap_allocated_closures
-5
+3
 ```
 
 ### 🖨️ Monomorphized Generics
