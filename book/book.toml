@@ -1,0 +1,7 @@
+[book]
+title = "How to Compile Your Language"
+authors = ["isuckatcs"]
+language = "en"
+
+[output.html]
+git-repository-url = "https://github.com/isuckatcs/how-to-compile-your-language"
