@@ -6,7 +6,7 @@
 <br>
 </div>
 
-![cover](https://isuckatcs.github.io/how-to-compile-your-language/img/cover.png)
+![cover](https://raw.githubusercontent.com/isuckatcs/how-to-compile-your-language/refs/heads/main/www/img/cover.png)
 
 __Build a compiler from scratch for [_Your Language_](#your-language)__, a small programming language designed to explore how modern compilers work.
 
