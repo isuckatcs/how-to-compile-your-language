@@ -837,11 +837,14 @@ std::unique_ptr<ast::TypeSpecifier> Parser::parseTypeSpecifier() {
 
   varOrReturn(type, parseType());
 
-  expectOrReturn(TokenKind::Colon,
-                 err::expected().at(nextToken.location).with("':'"));
-  eatNextToken(); // eat ':'
+  std::unique_ptr<ast::UserDefinedType> trait;
+  if (nextToken.kind == TokenKind::Colon) {
+    eatNextToken(); // eat ':'
 
-  varOrReturn(trait, parseUserDefinedType());
+    trait = parseUserDefinedType();
+    if (!trait)
+      return nullptr;
+  }
 
   expectOrReturn(TokenKind::Gt,
                  err::expected().at(nextToken.location).with("'>'"));
