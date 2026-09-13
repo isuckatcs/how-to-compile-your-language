@@ -200,6 +200,9 @@ res::Type *Sema::resolveType(res::Context &ctx,
           .report(reporter);
 
     if (auto *typeParamDecl = decl->getAs<res::TypeParamDecl>()) {
+      if (!checkTypeParameterCount(udt->location, udt->typeArguments.size(), 0))
+        return nullptr;
+
       typeParamDecl->setUsed(true);
       return res::TypeParamType::create(ctx, typeParamDecl);
     }

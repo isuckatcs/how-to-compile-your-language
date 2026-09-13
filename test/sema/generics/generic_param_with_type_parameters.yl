@@ -1,0 +1,5 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+// CHECK: [[# @LINE + 1 ]]:14: error: type argument count mismatch, expected 0, but received 2
+fn foo<T>(t: T<number, unit>) {}
+
+fn main() {}
