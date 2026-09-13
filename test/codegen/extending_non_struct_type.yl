@@ -1,0 +1,23 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+extension number {
+  fn print(self: &Self) {
+    println(self);
+  }
+  // CHECK: define void @_Yn5print(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   %0 = load double, ptr %self, align 8
+  // CHECK-NEXT:   call void @_Y7println(double %0, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+fn main() {
+  let f = @<number>::print;
+  // CHECK: store ptr @_Yn5print, ptr %0, align 8
+
+  let n = 123;
+
+  f(n);
+}

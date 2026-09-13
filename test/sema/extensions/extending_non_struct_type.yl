@@ -1,5 +1,10 @@
 // RUN: compiler %s -res-dump 2>&1 | filecheck %s
-// CHECK: [[# @LINE + 1 ]]:11: error: type 'number' can only be extended with traits
-extension number {}
+extension number {
+  fn print(self: &Self) {}
+}
+// CHECK: TypeExtension number
+// CHECK-NEXT:   FunctionDecl @({{.*}}) print {(&number) -> unit}
+// CHECK-NEXT:     ParamDecl @({{.*}}) self {&number}
+// CHECK-NEXT:     Block
 
 fn main() {}

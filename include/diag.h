@@ -131,7 +131,6 @@ diag(Error, traitNotTraitObjectCompatible, "trait '{}' is not trait object compa
 diag(Error, traitObjectPtrDereference, "cannot dereference pointer to trait object");
 diag(Error, traitObjectAssignment, "cannot assign to trait object");
 diag(Error, universalTypeExtension, "expected a trait extension or an extension of a concrete type");
-diag(Error, nonStructTypeExtension, "type '{}' can only be extended with traits");
 diag(Error, infiniteStructType, "struct '{}' recurses infinitely in '{}'");
 diag(Error, promoOperandUnknown, "cannot promote unknown '{}' type to '{}'");
 
