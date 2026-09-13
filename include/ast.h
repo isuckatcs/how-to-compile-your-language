@@ -289,13 +289,13 @@ struct DeclRefExpr final : public Expr {
   void dump(size_t level = 0) const override;
 };
 
-struct TraitSpecifier final : public Node {
+struct TypeSpecifier final : public Node {
   const std::unique_ptr<Type> type;
   const std::unique_ptr<UserDefinedType> trait;
 
-  TraitSpecifier(SourceLocation location,
-                 std::unique_ptr<Type> type,
-                 std::unique_ptr<UserDefinedType> trait)
+  TypeSpecifier(SourceLocation location,
+                std::unique_ptr<Type> type,
+                std::unique_ptr<UserDefinedType> trait)
       : Node(location),
         type(std::move(type)),
         trait(std::move(trait)) {}
@@ -304,13 +304,13 @@ struct TraitSpecifier final : public Node {
 };
 
 struct PathExpr final : public Expr {
-  const std::unique_ptr<TraitSpecifier> traitSpecifier;
+  const std::unique_ptr<TypeSpecifier> typeSpecifier;
   const std::vector<std::unique_ptr<DeclRefExpr>> fragments;
 
-  PathExpr(std::unique_ptr<TraitSpecifier> traitSpecifier,
+  PathExpr(std::unique_ptr<TypeSpecifier> typeSpecifier,
            std::vector<std::unique_ptr<DeclRefExpr>> fragments)
       : Expr(fragments.back()->location),
-        traitSpecifier(std::move(traitSpecifier)),
+        typeSpecifier(std::move(typeSpecifier)),
         fragments(std::move(fragments)) {}
 
   void dump(size_t level = 0) const override;

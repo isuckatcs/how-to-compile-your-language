@@ -135,8 +135,8 @@ void DeclRefExpr::dump(size_t level) const {
     typeArgumentList->dump(level + 1);
 }
 
-void TraitSpecifier::dump(size_t level) const {
-  std::cerr << indent(level) << "TraitSpecifier\n";
+void TypeSpecifier::dump(size_t level) const {
+  std::cerr << indent(level) << "TypeSpecifier\n";
 
   type->dump(level + 1);
   trait->dump(level + 1);
@@ -145,8 +145,8 @@ void TraitSpecifier::dump(size_t level) const {
 void PathExpr::dump(size_t level) const {
   std::cerr << indent(level) << "PathExpr\n";
 
-  if (traitSpecifier)
-    traitSpecifier->dump(level + 1);
+  if (typeSpecifier)
+    typeSpecifier->dump(level + 1);
 
   for (auto &&fragment : fragments)
     fragment->dump(level + 1);

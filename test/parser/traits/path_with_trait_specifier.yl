@@ -2,7 +2,7 @@
 fn main() {
   @<number : Foo>::x;
   // CHECK: PathExpr
-  // CHECK-NEXT:   TraitSpecifier
+  // CHECK-NEXT:   TypeSpecifier
   // CHECK-NEXT:     BuiltinType 'number'
   // CHECK-NEXT:     UserDefinedType 'Foo'
   // CHECK-NEXT:   DeclRefExpr 'x'
@@ -10,7 +10,7 @@ fn main() {
   @<S<unit> : A<number>>::foo();
   // CHECK: CallExpr
   // CHECK-NEXT:   PathExpr
-  // CHECK-NEXT:     TraitSpecifier
+  // CHECK-NEXT:     TypeSpecifier
   // CHECK-NEXT:       UserDefinedType 'S'
   // CHECK-NEXT:         BuiltinType 'unit'
   // CHECK-NEXT:       UserDefinedType 'A'
@@ -19,7 +19,7 @@ fn main() {
 
   @<S : A>::foo::bar;
   // CHECK: PathExpr
-  // CHECK-NEXT:   TraitSpecifier
+  // CHECK-NEXT:   TypeSpecifier
   // CHECK-NEXT:     UserDefinedType 'S'
   // CHECK-NEXT:     UserDefinedType 'A'
   // CHECK-NEXT:   DeclRefExpr 'foo'

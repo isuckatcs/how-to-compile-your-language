@@ -825,9 +825,9 @@ std::unique_ptr<ast::Expr> Parser::parsePrimary() {
       .report(reporter);
 }
 
-// <traitSpecifier>
+// <typeSpecifier>
 //  ::= '@' '<' <type> ':' <userDefinedType> '>'
-std::unique_ptr<ast::TraitSpecifier> Parser::parseTraitSpecifier() {
+std::unique_ptr<ast::TypeSpecifier> Parser::parseTypeSpecifier() {
   SourceLocation location = nextToken.location;
   eatNextToken(); // eat '@'
 
@@ -847,19 +847,19 @@ std::unique_ptr<ast::TraitSpecifier> Parser::parseTraitSpecifier() {
                  err::expected().at(nextToken.location).with("'>'"));
   eatNextToken(); // eat '>'
 
-  return std::make_unique<ast::TraitSpecifier>(location, std::move(type),
-                                               std::move(trait));
+  return std::make_unique<ast::TypeSpecifier>(location, std::move(type),
+                                              std::move(trait));
 }
 
 // <pathExpr>
-//  ::= (<traitSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
+//  ::= (<typeSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
 std::unique_ptr<ast::PathExpr> Parser::parsePathExpr() {
-  std::unique_ptr<ast::TraitSpecifier> traitSpecifier = nullptr;
+  std::unique_ptr<ast::TypeSpecifier> typeSpecifier = nullptr;
   std::vector<std::unique_ptr<ast::DeclRefExpr>> fragments;
 
   if (nextToken.kind == TokenKind::At) {
-    traitSpecifier = parseTraitSpecifier();
-    if (!traitSpecifier)
+    typeSpecifier = parseTypeSpecifier();
+    if (!typeSpecifier)
       return nullptr;
 
     expectOrReturn(TokenKind::ColonColon,
@@ -877,7 +877,7 @@ std::unique_ptr<ast::PathExpr> Parser::parsePathExpr() {
       return nullptr;
   }
 
-  return std::make_unique<ast::PathExpr>(std::move(traitSpecifier),
+  return std::make_unique<ast::PathExpr>(std::move(typeSpecifier),
                                          std::move(fragments));
 }
 
