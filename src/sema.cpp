@@ -491,15 +491,19 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
 
   if (auto *typeSpec = pathExpr.typeSpecifier.get()) {
     varOrReturn(type, resolveType(ctx, *typeSpec->type, true));
-    varOrReturn(t, resolveType(ctx, *typeSpec->trait, false, true, type));
-    res::TraitType *trait = t->getAs<res::TraitType>();
 
-    auto result = ctx.querySatisfyingTraits(type, trait);
-    if (result.state != res::Context::QueryState::Success) {
-      for (auto &&err : result.diags)
-        err.at(typeSpec->trait->location).report(reporter);
+    res::TraitType *trait = nullptr;
+    if (auto *astTrait = typeSpec->trait.get()) {
+      varOrReturn(t, resolveType(ctx, *astTrait, false, true, type));
+      trait = t->getAs<res::TraitType>();
 
-      return nullptr;
+      auto result = ctx.querySatisfyingTraits(type, trait);
+      if (result.state != res::Context::QueryState::Success) {
+        for (auto &&err : result.diags)
+          err.at(typeSpec->trait->location).report(reporter);
+
+        return nullptr;
+      }
     }
 
     const ast::DeclRefExpr *fragment = fragments[idx].get();

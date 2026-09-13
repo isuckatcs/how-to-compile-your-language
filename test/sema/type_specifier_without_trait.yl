@@ -1,0 +1,14 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+trait A {
+  fn foo() {}
+}
+
+extension number : A {}
+
+fn main() {
+  @<number>::foo();
+}
+// CHECK: FunctionDecl @({{.*}}) main {() -> unit}
+// CHECK-NEXT:   Block
+// CHECK-NEXT:     CallExpr {unit}
+// CHECK-NEXT:       DeclRefExpr @({{.*}}) foo {() -> unit}
