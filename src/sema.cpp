@@ -546,20 +546,18 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       if (fragments.size() > 1)
         continue;
 
-      if (auto *paramType = type->getAs<res::TypeParamType>()) {
-        auto *dre = resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
-                                       paramType->getSub());
-        assert(dre && "self type not resolved");
-        resFragments.emplace_back(dre);
-        continue;
-      }
+      res::DeclRefExpr *dre = nullptr;
+      if (auto *paramType = type->getAs<res::TypeParamType>())
+        dre = resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
+                                 paramType->getSub());
 
-      auto *structType = type->getAs<res::StructType>();
-      if (!structType)
+      if (auto *structType = type->getAs<res::StructType>())
+        dre = resolveDeclRefExpr(ctx, fragment, structType->getDecl(),
+                                 structType->getSub());
+
+      if (!dre)
         return err::wrongDeclKind().at(fragment->location).report(reporter);
 
-      varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, structType->getDecl(),
-                                          structType->getSub()));
       resFragments.emplace_back(dre);
       continue;
     }
