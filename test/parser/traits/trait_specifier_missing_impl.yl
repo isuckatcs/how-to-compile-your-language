@@ -1,8 +1,5 @@
 // RUN: compiler %s -ast-dump 2>&1 | filecheck %s
 fn main() {
-  @<unit>::foo();
-  // CHECK: PathExpr
-  // CHECK-NEXT:   TypeSpecifier
-  // CHECK-NEXT:     BuiltinType 'unit'
-  // CHECK-NEXT:   DeclRefExpr 'foo'
+  // CHECK: [[# @LINE + 1 ]]:7: error: expected ':'
+  @<S A>::foo();
 }
