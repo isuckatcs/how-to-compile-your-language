@@ -133,10 +133,10 @@
     ::= ':' <type>
 
 <pathExpr>
-    ::= (<traitSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
+    ::= (<typeSpecifier> '::')? <declRefExpr> ('::' <declRefExpr>)*
 
-<traitSpecifier>
-    ::= '@' '<' <type> ':' <userDefinedType> '>'
+<typeSpecifier>
+    ::= '@' '<' <type> (':' <userDefinedType>)? '>'
 
 <declRefExpr>
     ::= (<identifier> | 'Self') <typeArgumentList>?
