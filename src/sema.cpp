@@ -516,12 +516,16 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     ++idx;
   }
 
+  res::Type *type = nullptr;
   for (; idx != fragments.size(); ++idx) {
     const ast::DeclRefExpr *fragment = fragments[idx].get();
-    if (!resFragments.empty()) {
+
+    if (!resFragments.empty())
+      type = resFragments.back()->getType();
+
+    if (type) {
       assert(idx > 0 && "unexpected fragment index");
 
-      res::Type *type = resFragments.back()->getType();
       if (type->getAs<res::TraitType>())
         return err::memberAccessInRawTrait()
             .at(fragment->location)
@@ -535,11 +539,14 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     assert(idx == 0 && "unexpected fragment index");
 
     if (fragment->identifier == selfTypeId) {
-      auto *selfType = scope->getSelfType();
-      if (!selfType)
+      type = scope->getSelfType();
+      if (!type)
         return err::selfTyNotAllowed().at(fragment->location).report(reporter);
 
-      if (auto *paramType = selfType->getAs<res::TypeParamType>()) {
+      if (fragments.size() > 1)
+        continue;
+
+      if (auto *paramType = type->getAs<res::TypeParamType>()) {
         auto *dre = resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
                                        paramType->getSub());
         assert(dre && "self type not resolved");
@@ -547,8 +554,9 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
         continue;
       }
 
-      auto *structType = selfType->getAs<res::StructType>();
-      assert(structType && "unexpect self type");
+      auto *structType = type->getAs<res::StructType>();
+      if (!structType)
+        return err::wrongDeclKind().at(fragment->location).report(reporter);
 
       varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, structType->getDecl(),
                                           structType->getSub()));

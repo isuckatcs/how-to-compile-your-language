@@ -1,0 +1,32 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzxe '123\n'
+trait A {
+  fn typeLevel() {}
+
+  fn instanceLevel(self: &Self) {}
+}
+
+extension number : A {
+  fn typeLevel() {
+    println(123);
+  }
+  // CHECK: define void @_YT1AGnE9typeLevel(ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @_Y7println(double 1.230000e+02, ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+
+  fn instanceLevel(self: &Self) {
+    Self::typeLevel();
+  }
+  // CHECK: define void @_YT1AGnE13instanceLevel(ptr %self, ptr %closure) {
+  // CHECK-NEXT: entry:
+  // CHECK-NEXT:   call void @_YT1AGnE9typeLevel(ptr null)
+  // CHECK-NEXT:   ret void
+  // CHECK-NEXT: }
+}
+
+fn main() {
+  123.instanceLevel();
+}

@@ -1,0 +1,9 @@
+// RUN: compiler %s -res-dump 2>&1 | filecheck %s
+extension number {
+  fn foo() {
+    // CHECK: [[# @LINE + 1 ]]:5: error: referenced declaration has unexpected kind
+    Self;
+  }
+}
+
+fn main() {}
