@@ -133,6 +133,7 @@ diag(Error, traitObjectAssignment, "cannot assign to trait object");
 diag(Error, universalTypeExtension, "expected a trait extension or an extension of a concrete type");
 diag(Error, infiniteStructType, "struct '{}' recurses infinitely in '{}'");
 diag(Error, promoOperandUnknown, "cannot promote unknown '{}' type to '{}'");
+diag(Error, selfTypeArgs, "'Self' cannot have type arguments");
 
 // generics
 diag(Error, typeParamShadowed, "declaring '{}' shadows outer type parameter");

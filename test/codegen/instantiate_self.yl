@@ -1,0 +1,30 @@
+// RUN: compiler %s -verify-only
+// RUN: compiler %s -llvm-dump 2>&1 | filecheck %s
+// RUN: compiler %s -o %t && %t | grep -Plzx '123\n'
+struct S<T> {
+  t: T
+}
+
+extension<T> S<T> {
+  fn create(t: T): S<T> {
+    return Self { t: t };
+  }
+}
+
+fn main() {
+  let s = S::create(123);
+  // CHECK: call void @_YS1SGnE6create(ptr sret({ double }) %struct.ret.tmp, double 1.230000e+02, ptr null)
+
+  println(s.t);
+}
+// CHECK: define void @_YS1SGnE6create(ptr sret({ double }) %ret, double %t, ptr %closure) {
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %S.tmp = alloca { double }, align 8
+// CHECK-NEXT:   %0 = getelementptr inbounds nuw { double }, ptr %S.tmp, i32 0, i32 0
+// CHECK-NEXT:   store double %t, ptr %0, align 8
+// CHECK-NEXT:   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %ret, ptr align 8 %S.tmp, i64 8, i1 false)
+// CHECK-NEXT:   br label %return
+// CHECK-NEXT: 
+// CHECK-NEXT: return:                                           ; preds = %entry
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }

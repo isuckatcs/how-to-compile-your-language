@@ -1,0 +1,11 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S<T> {}
+
+extension<T> S<T> {
+  fn foo() {
+    // CHECK: [[# @LINE + 1 ]]:9: error: 'Self' cannot have type arguments
+    Self@<number, unit>::foo();
+  }
+}
+
+fn main() {}

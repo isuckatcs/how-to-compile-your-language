@@ -1,0 +1,13 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+struct S {}
+
+extension S {
+  fn foo() {}
+}
+
+fn main() {
+  let S = 123;
+  S::foo();
+  // CHECK: CallExpr {unit}
+  // CHECK-NEXT:   DeclRefExpr @({{.*}}) foo {() -> unit}
+}

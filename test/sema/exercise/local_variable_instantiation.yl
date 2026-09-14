@@ -1,0 +1,7 @@
+// RUN: compiler %s 2>&1 -res-dump | filecheck %s
+fn main() {
+  let n = 123;
+  
+  // CHECK: [[# @LINE + 1 ]]:3: error: referenced declaration has unexpected kind
+  n {};
+}

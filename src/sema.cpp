@@ -488,7 +488,6 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
 template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
                                            const ast::PathExpr &pathExpr) {
-  const auto *typeSpecifier = pathExpr.typeSpecifier.get();
   const auto &fragments = pathExpr.fragments;
   size_t current = 0;
 
@@ -496,12 +495,12 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
   res::TraitType *trait = nullptr;
   std::vector<res::DeclRefExpr *> resFragments;
 
-  if (typeSpecifier) {
+  if (const auto *typeSpecifier = pathExpr.typeSpecifier.get()) {
     type = resolveType(ctx, *typeSpecifier->type, true);
     if (!type)
       return nullptr;
 
-    if (auto *astTrait = typeSpecifier->trait.get()) {
+    if (const auto *astTrait = typeSpecifier->trait.get()) {
       varOrReturn(t, resolveType(ctx, *astTrait, false, true, type));
       trait = t->getAs<res::TraitType>();
 
@@ -521,7 +520,10 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
     if (!type)
       return err::selfTyNotAllowed().at(dre->location).report(reporter);
 
-    if (fragments.size() == 1) {
+    if (const auto *typeArgs = dre->typeArgumentList.get())
+      return err::selfTypeArgs().at(typeArgs->location).report(reporter);
+
+    if (current == fragments.size()) {
       res::Decl *decl = nullptr;
       res::Substitution sub;
 
@@ -531,11 +533,12 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       } else if (auto *structType = type->getAs<res::StructType>()) {
         decl = structType->getDecl();
         sub = structType->getSub();
-      } else
+      }
+
+      if (!decl || !decl->getAs<ExpectedDecl>())
         return err::wrongDeclKind().at(dre->location).report(reporter);
 
-      varOrReturn(resDre, resolveDeclRefExpr(ctx, dre, decl, sub));
-      resFragments.emplace_back(resDre);
+      resFragments.emplace_back(resolveDeclRefExpr(ctx, dre, decl, sub));
     }
   } else {
     const auto *dre = fragments[current].get();
@@ -550,19 +553,19 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
 
     res::Decl *referencedDecl = nullptr;
     for (auto &&decl : symbolsInScope) {
-      if (fragments.size() > 1 && decl->getAs<res::TypeDecl>()) {
+      if (current != fragments.size() && decl->getAs<res::TypeDecl>()) {
         referencedDecl = decl;
         break;
       }
 
-      if (fragments.size() == 1 && decl->getAs<ExpectedDecl>()) {
+      if (current == fragments.size() && decl->getAs<ExpectedDecl>()) {
         referencedDecl = decl;
         break;
       }
     }
 
     if (!referencedDecl) {
-      if (fragments.size() > 1)
+      if (current != fragments.size())
         return err::memberAccessInValue()
             .at(fragments[current]->location)
             .report(reporter);
@@ -582,8 +585,6 @@ res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
       type = resFragments.back()->getType();
       trait = nullptr;
     }
-
-    assert(type && "missing type before associated lookup");
 
     if (type->getAs<res::TraitType>())
       return err::memberAccessInRawTrait().at(dre->location).report(reporter);
