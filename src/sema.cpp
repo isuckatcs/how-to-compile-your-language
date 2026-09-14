@@ -488,122 +488,116 @@ res::Expr *Sema::resolvePathExpr(res::Context &ctx,
 template <typename ExpectedDecl>
 res::DeclRefExpr *Sema::resolvePathDeclRef(res::Context &ctx,
                                            const ast::PathExpr &pathExpr) {
-  std::vector<res::DeclRefExpr *> resFragments;
+  const auto *typeSpecifier = pathExpr.typeSpecifier.get();
   const auto &fragments = pathExpr.fragments;
-  size_t idx = 0;
+  size_t current = 0;
 
-  if (auto *typeSpec = pathExpr.typeSpecifier.get()) {
-    varOrReturn(type, resolveType(ctx, *typeSpec->type, true));
+  res::Type *type = nullptr;
+  res::TraitType *trait = nullptr;
+  std::vector<res::DeclRefExpr *> resFragments;
 
-    res::TraitType *trait = nullptr;
-    if (auto *astTrait = typeSpec->trait.get()) {
+  if (typeSpecifier) {
+    type = resolveType(ctx, *typeSpecifier->type, true);
+    if (!type)
+      return nullptr;
+
+    if (auto *astTrait = typeSpecifier->trait.get()) {
       varOrReturn(t, resolveType(ctx, *astTrait, false, true, type));
       trait = t->getAs<res::TraitType>();
 
       auto result = ctx.querySatisfyingTraits(type, trait);
       if (result.state != res::Context::QueryState::Success) {
         for (auto &&err : result.diags)
-          err.at(typeSpec->trait->location).report(reporter);
+          err.at(typeSpecifier->trait->location).report(reporter);
 
         return nullptr;
       }
     }
+  } else if (fragments[current]->identifier == selfTypeId) {
+    const auto *dre = fragments[current].get();
+    ++current;
 
-    const ast::DeclRefExpr *fragment = fragments[idx].get();
-    varOrReturn(dre, resolveAssociatedDeclRef(ctx, fragment, type, trait));
-    resFragments.emplace_back(dre);
+    type = scope->getSelfType();
+    if (!type)
+      return err::selfTyNotAllowed().at(dre->location).report(reporter);
 
-    ++idx;
-  }
+    if (fragments.size() == 1) {
+      res::Decl *decl = nullptr;
+      res::Substitution sub;
 
-  res::Type *type = nullptr;
-  for (; idx != fragments.size(); ++idx) {
-    const ast::DeclRefExpr *fragment = fragments[idx].get();
+      if (auto *paramType = type->getAs<res::TypeParamType>()) {
+        decl = paramType->getDecl();
+        sub = paramType->getSub();
+      } else if (auto *structType = type->getAs<res::StructType>()) {
+        decl = structType->getDecl();
+        sub = structType->getSub();
+      } else
+        return err::wrongDeclKind().at(dre->location).report(reporter);
 
-    if (!resFragments.empty())
-      type = resFragments.back()->getType();
-
-    if (type) {
-      assert(idx > 0 && "unexpected fragment index");
-
-      if (type->getAs<res::TraitType>())
-        return err::memberAccessInRawTrait()
-            .at(fragment->location)
-            .report(reporter);
-
-      varOrReturn(dre, resolveAssociatedDeclRef(ctx, fragment, type));
-      resFragments.emplace_back(dre);
-      continue;
+      varOrReturn(resDre, resolveDeclRefExpr(ctx, dre, decl, sub));
+      resFragments.emplace_back(resDre);
     }
+  } else {
+    const auto *dre = fragments[current].get();
+    ++current;
 
-    assert(idx == 0 && "unexpected fragment index");
-
-    if (fragment->identifier == selfTypeId) {
-      type = scope->getSelfType();
-      if (!type)
-        return err::selfTyNotAllowed().at(fragment->location).report(reporter);
-
-      if (fragments.size() > 1)
-        continue;
-
-      res::DeclRefExpr *dre = nullptr;
-      if (auto *paramType = type->getAs<res::TypeParamType>())
-        dre = resolveDeclRefExpr(ctx, fragment, paramType->getDecl(),
-                                 paramType->getSub());
-
-      if (auto *structType = type->getAs<res::StructType>())
-        dre = resolveDeclRefExpr(ctx, fragment, structType->getDecl(),
-                                 structType->getSub());
-
-      if (!dre)
-        return err::wrongDeclKind().at(fragment->location).report(reporter);
-
-      resFragments.emplace_back(dre);
-      continue;
-    }
-
-    auto symbolsInScope = scope->lookupSymbol(fragment->identifier);
+    auto symbolsInScope = scope->lookupSymbol(dre->identifier);
     if (symbolsInScope.empty())
       return err::missingSymbol()
-          .at(fragment->location)
-          .with(fragment->identifier)
+          .at(dre->location)
+          .with(dre->identifier)
           .report(reporter);
 
-    if (fragments.size() > 1) {
-      for (auto &&decl : symbolsInScope) {
-        if (decl->getAs<res::TypeDecl>()) {
-          varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, decl));
-          resFragments.emplace_back(dre);
-          break;
-        }
+    res::Decl *referencedDecl = nullptr;
+    for (auto &&decl : symbolsInScope) {
+      if (fragments.size() > 1 && decl->getAs<res::TypeDecl>()) {
+        referencedDecl = decl;
+        break;
       }
 
-      if (resFragments.empty())
-        return err::memberAccessInValue()
-            .at(fragments[idx + 1]->location)
-            .report(reporter);
-
-      continue;
-    }
-
-    for (auto &&decl : symbolsInScope) {
-      if (decl->getAs<ExpectedDecl>()) {
-        varOrReturn(dre, resolveDeclRefExpr(ctx, fragment, decl));
-        resFragments.emplace_back(dre);
+      if (fragments.size() == 1 && decl->getAs<ExpectedDecl>()) {
+        referencedDecl = decl;
         break;
       }
     }
 
-    if (resFragments.empty())
-      return err::wrongDeclKind().at(fragment->location).report(reporter);
+    if (!referencedDecl) {
+      if (fragments.size() > 1)
+        return err::memberAccessInValue()
+            .at(fragments[current]->location)
+            .report(reporter);
+
+      return err::wrongDeclKind().at(dre->location).report(reporter);
+    }
+
+    varOrReturn(resDre, resolveDeclRefExpr(ctx, dre, referencedDecl));
+    resFragments.emplace_back(resDre);
   }
 
-  auto *dre = resFragments.back();
-  functionInfo->paths.emplace_back(dre);
+  while (current != fragments.size()) {
+    const ast::DeclRefExpr *dre = fragments[current].get();
+    ++current;
+
+    if (!resFragments.empty()) {
+      type = resFragments.back()->getType();
+      trait = nullptr;
+    }
+
+    assert(type && "missing type before associated lookup");
+
+    if (type->getAs<res::TraitType>())
+      return err::memberAccessInRawTrait().at(dre->location).report(reporter);
+
+    varOrReturn(resDre, resolveAssociatedDeclRef(ctx, dre, type, trait));
+    resFragments.emplace_back(resDre);
+  }
+
+  auto *resDre = resFragments.back();
+  functionInfo->paths.emplace_back(resDre);
 
   resFragments.pop_back();
-  dre->setPath(std::move(resFragments));
-  return dre;
+  resDre->setPath(std::move(resFragments));
+  return resDre;
 }
 
 res::DeclRefExpr *Sema::resolveDeclRefExpr(res::Context &ctx,
