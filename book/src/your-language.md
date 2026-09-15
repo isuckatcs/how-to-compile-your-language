@@ -4,11 +4,11 @@ Programming languages are usually created with a specific purpose in mind. C was
 
 _Your Language_, on the other hand, isn't designed to solve one particular programming problem. It is a small language designed to explore the techniques used to implement statically typed languages with generics, type inference, traits, closures, garbage collection, and native code generation.
 
-Throughout the following chapters, we’ll write a compiler from scratch for _Your Language_ and see how these features are implemented.
+Throughout the following chapters, you’ll write a compiler from scratch for _Your Language_ and see how these features are implemented.
 
 ## Clean Syntax
 
-The syntax of _Your Language_ draws inspiration from C, Kotlin, Rust, Swift, and Ruby.
+The syntax of _Your Language_ draws inspiration from C++, Kotlin, Rust, Swift, and Ruby.
 
 ```
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
 
 At the surface, syntax affects how easy a language is to read and write. Careful syntax design can also avoid ambiguities that parsers must otherwise resolve, such as the classic dangling `else` problem.
 
-The syntax of Your Language is therefore intentionally designed to make parsing straightforward and avoid common sources of ambiguity.
+The syntax of _Your Language_ is therefore intentionally designed to make parsing straightforward and avoid common sources of ambiguity.
 
 ## Native Code Generation
 
@@ -32,7 +32,7 @@ $ ./main
 
 LLVM is also used for code generation by Rust, Swift, Mojo, Kotlin/Native, and some C and C++ compilers.
 
-We'll also explore how _Your Language_ interacts with system libraries and what problems can arise when passing non-primitive arguments to functions by value.
+It also makes it easy for _Your Language_ to interact with system libraries and reuse existing logic to print values or allocate memory.
 
 ## Static Type System
 
@@ -113,13 +113,13 @@ fn main() {
 }
 ```
 
-In _Your Language_, generic types are invariant, and the compiler monomorphizes generic functions.
+In _Your Language_, every generic type is invariant. Since the language does not support subtyping, covariant and contravariant generic types would not provide any practical benefit to developers. Furthermore, unlike covariance, invariant generic types cannot lead to situations where a runtime type check is still required to ensure type safety.
 
-Later chapters also discuss how other languages handle generics using techniques such as type erasure, how they use covariant and contravariant generic types, and the relationship between variance and compile-time type safety.
+Generic functions are monomorphized by the compiler upon instantiation. This means that each instance of a generic function receives its own unique implementation.
 
 ## Type Inference
 
-Your Language allows generic parameters to be omitted and inferred from their context instead.
+_Your Language_ allows generic parameters to be omitted and inferred from their context instead.
 
 ```
 fn main() {
@@ -157,7 +157,7 @@ fn main() {
 }
 ```
 
-Traits can require other traits as prerequisites. They can define both type-level and instance-level functions, and provide default implementations for them. Trait functions without a default implementation must be implemented by the type that extends the trait.
+Traits can require other traits as prerequisites. They can define both type-level and instance-level functions, and provide default implementations for them. Trait functions without a default implementation must be implemented when the type is extended with the trait.
 
 When multiple traits provide functions with the same name, each extension remains separate, so the trait from which a function is dispatched must be specified explicitly.
 
@@ -187,9 +187,11 @@ fn main() {
 }
 ```
 
-Prefixing an expression with `gc` or `gc mut` allocates its result on the heap and returns a pointer to it, represented by `*` or `*mut`. A `*` type always denotes a pointer to a heap-allocated value. A `*mut` can be promoted to `*`, but not the other way around. If a value is allocated on the heap as immutable, it remains immutable for its entire lifetime.
+Prefixing an expression with `gc` or `gc mut` allocates its result on the heap and returns a pointer to it, represented by `*` or `*mut`. A `*` type always denotes a pointer to a heap-allocated value. 
 
-The implementation of _Your Language_ uses a tracing garbage collector to manage memory. Unlike reference counting, another popular memory-management technique, a tracing garbage collector automatically handles cyclic references. Developers don't need to worry about when memory can be reclaimed or how cycles should be handled. They can simply allocate values and use them.
+A `*mut` can be promoted to `*`, but not the other way around. If a value is allocated on the heap as immutable, it remains immutable for its entire lifetime.
+
+The implementation of _Your Language_ uses a tracing garbage collector to manage memory. Unlike reference counting, another popular memory-management technique, a tracing garbage collector automatically handles cyclic references.
 
 ## Heap-Allocated Closures
 
@@ -210,7 +212,9 @@ fn main() {
 }
 ```
 
-Working with closures in native languages can be difficult, especially when passing them to functions interchangeably with regular functions. _Your Language_ uses an approach inspired by Swift. Closures are allocated on the heap, and every function is represented as a closure, giving ordinary functions and capturing lambdas the same runtime representation.
+Working with closures on native targets can be difficult, especially when the language tries to preserve their interchangeability with regular functions.
+
+In _Your Language_, closures are allocated on the heap, and every function is represented as a closure, giving ordinary functions and capturing lambdas the same runtime representation.
 
 ## Definite Assignment
 
@@ -238,21 +242,23 @@ Mutability is explicit in _Your Language_ for both stack- and heap-allocated val
 
 ```
 fn main() {
-  let immutableStackValue: number = 0;
+  let stackValue: number = 0;
   mut mutableStackValue: number = 0;
 
-  let immutableHeapValue: *number = gc 0;
-  let mutableHeapValue: *mut number = gc mut 0;
+  let heapValuePointer: *number = gc 0;
+  let mutableHeapValuePointer: *mut number = gc mut 0;
 
-  // immutableStackValue = 1;
+  // stackValue = 1;
   mutableStackValue = 1;
 
-  // *immutableHeapValue = 1;
-  *mutableHeapValue = 1;
+  // *heapValuePointer = 1;
+  *mutableHeapValuePointer = 1;
 }
 ```
 
-An immutable storage location cannot be modified, regardless of how it is accessed. Mutable pointers and references, `*mut` and `&mut`, can be promoted to `*` and `&`, but immutable pointers and references cannot be used as mutable ones.
+An immutable storage location cannot be modified, regardless of how it is accessed. 
+
+Mutable pointers and references, `*mut` and `&mut`, can be promoted to `*` and `&`, but immutable pointers and references cannot be used as mutable ones.
 
 ## Reference Parameters
 
